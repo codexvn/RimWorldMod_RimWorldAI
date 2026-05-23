@@ -107,9 +107,6 @@ namespace RimWorldMCP.Skills
             };
         }
 
-        private static void Log(string msg)
-        {
-            Console.Error.WriteLine($"[RimWorldMCP][skills] {DateTime.Now:HH:mm:ss} {msg}");
-        }
+        private static void Log(string msg) => McpLog.Info($"[skills] {msg}");
     }
 }

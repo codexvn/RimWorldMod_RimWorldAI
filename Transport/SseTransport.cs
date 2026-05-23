@@ -182,10 +182,7 @@ namespace RimWorldMCP.Transport
             response.Close();
         }
 
-        private static void Log(string msg)
-        {
-            Console.Error.WriteLine($"[RimWorldMCP][sse] {DateTime.Now:HH:mm:ss} {msg}");
-        }
+        private static void Log(string msg) => McpLog.Info($"[sse] {msg}");
 
         private class SseSession : IDisposable
         {

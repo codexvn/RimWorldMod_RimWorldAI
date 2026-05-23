@@ -81,11 +81,11 @@ namespace RimWorldMCP
                 _cts = new CancellationTokenSource();
                 _transport.StartAsync(_cts.Token);
 
-                Log.Message($"[RimWorldMCP] MCP 服务已启动，端口: {DefaultPort}, 传输: http");
+                McpLog.Info($"MCP 服务已启动，端口: {DefaultPort}, 传输: http");
             }
             catch (Exception ex)
             {
-                Log.Error($"[RimWorldMCP] 启动失败: {ex.Message}");
+                McpLog.Error($"启动失败: {ex.Message}");
             }
         }
 
@@ -132,7 +132,7 @@ namespace RimWorldMCP
                 var modRoot = Path.GetFullPath(Path.Combine(asmDir, "..", ".."));
                 var skillsDir = Path.Combine(modRoot, "Skills");
 
-                Log.Message($"[RimWorldMCP] 尝试 Skills 路径: {skillsDir}");
+                McpLog.Info($"尝试 Skills 路径: {skillsDir}");
                 if (Directory.Exists(skillsDir))
                     return skillsDir;
 
@@ -143,7 +143,7 @@ namespace RimWorldMCP
             }
             catch (Exception ex)
             {
-                Log.Warning($"[RimWorldMCP] 查找 Skills 目录异常: {ex.Message}");
+                McpLog.Warn($"查找 Skills 目录异常: {ex.Message}");
             }
 
             return FallbackSkillsDir();

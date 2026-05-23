@@ -168,9 +168,6 @@ namespace RimWorldMCP.Mcp
             }
         }
 
-        private static void Log(string msg)
-        {
-            Console.Error.WriteLine($"[RimWorldMCP][mcp] {DateTime.Now:HH:mm:ss} {msg}");
-        }
+        private static void Log(string msg) => McpLog.Info(msg);
     }
 }
