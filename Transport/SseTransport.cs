@@ -112,23 +112,8 @@ namespace RimWorldMCP.Transport
             var request = context.Request;
             var response = context.Response;
 
-            // CORS
-            if (request.Headers.Get("Origin") != null)
-            {
-                response.Headers.Add("Access-Control-Allow-Origin", "*");
-                response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-                response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
-            }
-
             try
             {
-                if (request.HttpMethod == "OPTIONS")
-                {
-                    response.StatusCode = 204;
-                    response.Close();
-                    return;
-                }
-
                 if (request.Url?.AbsolutePath == "/sse" && request.HttpMethod == "GET")
                 {
                     await HandleSseConnect(context);
@@ -185,11 +170,6 @@ namespace RimWorldMCP.Transport
             response.ContentType = "text/event-stream";
             response.Headers.Add("Cache-Control", "no-cache");
             response.Headers.Add("Connection", "keep-alive");
-
-            if (context.Request.Headers.Get("Origin") != null)
-            {
-                response.Headers.Add("Access-Control-Allow-Origin", "*");
-            }
 
             var session = new SseSession(sessionId, response);
             _sessions[sessionId] = session;
