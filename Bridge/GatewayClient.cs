@@ -25,7 +25,8 @@ namespace RimWorldMCP
         // 设备身份（ED25519），首次使用时生成
         private static Ed25519PrivateKeyParameters? _deviceKey;
         private static string? _deviceId;
-        private static string? _devicePublicKeyBase64;
+        private static string? _devicePublicKeyBase64Url;
+        private static byte[]? _devicePublicKeyRaw;
         private static ClientState _state = ClientState.Disconnected;
         private static TaskCompletionSource<bool>? _helloOk;
         private static int _tickIntervalMs = 30000; // 默认 30s，hello-ok 可能覆盖
@@ -131,28 +132,44 @@ namespace RimWorldMCP
             rng.GetBytes(seed);
             _deviceKey = new Ed25519PrivateKeyParameters(seed, 0);
             var pubKey = _deviceKey.GeneratePublicKey();
-            _devicePublicKeyBase64 = Convert.ToBase64String(pubKey.GetEncoded());
-            // device id = SHA-256 of public key 的前 16 字节 hex
+            var pubKeyDer = pubKey.GetEncoded(); // SPKI DER: 12-byte prefix + 32-byte raw key
+            _devicePublicKeyRaw = new byte[32];
+            Array.Copy(pubKeyDer, 12, _devicePublicKeyRaw, 0, 32);
+
+            // base64url: raw 32 bytes
+            _devicePublicKeyBase64Url = Base64UrlEncode(_devicePublicKeyRaw);
+
+            // deviceId = SHA256(raw 32 bytes) hex (full 64 chars)
             using var sha = SHA256.Create();
-            var hash = sha.ComputeHash(pubKey.GetEncoded());
-            _deviceId = BitConverter.ToString(hash, 0, 16).Replace("-", "").ToLowerInvariant();
+            var hash = sha.ComputeHash(_devicePublicKeyRaw);
+            _deviceId = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
 
-        private static string SignDevicePayload(string nonce)
+        // V3 签名载荷 (与 OpenClaw Gateway 参考客户端一致)
+        // "v3|<deviceId>|<clientId>|<clientMode>|<role>|<scopes>|<signedAtMs>|<token>|<nonce>|<platform>|<deviceFamily>"
+        private static string SignDevicePayload(string nonce, long signedAtMs, string platform)
         {
-            // v2 签名载荷: device.id + client.id + role + scope+list + token + nonce
-            var scopeList = string.Join(" ", new[] { "operator.read", "operator.write" });
-            var payload = $"{_deviceId}\ngateway-client\noperator\n{scopeList}\n{_token}\n{nonce}";
+            var scopes = "operator.read,operator.write";
+            var payload = $"v3|{_deviceId}|gateway-client|backend|operator|{scopes}|{signedAtMs}|{_token}|{nonce}|{platform}|";
             var data = Encoding.UTF8.GetBytes(payload);
             var signer = new Ed25519Signer();
             signer.Init(true, _deviceKey);
             signer.BlockUpdate(data, 0, data.Length);
-            return Convert.ToBase64String(signer.GenerateSignature());
+            return Base64UrlEncode(signer.GenerateSignature());
+        }
+
+        private static string Base64UrlEncode(byte[] data)
+        {
+            return Convert.ToBase64String(data).Replace('+', '-').Replace('/', '_').TrimEnd('=');
         }
 
         private static async Task SendChallengeResponse(string nonce)
         {
             EnsureDeviceIdentity();
+
+            var platform = Environment.OSVersion.Platform.ToString().Contains("Win") ? "windows"
+                : Environment.OSVersion.Platform.ToString().Contains("Mac") ? "macos" : "linux";
+            var signedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             var connectParams = new
             {
@@ -163,8 +180,7 @@ namespace RimWorldMCP
                     id = "gateway-client",
                     displayName = "RimWorldMCP",
                     version = "1.0",
-                    platform = Environment.OSVersion.Platform.ToString().Contains("Win") ? "windows"
-                        : Environment.OSVersion.Platform.ToString().Contains("Mac") ? "macos" : "linux",
+                    platform,
                     mode = "backend"
                 },
                 role = "operator",
@@ -181,9 +197,9 @@ namespace RimWorldMCP
                 device = new
                 {
                     id = _deviceId,
-                    publicKey = _devicePublicKeyBase64,
-                    signature = SignDevicePayload(nonce),
-                    signedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    publicKey = _devicePublicKeyBase64Url,
+                    signature = SignDevicePayload(nonce, signedAt, platform),
+                    signedAt,
                     nonce
                 }
             };
