@@ -88,9 +88,17 @@ namespace RimWorldMCP
 
         public static string GetPublicUrl(string objectKey)
         {
-            return McpOssConfig.ForcePathStyle
-                ? $"{McpOssConfig.ServiceUrl}/{McpOssConfig.BucketName}/{objectKey}"
-                : $"https://{McpOssConfig.BucketName}.{new Uri(McpOssConfig.ServiceUrl).Host}/{objectKey}";
+            if (McpOssConfig.ForcePathStyle)
+                return $"{McpOssConfig.ServiceUrl}/{McpOssConfig.BucketName}/{objectKey}";
+
+            try
+            {
+                return $"https://{McpOssConfig.BucketName}.{new Uri(McpOssConfig.ServiceUrl).Host}/{objectKey}";
+            }
+            catch (UriFormatException)
+            {
+                return $"{McpOssConfig.ServiceUrl}/{McpOssConfig.BucketName}/{objectKey}";
+            }
         }
     }
 }

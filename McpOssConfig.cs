@@ -25,7 +25,7 @@ namespace RimWorldMCP
             if (settings == null) return;
 
             Enabled = settings.OssEnabled;
-            ServiceUrl = settings.OssServiceUrl ?? "";
+            ServiceUrl = NormalizeUrl(settings.OssServiceUrl ?? "");
             BucketName = settings.OssBucketName ?? "";
             AccessKey = settings.OssAccessKey ?? "";
             SecretKey = settings.OssSecretKey ?? "";
@@ -35,6 +35,19 @@ namespace RimWorldMCP
             McpLog.Info(IsConfigured
                 ? $"OSS 配置已加载: {ServiceUrl}/{BucketName}"
                 : "OSS 未配置或未启用");
+        }
+
+        private static string NormalizeUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return "";
+            url = url.Trim();
+            if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+             && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                url = "https://" + url;
+            }
+            url = url.TrimEnd('/');
+            return url;
         }
     }
 }
