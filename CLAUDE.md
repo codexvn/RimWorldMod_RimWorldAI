@@ -65,6 +65,81 @@ RimWorld 返回主菜单时 `Game.Dispose()` 不通知 GameComponent，导致上
 - `HttpListenerException` 错误码中文诊断（5=拒绝访问, 183=端口占用）
 - `_transport` 在 `StartAsync()` 成功后才赋值，失败保持 null 允许下次重试
 
+## OpenClaw Gateway 桥接
+
+McpClient 作为 WebSocket 客户端连接 OpenClaw Gateway（默认 `ws://127.0.0.1:18789`），支持双模式握手。
+
+### 连接流程（模式 A — Gateway 真实协议）
+
+```
+1. WebSocket 连接  ws://127.0.0.1:18789
+2. 启动 ReceiveLoop 后台接收
+3. 等待 Gateway 发送 connect.challenge 事件
+4. 收到 challenge 后发送 connect RPC 请求
+5. 等待 hello-ok 响应
+6. 握手完成，进入 Ready
+```
+
+**Step 1: 收到 challenge**
+```json
+{"type":"evt","event":"connect.challenge","payload":{"nonce":"xxx"}}
+```
+
+**Step 2: 发送 connect RPC**
+```json
+{
+  "type": "req",
+  "id": "uuid8",
+  "method": "connect",
+  "params": {
+    "minProtocol": 3,
+    "maxProtocol": 3,
+    "client": { "id": "gateway-client", "displayName": "RimWorldMCP", "version": "1.0", "platform": "windows", "mode": "backend" },
+    "caps": ["tool-events"],
+    "auth": { "token": "...", "password": null, "deviceToken": null },
+    "device": { "id": "rimworld-mcp", "nonce": "xxx" }
+  }
+}
+```
+
+**Step 3: 收到 hello-ok**
+```json
+{"type":"res","ok":true,"payload":{"type":"hello-ok","server":{"version":"...","connId":"..."}}}
+```
+
+### 连接流程（模式 B — 简易兼容，15 秒超时降级）
+
+Gateway 未发送 challenge 时自动降级：
+```json
+{"type":"connect","role":"client","client":"csharp"}
+{"type":"auth","token":"..."}
+```
+
+### RPC 请求
+```json
+{"type":"req","id":"1","method":"agent.send","params":{"text":"hello"}}
+```
+
+### 事件流
+```json
+{"type":"event","event":"message","payload":{"text":"..."}}
+```
+
+### RPC 响应
+```json
+{"type":"res","id":"1","ok":true,"payload":{...}}
+```
+
+### 心跳
+```json
+{"type":"ping"}
+```
+
+### 设置
+
+游戏内 Options → Mod 设置 → RimWorld MCP → 桥接器按钮
+或游戏右下角工具栏 "MCP 桥接" 按钮。
+
 ## 部署
 
 ```bash
