@@ -74,6 +74,14 @@ namespace RimWorldMCP.Tools
 
                     var pawnShortName = pawn.Name.ToStringShort;
                     var workLabel = workTypeDef.labelShort ?? workTypeDef.label ?? workTypeDefName;
+                    var sb = new StringBuilder();
+
+                    // 自动开启自定义优先级（等同 UI 勾选"手动优先级"复选框）
+                    if (!Current.Game.playSettings.useWorkPriorities)
+                    {
+                        Current.Game.playSettings.useWorkPriorities = true;
+                        sb.AppendLine("已自动开启手动工作优先级。");
+                    }
 
                     // 执行设置
                     if (priority != 0 && pawn.WorkTypeIsDisabled(workTypeDef))
@@ -90,8 +98,6 @@ namespace RimWorldMCP.Tools
                         4 => "最低优先 (4)",
                         _ => $"优先级 {priority}"
                     };
-
-                    var sb = new StringBuilder();
                     sb.AppendLine($"已更新 {pawnShortName} 的工作优先级:");
                     sb.AppendLine($"- 工作: {workLabel} ({workTypeDefName})");
                     sb.AppendLine($"- 优先级: {priorityText}");
