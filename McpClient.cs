@@ -53,15 +53,9 @@ namespace RimWorldMCP
                 // Step 3: 启动接收循环（等待事件流）
                 _ = ReceiveLoop(_cts.Token);
 
-                // Step 4: 等待 ready（最多 10 秒）
-                var deadline = DateTime.UtcNow.AddSeconds(10);
-                while (_state == ClientState.Handshake && DateTime.UtcNow < deadline)
-                    await Task.Delay(100);
-
-                if (_state == ClientState.Ready)
-                    McpLog.Info("[ws] 握手完成");
-                else
-                    McpLog.Warn("[ws] 握手超时，未收到 ready");
+                // Step 4: 握手完成，直接进入 Ready
+                _state = ClientState.Ready;
+                McpLog.Info("[ws] 握手完成");
             }
             catch (Exception ex)
             {
@@ -148,10 +142,6 @@ namespace RimWorldMCP
                                 case "event":
                                     if (root.TryGetProperty("event", out var ev) && root.TryGetProperty("payload", out var pl))
                                         text = $"⚡ {ev.GetString()}: {pl}";
-                                    break;
-                                case "ready":
-                                    _state = ClientState.Ready;
-                                    McpLog.Info("[ws] 收到 ready");
                                     break;
                             }
                         }
