@@ -153,17 +153,25 @@ namespace RimWorldMCP.Tools
                     int placedWalls = 0, placedDoors = 0, placedFloors = 0;
                     var errors = new List<string>();
 
+                    // 地图边界检查
+                    int mapW = map.Size.x, mapH = map.Size.z;
+                    if (startX < 0 || startY < 0 || endX >= mapW || endY >= mapH)
+                        return ToolResult.Error($"房间范围 ({startX}~{endX}, {startY}~{endY}) 超出地图边界 (0~{mapW - 1}, 0~{mapH - 1})。请选择更靠内的中心点或缩小房间。");
+
+                    // 材料默认
+                    var wallStuff = (wallDef.MadeFromStuff) ? ThingDef.Named("Steel") : null;
+                    var doorStuff = (doorDef?.MadeFromStuff == true) ? ThingDef.Named("Steel") : null;
+
                     // 放置墙体（在门位置处替换为门）
                     foreach (var (wx, wy) in wallPositions)
                     {
                         if (doorPosSet.Contains((wx, wy)))
                         {
-                            // 此位置放门而非墙
                             try
                             {
                                 GenConstruct.PlaceBlueprintForBuild(
                                     (BuildableDef)doorDef!, new IntVec3(wx, wy, centerZ),
-                                    map, Rot4.North, Faction.OfPlayer, null);
+                                    map, Rot4.North, Faction.OfPlayer, doorStuff);
                                 placedDoors++;
                             }
                             catch (Exception ex)
@@ -173,12 +181,11 @@ namespace RimWorldMCP.Tools
                         }
                         else
                         {
-                            // 放墙
                             try
                             {
                                 GenConstruct.PlaceBlueprintForBuild(
                                     (BuildableDef)wallDef, new IntVec3(wx, wy, centerZ),
-                                    map, Rot4.North, Faction.OfPlayer, null);
+                                    map, Rot4.North, Faction.OfPlayer, wallStuff);
                                 placedWalls++;
                             }
                             catch (Exception ex)
@@ -188,6 +195,7 @@ namespace RimWorldMCP.Tools
                         }
                     }
 
+                    var floorStuff = (floorDef?.MadeFromStuff == true) ? ThingDef.Named("Steel") : null;
                     // 放置地板
                     if (floorCount > 0 && floorDef != null)
                     {
@@ -197,7 +205,7 @@ namespace RimWorldMCP.Tools
                             {
                                 GenConstruct.PlaceBlueprintForBuild(
                                     (BuildableDef)floorDef, new IntVec3(fx, fy, centerZ),
-                                    map, Rot4.North, Faction.OfPlayer, null);
+                                    map, Rot4.North, Faction.OfPlayer, floorStuff);
                                 placedFloors++;
                             }
                             catch (Exception ex)
