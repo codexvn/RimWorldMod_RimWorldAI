@@ -157,7 +157,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_GetDefenseStatus());
             registry.Register(new Tool_GetTileGrid());
             registry.Register(new Tool_GetTileDetail());
-            registry.Register(new Tool_GetAlerts());
+            registry.Register(new Tool_CheckColony());
             registry.Register(new Tool_GetSkills(skillRegistry));
             registry.Register(new Tool_ActiveSkill(skillRegistry));
         }

@@ -10,9 +10,9 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_GetAlerts : ITool
+    public class Tool_CheckColony : ITool
     {
-        public string Name => "get_alerts";
+        public string Name => "check_colony";
         public string Description =>
             "获取殖民地当前需关注的提醒。应在完成操作后或等待期间定期调用此工具检查是否有新问题。" +
             "返回内容包括空闲殖民者、资源短缺、崩溃风险、受伤、威胁等。如无问题则返回简短确认。";
