@@ -55,29 +55,13 @@ namespace RimWorldMCP.Tools
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外。");
 
-                    int designated = 0, skipped = 0, fogged = 0, noMineable = 0;
-                    var productSummary = new System.Collections.Generic.Dictionary<string, int>();
+                    var designator = new Designator_Mine();
+                    int designated = 0, skipped = 0;
 
                     foreach (IntVec3 cell in area)
                     {
-                        if (cell.Fogged(map)) { fogged++; continue; }
-                        if (map.designationManager.DesignationAt(cell, DesignationDefOf.Mine) != null)
-                        { skipped++; continue; }
-
-                        Mineable mineable = cell.GetFirstMineable(map);
-                        if (mineable == null) { noMineable++; continue; }
-
-                        map.designationManager.AddDesignation(new Designation(cell, DesignationDefOf.Mine, null));
-                        map.designationManager.TryRemoveDesignation(cell, DesignationDefOf.SmoothWall);
-                        if (DesignationDefOf.MineVein != null)
-                            map.designationManager.TryRemoveDesignation(cell, DesignationDefOf.MineVein);
-
-                        string? product = mineable.def.building?.mineableThing?.label;
-                        if (!string.IsNullOrEmpty(product))
-                        {
-                            productSummary.TryGetValue(product!, out int cnt);
-                            productSummary[product!] = cnt + 1;
-                        }
+                        if (!designator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
+                        designator.DesignateSingleCell(cell);
                         designated++;
                     }
 
@@ -85,18 +69,7 @@ namespace RimWorldMCP.Tools
                     sb.Append(isRange
                         ? $"已标记采矿范围 ({minX},{minZ})~({maxX},{maxZ})：{designated} 格"
                         : $"已标记采矿坐标 ({posX}, {posY})：{designated} 格");
-                    if (designated > 0 && productSummary.Count > 0)
-                    {
-                        sb.Append("，预期产出: ");
-                        bool first = true;
-                        foreach (var kv in productSummary)
-                        {
-                            if (!first) sb.Append(", ");
-                            sb.Append($"{kv.Value}x {kv.Key}");
-                            first = false;
-                        }
-                    }
-                    sb.Append($"。（跳过: 迷雾 {fogged}, 无矿物 {noMineable}, 已有标记 {skipped}）");
+                    sb.Append($"。（跳过 {skipped} 格）");
 
                     return ToolResult.Success(sb.ToString());
                 }

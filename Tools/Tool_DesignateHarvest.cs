@@ -55,33 +55,21 @@ namespace RimWorldMCP.Tools
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外。");
 
-                    int harvested = 0, skipped = 0, fogged = 0, noPlant = 0, notReady = 0;
+                    var designator = new Designator_PlantsHarvest();
+                    int designated = 0, skipped = 0;
 
                     foreach (IntVec3 cell in area)
                     {
-                        if (cell.Fogged(map)) { fogged++; continue; }
-
-                        Plant plant = cell.GetPlant(map);
-                        if (plant == null) { noPlant++; continue; }
-                        if (plant.def.plant == null) { noPlant++; continue; }
-
-                        // 仅收割 harvestTag="Standard" 且已成熟的作物（对齐 Designator_PlantsHarvest）
-                        if (plant.def.plant.harvestTag != "Standard") { noPlant++; continue; }
-                        if (!plant.HarvestableNow) { notReady++; continue; }
-
-                        if (map.designationManager.DesignationOn(plant, DesignationDefOf.HarvestPlant) != null)
-                        { skipped++; continue; }
-
-                        map.designationManager.RemoveAllDesignationsOn(plant, false);
-                        map.designationManager.AddDesignation(new Designation(plant, DesignationDefOf.HarvestPlant, null));
-                        harvested++;
+                        if (!designator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
+                        designator.DesignateSingleCell(cell);
+                        designated++;
                     }
 
                     var sb = new StringBuilder();
                     sb.Append(isRange
-                        ? $"已标记收割范围 ({minX},{minZ})~({maxX},{maxZ})：{harvested} 株"
-                        : $"已标记收割坐标 ({posX}, {posY})：{harvested} 株");
-                    sb.Append($"。（跳过: 迷雾 {fogged}, 无作物 {noPlant}, 未成熟 {notReady}, 已有标记 {skipped}）");
+                        ? $"已标记收割范围 ({minX},{minZ})~({maxX},{maxZ})：{designated} 株"
+                        : $"已标记收割坐标 ({posX}, {posY})：{designated} 株");
+                    sb.Append($"。（跳过 {skipped} 格）");
 
                     return ToolResult.Success(sb.ToString());
                 }

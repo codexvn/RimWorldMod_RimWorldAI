@@ -60,43 +60,34 @@ namespace RimWorldMCP.Tools
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外。");
 
-                    int cut = 0, skipped = 0, fogged = 0, noPlant = 0, filtered = 0, prevented = 0;
+                    var designator = new Designator_PlantsCut();
+                    int designated = 0, skipped = 0, filtered = 0;
 
                     foreach (IntVec3 cell in area)
                     {
-                        if (cell.Fogged(map)) { fogged++; continue; }
+                        if (cell.Fogged(map)) { skipped++; continue; }
 
-                        Plant plant = cell.GetPlant(map);
-                        if (plant == null) { noPlant++; continue; }
-                        if (plant.def.plant == null) { noPlant++; continue; }
-
-                        if (plant.TryGetComp<CompPlantPreventCutting>(out var comp) && comp.PreventCutting)
-                        { prevented++; continue; }
-
+                        // plant_defName 前置过滤
                         if (!string.IsNullOrEmpty(plantDefName))
                         {
+                            Plant plant = cell.GetPlant(map);
+                            if (plant == null) { filtered++; continue; }
                             bool match = plant.def.defName.Equals(plantDefName, StringComparison.OrdinalIgnoreCase)
                                       || (plant.def.label != null && plant.def.label.IndexOf(plantDefName, StringComparison.OrdinalIgnoreCase) >= 0);
                             if (!match) { filtered++; continue; }
                         }
 
-                        if (map.designationManager.DesignationOn(plant, DesignationDefOf.CutPlant) != null)
-                        { skipped++; continue; }
-
-                        map.designationManager.RemoveAllDesignationsOn(plant, false);
-                        map.designationManager.AddDesignation(new Designation(plant, DesignationDefOf.CutPlant, null));
-                        if (DesignationDefOf.ExtractTree != null)
-                            map.designationManager.TryRemoveDesignationOn(plant, DesignationDefOf.ExtractTree);
-
-                        cut++;
+                        if (!designator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
+                        designator.DesignateSingleCell(cell);
+                        designated++;
                     }
 
                     var sb = new StringBuilder();
                     string filterInfo = !string.IsNullOrEmpty(plantDefName) ? $"（过滤: {plantDefName}）" : "";
                     sb.Append(isRange
-                        ? $"已标记砍伐范围 ({minX},{minZ})~({maxX},{maxZ}){filterInfo}：{cut} 株"
-                        : $"已标记砍伐坐标 ({posX}, {posY}){filterInfo}：{cut} 株");
-                    sb.Append($"。（跳过: 迷雾 {fogged}, 无植物 {noPlant}, 被禁止 {prevented}, 不匹配过滤 {filtered}, 已有标记 {skipped}）");
+                        ? $"已标记砍伐范围 ({minX},{minZ})~({maxX},{maxZ}){filterInfo}：{designated} 株"
+                        : $"已标记砍伐坐标 ({posX}, {posY}){filterInfo}：{designated} 株");
+                    sb.Append($"。（跳过 {skipped}，不匹配过滤 {filtered}）");
 
                     return ToolResult.Success(sb.ToString());
                 }

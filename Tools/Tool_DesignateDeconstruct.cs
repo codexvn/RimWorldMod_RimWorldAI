@@ -56,28 +56,13 @@ namespace RimWorldMCP.Tools
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外。");
 
-                    if (Faction.OfPlayer == null)
-                        return ToolResult.Error("玩家派系不存在");
-
-                    int designated = 0, skipped = 0, fogged = 0, noBuilding = 0;
+                    var designator = new Designator_Deconstruct();
+                    int designated = 0, skipped = 0;
 
                     foreach (IntVec3 cell in area)
                     {
-                        if (cell.Fogged(map)) { fogged++; continue; }
-
-                        // 按海拔降序找到第一个可拆除建筑（模仿 Designator_Deconstruct.TopDeconstructibleInCell）
-                        Building? building = map.thingGrid.ThingsAt(cell)
-                            .Where(t => t is Building b && b.def.category == ThingCategory.Building)
-                            .OrderByDescending(t => t.def.altitudeLayer)
-                            .FirstOrDefault() as Building;
-
-                        if (building == null) { noBuilding++; continue; }
-
-                        if (!building.DeconstructibleBy(Faction.OfPlayer).Accepted) { skipped++; continue; }
-                        if (map.designationManager.DesignationOn(building, DesignationDefOf.Deconstruct) != null) { skipped++; continue; }
-                        if (map.designationManager.DesignationOn(building, DesignationDefOf.Uninstall) != null) { skipped++; continue; }
-
-                        map.designationManager.AddDesignation(new Designation(building, DesignationDefOf.Deconstruct, null));
+                        if (!designator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
+                        designator.DesignateSingleCell(cell);
                         designated++;
                     }
 
@@ -85,7 +70,7 @@ namespace RimWorldMCP.Tools
                     sb.Append(isRange
                         ? $"已标记拆除范围 ({minX},{minZ})~({maxX},{maxZ})：{designated} 个建筑"
                         : $"已标记拆除坐标 ({posX}, {posY})：{designated} 个建筑");
-                    sb.Append($"。（跳过: 迷雾 {fogged}, 无可拆除建筑 {noBuilding}, 已有标记/不可拆 {skipped}）");
+                    sb.Append($"。（跳过 {skipped} 格）");
 
                     return ToolResult.Success(sb.ToString());
                 }
