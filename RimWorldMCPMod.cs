@@ -24,6 +24,32 @@ namespace RimWorldMCP
             var listing = new Listing_Standard();
             listing.Begin(inRect);
 
+            // ====== 桥接器 ======
+            listing.Label("桥接器类型");
+            if (listing.ButtonText(Settings.BridgeType < McpModSettings.BridgeTypeLabels.Length
+                ? McpModSettings.BridgeTypeLabels[Settings.BridgeType]
+                : "未知"))
+            {
+                Settings.BridgeType = (Settings.BridgeType + 1) % McpModSettings.BridgeTypeLabels.Length;
+            }
+
+            if (Settings.BridgeType > 0)
+            {
+                // OpenClaw
+                listing.Label("MCP 端点 URL");
+                listing.Label("示例: http://localhost:8080/mcp");
+                Settings.BridgeUrl = listing.TextEntry(Settings.BridgeUrl);
+
+                listing.Label("Token");
+                Settings.BridgeToken = listing.TextEntry(Settings.BridgeToken);
+
+                listing.Label("Password");
+                Settings.BridgePassword = listing.TextEntry(Settings.BridgePassword);
+            }
+
+            listing.Gap(24f);
+
+            // ====== OSS ======
             listing.CheckboxLabeled("启用 OSS 上传", ref Settings.OssEnabled,
                 "开启后，截图将自动上传到阿里云 OSS");
 

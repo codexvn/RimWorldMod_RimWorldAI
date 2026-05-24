@@ -16,7 +16,6 @@ namespace RimWorldMCP
         private CancellationTokenSource? _cts;
         private static ITransport? s_activeTransport;
         private const int DefaultPort = 9877;
-        private const string RemoteBridgeUrl = ""; // TODO: 设为 OpenClaw 的 MCP 端点，如 "http://localhost:8080/mcp"
 
         public GameComponent_McpServer(Game game)
         {
@@ -39,7 +38,7 @@ namespace RimWorldMCP
             base.GameComponentUpdate();
             McpLog.Flush();
             McpCommandQueue.ProcessPending();
-            McpEventMonitor.Tick(_transport);
+            McpEventMonitor.Tick();
             McpOssUploader.ProcessPendingUploads();
             McpCommandQueue.ProcessDeferredCleanup();
         }
@@ -115,8 +114,13 @@ namespace RimWorldMCP
 
         private static async Task ConnectToRemoteBridge()
         {
-            if (string.IsNullOrEmpty(RemoteBridgeUrl)) return;
-            await McpClient.Connect(RemoteBridgeUrl);
+            var settings = RimWorldMCPMod.Instance?.Settings;
+            if (settings == null || settings.BridgeType == 0 || string.IsNullOrEmpty(settings.BridgeUrl))
+                return;
+
+            bool ok = await McpClient.Connect(settings.BridgeUrl, settings.BridgeToken, settings.BridgePassword);
+            if (ok)
+                McpLog.Info($"[bridge] 已连接到 {McpModSettings.BridgeTypeLabels[settings.BridgeType]}: {settings.BridgeUrl}");
         }
 
         private void StopMcpService()

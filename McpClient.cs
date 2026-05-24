@@ -16,10 +16,14 @@ namespace RimWorldMCP
         private static int _nextId = 100;
 
         /// <summary>连接到远程 MCP 服务器</summary>
-        public static async Task<bool> Connect(string endpoint)
+        public static async Task<bool> Connect(string endpoint, string token, string password)
         {
             _endpoint = endpoint.TrimEnd('/');
             _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            if (!string.IsNullOrEmpty(token))
+                _http.DefaultRequestHeaders.Add("token", token);
+            if (!string.IsNullOrEmpty(password))
+                _http.DefaultRequestHeaders.Add("password", password);
 
             try
             {
