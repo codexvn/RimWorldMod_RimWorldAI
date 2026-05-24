@@ -27,24 +27,109 @@ namespace RimWorldMCP.Tools
             required = new[] { "min_x", "min_y", "max_x", "max_y" }
         });
 
+        // 完整图例映射表（动态输出时只显示实际用到的符号）
         private static readonly Dictionary<char, string> LegendMap = new()
         {
+            // 建筑
             ['#'] = "墙",
-            ['B'] = "建筑",
             ['D'] = "门",
+            ['B'] = "建筑",
+            ['⊞'] = "工作台",
+            ['◻'] = "床",
+            ['☈'] = "炮塔",
             ['∎'] = "蓝图/框架",
+            // 物品
+            ['↑'] = "武器",
+            ['▢'] = "衣物/护甲",
+            ['+'] = "药品",
+            ['!'] = "成瘾品",
+            ['%'] = "食物",
+            ['◇'] = "零件",
+            ['●'] = "原材料",
+            ['☠'] = "尸体",
             ['○'] = "物品",
+            // 植物与区域
             [';'] = "作物",
             ['♣'] = "树",
             ['='] = "种植区",
             ['S'] = "储存区",
+            // 地形
             ['~'] = "水面",
             ['≈'] = "泥地",
             ['·'] = "沙地",
             ['.'] = "土地",
+            [':'] = "沃土",
             [','] = "砾石",
             ['?'] = "未知"
         };
+
+        // 物品属性匹配规则（按优先级，首次命中即返回）
+        private static readonly List<(Func<ThingDef, bool> Match, char Symbol)> ItemRules = new()
+        {
+            (d => d.IsWeapon || d.IsRangedWeapon || d.IsMeleeWeapon, '↑'),
+            (d => d.IsApparel,                                    '▢'),
+            (d => d.IsMedicine,                                   '+'),
+            (d => d.IsDrug,                                        '!'),
+            (d => d.IsNutritionGivingIngestible,                   '%'),
+            (d => d.defName.Contains("Component"),                 '◇'),
+            (d => d.IsStuff,                                       '●'),
+        };
+
+        // 常见物品 defName → 符号精确映射（优先于属性规则）
+        private static readonly Dictionary<string, char> KnownItemIcons = new()
+        {
+            ["MealSimple"] = '%', ["MealFine"] = '%', ["MealLavish"] = '%',
+            ["MealSurvivalPack"] = '%', ["MealNutrientPaste"] = '%',
+            ["MedicineHerbal"] = '+', ["MedicineIndustrial"] = '+', ["MedicineUltratech"] = '+',
+            ["ComponentIndustrial"] = '◇', ["ComponentSpacer"] = '◆',
+            ["Steel"] = '●', ["WoodLog"] = '●', ["Plasteel"] = '●',
+            ["Silver"] = '●', ["Gold"] = '●', ["Uranium"] = '●',
+            ["Chemfuel"] = '●', ["Cloth"] = '●', ["Synthread"] = '●',
+            ["Hyperweave"] = '●', ["DevilstrandCloth"] = '●',
+            ["Corpse"] = '☠',
+        };
+
+        private static char GetItemIcon(Thing item)
+        {
+            var def = item.def;
+
+            // 尸体特殊处理
+            if (item is Corpse) return '☠';
+
+            // 精确 defName 匹配
+            if (KnownItemIcons.TryGetValue(def.defName, out var icon))
+                return icon;
+
+            // 属性规则匹配
+            foreach (var (match, symbol) in ItemRules)
+                if (match(def)) return symbol;
+
+            // Fallback: 基于 defName 的确定性单字符（小写字母 a-z）
+            return (char)('a' + Math.Abs(def.defName.GetHashCode()) % 26);
+        }
+
+        private static char GetBuildingIcon(Building b)
+        {
+            var def = b.def;
+            if (def.altitudeLayer == AltitudeLayer.DoorMoveable) return 'D';
+            if (b is Building_Turret) return '☈';
+            if (b is Building_WorkTable) return '⊞';
+            if (b is Building_Bed) return '◻';
+            // 墙体 (altitudeLayer 低于 Building)
+            return def.altitudeLayer >= AltitudeLayer.Building ? 'B' : '#';
+        }
+
+        private static char GetTerrainIcon(TerrainDef terrain)
+        {
+            var dn = terrain.defName;
+            if (dn.Contains("Water") || dn.Contains("Marsh")) return '~';
+            if (dn.Contains("Mud")) return '≈';
+            if (dn.Contains("Sand")) return '·';
+            if (dn.Contains("Rich")) return ':';
+            if (dn.Contains("Soil")) return '.';
+            if (dn.Contains("Gravel")) return ',';
+            return '.';
+        }
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
@@ -91,8 +176,7 @@ namespace RimWorldMCP.Tools
                             var b = pos.GetEdifice(map);
                             if (b != null)
                             {
-                                ch = b.def.altitudeLayer == AltitudeLayer.DoorMoveable ? 'D'
-                                    : b.def.altitudeLayer >= AltitudeLayer.Building ? 'B' : '#';
+                                ch = GetBuildingIcon(b);
                                 grid[row][col] = ch; usedSymbols.Add(ch); continue;
                             }
 
@@ -101,9 +185,9 @@ namespace RimWorldMCP.Tools
                             if (bp != null)
                             { ch = '∎'; grid[row][col] = ch; usedSymbols.Add(ch); continue; }
 
-                            var item = things.FirstOrDefault(t => t.def.category == ThingCategory.Item);
+                            var item = things.FirstOrDefault(t => t.def.category == ThingCategory.Item || t is Corpse);
                             if (item != null)
-                            { ch = '○'; grid[row][col] = ch; usedSymbols.Add(ch); continue; }
+                            { ch = GetItemIcon(item); grid[row][col] = ch; usedSymbols.Add(ch); continue; }
 
                             var plant = pos.GetPlant(map);
                             if (plant != null)
@@ -116,14 +200,7 @@ namespace RimWorldMCP.Tools
                             { ch = 'S'; grid[row][col] = ch; usedSymbols.Add(ch); continue; }
 
                             var terrain = map.terrainGrid.TerrainAt(pos);
-                            ch = terrain != null
-                                ? terrain.defName.Contains("Water") || terrain.defName.Contains("Marsh") ? '~'
-                                : terrain.defName.Contains("Mud") ? '≈'
-                                : terrain.defName.Contains("Sand") ? '·'
-                                : terrain.defName.Contains("Soil") || terrain.defName.Contains("Rich") ? '.'
-                                : terrain.defName.Contains("Gravel") ? ','
-                                : '.'
-                                : '?';
+                            ch = terrain != null ? GetTerrainIcon(terrain) : '?';
                             grid[row][col] = ch; usedSymbols.Add(ch);
                         }
                     }
