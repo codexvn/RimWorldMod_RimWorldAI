@@ -203,6 +203,11 @@ namespace RimWorldMCP
             registry.Register(new Tool_GetThingDef());
             registry.Register(new Tool_SearchThingDef());
             registry.Register(new Tool_MovePawn());
+            registry.Register(new Tool_UninstallBuilding());
+            registry.Register(new Tool_InstallMinifiedThing());
+            registry.Register(new Tool_FindEnemies());
+            registry.Register(new Tool_AttackPawn());
+            registry.Register(new Tool_ForceAttack());
         }
 
         private static string FindSkillsDirectory()
