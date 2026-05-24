@@ -86,6 +86,10 @@ namespace RimWorldMCP.Tools
                         if (stuff == null)
                             return ToolResult.Error($"找不到材料 ThingDef: {stuffDefName}");
                     }
+                    else if (def is ThingDef td && td.MadeFromStuff)
+                    {
+                        stuff = ThingDef.Named("Steel");
+                    }
 
                     IntVec3 pos = new IntVec3(posX, posY, posZ);
                     GenConstruct.PlaceBlueprintForBuild(
