@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using RimWorldMCP.Harmony;
 using RimWorldMCP.Mcp;
 
 namespace RimWorldMCP.Tools
@@ -65,14 +66,16 @@ namespace RimWorldMCP.Tools
         private static async Task<string> BuildGameMessageSuffixAsync()
         {
             var buffered = new List<string>();
-            while (GatewayEventMonitor.RecentMessages.TryDequeue(out var msg))
+            // 从 Tick() 推送的格式化队列中取
+            while (GatewayEventMonitor.RecentNotifications.TryDequeue(out var msg))
                 buffered.Add(msg);
 
+            // 取走 Tick 周期间 Harmony Patch 拦截但尚未格式化的通知
             string? unprocessed = null;
             try
             {
                 unprocessed = await McpCommandQueue.DispatchAsync(
-                    GatewayEventMonitor.DrainUnprocessedMessages);
+                    () => NotificationBus.DrainFormatted());
             }
             catch { /* 调度失败不影响工具结果 */ }
 

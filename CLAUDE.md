@@ -347,3 +347,11 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 所有 MCP Tool 的区域坐标参数使用 `pos_x/pos_y`（左上角）→ `end_x/end_y`（右下角）模式，禁止使用中心点+半径/宽高向外扩展的 API 设计。参考 `designate_mine` 的实现。
 - `pos_x`/`pos_y` — 必填，区域起始角
 - `end_x`/`end_y` — 可选，区域结束角（不提供则只操作单格）
+
+**3. 用 thingIDNumber 精确定位 Pawn/物品**
+
+所有涉及殖民者（Pawn）或物品（Thing）的操作，参数统一使用 `thingIDNumber`（int）而非名称字符串匹配。名称有重名、翻译、截断风险，ID 唯一且稳定。
+- 殖民者：`PawnsFinder.AllMaps_FreeColonistsSpawned.FirstOrDefault(c => c.thingIDNumber == id)`
+- 目标/物品：`map.mapPawns.AllPawnsSpawned.FirstOrDefault(p => p.thingIDNumber == id)` 或 `map.listerThings.AllThings.FirstOrDefault(t => t.thingIDNumber == id)`
+- 工具之间传递引用时优先输出 `thingIDNumber`，让 LLM 在后续调用中精确回传
+- 参考实现：`Tool_ArrestPawn.cs`、`Tool_AttackPawn.cs`、`Tool_EquipPawn.cs`

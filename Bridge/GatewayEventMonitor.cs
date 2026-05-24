@@ -2,11 +2,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Verse;
 using RimWorld;
 using RimWorldMCP.Helpers;
+using RimWorldMCP.Harmony;
 
 namespace RimWorldMCP
 {
@@ -15,16 +15,14 @@ namespace RimWorldMCP
         private static int _nextCheckTick;
         private const int CheckIntervalTicks = 120;
         private static int _lastColonistCount = -1;
-        private static int _lastIdleCount = -1;
-        private static HashSet<int> _seenLetterIds = new();
-        private static HashSet<string> _seenMessageIds = new();
-        private static FieldInfo? _msgStartingTimeField;
-        public static readonly ConcurrentQueue<string> RecentMessages = new();
+
+        /// <summary>近期通知（供 Tool 执行后附加到响应中）。</summary>
+        public static readonly ConcurrentQueue<string> RecentNotifications = new();
 
         public static void Reset()
         {
-            _seenLetterIds.Clear();
-            _seenMessageIds.Clear();
+            NotificationBus.Reset();
+            while (RecentNotifications.TryDequeue(out _)) { }
         }
 
         public static void Tick()
@@ -40,62 +38,71 @@ namespace RimWorldMCP
             var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
             int colonistCount = colonists.Count;
 
-            // === 1. Letter 通知监控 ===
-            CheckNewLetters(map, colonists, colonistCount);
+            // === 1. 收集 Harmony Patch 拦截的通知 ===
+            var notifications = NotificationBus.Drain();
+            bool hasNotifications = notifications.Count > 0;
 
-            // === 2. 右侧消息监控 ===
-            CheckNewMessages();
-
-            // === 3. 殖民者数量变化 ===
-            int prevColonistCount = _lastColonistCount;
-            bool countChanged = colonistCount != prevColonistCount && prevColonistCount >= 0;
-            _lastColonistCount = colonistCount;
-
-            // === 4. 综合警报（复用原生 Alert 系统） ===
-            var nativeAlerts = NativeAlertHelper.GetActiveAlerts();
-            var alertLines = NativeAlertHelper.BuildAlertLines(nativeAlerts);
-
-            // 空闲检测：从原生警报中提取空闲殖民者数量
-            var idleAlert = nativeAlerts.FirstOrDefault(a => NativeAlertHelper.ClassifyAlert(a) == AlertCategory.Idle);
-            int idleCount = 0;
-            if (idleAlert != null)
+            // 格式化通知文本
+            var notifyLines = new List<string>();
+            foreach (var n in notifications)
             {
-                try
+                switch (n.Type)
                 {
-                    var report = idleAlert.GetReport();
-                    idleCount = report.culpritsPawns?.Count ?? 0;
+                    case NotificationType.Letter:
+                        var letterSb = new StringBuilder();
+                        letterSb.Append($"[{n.DangerLabel}] {n.Label}");
+                        if (!string.IsNullOrEmpty(n.Text))
+                            letterSb.Append($" — {n.Text}");
+                        notifyLines.Add(letterSb.ToString());
+                        // 大威胁立即发送
+                        if (n.DangerLabel == "大威胁")
+                        {
+                            var alertSb = new StringBuilder();
+                            alertSb.AppendLine($"## [{n.DangerLabel}] {n.Label}");
+                            if (!string.IsNullOrEmpty(n.Text))
+                                alertSb.AppendLine(n.Text);
+                            alertSb.Append(BuildColonySummary(map, colonists, colonistCount));
+                            GatewayMessageQueue.SendNow(MessageCategory.RaidStart, alertSb.ToString().TrimEnd());
+                            hasNotifications = true;
+                        }
+                        break;
+                    case NotificationType.Message:
+                        notifyLines.Add($"[{n.DangerLabel}] {n.Text}");
+                        RecentNotifications.Enqueue($"[{n.DangerLabel}] {n.Text}");
+                        break;
+                    case NotificationType.AlertStart:
+                        var culprits = n.Culprits != null && n.Culprits.Count > 0
+                            ? $": {string.Join(", ", n.Culprits.Take(5))}" : "";
+                        notifyLines.Add($"[{n.PriorityLabel}] {n.Label}{culprits}");
+                        break;
+                    case NotificationType.AlertEnd:
+                        notifyLines.Add($"   [{n.Label} 已解除]");
+                        break;
                 }
-                catch { }
             }
-            bool hasNewIdle = idleCount > _lastIdleCount && idleCount > 0;
-            _lastIdleCount = idleCount;
 
-            if (hasNewIdle)
-            {
-                try
-                {
-                    var names = idleAlert!.GetReport().culpritsPawns!.Take(5).Select(p => p.Name.ToStringShort);
-                    alertLines.Add($"{(idleCount > 1 ? $"{idleCount} 名" : "")}殖民者空闲: {string.Join(", ", names)}");
-                }
-                catch { }
-            }
+            // === 2. 殖民者数量变化 ===
+            bool countChanged = colonistCount != _lastColonistCount && _lastColonistCount >= 0;
             if (countChanged)
             {
-                int diff = colonistCount - prevColonistCount;
-                alertLines.Add($"殖民者数量: {prevColonistCount} → {colonistCount} ({(diff > 0 ? "+" : "")}{diff})");
+                int diff = colonistCount - _lastColonistCount;
+                notifyLines.Add($"殖民者数量: {_lastColonistCount} → {colonistCount} ({(diff > 0 ? "+" : "")}{diff})");
+                hasNotifications = true;
             }
+            _lastColonistCount = colonistCount;
 
-            if (alertLines.Count > 0)
+            // === 3. 推送综合警报 ===
+            if (hasNotifications)
             {
                 var sb = new StringBuilder();
                 sb.AppendLine("## ⚠ 殖民地警报");
-                foreach (var a in alertLines)
-                    sb.AppendLine($"- {a}");
+                foreach (var line in notifyLines)
+                    sb.AppendLine($"- {line}");
                 sb.Append(BuildColonySummary(map, colonists, colonistCount));
                 GatewayMessageQueue.Enqueue(MessageCategory.Alert, sb.ToString().TrimEnd());
             }
 
-            // === 5. 早报（游戏时间每天早上 6 点） ===
+            // === 4. 早报（游戏时间每天早上 6 点） ===
             int hour = GenLocalDate.HourOfDay(map);
             int day = tick / 60000;
             if (hour == 6 && !GatewayMessageQueue.WasDailySentToday(day))
@@ -104,175 +111,6 @@ namespace RimWorldMCP
                 var msg = BuildDailyOverview(map, colonists, colonistCount, tick);
                 GatewayMessageQueue.Enqueue(MessageCategory.DailyMorning, msg);
             }
-        }
-
-        // ========== Letter 通知监控 ==========
-
-        private static void CheckNewLetters(Map map, List<Pawn> colonists, int colonistCount)
-        {
-            var letters = Find.LetterStack.LettersListForReading;
-            var currentIds = new HashSet<int>(letters.Select(l => l.ID));
-
-            // 首轮初始化：标记已有 Letter 为已见，不触发通知
-            if (_seenLetterIds.Count == 0)
-            {
-                _seenLetterIds = currentIds;
-                return;
-            }
-
-            // 检测新 Letter
-            foreach (var letter in letters)
-            {
-                if (!_seenLetterIds.Contains(letter.ID))
-                {
-                    OnNewLetter(letter, map, colonists, colonistCount);
-                }
-            }
-
-            // 清理已关闭的 Letter ID
-            _seenLetterIds.IntersectWith(currentIds);
-        }
-
-        private static void OnNewLetter(Letter letter, Map map, List<Pawn> colonists, int colonistCount)
-        {
-            var sb = new StringBuilder();
-            string dangerLabel = GetDangerLabel(letter.def);
-            sb.AppendLine($"## [{dangerLabel}] {letter.Label.Resolve()}");
-
-            // 提取正文（ChoiceLetter 才有 Text）
-            if (letter is ChoiceLetter choiceLetter)
-            {
-                string text = choiceLetter.Text.Resolve();
-                if (!string.IsNullOrEmpty(text))
-                {
-                    // 只取前 500 字符，太长截断
-                    if (text.Length > 500)
-                        text = text.Substring(0, 497) + "...";
-                    sb.AppendLine(text);
-                }
-            }
-
-            sb.Append(BuildColonySummary(map, colonists, colonistCount));
-
-            // 大威胁立即发送，其余排队
-            bool isBigThreat = letter.def == LetterDefOf.ThreatBig;
-            var category = isBigThreat ? MessageCategory.RaidStart : MessageCategory.Alert;
-            string msg = sb.ToString().TrimEnd();
-
-            if (isBigThreat)
-                GatewayMessageQueue.SendNow(category, msg);
-            else
-                GatewayMessageQueue.Enqueue(category, msg);
-        }
-
-        private static string GetDangerLabel(LetterDef def)
-        {
-            if (def == LetterDefOf.ThreatBig) return "大威胁";
-            if (def == LetterDefOf.ThreatSmall) return "小威胁";
-            if (def == LetterDefOf.NegativeEvent) return "负面";
-            if (def == LetterDefOf.PositiveEvent) return "正面";
-            if (def == LetterDefOf.Death) return "死亡";
-            if (def == LetterDefOf.NeutralEvent) return "事件";
-            return "通知";
-        }
-
-        // ========== 右侧消息监控 ==========
-
-        private static void CheckNewMessages()
-        {
-            var archivables = Find.Archive?.ArchivablesListForReading;
-            if (archivables == null) return;
-
-            var currentIds = new HashSet<string>();
-            var newMessages = new List<Verse.Message>();
-
-            foreach (var a in archivables)
-            {
-                if (a is not Verse.Message msg) continue;
-                string id = ((ILoadReferenceable)msg).GetUniqueLoadID();
-                currentIds.Add(id);
-                if (!_seenMessageIds.Contains(id))
-                    newMessages.Add(msg);
-            }
-
-            // 首轮初始化：标记所有已有消息为已见
-            if (_seenMessageIds.Count == 0)
-            {
-                _seenMessageIds = currentIds;
-                return;
-            }
-
-            if (newMessages.Count > 0)
-            {
-                foreach (var msg in newMessages)
-                {
-                    string id = ((ILoadReferenceable)msg).GetUniqueLoadID();
-                    _seenMessageIds.Add(id);
-                    if (string.IsNullOrEmpty(msg.text)) continue;
-
-                    string label = GetMessageTypeLabel(msg.def);
-                    string text = msg.text.Length > 300
-                        ? msg.text.Substring(0, 297) + "..."
-                        : msg.text;
-                    GatewayMessageQueue.Enqueue(MessageCategory.Alert, $"[{label}] {text}");
-                    RecentMessages.Enqueue($"[{label}] {text}");
-                    Find.Archive!.Remove(msg);
-                    ExpireLiveMessage(msg);
-                }
-            }
-
-            // 清理已归档的消息 ID
-            _seenMessageIds.IntersectWith(currentIds);
-        }
-
-        private static string GetMessageTypeLabel(MessageTypeDef def)
-        {
-            if (def == MessageTypeDefOf.ThreatBig) return "大威胁";
-            if (def == MessageTypeDefOf.ThreatSmall) return "小威胁";
-            if (def == MessageTypeDefOf.PawnDeath) return "角色死亡";
-            if (def == MessageTypeDefOf.NegativeHealthEvent) return "健康事件";
-            if (def == MessageTypeDefOf.NegativeEvent) return "负面";
-            if (def == MessageTypeDefOf.NeutralEvent) return "事件";
-            if (def == MessageTypeDefOf.PositiveEvent) return "正面";
-            if (def == MessageTypeDefOf.TaskCompletion) return "完成";
-            if (def == MessageTypeDefOf.SituationResolved) return "状态解除";
-            if (def == MessageTypeDefOf.RejectInput) return "拒绝";
-            if (def == MessageTypeDefOf.CautionInput) return "警告";
-            return def?.defName ?? "消息";
-        }
-
-        private static void ExpireLiveMessage(Verse.Message msg)
-        {
-            _msgStartingTimeField ??= typeof(Verse.Message).GetField("startingTime",
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            _msgStartingTimeField?.SetValue(msg, -99999f);
-        }
-
-        /// <summary>立即读取 Find.Archive 中尚未处理的 Message，捕获 CheckNewMessages 周期间的消息</summary>
-        public static string DrainUnprocessedMessages()
-        {
-            var archivables = Find.Archive?.ArchivablesListForReading;
-            if (archivables == null || _seenMessageIds.Count == 0) return "";
-
-            var sb = new StringBuilder();
-            foreach (var a in archivables)
-            {
-                if (a is not Verse.Message msg) continue;
-                string id = ((ILoadReferenceable)msg).GetUniqueLoadID();
-                if (_seenMessageIds.Contains(id)) continue;
-                if (string.IsNullOrEmpty(msg.text)) continue;
-
-                _seenMessageIds.Add(id);
-                string label = GetMessageTypeLabel(msg.def);
-                string text = msg.text.Length > 300
-                    ? msg.text.Substring(0, 297) + "..."
-                    : msg.text;
-                string formatted = $"[{label}] {text}";
-                RecentMessages.Enqueue(formatted);
-                sb.AppendLine($"- {formatted}");
-                ExpireLiveMessage(msg);
-            }
-            return sb.ToString().TrimEnd();
         }
 
         // ========== 消息构建 ==========

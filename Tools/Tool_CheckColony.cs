@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Verse;
 using RimWorld;
 using RimWorldMCP;
+using RimWorldMCP.Helpers;
 
 namespace RimWorldMCP.Tools
 {
@@ -23,12 +24,8 @@ namespace RimWorldMCP.Tools
             properties = new { }
         });
 
-        // 上次快照——用于对比变化
-        private static int _lastIdleCount = -1;
-        private static int _lastBreakRiskCount = -1;
-        private static int _lastBleederCount = -1;
-        private static int _lastFleeCount = -1;
-        private static int _lastFoodDays = -1;
+        // 上次状态哈希——用于对比变化
+        private static int _lastCategoryHash = -1;
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
@@ -43,69 +40,42 @@ namespace RimWorldMCP.Tools
                     int cCount = colonists?.Count ?? 0;
                     var sb = new StringBuilder();
 
-                    // 空闲殖民者
-                    var idle = colonists?.Where(c =>
-                        (c.CurJob?.def?.defName == "Wait_MaintainPosture" || c.CurJob == null)
-                        && !c.Downed && !c.Deathresting).ToList();
-                    int idleCount = idle?.Count ?? 0;
+                    // 获取原生警报
+                    var nativeAlerts = NativeAlertHelper.GetActiveAlerts();
+                    var categoryCounts = NativeAlertHelper.GetAlertCountsByCategory(nativeAlerts);
+                    int foodDays = NativeAlertHelper.CalcFoodDays(map, cCount);
 
-                    // 崩溃风险
-                    var breakRisk = colonists?.Where(c => (c.needs?.mood?.CurLevelPercentage ?? 1f) < 0.2f).ToList();
-                    int breakCount = breakRisk?.Count ?? 0;
+                    // 各类别计数
+                    int idleCount = categoryCounts.GetValueOrDefault(AlertCategory.Idle, 0);
+                    int breakCount = categoryCounts.GetValueOrDefault(AlertCategory.CrashRisk, 0);
+                    int bleedCount = categoryCounts.GetValueOrDefault(AlertCategory.Bleeding, 0);
+                    int fleeCount = categoryCounts.GetValueOrDefault(AlertCategory.Fleeing, 0);
+                    int defenseCount = categoryCounts.GetValueOrDefault(AlertCategory.NoDefense, 0);
+                    int bedCount = categoryCounts.GetValueOrDefault(AlertCategory.BedShortage, 0);
+                    int foodAlertCount = categoryCounts.GetValueOrDefault(AlertCategory.FoodShortage, 0);
+                    int generalCount = categoryCounts.GetValueOrDefault(AlertCategory.General, 0);
 
-                    // 流血
-                    var bleed = colonists?.Where(c => c.health?.hediffSet?.BleedRateTotal > 0.3f).ToList();
-                    int bleedCount = bleed?.Count ?? 0;
-
-                    // 逃跑中
-                    var fleeing = colonists?.Where(c => c.MentalState?.def == MentalStateDefOf.PanicFlee).ToList();
-                    int fleeCount = fleeing?.Count ?? 0;
-
-                    // 食物天数
-                    int foodDays = 99;
-                    if (cCount > 0)
-                    {
-                        float totalFood = 0f;
-                        foreach (var kvp in map.resourceCounter?.AllCountedAmounts ?? new())
-                        {
-                            var def = kvp.Key;
-                            if (def.IsNutritionGivingIngestible && def.ingestible?.HumanEdible == true
-                                && (def.ingestible?.foodType & FoodTypeFlags.Tree) == 0)
-                                totalFood += kvp.Value * def.ingestible.CachedNutrition;
-                        }
-                        foodDays = (int)(totalFood / (cCount * 1.6f));
-                    }
-
-                    // 决定是否详细汇报——有变化或首次调用时详细
-                    bool hasNewIssue =
-                        idleCount != _lastIdleCount ||
-                        breakCount != _lastBreakRiskCount ||
-                        bleedCount != _lastBleederCount ||
-                        fleeCount != _lastFleeCount ||
-                        foodDays != _lastFoodDays;
-
-                    _lastIdleCount = idleCount;
-                    _lastBreakRiskCount = breakCount;
-                    _lastBleederCount = bleedCount;
-                    _lastFleeCount = fleeCount;
-                    _lastFoodDays = foodDays;
+                    // 计算变化哈希
+                    int currentHash = ComputeCategoryHash(categoryCounts);
+                    if (foodDays < 3) currentHash ^= (foodDays * 997);
 
                     bool anythingWrong = idleCount > 0 || breakCount > 0 || bleedCount > 0
-                        || fleeCount > 0 || foodDays < 3;
+                        || fleeCount > 0 || foodDays < 3 || defenseCount > 0 || bedCount > 0
+                        || foodAlertCount > 0 || generalCount > 0;
 
                     if (!anythingWrong)
                     {
-                        // 一切正常，简短回复
-                        _lastIdleCount = -1; _lastBreakRiskCount = -1;
-                        _lastBleederCount = -1; _lastFleeCount = -1; _lastFoodDays = -1;
+                        _lastCategoryHash = -1;
                         sb.AppendLine($"一切正常 —— {cCount} 名殖民者，食物够 {foodDays} 天。");
                         sb.AppendLine("建议等待几秒后再次调用本工具检查。");
                         return ToolResult.Success(sb.ToString().TrimEnd());
                     }
 
-                    if (!hasNewIssue)
+                    bool hasChanged = currentHash != _lastCategoryHash;
+                    _lastCategoryHash = currentHash;
+
+                    if (!hasChanged)
                     {
-                        // 问题没变，简短重复
                         sb.AppendLine($"状态不变: 空闲 {idleCount}, 崩溃风险 {breakCount}, 流血 {bleedCount}, 逃跑 {fleeCount}, 食物 {foodDays}天");
                         return ToolResult.Success(sb.ToString().TrimEnd());
                     }
@@ -115,73 +85,52 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine("## ⚠ 殖民地提醒");
                     sb.AppendLine();
 
-                    if (idleCount > 0 && idle != null)
-                    {
-                        sb.AppendLine($"### 空闲殖民者 ({idleCount})");
-                        foreach (var c in idle.Take(5))
-                            sb.AppendLine($"- {c.Name.ToStringShort} ({c.Position.x},{c.Position.z})");
-                        if (idleCount > 5) sb.AppendLine($"- ... 另有 {idleCount - 5} 人");
-                        sb.AppendLine();
-                    }
+                    // 按类别分组输出原生警报
+                    var grouped = nativeAlerts
+                        .GroupBy(a => NativeAlertHelper.ClassifyAlert(a))
+                        .OrderBy(g => g.Key);
 
-                    if (breakCount > 0 && breakRisk != null)
+                    foreach (var group in grouped)
                     {
-                        sb.AppendLine($"### 崩溃风险 ({breakCount})");
-                        foreach (var c in breakRisk)
+                        string catLabel = group.Key switch
                         {
-                            var thoughtList = new List<Thought>();
-                            c.needs!.mood!.thoughts.GetAllMoodThoughts(thoughtList);
-                            var worst = thoughtList.OrderBy(t => t.MoodOffset()).FirstOrDefault();
-                            sb.Append($"- {c.Name.ToStringShort}: 心情 {c.needs.mood.CurLevelPercentage * 100f:F0}%");
-                            if (worst != null) sb.Append($" — {worst.LabelCap} ({worst.MoodOffset():+0;-0})");
+                            AlertCategory.Idle => "空闲殖民者",
+                            AlertCategory.CrashRisk => "崩溃风险",
+                            AlertCategory.Bleeding => "流血/需要治疗",
+                            AlertCategory.Fleeing => "逃跑中",
+                            AlertCategory.FoodShortage => "食物不足",
+                            AlertCategory.NoDefense => "无防御",
+                            AlertCategory.BedShortage => "缺床",
+                            _ => "其他警报"
+                        };
+                        int count = group.Count();
+                        sb.AppendLine($"### {catLabel} ({count})");
+
+                        foreach (var alert in group)
+                        {
+                            string prio = alert.Priority switch { 2 => "CRITICAL", 1 => "HIGH", _ => "MEDIUM" };
+                            sb.Append($"- [{prio}] {alert.Label}");
+                            if (alert.Culprits.Length > 0)
+                            {
+                                var names = alert.Culprits.Where(n => n != null).Take(5);
+                                sb.Append($": {string.Join(", ", names)}");
+                            }
                             sb.AppendLine();
                         }
                         sb.AppendLine();
                     }
 
-                    if (bleedCount > 0 && bleed != null)
-                    {
-                        sb.AppendLine($"### 严重流血 ({bleedCount})");
-                        foreach (var c in bleed)
-                            sb.AppendLine($"- {c.Name.ToStringShort}: 失血 {c.health!.hediffSet.BleedRateTotal * 100f:F0}%/天");
-                        sb.AppendLine();
-                    }
-
-                    if (fleeCount > 0 && fleeing != null)
-                    {
-                        sb.AppendLine($"### 逃跑中 ({fleeCount})");
-                        foreach (var c in fleeing)
-                            sb.AppendLine($"- {c.Name.ToStringShort} ({c.Position.x},{c.Position.z})：恐慌逃跑，不受控制");
-                        sb.AppendLine();
-                    }
-
+                    // 食物天数补充（原生 Alert 只告知不足，不告知天数）
                     if (foodDays < 3)
                     {
                         sb.AppendLine($"### ⚠ 食物不足: 仅 {foodDays} 天储备");
                         sb.AppendLine();
                     }
 
-                    // 防御检查
-                    int turrets = map.listerBuildings.AllBuildingsColonistOfClass<Building_Turret>().Count();
-                    int traps = map.listerBuildings.AllBuildingsColonistOfClass<Building_Trap>().Count();
-                    float wealth = map.wealthWatcher?.WealthTotal ?? 0f;
-                    if (turrets == 0 && traps == 0 && wealth > 15000)
-                    {
-                        sb.AppendLine("### ⚠ 无防御工事");
-                        sb.AppendLine($"- 财富 {wealth:N0}，无炮塔/陷阱");
-                        sb.AppendLine();
-                    }
-
-                    // 床铺
-                    int beds = map.listerBuildings.AllBuildingsColonistOfClass<Building_Bed>()
-                        .Count(b => !b.ForPrisoners && !b.Medical);
-                    if (cCount > beds)
-                    {
-                        sb.AppendLine($"### ⚠ 缺床: {cCount}人仅{beds}张床");
-                        sb.AppendLine();
-                    }
-
-                    sb.AppendLine($"---\n上次检查无异常，现在出现 {idleCount + breakCount + bleedCount + fleeCount + (foodDays < 3 ? 1 : 0) + (turrets == 0 && traps == 0 && wealth > 15000 ? 1 : 0) + (cCount > beds ? 1 : 0)} 项提醒。");
+                    int totalIssues = idleCount + breakCount + bleedCount + fleeCount
+                        + defenseCount + bedCount + foodAlertCount + generalCount
+                        + (foodDays < 3 && foodAlertCount == 0 ? 1 : 0);
+                    sb.AppendLine($"---\n上次检查无异常或状态变化，当前 {totalIssues} 项提醒。");
 
                     return ToolResult.Success(sb.ToString().TrimEnd());
                 }
@@ -190,6 +139,17 @@ namespace RimWorldMCP.Tools
                     return ToolResult.Error($"警报检查失败: {ex.Message}");
                 }
             });
+        }
+
+        private static int ComputeCategoryHash(Dictionary<AlertCategory, int> counts)
+        {
+            int hash = 0;
+            foreach (var kv in counts)
+            {
+                if (kv.Value > 0)
+                    hash ^= ((int)kv.Key * 397) ^ kv.Value;
+            }
+            return hash;
         }
     }
 }
