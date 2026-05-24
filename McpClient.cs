@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP
 {
-    public enum ClientState { Disconnected, Connecting, Connected, Ready }
+    public enum ClientState { Disconnected, Connecting, Handshake, Ready }
 
     public static class McpClient
     {
@@ -16,22 +16,21 @@ namespace RimWorldMCP
         private static CancellationTokenSource? _cts;
         private static string _url = "";
         private static string _token = "";
-        private static string _password = "";
+        private static int _rpcSeq;
         private static ClientState _state = ClientState.Disconnected;
 
         public static ClientState State => _state;
-        public static bool IsConnected => _state >= ClientState.Connected;
+        public static bool IsConnected => _state >= ClientState.Handshake;
         public static bool IsReady => _state == ClientState.Ready;
 
-        // 收到的消息缓冲 — UI 从中读取
+        // 收到的消息队列 — UI 从中消费
         public static readonly ConcurrentQueue<string> Incoming = new();
 
-        /// <summary>连接 Gateway 并完成 auth→ready 握手</summary>
+        /// <summary>连接 Gateway 并完成 connect→auth→ready 握手</summary>
         public static async Task Connect(string wsUrl, string token, string password)
         {
             _url = wsUrl;
-            _token = token;
-            _password = password;
+            _token = !string.IsNullOrEmpty(token) ? token : password;
             Disconnect();
 
             try
@@ -41,23 +40,26 @@ namespace RimWorldMCP
                 _state = ClientState.Connecting;
 
                 await _ws.ConnectAsync(new Uri(wsUrl), _cts.Token);
-                _state = ClientState.Connected;
                 McpLog.Info($"[ws] 已连接: {wsUrl}");
 
-                // 2. 发送 auth
-                var auth = new { type = "auth", token, password };
-                await SendJson(auth);
+                // Step 1: 发送 connect handshake
+                await SendJson(new { type = "connect", role = "client", client = "csharp" });
+                _state = ClientState.Handshake;
 
-                // 3. 启动接收循环 — 等待 ready 和事件流
+                // Step 2: 如果配置了 token，发送 auth
+                if (!string.IsNullOrEmpty(_token))
+                    await SendJson(new { type = "auth", token = _token });
+
+                // Step 3: 启动接收循环（等待事件流）
                 _ = ReceiveLoop(_cts.Token);
 
-                // 4. 等待 ready（最多 10 秒）
+                // Step 4: 等待 ready（最多 10 秒）
                 var deadline = DateTime.UtcNow.AddSeconds(10);
-                while (_state == ClientState.Connected && DateTime.UtcNow < deadline)
+                while (_state == ClientState.Handshake && DateTime.UtcNow < deadline)
                     await Task.Delay(100);
 
                 if (_state == ClientState.Ready)
-                    McpLog.Info("[ws] 握手完成 — Ready");
+                    McpLog.Info("[ws] 握手完成");
                 else
                     McpLog.Warn("[ws] 握手超时，未收到 ready");
             }
@@ -68,11 +70,29 @@ namespace RimWorldMCP
             }
         }
 
-        /// <summary>发送文本消息</summary>
+        /// <summary>发送 RPC 请求</summary>
+        public static async Task<string?> SendRpc(string method, object? payload = null)
+        {
+            if (!IsReady) return null;
+            var id = (++_rpcSeq).ToString();
+            await SendJson(new { type = "req", id, method, @params = payload });
+            // 响应由 ReceiveLoop 处理并放入 Incoming 队列
+            return id;
+        }
+
+        /// <summary>发送文本消息（兼容旧 SendMessage）</summary>
         public static async Task SendMessage(string text)
         {
             if (!IsReady) return;
-            await SendJson(new { type = "message", text });
+            var id = (++_rpcSeq).ToString();
+            await SendJson(new { type = "req", id, method = "agent.send", @params = new { text } });
+        }
+
+        /// <summary>发送心跳</summary>
+        public static async Task Ping()
+        {
+            if (_ws?.State == WebSocketState.Open)
+                await SendJson(new { type = "ping" });
         }
 
         public static void Disconnect()
@@ -88,7 +108,8 @@ namespace RimWorldMCP
             if (_ws?.State != WebSocketState.Open) return;
             var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
             });
             var bytes = Encoding.UTF8.GetBytes(json);
             await _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, _cts?.Token ?? CancellationToken.None);
@@ -105,8 +126,6 @@ namespace RimWorldMCP
                     if (result.MessageType == WebSocketMessageType.Close) break;
 
                     var text = Encoding.UTF8.GetString(buf, 0, result.Count);
-
-                    // 组装多帧消息
                     while (!result.EndOfMessage && !ct.IsCancellationRequested)
                     {
                         result = await _ws.ReceiveAsync(new ArraySegment<byte>(buf, result.Count, buf.Length - result.Count), ct);
@@ -116,15 +135,24 @@ namespace RimWorldMCP
                     // 解析消息类型
                     try
                     {
-                        var doc = JsonDocument.Parse(text);
+                        using var doc = JsonDocument.Parse(text);
                         var root = doc.RootElement;
-                        if (root.TryGetProperty("type", out var typeProp))
+                        if (root.TryGetProperty("type", out var t))
                         {
-                            var type = typeProp.GetString();
-                            if (type == "ready")
+                            switch (t.GetString())
                             {
-                                _state = ClientState.Ready;
-                                McpLog.Info("[ws] 收到 ready");
+                                case "res":
+                                    if (root.TryGetProperty("result", out var r))
+                                        text = $"← {r}";
+                                    break;
+                                case "event":
+                                    if (root.TryGetProperty("event", out var ev) && root.TryGetProperty("payload", out var pl))
+                                        text = $"⚡ {ev.GetString()}: {pl}";
+                                    break;
+                                case "ready":
+                                    _state = ClientState.Ready;
+                                    McpLog.Info("[ws] 收到 ready");
+                                    break;
                             }
                         }
                     }

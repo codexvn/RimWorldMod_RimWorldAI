@@ -31,9 +31,9 @@ namespace RimWorldMCP
             var state = McpClient.State switch
             {
                 ClientState.Disconnected => "未连接",
-                ClientState.Connecting => "连接中...",
-                ClientState.Connected => "已连接 (等待 Ready)",
-                ClientState.Ready => "就绪",
+                ClientState.Connecting => "建立连接...",
+                ClientState.Handshake => "握手认证...",
+                ClientState.Ready => "已就绪",
                 _ => "未知"
             };
             listing.Label($"状态: {state}");

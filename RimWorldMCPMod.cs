@@ -37,7 +37,7 @@ namespace RimWorldMCP
             {
                 // OpenClaw
                 listing.Label("Gateway WebSocket URL");
-                listing.Label("示例: ws://localhost:8080/gateway");
+                listing.Label("示例: ws://127.0.0.1:18789");
                 Settings.BridgeUrl = listing.TextEntry(Settings.BridgeUrl);
 
                 listing.Label("Token");
