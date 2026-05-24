@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using System.Security.Cryptography;
+using RimWorldMCP.Mcp;
 
 namespace RimWorldMCP
 {
@@ -150,11 +151,7 @@ namespace RimWorldMCP
         private static async Task SendJson(object obj)
         {
             if (_ws?.State != WebSocketState.Open) return;
-            var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-            });
+            var json = JsonSerializer.Serialize(obj, McpJson.Options);
             var bytes = Encoding.UTF8.GetBytes(json);
             McpLog.Info($"[ws] → {Truncate(json)}");
             await _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,

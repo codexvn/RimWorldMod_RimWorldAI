@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Unicode;
 
 namespace RimWorldMCP.Mcp
 {
@@ -10,7 +12,8 @@ namespace RimWorldMCP.Mcp
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            WriteIndented = false
+            WriteIndented = false,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
         };
     }
 
