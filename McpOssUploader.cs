@@ -10,11 +10,13 @@ namespace RimWorldMCP
 {
     public static class McpOssUploader
     {
-        private static readonly ConcurrentQueue<(string filePath, string objectKey, int enqueuedFrame)> _pending = new();
+        private const int MaxRetries = 5;
+
+        private static readonly ConcurrentQueue<(string filePath, string objectKey, int enqueuedFrame, int retryCount)> _pending = new();
 
         public static void EnqueuePendingUpload(string filePath, string objectKey)
         {
-            _pending.Enqueue((filePath, objectKey, Time.frameCount));
+            _pending.Enqueue((filePath, objectKey, Time.frameCount, 0));
         }
 
         /// <summary>主线程每帧调用，仅处理上一帧及之前入队的上传（避免 CaptureScreenshot 帧末写文件尚未完成）</summary>
@@ -23,36 +25,45 @@ namespace RimWorldMCP
             if (!McpOssConfig.IsConfigured || _pending.IsEmpty) return;
 
             int currentFrame = Time.frameCount;
-            var toProcess = new System.Collections.Generic.List<(string filePath, string objectKey)>();
+            var toRetry = new System.Collections.Generic.List<(string, string, int, int)>();
 
             // 只取出上一帧及之前的项，保留当前帧的项
             while (_pending.TryPeek(out var item) && item.enqueuedFrame < currentFrame)
             {
-                if (_pending.TryDequeue(out var dequeued))
-                    toProcess.Add((dequeued.filePath, dequeued.objectKey));
-            }
+                if (!_pending.TryDequeue(out var dequeued)) break;
 
-            foreach (var item in toProcess)
-            {
                 try
                 {
-                    UploadInternal(item.filePath, item.objectKey);
+                    if (!File.Exists(dequeued.filePath))
+                    {
+                        if (dequeued.retryCount < MaxRetries)
+                        {
+                            toRetry.Add((dequeued.filePath, dequeued.objectKey, dequeued.retryCount + 1, 0));
+                        }
+                        else
+                        {
+                            McpLog.Warn($"OSS 上传放弃（重试 {MaxRetries} 次后文件仍不存在）: {dequeued.filePath}");
+                        }
+                        continue;
+                    }
+
+                    UploadInternal(dequeued.filePath, dequeued.objectKey);
                 }
                 catch (Exception ex)
                 {
-                    McpLog.Error($"OSS 上传失败 ({item.objectKey}): {ex.Message}");
+                    McpLog.Error($"OSS 上传失败 ({dequeued.objectKey}): {ex.Message}");
                 }
+            }
+
+            // 重新入队需要重试的项（保留同一帧计数，下次继续尝试）
+            foreach (var retry in toRetry)
+            {
+                _pending.Enqueue((retry.Item1, retry.Item2, currentFrame, retry.Item3));
             }
         }
 
         private static void UploadInternal(string filePath, string objectKey)
         {
-            if (!File.Exists(filePath))
-            {
-                McpLog.Warn($"OSS 待上传文件尚不存在，跳过: {filePath}");
-                return;
-            }
-
             var s3Config = new AmazonS3Config
             {
                 ServiceURL = McpOssConfig.ServiceUrl,

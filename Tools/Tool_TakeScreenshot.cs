@@ -90,7 +90,8 @@ namespace RimWorldMCP.Tools
                         return ToolResult.Error("OSS 未配置，请在游戏 Mod 设置中配置 OSS 后再使用截图功能。");
 
                     ScreenshotTaker.TakeNonSteamShot(saveFileName);
-                    Find.UIRoot.screenshotMode.Active = false;
+                    // screenshotMode.Active 必须保持到帧末 Unity CaptureScreenshot 完成后再关闭
+                    McpCommandQueue.ScheduleDeferred(() => Find.UIRoot.screenshotMode.Active = false);
 
                     string fullPath = Path.Combine(GenFilePaths.ScreenshotFolderPath, saveFileName + ".png");
                     McpOssUploader.EnqueuePendingUpload(fullPath, saveFileName + ".png");

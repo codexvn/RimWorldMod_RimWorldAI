@@ -39,6 +39,7 @@ namespace RimWorldMCP
             McpLog.Flush();
             McpCommandQueue.ProcessPending();
             McpOssUploader.ProcessPendingUploads();
+            McpCommandQueue.ProcessDeferredCleanup();
         }
 
         public override void ExposeData()
