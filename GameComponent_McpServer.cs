@@ -170,6 +170,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_CheckColony());
             registry.Register(new Tool_GetSkills(skillRegistry));
             registry.Register(new Tool_ActiveSkill(skillRegistry));
+            registry.Register(new Tool_AllowAllItems());
         }
 
         private static string FindSkillsDirectory()
