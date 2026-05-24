@@ -46,7 +46,7 @@ namespace RimWorldMCP.Tools
                 switch (filter)
                 {
                     case "available":
-                        filtered = filtered.Where(p => !p.IsFinished);
+                        filtered = filtered.Where(p => p.CanStartNow);
                         break;
                     case "completed":
                         filtered = filtered.Where(p => p.IsFinished);

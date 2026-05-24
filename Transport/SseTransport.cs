@@ -35,7 +35,25 @@ namespace RimWorldMCP.Transport
         {
             _listener = new HttpListener();
             _listener.Prefixes.Add($"http://localhost:{_port}/");
-            _listener.Start();
+
+            try
+            {
+                _listener.Start();
+            }
+            catch (HttpListenerException ex)
+            {
+                var diagnostic = ex.ErrorCode switch
+                {
+                    5  => $"拒绝访问 — 端口 {_port} 需要管理员权限或 URL ACL 注册。使用管理员运行或执行: netsh http add urlacl url=http://localhost:{_port}/ user=Everyone",
+                    183 => $"端口 {_port} 已被占用 (Address Already In Use)。请关闭占用该端口的程序，或执行: netsh http delete urlacl url=http://localhost:{_port}/",
+                    32  => $"端口 {_port} 共享冲突 — 正被其他进程使用",
+                    87  => "URL 前缀格式无效",
+                    _   => $"http.sys 错误 {ex.ErrorCode}"
+                };
+                McpLog.Error($"[sse] 启动失败 [{ex.ErrorCode}]: {diagnostic}。原始错误: {ex.Message}");
+                throw;
+            }
+
             Log($"SSE 服务器已启动: http://localhost:{_port}");
 
             Task.Run(() => AcceptLoop(ct), ct);
@@ -75,7 +93,11 @@ namespace RimWorldMCP.Transport
                     _ = Task.Run(() => HandleRequestAsync(context), ct);
                 }
                 catch (OperationCanceledException) { break; }
-                catch (HttpListenerException) { break; }
+                catch (HttpListenerException ex)
+                {
+                    Log($"HttpListener 接受循环已停止 [{ex.ErrorCode}]: {ex.Message}");
+                    break;
+                }
                 catch (Exception ex)
                 {
                     Log($"接受连接错误: {ex.Message}");

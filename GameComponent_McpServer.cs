@@ -14,6 +14,7 @@ namespace RimWorldMCP
     {
         private ITransport? _transport;
         private CancellationTokenSource? _cts;
+        private static ITransport? s_activeTransport;
         private const int DefaultPort = 9877;
 
         public GameComponent_McpServer(Game game)
@@ -51,7 +52,8 @@ namespace RimWorldMCP
 
         private void StartMcpService()
         {
-            if (_transport != null) return; // 已启动
+            // 先清理上一 Game 实例可能遗留的监听器（RimWorld 返回主菜单时 Game.Dispose 不通知 GameComponent）
+            StopMcpService();
 
             try
             {
@@ -72,23 +74,52 @@ namespace RimWorldMCP
                 }
 
                 // 4. 创建 Transport（默认 SSE + Streamable HTTP，端口 9877）
-                // 目前启动 Streamable HTTP（新版 MCP 规范推荐），SSE 可后续并行启动
-                _transport = new SseTransport(DefaultPort);
+                var transport = new SseTransport(DefaultPort);
 
                 // 5. 创建 McpServer + 注入 /mcp 同步处理器
-                var server = new McpServer(_transport, toolRegistry);
-                ((SseTransport)_transport).SetMcpHandler(rawJson =>
+                var server = new McpServer(transport, toolRegistry);
+                ((SseTransport)transport).SetMcpHandler(rawJson =>
                     server.ProcessMessageSync(rawJson));
 
-                // 6. 启动 Transport
+                // 6. 启动 Transport（成功后才赋值 _transport，确保失败时下次可重试）
                 _cts = new CancellationTokenSource();
-                _transport.StartAsync(_cts.Token);
+                transport.StartAsync(_cts.Token);
+
+                _transport = transport;
+                s_activeTransport = transport;
 
                 McpLog.Info($"MCP 服务已启动，端口: {DefaultPort}, 传输: http");
             }
             catch (Exception ex)
             {
+                // 启动失败时清理 _cts，_transport 保持 null 以便下次重试
+                if (_cts != null)
+                {
+                    try { _cts.Cancel(); _cts.Dispose(); } catch { }
+                    _cts = null;
+                }
                 McpLog.Error($"启动失败: {ex.Message}");
+            }
+        }
+
+        private void StopMcpService()
+        {
+            if (_transport != null)
+            {
+                try { _transport.StopAsync(); } catch (Exception ex) { McpLog.Warn($"停止传输时出错: {ex.Message}"); }
+                _transport = null;
+            }
+
+            if (s_activeTransport != null && s_activeTransport != _transport)
+            {
+                try { s_activeTransport.StopAsync(); } catch (Exception ex) { McpLog.Warn($"停止残留传输时出错: {ex.Message}"); }
+                s_activeTransport = null;
+            }
+
+            if (_cts != null)
+            {
+                try { _cts.Cancel(); _cts.Dispose(); } catch { }
+                _cts = null;
             }
         }
 

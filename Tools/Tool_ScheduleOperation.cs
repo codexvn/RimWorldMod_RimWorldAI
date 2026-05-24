@@ -101,15 +101,19 @@ namespace RimWorldMCP.Tools
                     if (billStack == null)
                         return ToolResult.Error($"无法访问 {pawn.Name.ToStringShort} 的手术队列。");
 
-                    // 创建并配置手术单据
+                    // 验证殖民者状态
+                    if (pawn.Dead)
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 已死亡，无法安排手术。");
+                    if (pawn.health == null)
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 没有健康信息，无法安排手术。");
+
+                    // 创建手术单据（必须先 AddBill 再设置 Part，Part setter 要求 billStack 不为 null）
                     Bill_Medical bill = new Bill_Medical(recipe, null);
+                    billStack.AddBill(bill);
                     if (targetPart != null)
                     {
                         bill.Part = targetPart;
                     }
-
-                    // 添加单据
-                    billStack.AddBill(bill);
 
                     // 构建返回信息
                     var sb = new StringBuilder();

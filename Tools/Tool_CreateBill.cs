@@ -52,6 +52,10 @@ namespace RimWorldMCP.Tools
                     if (recipe == null)
                         return ToolResult.Error($"未知配方: {recipeDefName}。请先用 list_recipes 查询可用配方。");
 
+                    // 检查配方是否可用（研究解锁、意识形态等）
+                    if (!recipe.AvailableNow)
+                        return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 当前不可用。可能原因: 未研究解锁、或意识形态限制。");
+
                     var map = Find.CurrentMap;
                     if (map == null)
                         return ToolResult.Error("当前没有可用地图。");
@@ -65,8 +69,17 @@ namespace RimWorldMCP.Tools
                     var targetTable = workTables[0];
                     var tableLabel = targetTable.def?.label ?? targetTable.def?.defName ?? "工作台";
 
-                    // 创建单据
-                    var bill = new Bill_Production(recipe);
+                    // 检查配方与工作台兼容性
+                    if (!recipe.AvailableOnNow(targetTable, null))
+                        return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 无法在 {tableLabel} 上执行。");
+
+                    // 检查工作台单据数量上限
+                    if (targetTable.billStack.Count >= 15)
+                        return ToolResult.Error($"{tableLabel} 的单据已满（最多 15 个）。请先删除或暂停其他单据。");
+
+                    // 创建单据（使用 MakeNewBill 自动选择正确的单据子类：UFT/Mech/Autonomous/标准）
+                    var billBase = recipe.MakeNewBill(null);
+                    var bill = (Bill_Production)billBase; // 所有 MakeNewBill 返回类型均继承自 Bill_Production
                     bill.targetCount = count;
 
                     switch (repeatModeStr)
@@ -85,9 +98,9 @@ namespace RimWorldMCP.Tools
                             break;
                     }
 
-                    targetTable.billStack.AddBill(bill);
+                    targetTable.billStack.AddBill(billBase);
 
-                    var billLabel = bill.Label ?? recipeDefName;
+                    var billLabel = billBase.Label ?? recipeDefName;
                     var repeatText = repeatModeStr switch
                     {
                         "Forever" => "永久重复",

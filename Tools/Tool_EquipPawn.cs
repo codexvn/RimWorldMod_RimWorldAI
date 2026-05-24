@@ -128,6 +128,20 @@ namespace RimWorldMCP.Tools
                         if (pawn.equipment == null)
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 没有装备管理器（可能不是人类）。");
 
+                        // 验证是否可以装备
+                        if (!EquipmentUtility.CanEquip(weapon, pawn, out string equipReason, false))
+                            return ToolResult.Error($"无法装备 {weapon.Label}：{equipReason}");
+
+                        // 检查暴力工作标签
+                        if (pawn.WorkTagIsDisabled(WorkTags.Violent))
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 被禁止从事暴力工作，无法装备武器。");
+
+                        // 检查射击工作标签（远程武器）
+                        if (weapon.def.IsRangedWeapon && pawn.WorkTagIsDisabled(WorkTags.Shooting))
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 被禁止从事射击工作，无法装备远程武器。");
+
+                        // 卸下当前主武器腾出空间
+                        pawn.equipment.MakeRoomFor(weapon);
                         pawn.equipment.AddEquipment(weapon);
 
                         // 获取装备后的武器名称
@@ -142,6 +156,13 @@ namespace RimWorldMCP.Tools
                             return ToolResult.Error($"{matched.Label} 无法作为衣物穿戴。");
                         if (pawn.apparel == null)
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 没有衣物管理器（可能不是人类）。");
+
+                        // 检查是否有合适的身体部位穿戴
+                        if (!ApparelUtility.HasPartsToWear(pawn, apparel.def))
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 没有适合穿戴 {apparel.Label} 的身体部位。");
+
+                        if (!EquipmentUtility.CanEquip(apparel, pawn, out string wearReason, false))
+                            return ToolResult.Error($"无法穿戴 {apparel.Label}：{wearReason}");
 
                         pawn.apparel.Wear(apparel);
 

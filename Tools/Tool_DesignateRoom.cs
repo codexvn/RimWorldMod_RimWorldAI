@@ -158,6 +158,9 @@ namespace RimWorldMCP.Tools
                     if (startX < 0 || startY < 0 || endX >= mapW || endY >= mapH)
                         return ToolResult.Error($"房间范围 ({startX}~{endX}, {startY}~{endY}) 超出地图边界 (0~{mapW - 1}, 0~{mapH - 1})。请选择更靠内的中心点或缩小房间。");
 
+                    if (Faction.OfPlayer == null)
+                        return ToolResult.Error("玩家派系不存在");
+
                     // 材料默认
                     var wallStuff = (wallDef.MadeFromStuff) ? ThingDef.Named("Steel") : null;
                     var doorStuff = (doorDef?.MadeFromStuff == true) ? ThingDef.Named("Steel") : null;
@@ -174,6 +177,7 @@ namespace RimWorldMCP.Tools
                                 // 门放不了，退化为墙
                                 if (GenConstruct.CanPlaceBlueprintAt((BuildableDef)wallDef, ipos, Rot4.North, map, false, null, null, wallStuff))
                                 {
+                                    GenSpawn.WipeExistingThings(ipos, Rot4.North, wallDef.blueprintDef, map, DestroyMode.Deconstruct);
                                     GenConstruct.PlaceBlueprintForBuild((BuildableDef)wallDef, ipos, map, Rot4.North, Faction.OfPlayer, wallStuff);
                                     placedWalls++;
                                 }
@@ -181,6 +185,7 @@ namespace RimWorldMCP.Tools
                             }
                             try
                             {
+                                GenSpawn.WipeExistingThings(ipos, Rot4.North, doorDef!.blueprintDef, map, DestroyMode.Deconstruct);
                                 GenConstruct.PlaceBlueprintForBuild(bdef, ipos, map, Rot4.North, Faction.OfPlayer, doorStuff);
                                 placedDoors++;
                             }
@@ -192,6 +197,7 @@ namespace RimWorldMCP.Tools
                                 continue;
                             try
                             {
+                                GenSpawn.WipeExistingThings(ipos, Rot4.North, wallDef.blueprintDef, map, DestroyMode.Deconstruct);
                                 GenConstruct.PlaceBlueprintForBuild((BuildableDef)wallDef, ipos, map, Rot4.North, Faction.OfPlayer, wallStuff);
                                 placedWalls++;
                             }
@@ -210,6 +216,7 @@ namespace RimWorldMCP.Tools
                                 continue;
                             try
                             {
+                                GenSpawn.WipeExistingThings(fpos, Rot4.North, floorDef.blueprintDef, map, DestroyMode.Deconstruct);
                                 GenConstruct.PlaceBlueprintForBuild((BuildableDef)floorDef, fpos, map, Rot4.North, Faction.OfPlayer, floorStuff);
                                 placedFloors++;
                             }

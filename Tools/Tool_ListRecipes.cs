@@ -39,6 +39,9 @@ namespace RimWorldMCP.Tools
                 var allRecipes = DefDatabase<RecipeDef>.AllDefs;
                 var filtered = allRecipes.AsEnumerable();
 
+                // 只显示当前可用的配方（研究解锁 + 意识形态）
+                filtered = filtered.Where(r => r.AvailableNow);
+
                 // 排除手术配方（可选：由前端决定，默认全部列出）
                 // 按工作台类型过滤
                 if (!string.IsNullOrEmpty(workbenchFilter))

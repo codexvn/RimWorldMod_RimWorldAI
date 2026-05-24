@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -45,20 +46,42 @@ namespace RimWorldMCP.Tools
                     if (researchManager == null)
                         return ToolResult.Error("ResearchManager 不可用。");
 
-                    // 检查前置条件
-                    if (!project.PrerequisitesCompleted)
+                    // 使用 CanStartNow 完整校验（覆盖 8 项条件）
+                    if (!project.CanStartNow)
                     {
-                        var unmet = project.prerequisites?.Where(p => !p.IsFinished)
-                            .Select(p => p.label ?? p.defName).ToList();
-                        if (unmet != null && unmet.Count > 0)
-                            return ToolResult.Error(
-                                $"无法研究 {project.label} ({projectDefName})。未满足前置条件: {string.Join(", ", unmet)}");
-                        return ToolResult.Error($"无法研究 {project.label} ({projectDefName})。前置条件未满足。");
+                        var reasons = new List<string>();
+                        if (project.IsFinished)
+                            reasons.Add("研究项目已完成");
+                        if (!project.PrerequisitesCompleted)
+                        {
+                            var unmet = project.prerequisites?.Where(p => !p.IsFinished)
+                                .Select(p => p.label ?? p.defName).ToList();
+                            if (unmet != null && unmet.Count > 0)
+                                reasons.Add($"前置项目未完成: {string.Join(", ", unmet)}");
+                            else
+                                reasons.Add("前置条件未满足");
+                        }
+                        if (!project.TechprintRequirementMet)
+                            reasons.Add($"科技蓝图要求未满足 (已应用 {project.TechprintsApplied}/{project.TechprintCount})");
+                        if (project.requiredResearchBuilding != null && !project.PlayerHasAnyAppropriateResearchBench)
+                            reasons.Add($"缺少必要研究设施: {project.requiredResearchBuilding.label}");
+                        if (!project.PlayerMechanitorRequirementMet)
+                            reasons.Add("需要机械师");
+                        if (!project.AnalyzedThingsRequirementsMet)
+                            reasons.Add("分析物要求未满足");
+                        if (project.IsHidden)
+                            reasons.Add("项目被隐藏（需要异常 DLC 或实体分析解锁）");
+                        if (!project.InspectionRequirementsMet)
+                            reasons.Add("检查要求未满足");
+                        if (reasons.Count == 0)
+                            reasons.Add("未知原因（CanStartNow 返回 false）");
+                        return ToolResult.Error(
+                            $"无法开始研究 {project.label} ({projectDefName})。原因: {string.Join("; ", reasons)}");
                     }
 
-                    // 检查是否已完成
-                    if (project.IsFinished)
-                        return ToolResult.Error($"研究项目 {project.label} ({projectDefName}) 已经完成，无需再次研究。");
+                    // 检查是否有有效的研究成本（baseCost/knowledgeCost 均为 0 时 SetCurrentProject 无效）
+                    if (project.baseCost <= 0f && project.knowledgeCost <= 0f)
+                        return ToolResult.Error($"研究项目 {project.label} ({projectDefName}) 无有效研究成本（baseCost 和 knowledgeCost 均为 0），SetCurrentProject 不会生效。");
 
                     var projLabel = project.label ?? projectDefName;
 

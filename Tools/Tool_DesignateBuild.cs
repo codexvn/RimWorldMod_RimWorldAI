@@ -99,6 +99,10 @@ namespace RimWorldMCP.Tools
                     if (!canPlace)
                         return ToolResult.Error($"无法在 ({posX}, {posY}, {posZ}) 放置 {def.label}：{canPlace.Reason}");
 
+                    if (Faction.OfPlayer == null)
+                        return ToolResult.Error("玩家派系不存在");
+
+                    GenSpawn.WipeExistingThings(pos, rot, def.blueprintDef, map, DestroyMode.Deconstruct);
                     GenConstruct.PlaceBlueprintForBuild(bdef, pos, map, rot, Faction.OfPlayer, stuff);
 
                     string stuffInfo = stuff != null ? $"（材料: {stuff.label}）" : "";

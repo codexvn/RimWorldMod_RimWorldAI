@@ -76,33 +76,56 @@ namespace RimWorldMCP.Tools
                         return ToolResult.Error($"以下殖民者无法征召（非玩家控制）: {string.Join(", ", names)}");
                     }
 
-                    // 执行征召/解除征召
+                    // 执行征召/解除征召（跳过倒地或濒死休眠的殖民者）
+                    var skippedPawns = new List<string>();
+                    int draftedCount = 0;
                     foreach (var pawn in targets)
                     {
+                        if (pawn.Downed)
+                        {
+                            skippedPawns.Add($"{pawn.Name.ToStringShort} (已倒地)");
+                            continue;
+                        }
+                        if (pawn.Deathresting)
+                        {
+                            skippedPawns.Add($"{pawn.Name.ToStringShort} (濒死休眠中)");
+                            continue;
+                        }
                         pawn.drafter.Drafted = drafted;
+                        draftedCount++;
+                    }
+
+                    if (draftedCount == 0)
+                    {
+                        if (skippedPawns.Count > 0)
+                            return ToolResult.Error($"无法执行征召：{string.Join("、", skippedPawns)}");
+                        return ToolResult.Error("没有可以操作的殖民者。");
                     }
 
                     // 构建结果消息
                     var actionText = drafted ? "已征召" : "已解除征召";
                     var sb = new StringBuilder();
 
-                    if (targets.Count == 1)
+                    if (draftedCount == 1 && targets.Count <= 1)
                     {
                         sb.Append($"{targets[0].Name.ToStringShort} {actionText}");
                     }
-                    else if (string.IsNullOrEmpty(nameFilter))
+                    else if (string.IsNullOrEmpty(nameFilter) && skippedPawns.Count == 0)
                     {
-                        sb.Append($"全体殖民者({targets.Count}人) {actionText}");
+                        sb.Append($"全体殖民者({draftedCount}人) {actionText}");
                     }
                     else
                     {
-                        sb.Append($"{targets.Count} 名殖民者 {actionText}");
+                        sb.Append($"{draftedCount} 名殖民者 {actionText}");
                     }
 
                     if (drafted)
                         sb.AppendLine("。殖民者将中断当前工作并进入战斗状态。");
                     else
                         sb.AppendLine("。殖民者将恢复日常工作。");
+
+                    if (skippedPawns.Count > 0)
+                        sb.AppendLine($"注意：{skippedPawns.Count} 名殖民者被跳过（{string.Join("、", skippedPawns)}）。");
 
                     return ToolResult.Success(sb.ToString());
                 }
