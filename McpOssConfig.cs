@@ -11,6 +11,8 @@ namespace RimWorldMCP
         public static string SecretKey { get; set; } = "";
         public static string Region { get; set; } = "";
         public static bool ForcePathStyle { get; set; }
+        public static bool UseSignedUrl { get; set; } = true;
+        public static int SignedUrlExpiryHours { get; set; } = 24;
 
         public static bool IsConfigured =>
             Enabled &&
@@ -31,6 +33,8 @@ namespace RimWorldMCP
             SecretKey = settings.OssSecretKey ?? "";
             Region = settings.OssRegion ?? "";
             ForcePathStyle = settings.OssForcePathStyle;
+            UseSignedUrl = settings.OssUseSignedUrl;
+            SignedUrlExpiryHours = settings.OssSignedUrlExpiryHours;
 
             McpLog.Info(IsConfigured
                 ? $"OSS 配置已加载: {ServiceUrl}/{BucketName}"

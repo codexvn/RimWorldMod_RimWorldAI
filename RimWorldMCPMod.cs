@@ -49,6 +49,18 @@ namespace RimWorldMCP
                 listing.Gap(12f);
                 listing.CheckboxLabeled("Force Path Style", ref Settings.OssForcePathStyle,
                     "勾选 = endpoint/bucket/key，不勾选 = bucket.endpoint/key");
+
+                listing.Gap(12f);
+                listing.CheckboxLabeled("使用签名 URL", ref Settings.OssUseSignedUrl,
+                    "生成有时效的预签名 URL，Bucket 无需设为公开读。关闭则返回公开 URL。");
+
+                if (Settings.OssUseSignedUrl)
+                {
+                    listing.Label("签名有效期（小时）");
+                    var expiryStr = listing.TextEntry(Settings.OssSignedUrlExpiryHours.ToString());
+                    if (int.TryParse(expiryStr, out int expiryHours) && expiryHours > 0)
+                        Settings.OssSignedUrlExpiryHours = expiryHours;
+                }
             }
 
             listing.End();

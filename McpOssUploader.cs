@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using Amazon;
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using UnityEngine;
@@ -88,6 +89,9 @@ namespace RimWorldMCP
 
         public static string GetPublicUrl(string objectKey)
         {
+            if (McpOssConfig.UseSignedUrl)
+                return GetSignedUrl(objectKey);
+
             if (McpOssConfig.ForcePathStyle)
                 return $"{McpOssConfig.ServiceUrl}/{McpOssConfig.BucketName}/{objectKey}";
 
@@ -99,6 +103,26 @@ namespace RimWorldMCP
             {
                 return $"{McpOssConfig.ServiceUrl}/{McpOssConfig.BucketName}/{objectKey}";
             }
+        }
+
+        private static string GetSignedUrl(string objectKey)
+        {
+            var s3Config = new AmazonS3Config
+            {
+                ServiceURL = McpOssConfig.NormalizeUrl(McpOssConfig.ServiceUrl),
+                ForcePathStyle = McpOssConfig.ForcePathStyle,
+                RegionEndpoint = RegionEndpoint.GetBySystemName(McpOssConfig.Region)
+            };
+
+            using var client = new AmazonS3Client(McpOssConfig.AccessKey, McpOssConfig.SecretKey, s3Config);
+            return client.GetPreSignedURL(new GetPreSignedUrlRequest
+            {
+                BucketName = McpOssConfig.BucketName,
+                Key = objectKey,
+                Expires = DateTime.UtcNow.AddHours(McpOssConfig.SignedUrlExpiryHours),
+                Verb = HttpVerb.GET,
+                Protocol = Protocol.HTTPS
+            });
         }
     }
 }
