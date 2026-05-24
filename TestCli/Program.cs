@@ -113,7 +113,7 @@ class GatewayTester
     private async Task Send(object obj)
     {
         if (_ws?.State != WebSocketState.Open) return;
-        var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
         Console.WriteLine($"→ {Trunc(json)}");
         var bytes = Encoding.UTF8.GetBytes(json);
         await _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
