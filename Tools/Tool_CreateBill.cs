@@ -77,6 +77,14 @@ namespace RimWorldMCP.Tools
                     if (targetTable.billStack.Count >= 15)
                         return ToolResult.Error($"{tableLabel} 的单据已满（最多 15 个）。请先删除或暂停其他单据。");
 
+                    // 检查原料库存
+                    var missing = recipe.PotentiallyMissingIngredients(null, map).ToList();
+                    if (missing.Count > 0)
+                    {
+                        var names = missing.Select(d => d.label).ToList();
+                        return ToolResult.Error($"配方 {recipe.label} 缺少原料: {string.Join(", ", names)}");
+                    }
+
                     // 创建单据（使用 MakeNewBill 自动选择正确的单据子类：UFT/Mech/Autonomous/标准）
                     var billBase = recipe.MakeNewBill(null);
                     var bill = (Bill_Production)billBase; // 所有 MakeNewBill 返回类型均继承自 Bill_Production

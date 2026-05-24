@@ -16,14 +16,14 @@ namespace RimWorldMCP.Tools
         {
             var result = new Dictionary<ThingDef, int>();
 
-            if (def.costStuffCount > 0 && stuff != null)
+            if (def.CostStuffCount > 0 && stuff != null)
             {
-                result[stuff] = def.costStuffCount;
+                result[stuff] = def.CostStuffCount;
             }
 
-            if (def.costList != null)
+            if (def.CostList != null)
             {
-                foreach (var entry in def.costList)
+                foreach (var entry in def.CostList)
                 {
                     if (result.ContainsKey(entry.thingDef))
                         result[entry.thingDef] += entry.count;
@@ -64,8 +64,6 @@ namespace RimWorldMCP.Tools
             sb.AppendLine("资源不足，无法建造。资源缺口:");
             foreach (var line in missing)
                 sb.AppendLine(line);
-            sb.Append("提示: 使用 force=true 参数可跳过资源检查强制建造。");
-
             return sb.ToString();
         }
     }
