@@ -45,7 +45,6 @@ namespace RimWorldMCP.Tools
                 rotationStr = jRot.GetString() ?? "North";
             }
 
-            int posZ = 0; // RimWorld 是 2D 地图，Z 始终为 0
 
             string stuffDefName = "";
             if (args.Value.TryGetProperty("stuff_defName", out var jStuff))
@@ -89,13 +88,13 @@ namespace RimWorldMCP.Tools
                         stuff = ThingDef.Named("Steel");
                     }
 
-                    IntVec3 pos = new IntVec3(posX, posY, posZ);
+                    IntVec3 pos = new IntVec3(posX, 0, posY);
                     BuildableDef bdef = (BuildableDef)def;
 
                     // 地形/合法性检查
                     var canPlace = GenConstruct.CanPlaceBlueprintAt(bdef, pos, rot, map, false, null, null, stuff);
                     if (!canPlace)
-                        return ToolResult.Error($"无法在 ({posX}, {posY}, {posZ}) 放置 {def.label}：{canPlace.Reason}");
+                        return ToolResult.Error($"无法在 ({posX}, {posY}) 放置 {def.label}：{canPlace.Reason}");
 
                     if (Faction.OfPlayer == null)
                         return ToolResult.Error("玩家派系不存在");
@@ -104,7 +103,7 @@ namespace RimWorldMCP.Tools
                     GenConstruct.PlaceBlueprintForBuild(bdef, pos, map, rot, Faction.OfPlayer, stuff);
 
                     string stuffInfo = stuff != null ? $"（材料: {stuff.label}）" : "";
-                    return ToolResult.Success($"已成功在坐标 ({posX}, {posY}, {posZ}) 放置 {def.label} ({thingDefName}) 的建造蓝图{stuffInfo}，朝向: {rotationStr}。");
+                    return ToolResult.Success($"已成功在坐标 ({posX}, {posY}) 放置 {def.label} ({thingDefName}) 的建造蓝图{stuffInfo}，朝向: {rotationStr}。");
                 }
                 catch (Exception ex)
                 {

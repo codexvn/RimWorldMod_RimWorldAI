@@ -38,7 +38,6 @@ namespace RimWorldMCP.Tools
                 return ToolResult.Error("缺少必填参数: center_x");
             if (!args.Value.TryGetProperty("center_y", out var jY) || !jY.TryGetInt32(out var centerY))
                 return ToolResult.Error("缺少必填参数: center_y");
-            int centerZ = 0; // RimWorld 是 2D 地图，Z 始终为 0
 
             int width = 13, height = 13;
             if (args.Value.TryGetProperty("width", out var jW) && jW.TryGetInt32(out var wv) && wv > 0) width = wv;
@@ -166,7 +165,7 @@ namespace RimWorldMCP.Tools
                     // 放置墙体（在门位置处替换为门）
                     foreach (var (wx, wy) in wallPositions)
                     {
-                        var ipos = new IntVec3(wx, wy, centerZ);
+                        var ipos = new IntVec3(wx, 0, wy);
                         if (doorPosSet.Contains((wx, wy)))
                         {
                             var bdef = (BuildableDef)doorDef!;
@@ -209,7 +208,7 @@ namespace RimWorldMCP.Tools
                     {
                         foreach (var (fx, fy) in floorPositions)
                         {
-                            var fpos = new IntVec3(fx, fy, centerZ);
+                            var fpos = new IntVec3(fx, 0, fy);
                             if (!GenConstruct.CanPlaceBlueprintAt((BuildableDef)floorDef, fpos, Rot4.North, map, false, null, null, floorStuff))
                                 continue;
                             try
@@ -225,7 +224,7 @@ namespace RimWorldMCP.Tools
                     // 构建返回文本
                     var sb = new StringBuilder();
                     sb.AppendLine($"房间建造蓝图规划完成:");
-                    sb.AppendLine($"- 范围: ({startX}, {startY}) ~ ({endX}, {endY})，中心 ({centerX}, {centerY}, {centerZ})");
+                    sb.AppendLine($"- 范围: ({startX}, {startY}) ~ ({endX}, {endY})，中心 ({centerX}, {centerY})");
                     sb.AppendLine($"- 外墙: {placedWalls} 格 {wallDef.label} ({wallDefName})");
                     if (placedDoors > 0)
                         sb.AppendLine($"- 门: {placedDoors} 扇 {doorDef?.label ?? doorDefName}");
