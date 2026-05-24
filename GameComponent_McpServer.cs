@@ -200,6 +200,8 @@ namespace RimWorldMCP
             registry.Register(new Tool_CreateStockpile());
             registry.Register(new Tool_SearchMap());
             registry.Register(new Tool_FindPawn());
+            registry.Register(new Tool_GetThingDef());
+            registry.Register(new Tool_SearchThingDef());
         }
 
         private static string FindSkillsDirectory()
