@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
@@ -10,15 +11,17 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignatePlantsCut : ITool
     {
         public string Name => "designate_plants_cut";
-        public string Description => "标记指定位置的植物/树木以供砍伐。殖民者会在工作完成后执行砍伐。";
+        public string Description => "标记指定区域的植物/树木以供砍伐。提供 end_x/end_y 可划定矩形范围，不提供则仅标记单格。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "X 坐标（水平）" },
-                pos_y = new { type = "integer", description = "Y 坐标（垂直）" },
-                plant_defName = new { type = "string", description = "植物 defName 过滤（可选）" }
+                pos_x = new { type = "integer", description = "起点 X 坐标（水平）" },
+                pos_y = new { type = "integer", description = "起点 Y 坐标（垂直）" },
+                end_x = new { type = "integer", description = "终点 X 坐标（可选，与 end_y 配对划定矩形范围）" },
+                end_y = new { type = "integer", description = "终点 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
+                plant_defName = new { type = "string", description = "植物 defName 过滤（可选，只砍特定种类）" }
             },
             required = new[] { "pos_x", "pos_y" }
         });
@@ -30,6 +33,11 @@ namespace RimWorldMCP.Tools
                 return ToolResult.Error("缺少必填参数: pos_x");
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY))
                 return ToolResult.Error("缺少必填参数: pos_y");
+
+            int endX = posX, endY = posY;
+            bool isRange = args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out endX)
+                        && args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out endY);
+
             string plantDefName = "";
             if (args.Value.TryGetProperty("plant_defName", out var jPlant))
                 plantDefName = jPlant.GetString() ?? "";
@@ -41,40 +49,56 @@ namespace RimWorldMCP.Tools
                     Map map = Find.CurrentMap;
                     if (map == null) return ToolResult.Error("没有当前地图，请先加载游戏存档。");
 
-                    IntVec3 pos = new IntVec3(posX, 0, posY);
-                    if (!pos.InBounds(map))
-                        return ToolResult.Error($"坐标 ({posX}, {posY}) 超出地图边界。");
-                    if (pos.Fogged(map))
-                        return ToolResult.Error($"坐标 ({posX}, {posY}) 处于迷雾中，无法标记砍伐。");
+                    int minX = Math.Min(posX, endX);
+                    int maxX = Math.Max(posX, endX);
+                    int minZ = Math.Min(posY, endY);
+                    int maxZ = Math.Max(posY, endY);
 
-                    Plant plant = pos.GetPlant(map);
-                    if (plant == null)
-                        return ToolResult.Error($"坐标 ({posX}, {posY}) 没有植物。");
-                    if (plant.def.plant == null)
-                        return ToolResult.Error($"{plant.def.label} 不是可砍伐的植物。");
+                    CellRect area = CellRect.FromLimits(minX, minZ, maxX, maxZ);
+                    area.ClipInsideMap(map);
 
-                    if (plant.TryGetComp<CompPlantPreventCutting>(out var comp) && comp.PreventCutting)
-                        return ToolResult.Error($"{plant.def.label} 被禁止砍伐。");
+                    if (area.IsEmpty)
+                        return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外。");
 
-                    if (!string.IsNullOrEmpty(plantDefName))
+                    int cut = 0, skipped = 0, fogged = 0, noPlant = 0, filtered = 0, prevented = 0;
+
+                    foreach (IntVec3 cell in area)
                     {
-                        bool match = plant.def.defName.Equals(plantDefName, StringComparison.OrdinalIgnoreCase)
-                                     || (plant.def.label != null && plant.def.label.IndexOf(plantDefName, StringComparison.OrdinalIgnoreCase) >= 0);
-                        if (!match)
-                            return ToolResult.Error($"坐标 ({posX}, {posY}) 的植物是 {plant.def.label} ({plant.def.defName})，与指定过滤 {plantDefName} 不匹配。");
+                        if (cell.Fogged(map)) { fogged++; continue; }
+
+                        Plant plant = cell.GetPlant(map);
+                        if (plant == null) { noPlant++; continue; }
+                        if (plant.def.plant == null) { noPlant++; continue; }
+
+                        if (plant.TryGetComp<CompPlantPreventCutting>(out var comp) && comp.PreventCutting)
+                        { prevented++; continue; }
+
+                        if (!string.IsNullOrEmpty(plantDefName))
+                        {
+                            bool match = plant.def.defName.Equals(plantDefName, StringComparison.OrdinalIgnoreCase)
+                                      || (plant.def.label != null && plant.def.label.IndexOf(plantDefName, StringComparison.OrdinalIgnoreCase) >= 0);
+                            if (!match) { filtered++; continue; }
+                        }
+
+                        if (map.designationManager.DesignationOn(plant, DesignationDefOf.CutPlant) != null)
+                        { skipped++; continue; }
+
+                        map.designationManager.RemoveAllDesignationsOn(plant, false);
+                        map.designationManager.AddDesignation(new Designation(plant, DesignationDefOf.CutPlant, null));
+                        if (DesignationDefOf.ExtractTree != null)
+                            map.designationManager.TryRemoveDesignationOn(plant, DesignationDefOf.ExtractTree);
+
+                        cut++;
                     }
 
-                    if (map.designationManager.DesignationOn(plant, DesignationDefOf.CutPlant) != null)
-                        return ToolResult.Success($"植物 {plant.def.label} ({plant.def.defName}) 已被标记为砍伐，无需重复操作。");
+                    var sb = new StringBuilder();
+                    string filterInfo = !string.IsNullOrEmpty(plantDefName) ? $"（过滤: {plantDefName}）" : "";
+                    sb.Append(isRange
+                        ? $"已标记砍伐范围 ({minX},{minZ})~({maxX},{maxZ}){filterInfo}：{cut} 株"
+                        : $"已标记砍伐坐标 ({posX}, {posY}){filterInfo}：{cut} 株");
+                    sb.Append($"。（跳过: 迷雾 {fogged}, 无植物 {noPlant}, 被禁止 {prevented}, 不匹配过滤 {filtered}, 已有标记 {skipped}）");
 
-                    map.designationManager.RemoveAllDesignationsOn(plant, false);
-                    map.designationManager.AddDesignation(new Designation(plant, DesignationDefOf.CutPlant, null));
-                    if (DesignationDefOf.ExtractTree != null)
-                        map.designationManager.TryRemoveDesignationOn(plant, DesignationDefOf.ExtractTree);
-
-                    int yield = plant.YieldNow();
-                    string yieldInfo = yield > 0 ? $"，预期产出: {yield}" : "";
-                    return ToolResult.Success($"已标记 {plant.def.label} ({plant.def.defName}) 在坐标 ({posX}, {posY}) 以供砍伐{yieldInfo}。");
+                    return ToolResult.Success(sb.ToString());
                 }
                 catch (Exception ex) { return ToolResult.Error($"标记砍伐失败: {ex.Message}"); }
             });

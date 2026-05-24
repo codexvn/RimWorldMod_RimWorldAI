@@ -79,7 +79,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 游戏启动后，MCP 服务自动运行在 `http://localhost:9877`。
 
-## Tool 清单（24 个，真实 API）
+## Tool 清单（25 个，真实 API）
 
 ### 通用查询
 | Tool | 说明 | 数据源 |
@@ -104,8 +104,8 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 ### 伐木与采矿 (2)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
-| `designate_plants_cut` | 标记植物砍伐（参数: pos_x=水平, pos_y=垂直网格） | `DesignationManager.AddDesignation(CutPlant)` (入队) |
-| `designate_mine` | 标记采矿（参数: pos_x=水平, pos_y=垂直网格） | `DesignationManager.AddDesignation(Mine)` (入队) |
+| `designate_plants_cut` | 标记植物砍伐（pos_x/y=起点, end_x/y=终点可选, 支持矩形范围） | `DesignationManager.AddDesignation(CutPlant)` (入队) |
+| `designate_mine` | 标记采矿（pos_x/y=起点, end_x/y=终点可选, 支持矩形范围） | `DesignationManager.AddDesignation(Mine)` (入队) |
 
 ### 截图 (1)
 | Tool | 说明 | 数据源/操作 |
