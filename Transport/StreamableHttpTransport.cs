@@ -88,7 +88,6 @@ namespace RimWorldMCP.Transport
                 _pendingResponses.Clear();
             }
             _listener?.Stop();
-            _listener?.Stop();
             _listener?.Close();
             Log("Streamable HTTP 服务器已停止");
             await Task.CompletedTask;

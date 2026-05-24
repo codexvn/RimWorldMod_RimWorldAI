@@ -22,7 +22,7 @@ namespace RimWorldMCP.Tools
                 thing_defName = new { type = "string", description = "装备 DefName，精确匹配" },
                 equip_type = new { type = "string", description = "装备类型", @enum = new[] { "weapon", "apparel" } }
             },
-            required = new[] { "colonist_name" }
+            required = new[] { "colonist_name", "thing_defName" }
         });
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
