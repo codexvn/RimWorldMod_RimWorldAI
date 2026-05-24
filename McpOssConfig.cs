@@ -37,7 +37,7 @@ namespace RimWorldMCP
                 : "OSS 未配置或未启用");
         }
 
-        private static string NormalizeUrl(string url)
+        public static string NormalizeUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url)) return "";
             url = url.Trim();

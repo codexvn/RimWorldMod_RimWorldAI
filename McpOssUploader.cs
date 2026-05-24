@@ -66,7 +66,7 @@ namespace RimWorldMCP
         {
             var s3Config = new AmazonS3Config
             {
-                ServiceURL = McpOssConfig.ServiceUrl,
+                ServiceURL = McpOssConfig.NormalizeUrl(McpOssConfig.ServiceUrl),
                 ForcePathStyle = McpOssConfig.ForcePathStyle,
                 RegionEndpoint = RegionEndpoint.GetBySystemName(McpOssConfig.Region)
             };
