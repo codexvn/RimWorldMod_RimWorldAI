@@ -18,21 +18,17 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                colonist_name = new { type = "string", description = "殖民者名称" },
+                colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" },
                 thing_id = new { type = "integer", description = "物品唯一 ID（来自 get_tile_detail）" }
             },
-            required = new[] { "colonist_name", "thing_id" }
+            required = new[] { "colonist_id", "thing_id" }
         });
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             if (args == null) return ToolResult.Error("缺少参数");
-            if (!args.Value.TryGetProperty("colonist_name", out var jName))
-                return ToolResult.Error("缺少必填参数: colonist_name");
-
-            string colonistName = jName.GetString() ?? "";
-            if (string.IsNullOrWhiteSpace(colonistName))
-                return ToolResult.Error("colonist_name 不能为空");
+            if (!args.Value.TryGetProperty("colonist_id", out var jCid) || !jCid.TryGetInt32(out var colonistId))
+                return ToolResult.Error("缺少必填参数: colonist_id");
 
             if (!args.Value.TryGetProperty("thing_id", out var jId) || !jId.TryGetInt32(out var thingId))
                 return ToolResult.Error("缺少必填参数: thing_id");
@@ -45,22 +41,18 @@ namespace RimWorldMCP.Tools
                     if (colonists == null || colonists.Count == 0)
                         return ToolResult.Error("当前没有自由殖民者。");
 
-                    Pawn pawn = colonists.FirstOrDefault(c =>
-                        c.Name.ToStringShort.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        c.Name.ToStringFull.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0);
+                    Pawn pawn = colonists.FirstOrDefault(c => c.thingIDNumber == colonistId);
                     if (pawn == null)
-                        return ToolResult.Error($"找不到殖民者: {colonistName}");
+                        return ToolResult.Error($"找不到 ID={colonistId} 的殖民者。");
 
                     Map map = Find.CurrentMap;
                     if (map == null)
                         return ToolResult.Error("没有当前地图。");
 
-                    // 查找物品
                     Thing? thing = FindThingById(map, thingId);
                     if (thing == null)
                         return ToolResult.Error($"找不到 ID={thingId} 的物品。");
 
-                    // 获取品质信息
                     string qualityStr = "";
                     try
                     {
@@ -70,7 +62,6 @@ namespace RimWorldMCP.Tools
                     }
                     catch { }
 
-                    // 自动判断装备类型
                     bool isWeapon = thing.def.IsWeapon || thing.HasComp<CompEquippable>();
                     if (isWeapon)
                     {
@@ -83,16 +74,32 @@ namespace RimWorldMCP.Tools
                         if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 没有操作能力，无法装备。");
 
+                        if (!EquipmentUtility.CanEquip(thing, pawn, out string reason, false))
+                            return ToolResult.Error($"无法装备 {thing.Label}: {reason}");
+
                         if (EquipmentUtility.AlreadyBondedToWeapon(thing, pawn))
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 已与另一把灵能武器绑定。");
                     }
                     else
                     {
+                        Apparel? apparel = thing as Apparel;
+                        if (apparel == null)
+                            return ToolResult.Error($"{thing.Label} 不是可穿戴的衣物。");
+
                         if (pawn.apparel == null)
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 没有衣物管理器。");
 
-                        if (pawn.apparel.WouldReplaceLockedApparel((Apparel)thing))
-                            return ToolResult.Error($"穿戴 {thing.Label} 会替换已锁定的衣物。");
+                        if (!ApparelUtility.HasPartsToWear(pawn, apparel.def))
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 没有适合穿戴 {apparel.Label} 的身体部位。");
+
+                        if (pawn.IsMutant && pawn.mutant.Def.disableApparel)
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 是变异体，无法穿戴衣物。");
+
+                        if (pawn.apparel.WouldReplaceLockedApparel(apparel))
+                            return ToolResult.Error($"穿戴 {apparel.Label} 会替换已锁定的衣物。");
+
+                        if (!EquipmentUtility.CanEquip(apparel, pawn, out string reason, true))
+                            return ToolResult.Error($"无法穿戴 {apparel.Label}: {reason}");
                     }
 
                     if (!pawn.CanReach(thing, PathEndMode.ClosestTouch, Danger.Deadly))
@@ -106,7 +113,7 @@ namespace RimWorldMCP.Tools
                     pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
 
                     string typeLabel = isWeapon ? "武器" : "衣物";
-                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往 ({thing.Position.x},{thing.Position.z}) 拾取并装备{typeLabel}: {thing.Label} ({thing.def.defName}){qualityStr}。");
+                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取并装备{typeLabel}: {thing.Label}{qualityStr}。");
                 }
                 catch (Exception ex)
                 {

@@ -179,6 +179,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_SetWorkPriority());
             registry.Register(new Tool_GetColonistHealth());
             registry.Register(new Tool_ScheduleOperation());
+            registry.Register(new Tool_ForceEquip());
             registry.Register(new Tool_EquipPawn());
             registry.Register(new Tool_DraftPawn());
             registry.Register(new Tool_GetDefenseStatus());
@@ -197,6 +198,8 @@ namespace RimWorldMCP
             registry.Register(new Tool_IngestItem());
             registry.Register(new Tool_ForceDress());
             registry.Register(new Tool_CreateStockpile());
+            registry.Register(new Tool_SearchMap());
+            registry.Register(new Tool_FindPawn());
         }
 
         private static string FindSkillsDirectory()
