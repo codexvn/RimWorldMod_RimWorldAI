@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
+using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
@@ -27,7 +28,7 @@ namespace RimWorldMCP.Tools
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
-            // ---- 参数验证 ----
+            // 参数验证（任意线程安全）
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("thingDef_name", out var jDefName))
                 return ToolResult.Error("缺少必填参数: thingDef_name");
@@ -54,70 +55,50 @@ namespace RimWorldMCP.Tools
                 stuffDefName = jStuff.GetString() ?? "";
             }
 
-            // ---- 通过 McpCommandQueue 在主线程执行 RimWorld API 调用 ----
-            try
+            // 所有游戏 API 访问通过 DispatchAsync 调度到主线程
+            return await McpCommandQueue.DispatchAsync(() =>
             {
-                var cmd = new McpCommand
+                try
                 {
-                    Action = () =>
+                    Map map = Find.CurrentMap;
+                    if (map == null)
+                        return ToolResult.Error("没有当前地图，请先加载游戏存档。");
+
+                    ThingDef def = ThingDef.Named(thingDefName);
+                    if (def == null)
+                        return ToolResult.Error($"找不到 ThingDef: {thingDefName}。请确认 DefName 拼写正确。");
+                    if (!(def is BuildableDef))
+                        return ToolResult.Error($"{thingDefName} 不是可建造的类型。");
+
+                    Rot4 rot = rotationStr switch
                     {
-                        try
-                        {
-                            Map map = Find.CurrentMap;
-                            if (map == null)
-                                return "错误：没有当前地图，请先加载游戏存档。";
+                        "North" => Rot4.North,
+                        "East" => Rot4.East,
+                        "South" => Rot4.South,
+                        "West" => Rot4.West,
+                        _ => Rot4.North
+                    };
 
-                            ThingDef def = ThingDef.Named(thingDefName);
-                            if (def == null)
-                                return $"错误：找不到 ThingDef: {thingDefName}。请确认 DefName 拼写正确。";
-                            if (!(def is BuildableDef))
-                                return $"错误：{thingDefName} 不是可建造的类型。";
-
-                            Rot4 rot = rotationStr switch
-                            {
-                                "North" => Rot4.North,
-                                "East" => Rot4.East,
-                                "South" => Rot4.South,
-                                "West" => Rot4.West,
-                                _ => Rot4.North
-                            };
-
-                            ThingDef? stuff = null;
-                            if (!string.IsNullOrEmpty(stuffDefName))
-                            {
-                                stuff = ThingDef.Named(stuffDefName);
-                                if (stuff == null)
-                                    return $"错误：找不到材料 ThingDef: {stuffDefName}";
-                            }
-
-                            IntVec3 pos = new IntVec3(posX, posY, posZ);
-                            GenConstruct.PlaceBlueprintForBuild(
-                                (BuildableDef)def, pos, map, rot, Faction.OfPlayer, stuff);
-
-                            string stuffInfo = stuff != null ? $"（材料: {stuff.label}）" : "";
-                            return $"已成功在坐标 ({posX}, {posY}, {posZ}) 放置 {def.label} ({thingDefName}) 的建造蓝图{stuffInfo}，朝向: {rotationStr}。";
-                        }
-                        catch (Exception ex)
-                        {
-                            return $"建造蓝图放置失败: {ex.Message}";
-                        }
+                    ThingDef? stuff = null;
+                    if (!string.IsNullOrEmpty(stuffDefName))
+                    {
+                        stuff = ThingDef.Named(stuffDefName);
+                        if (stuff == null)
+                            return ToolResult.Error($"找不到材料 ThingDef: {stuffDefName}");
                     }
-                };
-                McpCommandQueue.Enqueue(cmd);
-                string resultText = (string)(await cmd.Completion.Task)!;
 
-                if (resultText.StartsWith("错误：") || resultText.StartsWith("建造蓝图放置失败"))
-                    return ToolResult.Error(resultText);
-                return ToolResult.Success(resultText);
-            }
-            catch (TimeoutException)
-            {
-                return ToolResult.Error("建造命令执行超时（5秒内未被主线程处理），请重试。");
-            }
-            catch (Exception ex)
-            {
-                return ToolResult.Error($"建造命令执行异常: {ex.Message}");
-            }
+                    IntVec3 pos = new IntVec3(posX, posY, posZ);
+                    GenConstruct.PlaceBlueprintForBuild(
+                        (BuildableDef)def, pos, map, rot, Faction.OfPlayer, stuff);
+
+                    string stuffInfo = stuff != null ? $"（材料: {stuff.label}）" : "";
+                    return ToolResult.Success($"已成功在坐标 ({posX}, {posY}, {posZ}) 放置 {def.label} ({thingDefName}) 的建造蓝图{stuffInfo}，朝向: {rotationStr}。");
+                }
+                catch (Exception ex)
+                {
+                    return ToolResult.Error($"建造蓝图放置失败: {ex.Message}");
+                }
+            });
         }
     }
 }

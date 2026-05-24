@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
+using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
@@ -26,6 +27,7 @@ namespace RimWorldMCP.Tools
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
+            // 参数验证（任意线程安全）
             if (args == null) return ToolResult.Error("缺少参数: recipe_defName");
             if (!args.Value.TryGetProperty("recipe_defName", out var defNameProp))
                 return ToolResult.Error("缺少必填参数: recipe_defName");
@@ -40,80 +42,71 @@ namespace RimWorldMCP.Tools
             if (count < 1)
                 return ToolResult.Error("制造数量必须大于 0。");
 
-            try
+            // 所有游戏 API 访问通过 DispatchAsync 调度到主线程
+            return await McpCommandQueue.DispatchAsync(() =>
             {
-                // 查找配方
-                var recipe = DefDatabase<RecipeDef>.GetNamed(recipeDefName, errorOnFail: false);
-                if (recipe == null)
-                    return ToolResult.Error($"未知配方: {recipeDefName}。请先用 list_recipes 查询可用配方。");
-
-                var map = Find.CurrentMap;
-                if (map == null)
-                    return ToolResult.Error("当前没有可用地图。");
-
-                // 查找工作台
-                var workTables = map.listerBuildings.AllBuildingsColonistOfClass<Building_WorkTable>().ToList();
-                if (workTables.Count == 0)
-                    return ToolResult.Error("当前殖民地没有任何工作台。");
-
-                // 使用第一个可用的工作台
-                var targetTable = workTables[0];
-                var tableLabel = targetTable.def?.label ?? targetTable.def?.defName ?? "工作台";
-
-                // 通过 McpCommandQueue 在主线程上执行操作
-                var result = await Task.Run(() =>
+                try
                 {
-                    var tcs = new TaskCompletionSource<object?>();
-                    McpCommandQueue.Enqueue(new McpCommand
+                    // 查找配方
+                    var recipe = DefDatabase<RecipeDef>.GetNamed(recipeDefName, errorOnFail: false);
+                    if (recipe == null)
+                        return ToolResult.Error($"未知配方: {recipeDefName}。请先用 list_recipes 查询可用配方。");
+
+                    var map = Find.CurrentMap;
+                    if (map == null)
+                        return ToolResult.Error("当前没有可用地图。");
+
+                    // 查找工作台
+                    var workTables = map.listerBuildings.AllBuildingsColonistOfClass<Building_WorkTable>().ToList();
+                    if (workTables.Count == 0)
+                        return ToolResult.Error("当前殖民地没有任何工作台。");
+
+                    // 使用第一个可用的工作台
+                    var targetTable = workTables[0];
+                    var tableLabel = targetTable.def?.label ?? targetTable.def?.defName ?? "工作台";
+
+                    // 创建单据
+                    var bill = new Bill_Production(recipe);
+                    bill.targetCount = count;
+
+                    switch (repeatModeStr)
                     {
-                        Action = () =>
-                        {
-                            var bill = new Bill_Production(recipe);
+                        case "Forever":
+                            bill.repeatMode = BillRepeatModeDefOf.Forever;
+                            break;
+                        case "TargetCount":
+                            bill.repeatMode = BillRepeatModeDefOf.TargetCount;
                             bill.targetCount = count;
+                            break;
+                        case "RepeatCount":
+                        default:
+                            bill.repeatMode = BillRepeatModeDefOf.RepeatCount;
+                            bill.repeatCount = count;
+                            break;
+                    }
 
-                            switch (repeatModeStr)
-                            {
-                                case "Forever":
-                                    bill.repeatMode = BillRepeatModeDefOf.Forever;
-                                    break;
-                                case "TargetCount":
-                                    bill.repeatMode = BillRepeatModeDefOf.TargetCount;
-                                    bill.targetCount = count;
-                                    break;
-                                case "RepeatCount":
-                                default:
-                                    bill.repeatMode = BillRepeatModeDefOf.RepeatCount;
-                                    bill.repeatCount = count;
-                                    break;
-                            }
+                    targetTable.billStack.AddBill(bill);
 
-                            targetTable.billStack.AddBill(bill);
-                            return bill.Label;
-                        },
-                        Completion = tcs
-                    });
-                    return tcs.Task;
-                });
+                    var billLabel = bill.Label ?? recipeDefName;
+                    var repeatText = repeatModeStr switch
+                    {
+                        "Forever" => "永久重复",
+                        "TargetCount" => $"目标数量 {count} 件",
+                        _ => $"重复 {count} 次"
+                    };
 
-                var billLabel = result as string ?? recipeDefName;
-                var repeatText = repeatModeStr switch
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"已在 {tableLabel} 创建制造单据:");
+                    sb.AppendLine($"- 配方: {billLabel} ({recipeDefName})");
+                    sb.AppendLine($"- 模式: {repeatText}");
+
+                    return ToolResult.Success(sb.ToString());
+                }
+                catch (Exception ex)
                 {
-                    "Forever" => "永久重复",
-                    "TargetCount" => $"目标数量 {count} 件",
-                    _ => $"重复 {count} 次"
-                };
-
-                var sb = new StringBuilder();
-                sb.AppendLine($"已在 {tableLabel} 创建制造单据:");
-                sb.AppendLine($"- 配方: {billLabel} ({recipeDefName})");
-                sb.AppendLine($"- 模式: {repeatText}");
-
-                return ToolResult.Success(sb.ToString());
-            }
-            catch (Exception ex)
-            {
-                return ToolResult.Error($"创建制造单据失败: {ex.Message}");
-            }
+                    return ToolResult.Error($"创建制造单据失败: {ex.Message}");
+                }
+            });
         }
     }
 }

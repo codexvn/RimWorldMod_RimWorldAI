@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
+using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
@@ -27,7 +28,7 @@ namespace RimWorldMCP.Tools
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
-            // ---- 参数验证 ----
+            // 参数验证（任意线程安全）
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("colonist_name", out var jName))
                 return ToolResult.Error("缺少必填参数: colonist_name");
@@ -55,123 +56,103 @@ namespace RimWorldMCP.Tools
             if (string.IsNullOrEmpty(thingLabel) && string.IsNullOrEmpty(thingDefName))
                 return ToolResult.Error("需要提供 thing_label 或 thing_defName 来指定要装备的物品");
 
-            // ---- 通过 McpCommandQueue 在主线程执行 RimWorld API 调用 ----
-            try
+            // 所有游戏 API 访问通过 DispatchAsync 调度到主线程
+            return await McpCommandQueue.DispatchAsync(() =>
             {
-                var cmd = new McpCommand
+                try
                 {
-                    Action = () =>
+                    // 查找殖民者
+                    var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
+                    if (colonists == null || colonists.Count == 0)
+                        return ToolResult.Error("当前没有自由殖民者。");
+
+                    Pawn pawn = colonists.FirstOrDefault(c =>
+                        c.Name.ToStringShort.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        c.Name.ToStringFull.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0);
+                    if (pawn == null)
+                        return ToolResult.Error($"找不到殖民者: {colonistName}");
+
+                    Map map = Find.CurrentMap;
+                    if (map == null)
+                        return ToolResult.Error("没有当前地图。");
+
+                    // 根据装备类型搜索地图上的物品
+                    List<Thing> candidates;
+                    string itemTypeLabel;
+                    if (equipType == "weapon")
                     {
-                        try
+                        candidates = map.listerThings.ThingsInGroup(ThingRequestGroup.Weapon);
+                        itemTypeLabel = "武器";
+                    }
+                    else
+                    {
+                        candidates = map.listerThings.ThingsInGroup(ThingRequestGroup.Apparel);
+                        itemTypeLabel = "衣物";
+                    }
+
+                    if (candidates == null || candidates.Count == 0)
+                        return ToolResult.Error($"地图上没有任何可用的{itemTypeLabel}。");
+
+                    // 匹配物品
+                    Thing? matched = FindMatchingThing(candidates, thingLabel, thingDefName);
+                    if (matched == null)
+                    {
+                        string searchKey = !string.IsNullOrEmpty(thingLabel) ? thingLabel : thingDefName;
+                        // 列出可用物品帮助用户
+                        var available = candidates
+                            .Select(t => $"{t.Label} ({t.def.defName})")
+                            .Take(10).ToArray();
+                        return ToolResult.Error($"在地图上找不到匹配 '{searchKey}' 的{itemTypeLabel}。" +
+                                               $"可用物品示例: {string.Join(", ", available)}");
+                    }
+
+                    // 获取品质信息
+                    string qualityStr = "";
+                    try
+                    {
+                        var compQuality = matched.TryGetComp<CompQuality>();
+                        if (compQuality != null)
                         {
-                            // 查找殖民者
-                            var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                            if (colonists == null || colonists.Count == 0)
-                                return "错误：当前没有自由殖民者。";
-
-                            Pawn pawn = colonists.FirstOrDefault(c =>
-                                c.Name.ToStringShort.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                c.Name.ToStringFull.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0);
-                            if (pawn == null)
-                                return $"错误：找不到殖民者: {colonistName}";
-
-                            Map map = Find.CurrentMap;
-                            if (map == null)
-                                return "错误：没有当前地图。";
-
-                            // 根据装备类型搜索地图上的物品
-                            List<Thing> candidates;
-                            string itemTypeLabel;
-                            if (equipType == "weapon")
-                            {
-                                candidates = map.listerThings.ThingsInGroup(ThingRequestGroup.Weapon);
-                                itemTypeLabel = "武器";
-                            }
-                            else
-                            {
-                                candidates = map.listerThings.ThingsInGroup(ThingRequestGroup.Apparel);
-                                itemTypeLabel = "衣物";
-                            }
-
-                            if (candidates == null || candidates.Count == 0)
-                                return $"错误：地图上没有任何可用的{itemTypeLabel}。";
-
-                            // 匹配物品
-                            Thing? matched = FindMatchingThing(candidates, thingLabel, thingDefName);
-                            if (matched == null)
-                            {
-                                string searchKey = !string.IsNullOrEmpty(thingLabel) ? thingLabel : thingDefName;
-                                // 列出可用物品帮助用户
-                                var available = candidates
-                                    .Select(t => $"{t.Label} ({t.def.defName})")
-                                    .Take(10).ToArray();
-                                return $"错误：在地图上找不到匹配 '{searchKey}' 的{itemTypeLabel}。" +
-                                       $"可用物品示例: {string.Join(", ", available)}";
-                            }
-
-                            // 获取品质信息
-                            string qualityStr = "";
-                            try
-                            {
-                                var compQuality = matched.TryGetComp<CompQuality>();
-                                if (compQuality != null)
-                                {
-                                    var qc = compQuality.Quality;
-                                    qualityStr = $"（品质: {qc.GetLabel()}）";
-                                }
-                            }
-                            catch { /* 部分物品可能没有品质组件 */ }
-
-                            // 执行装备
-                            if (equipType == "weapon")
-                            {
-                                var weapon = matched as ThingWithComps;
-                                if (weapon == null)
-                                    return $"错误：{matched.Label} 无法作为武器装备。";
-                                if (pawn.equipment == null)
-                                    return $"错误：{pawn.Name.ToStringShort} 没有装备管理器（可能不是人类）。";
-
-                                pawn.equipment.AddEquipment(weapon);
-
-                                // 获取装备后的武器名称
-                                var newWeapon = pawn.equipment.Primary;
-                                string equippedName = newWeapon?.Label ?? matched.Label;
-                                return $"{pawn.Name.ToStringShort} 已装备武器: {equippedName} ({matched.def.defName}){qualityStr}。";
-                            }
-                            else
-                            {
-                                var apparel = matched as Apparel;
-                                if (apparel == null)
-                                    return $"错误：{matched.Label} 无法作为衣物穿戴。";
-                                if (pawn.apparel == null)
-                                    return $"错误：{pawn.Name.ToStringShort} 没有衣物管理器（可能不是人类）。";
-
-                                pawn.apparel.Wear(apparel);
-
-                                return $"{pawn.Name.ToStringShort} 已穿戴衣物: {matched.Label} ({matched.def.defName}){qualityStr}。";
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            return $"装备操作失败: {ex.Message}";
+                            var qc = compQuality.Quality;
+                            qualityStr = $"（品质: {qc.GetLabel()}）";
                         }
                     }
-                };
-                McpCommandQueue.Enqueue(cmd);
-                string resultText = (string)(await cmd.Completion.Task)!;
+                    catch { /* 部分物品可能没有品质组件 */ }
 
-                if (resultText.StartsWith("错误：") || resultText.StartsWith("装备操作失败"))
-                    return ToolResult.Error(resultText);
-                return ToolResult.Success(resultText);
-            }
-            catch (TimeoutException)
-            {
-                return ToolResult.Error("装备命令执行超时（5秒内未被主线程处理），请重试。");
-            }
-            catch (Exception ex)
-            {
-                return ToolResult.Error($"装备命令执行异常: {ex.Message}");
-            }
+                    // 执行装备
+                    if (equipType == "weapon")
+                    {
+                        var weapon = matched as ThingWithComps;
+                        if (weapon == null)
+                            return ToolResult.Error($"{matched.Label} 无法作为武器装备。");
+                        if (pawn.equipment == null)
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 没有装备管理器（可能不是人类）。");
+
+                        pawn.equipment.AddEquipment(weapon);
+
+                        // 获取装备后的武器名称
+                        var newWeapon = pawn.equipment.Primary;
+                        string equippedName = newWeapon?.Label ?? matched.Label;
+                        return ToolResult.Success($"{pawn.Name.ToStringShort} 已装备武器: {equippedName} ({matched.def.defName}){qualityStr}。");
+                    }
+                    else
+                    {
+                        var apparel = matched as Apparel;
+                        if (apparel == null)
+                            return ToolResult.Error($"{matched.Label} 无法作为衣物穿戴。");
+                        if (pawn.apparel == null)
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 没有衣物管理器（可能不是人类）。");
+
+                        pawn.apparel.Wear(apparel);
+
+                        return ToolResult.Success($"{pawn.Name.ToStringShort} 已穿戴衣物: {matched.Label} ({matched.def.defName}){qualityStr}。");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return ToolResult.Error($"装备操作失败: {ex.Message}");
+                }
+            });
         }
 
         /// <summary>

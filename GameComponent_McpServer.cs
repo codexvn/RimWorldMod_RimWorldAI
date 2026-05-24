@@ -75,8 +75,10 @@ namespace RimWorldMCP
                 // 目前启动 Streamable HTTP（新版 MCP 规范推荐），SSE 可后续并行启动
                 _transport = new SseTransport(DefaultPort);
 
-                // 5. 创建 McpServer
+                // 5. 创建 McpServer + 注入 /mcp 同步处理器
                 var server = new McpServer(_transport, toolRegistry);
+                ((SseTransport)_transport).SetMcpHandler(rawJson =>
+                    server.ProcessMessageSync(rawJson));
 
                 // 6. 启动 Transport
                 _cts = new CancellationTokenSource();

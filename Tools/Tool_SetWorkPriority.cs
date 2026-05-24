@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
+using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
@@ -26,6 +27,7 @@ namespace RimWorldMCP.Tools
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
+            // 参数验证（任意线程安全）
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("colonist_name", out var cn))
                 return ToolResult.Error("缺少 colonist_name");
@@ -44,69 +46,60 @@ namespace RimWorldMCP.Tools
             if (string.IsNullOrWhiteSpace(workTypeDefName))
                 return ToolResult.Error("work_type 不能为空。");
 
-            try
+            // 所有游戏 API 访问通过 DispatchAsync 调度到主线程
+            return await McpCommandQueue.DispatchAsync(() =>
             {
-                // 查找殖民者（模糊匹配）
-                var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                if (colonists == null || colonists.Count == 0)
-                    return ToolResult.Error("当前没有殖民者。");
-
-                var pawn = colonists.FirstOrDefault(c =>
-                    c.Name.ToStringShort.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0
-                    || c.Name.ToStringFull.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0);
-
-                if (pawn == null)
-                    return ToolResult.Error($"未找到匹配的殖民者: {colonistName}。使用 get_colonists 查看可用殖民者。");
-
-                // 检查 workSettings 可用性
-                if (pawn.workSettings == null)
-                    return ToolResult.Error($"{pawn.Name.ToStringShort} 没有工作设置（可能不是殖民者）。");
-
-                // 查找工作类型
-                var workTypeDef = DefDatabase<WorkTypeDef>.GetNamed(workTypeDefName, errorOnFail: false);
-                if (workTypeDef == null)
-                    return ToolResult.Error($"未知工作类型: {workTypeDefName}。请使用 get_colonists 查看可用工作类型。");
-
-                var pawnShortName = pawn.Name.ToStringShort;
-                var workLabel = workTypeDef.labelShort ?? workTypeDef.label ?? workTypeDefName;
-
-                // 通过 McpCommandQueue 在主线程上执行操作
-                var result = await Task.Run(() =>
+                try
                 {
-                    var tcs = new TaskCompletionSource<object?>();
-                    McpCommandQueue.Enqueue(new McpCommand
+                    // 查找殖民者（模糊匹配）
+                    var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
+                    if (colonists == null || colonists.Count == 0)
+                        return ToolResult.Error("当前没有殖民者。");
+
+                    var pawn = colonists.FirstOrDefault(c =>
+                        c.Name.ToStringShort.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0
+                        || c.Name.ToStringFull.IndexOf(colonistName, StringComparison.OrdinalIgnoreCase) >= 0);
+
+                    if (pawn == null)
+                        return ToolResult.Error($"未找到匹配的殖民者: {colonistName}。使用 get_colonists 查看可用殖民者。");
+
+                    // 检查 workSettings 可用性
+                    if (pawn.workSettings == null)
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 没有工作设置（可能不是殖民者）。");
+
+                    // 查找工作类型
+                    var workTypeDef = DefDatabase<WorkTypeDef>.GetNamed(workTypeDefName, errorOnFail: false);
+                    if (workTypeDef == null)
+                        return ToolResult.Error($"未知工作类型: {workTypeDefName}。请使用 get_colonists 查看可用工作类型。");
+
+                    var pawnShortName = pawn.Name.ToStringShort;
+                    var workLabel = workTypeDef.labelShort ?? workTypeDef.label ?? workTypeDefName;
+
+                    // 执行设置
+                    pawn.workSettings.SetPriority(workTypeDef, priority);
+
+                    var priorityText = priority switch
                     {
-                        Action = () =>
-                        {
-                            pawn.workSettings.SetPriority(workTypeDef, priority);
-                            return workLabel;
-                        },
-                        Completion = tcs
-                    });
-                    return tcs.Task;
-                });
+                        0 => "不分配",
+                        1 => "最高优先 (1)",
+                        2 => "高优先 (2)",
+                        3 => "普通 (3)",
+                        4 => "最低优先 (4)",
+                        _ => $"优先级 {priority}"
+                    };
 
-                var priorityText = priority switch
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"已更新 {pawnShortName} 的工作优先级:");
+                    sb.AppendLine($"- 工作: {workLabel} ({workTypeDefName})");
+                    sb.AppendLine($"- 优先级: {priorityText}");
+
+                    return ToolResult.Success(sb.ToString());
+                }
+                catch (Exception ex)
                 {
-                    0 => "不分配",
-                    1 => "最高优先 (1)",
-                    2 => "高优先 (2)",
-                    3 => "普通 (3)",
-                    4 => "最低优先 (4)",
-                    _ => $"优先级 {priority}"
-                };
-
-                var sb = new StringBuilder();
-                sb.AppendLine($"已更新 {pawnShortName} 的工作优先级:");
-                sb.AppendLine($"- 工作: {workLabel} ({workTypeDefName})");
-                sb.AppendLine($"- 优先级: {priorityText}");
-
-                return ToolResult.Success(sb.ToString());
-            }
-            catch (Exception ex)
-            {
-                return ToolResult.Error($"设置工作优先级失败: {ex.Message}");
-            }
+                    return ToolResult.Error($"设置工作优先级失败: {ex.Message}");
+                }
+            });
         }
     }
 }

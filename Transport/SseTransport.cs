@@ -14,12 +14,17 @@ namespace RimWorldMCP.Transport
         private readonly int _port;
         private HttpListener? _listener;
         private readonly ConcurrentDictionary<string, SseSession> _sessions = new();
-        // /mcp 端点同步请求响应队列
-        private readonly Queue<PendingMcpResponse> _mcpResponses = new();
-        private readonly object _mcpLock = new();
+        // /mcp 端点专用同步处理器（绕过 OnMessage→SendAsync 事件通道，避免 SSE 串台）
+        private Func<string, string>? _mcpHandler;
 
         public string Name => "sse";
         public event Action<string>? OnMessage;
+
+        /// <summary>为 /mcp 端点设置同步请求处理器</summary>
+        public void SetMcpHandler(Func<string, string> handler)
+        {
+            _mcpHandler = handler;
+        }
 
         public SseTransport(int port = 9877)
         {
@@ -39,35 +44,6 @@ namespace RimWorldMCP.Transport
 
         public async Task SendAsync(string message)
         {
-            // 优先检查 /mcp 同步响应，跳过已超时的
-            PendingMcpResponse? mcp = null;
-            lock (_mcpLock)
-            {
-                while (_mcpResponses.Count > 0)
-                {
-                    var item = _mcpResponses.Dequeue();
-                    if (!item.Cancelled) { mcp = item; break; }
-                }
-            }
-            if (mcp != null)
-            {
-                try
-                {
-                    var bytes = Encoding.UTF8.GetBytes(message);
-                    mcp.Response.ContentType = "application/json";
-                    mcp.Response.ContentLength64 = bytes.Length;
-                    await mcp.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
-                    mcp.Response.Close();
-                }
-                catch (Exception ex)
-                {
-                    Log($"SendAsync /mcp: {ex.Message}");
-                }
-                mcp.Completion.TrySetResult(true);
-                return;
-            }
-
-            // SSE 广播
             foreach (var kvp in _sessions)
             {
                 var session = kvp.Value;
@@ -215,30 +191,20 @@ namespace RimWorldMCP.Transport
             var body = await reader.ReadToEndAsync();
             Log($"POST /mcp: {body.Substring(0, Math.Min(body.Length, 200))}");
 
-            var pending = new PendingMcpResponse(response);
-            lock (_mcpLock)
+            if (_mcpHandler != null)
             {
-                _mcpResponses.Enqueue(pending);
+                // 直接调用 McpServer 同步处理，不经过 OnMessage 事件
+                var result = _mcpHandler(body);
+                var bytes = Encoding.UTF8.GetBytes(result);
+                response.ContentType = "application/json";
+                response.ContentLength64 = bytes.Length;
+                await response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
             }
-
-            OnMessage?.Invoke(body);
-
-            // 等待 McpServer 处理并调用 SendAsync 返回响应（超时 30s）
-            await Task.WhenAny(pending.Completion.Task, Task.Delay(30000));
-            if (!pending.Completion.Task.IsCompleted)
+            else
             {
-                pending.Cancelled = true;
-                response.StatusCode = 504;
-                response.Close();
+                response.StatusCode = 503;
             }
-        }
-
-        private class PendingMcpResponse
-        {
-            public HttpListenerResponse Response { get; }
-            public TaskCompletionSource<bool> Completion { get; } = new();
-            public bool Cancelled { get; set; }
-            public PendingMcpResponse(HttpListenerResponse response) => Response = response;
+            response.Close();
         }
 
         private static void Log(string msg) => McpLog.Info($"[sse] {msg}");

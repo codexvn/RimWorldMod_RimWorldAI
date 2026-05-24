@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
+using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
@@ -32,7 +33,7 @@ namespace RimWorldMCP.Tools
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
-            // ---- 参数验证 ----
+            // 参数验证（任意线程安全）
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("center_x", out var jX) || !jX.TryGetInt32(out var centerX))
                 return ToolResult.Error("缺少必填参数: center_x");
@@ -57,7 +58,7 @@ namespace RimWorldMCP.Tools
             string floorDefName = "";
             if (args.Value.TryGetProperty("floor_defName", out var jFloor)) floorDefName = jFloor.GetString() ?? "";
 
-            // ---- 计算房间几何（不涉及游戏状态，可在任意线程执行） ----
+            // 计算房间几何（不涉及游戏状态，可在任意线程执行）
             int roomW = width + 2;
             int roomH = height + 2;
             int startX = centerX - roomW / 2;
@@ -119,133 +120,113 @@ namespace RimWorldMCP.Tools
             int doorCount = doorPosSet.Count;
             int floorCount = floorPositions.Count;
 
-            // ---- 通过 McpCommandQueue 在主线程批量执行所有建造操作 ----
-            try
+            // 所有游戏 API 访问通过 DispatchAsync 调度到主线程
+            return await McpCommandQueue.DispatchAsync(() =>
             {
-                var cmd = new McpCommand
+                try
                 {
-                    Action = () =>
+                    Map map = Find.CurrentMap;
+                    if (map == null)
+                        return ToolResult.Error("没有当前地图，请先加载游戏存档。");
+
+                    // 查找 Def
+                    ThingDef wallDef = ThingDef.Named(wallDefName);
+                    if (wallDef == null)
+                        return ToolResult.Error($"找不到墙体 ThingDef: {wallDefName}。请确认 DefName 拼写正确。");
+
+                    ThingDef? doorDef = null;
+                    if (doorCount > 0)
                     {
-                        try
+                        doorDef = ThingDef.Named(doorDefName);
+                        if (doorDef == null)
+                            return ToolResult.Error($"找不到门 ThingDef: {doorDefName}。请确认 DefName 拼写正确。");
+                    }
+
+                    ThingDef? floorDef = null;
+                    if (floorCount > 0)
+                    {
+                        floorDef = ThingDef.Named(floorDefName);
+                        if (floorDef == null)
+                            return ToolResult.Error($"找不到地板 ThingDef: {floorDefName}。请确认 DefName 拼写正确。");
+                    }
+
+                    int placedWalls = 0, placedDoors = 0, placedFloors = 0;
+                    var errors = new List<string>();
+
+                    // 放置墙体（在门位置处替换为门）
+                    foreach (var (wx, wy) in wallPositions)
+                    {
+                        if (doorPosSet.Contains((wx, wy)))
                         {
-                            Map map = Find.CurrentMap;
-                            if (map == null)
-                                return "错误：没有当前地图，请先加载游戏存档。";
-
-                            // 查找 Def
-                            ThingDef wallDef = ThingDef.Named(wallDefName);
-                            if (wallDef == null)
-                                return $"错误：找不到墙体 ThingDef: {wallDefName}。请确认 DefName 拼写正确。";
-
-                            ThingDef? doorDef = null;
-                            if (doorCount > 0)
+                            // 此位置放门而非墙
+                            try
                             {
-                                doorDef = ThingDef.Named(doorDefName);
-                                if (doorDef == null)
-                                    return $"错误：找不到门 ThingDef: {doorDefName}。请确认 DefName 拼写正确。";
+                                GenConstruct.PlaceBlueprintForBuild(
+                                    (BuildableDef)doorDef!, new IntVec3(wx, wy, centerZ),
+                                    map, Rot4.North, Faction.OfPlayer, null);
+                                placedDoors++;
                             }
-
-                            ThingDef? floorDef = null;
-                            if (floorCount > 0)
+                            catch (Exception ex)
                             {
-                                floorDef = ThingDef.Named(floorDefName);
-                                if (floorDef == null)
-                                    return $"错误：找不到地板 ThingDef: {floorDefName}。请确认 DefName 拼写正确。";
+                                errors.Add($"门({wx},{wy}): {ex.Message}");
                             }
-
-                            int placedWalls = 0, placedDoors = 0, placedFloors = 0;
-                            var errors = new List<string>();
-
-                            // 放置墙体（在门位置处替换为门）
-                            foreach (var (wx, wy) in wallPositions)
-                            {
-                                if (doorPosSet.Contains((wx, wy)))
-                                {
-                                    // 此位置放门而非墙
-                                    try
-                                    {
-                                        GenConstruct.PlaceBlueprintForBuild(
-                                            (BuildableDef)doorDef!, new IntVec3(wx, wy, centerZ),
-                                            map, Rot4.North, Faction.OfPlayer, null);
-                                        placedDoors++;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        errors.Add($"门({wx},{wy}): {ex.Message}");
-                                    }
-                                }
-                                else
-                                {
-                                    // 放墙
-                                    try
-                                    {
-                                        GenConstruct.PlaceBlueprintForBuild(
-                                            (BuildableDef)wallDef, new IntVec3(wx, wy, centerZ),
-                                            map, Rot4.North, Faction.OfPlayer, null);
-                                        placedWalls++;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        errors.Add($"墙({wx},{wy}): {ex.Message}");
-                                    }
-                                }
-                            }
-
-                            // 放置地板
-                            if (floorCount > 0 && floorDef != null)
-                            {
-                                foreach (var (fx, fy) in floorPositions)
-                                {
-                                    try
-                                    {
-                                        GenConstruct.PlaceBlueprintForBuild(
-                                            (BuildableDef)floorDef, new IntVec3(fx, fy, centerZ),
-                                            map, Rot4.North, Faction.OfPlayer, null);
-                                        placedFloors++;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        errors.Add($"地板({fx},{fy}): {ex.Message}");
-                                    }
-                                }
-                            }
-
-                            // 构建返回文本
-                            var sb = new StringBuilder();
-                            sb.AppendLine($"房间建造蓝图规划完成:");
-                            sb.AppendLine($"- 范围: ({startX}, {startY}) ~ ({endX}, {endY})，中心 ({centerX}, {centerY}, {centerZ})");
-                            sb.AppendLine($"- 外墙: {placedWalls} 格 {wallDef.label} ({wallDefName})");
-                            if (placedDoors > 0)
-                                sb.AppendLine($"- 门: {placedDoors} 扇 {doorDef?.label ?? doorDefName}");
-                            if (placedFloors > 0)
-                                sb.AppendLine($"- 地板: {placedFloors} 格 {floorDef?.label ?? floorDefName}");
-                            sb.AppendLine($"- 内部空间: {width}x{height} = {width * height} 格");
-                            if (errors.Count > 0)
-                                sb.AppendLine($"- 部分失败 ({errors.Count} 处): {string.Join("; ", errors)}");
-
-                            return sb.ToString().TrimEnd();
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            return $"房间建造失败: {ex.Message}";
+                            // 放墙
+                            try
+                            {
+                                GenConstruct.PlaceBlueprintForBuild(
+                                    (BuildableDef)wallDef, new IntVec3(wx, wy, centerZ),
+                                    map, Rot4.North, Faction.OfPlayer, null);
+                                placedWalls++;
+                            }
+                            catch (Exception ex)
+                            {
+                                errors.Add($"墙({wx},{wy}): {ex.Message}");
+                            }
                         }
                     }
-                };
-                McpCommandQueue.Enqueue(cmd);
-                string resultText = (string)(await cmd.Completion.Task)!;
 
-                if (resultText.StartsWith("错误：") || resultText.StartsWith("房间建造失败"))
-                    return ToolResult.Error(resultText);
-                return ToolResult.Success(resultText);
-            }
-            catch (TimeoutException)
-            {
-                return ToolResult.Error("建造命令执行超时（5秒内未被主线程处理），请重试。");
-            }
-            catch (Exception ex)
-            {
-                return ToolResult.Error($"建造命令执行异常: {ex.Message}");
-            }
+                    // 放置地板
+                    if (floorCount > 0 && floorDef != null)
+                    {
+                        foreach (var (fx, fy) in floorPositions)
+                        {
+                            try
+                            {
+                                GenConstruct.PlaceBlueprintForBuild(
+                                    (BuildableDef)floorDef, new IntVec3(fx, fy, centerZ),
+                                    map, Rot4.North, Faction.OfPlayer, null);
+                                placedFloors++;
+                            }
+                            catch (Exception ex)
+                            {
+                                errors.Add($"地板({fx},{fy}): {ex.Message}");
+                            }
+                        }
+                    }
+
+                    // 构建返回文本
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"房间建造蓝图规划完成:");
+                    sb.AppendLine($"- 范围: ({startX}, {startY}) ~ ({endX}, {endY})，中心 ({centerX}, {centerY}, {centerZ})");
+                    sb.AppendLine($"- 外墙: {placedWalls} 格 {wallDef.label} ({wallDefName})");
+                    if (placedDoors > 0)
+                        sb.AppendLine($"- 门: {placedDoors} 扇 {doorDef?.label ?? doorDefName}");
+                    if (placedFloors > 0)
+                        sb.AppendLine($"- 地板: {placedFloors} 格 {floorDef?.label ?? floorDefName}");
+                    sb.AppendLine($"- 内部空间: {width}x{height} = {width * height} 格");
+                    if (errors.Count > 0)
+                        sb.AppendLine($"- 部分失败 ({errors.Count} 处): {string.Join("; ", errors)}");
+
+                    return ToolResult.Success(sb.ToString().TrimEnd());
+                }
+                catch (Exception ex)
+                {
+                    return ToolResult.Error($"房间建造失败: {ex.Message}");
+                }
+            });
         }
     }
 }

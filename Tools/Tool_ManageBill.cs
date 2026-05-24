@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
+using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
@@ -26,6 +27,7 @@ namespace RimWorldMCP.Tools
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
+            // 参数验证（任意线程安全）
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("bill_index", out var idx) || !idx.TryGetInt32(out var billIndex))
                 return ToolResult.Error("缺少或无效的 bill_index");
@@ -40,105 +42,95 @@ namespace RimWorldMCP.Tools
             if (!validActions.Contains(action))
                 return ToolResult.Error($"未知操作: {action}。可用: {string.Join(", ", validActions)}");
 
-            try
+            // 所有游戏 API 访问通过 DispatchAsync 调度到主线程
+            return await McpCommandQueue.DispatchAsync(() =>
             {
-                var map = Find.CurrentMap;
-                if (map == null)
-                    return ToolResult.Error("当前没有可用地图。");
-
-                var tables = map.listerBuildings.AllBuildingsColonistOfClass<Building_WorkTable>().ToList();
-                if (tables.Count == 0)
-                    return ToolResult.Error("当前殖民地没有任何工作台。");
-
-                // 建立全局索引 -> (工作台, 单据在本工作台的索引) 映射
-                var globalIndex = 0;
-                Building_WorkTable? foundTable = null;
-                int foundLocalIndex = -1;
-                Bill? foundBill = null;
-
-                foreach (var table in tables)
+                try
                 {
-                    var bills = table.billStack?.Bills;
-                    if (bills == null || bills.Count == 0)
-                        continue;
+                    var map = Find.CurrentMap;
+                    if (map == null)
+                        return ToolResult.Error("当前没有可用地图。");
 
-                    for (int i = 0; i < bills.Count; i++)
+                    var tables = map.listerBuildings.AllBuildingsColonistOfClass<Building_WorkTable>().ToList();
+                    if (tables.Count == 0)
+                        return ToolResult.Error("当前殖民地没有任何工作台。");
+
+                    // 建立全局索引 -> (工作台, 单据在本工作台的索引) 映射
+                    var globalIndex = 0;
+                    Building_WorkTable? foundTable = null;
+                    int foundLocalIndex = -1;
+                    Bill? foundBill = null;
+
+                    foreach (var table in tables)
                     {
-                        if (globalIndex == billIndex)
+                        var bills = table.billStack?.Bills;
+                        if (bills == null || bills.Count == 0)
+                            continue;
+
+                        for (int i = 0; i < bills.Count; i++)
                         {
-                            foundTable = table;
-                            foundLocalIndex = i;
-                            foundBill = bills[i];
-                            break;
+                            if (globalIndex == billIndex)
+                            {
+                                foundTable = table;
+                                foundLocalIndex = i;
+                                foundBill = bills[i];
+                                break;
+                            }
+                            globalIndex++;
                         }
-                        globalIndex++;
+
+                        if (foundTable != null)
+                            break;
                     }
 
-                    if (foundTable != null)
-                        break;
-                }
+                    if (foundTable == null || foundBill == null)
+                        return ToolResult.Error($"未找到工作单 [{billIndex}]。总单据数: {globalIndex}。请用 get_bills 确认。");
 
-                if (foundTable == null || foundBill == null)
-                    return ToolResult.Error($"未找到工作单 [{billIndex}]。总单据数: {globalIndex}。请用 get_bills 确认。");
+                    var tableLabel = foundTable.def?.label ?? foundTable.def?.defName ?? "工作台";
+                    var billLabel = foundBill.Label ?? "???";
 
-                var tableLabel = foundTable.def?.label ?? foundTable.def?.defName ?? "工作台";
-                var billLabel = foundBill.Label ?? "???";
-
-                var result = await Task.Run(() =>
-                {
-                    var tcs = new TaskCompletionSource<object?>();
-                    McpCommandQueue.Enqueue(new McpCommand
+                    // 执行操作
+                    switch (action)
                     {
-                        Action = () =>
-                        {
-                            switch (action)
-                            {
-                                case "pause":
-                                    foundBill.suspended = true;
-                                    break;
-                                case "resume":
-                                    foundBill.suspended = false;
-                                    break;
-                                case "delete":
-                                    foundTable!.billStack!.Delete(foundBill);
-                                    break;
-                                case "increase_priority":
-                                    // Reorder(bill, -1) 提高优先级（向前移动）
-                                    foundTable!.billStack!.Reorder(foundBill, -1);
-                                    break;
-                                case "decrease_priority":
-                                    // Reorder(bill, +1) 降低优先级（向后移动）
-                                    foundTable!.billStack!.Reorder(foundBill, +1);
-                                    break;
-                            }
-                            return action;
-                        },
-                        Completion = tcs
-                    });
-                    return tcs.Task;
-                });
+                        case "pause":
+                            foundBill.suspended = true;
+                            break;
+                        case "resume":
+                            foundBill.suspended = false;
+                            break;
+                        case "delete":
+                            foundTable!.billStack!.Delete(foundBill);
+                            break;
+                        case "increase_priority":
+                            foundTable!.billStack!.Reorder(foundBill, -1);
+                            break;
+                        case "decrease_priority":
+                            foundTable!.billStack!.Reorder(foundBill, +1);
+                            break;
+                    }
 
-                var actionText = action switch
+                    var actionText = action switch
+                    {
+                        "pause" => "已暂停",
+                        "resume" => "已恢复",
+                        "delete" => "已删除",
+                        "increase_priority" => "优先级已提高",
+                        "decrease_priority" => "优先级已降低",
+                        _ => action
+                    };
+
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"{actionText}工作单 [{billIndex}]");
+                    sb.AppendLine($"- 工作台: {tableLabel}");
+                    sb.AppendLine($"- 单据: {billLabel}");
+
+                    return ToolResult.Success(sb.ToString());
+                }
+                catch (Exception ex)
                 {
-                    "pause" => "已暂停",
-                    "resume" => "已恢复",
-                    "delete" => "已删除",
-                    "increase_priority" => "优先级已提高",
-                    "decrease_priority" => "优先级已降低",
-                    _ => action
-                };
-
-                var sb = new StringBuilder();
-                sb.AppendLine($"{actionText}工作单 [{billIndex}]");
-                sb.AppendLine($"- 工作台: {tableLabel}");
-                sb.AppendLine($"- 单据: {billLabel}");
-
-                return ToolResult.Success(sb.ToString());
-            }
-            catch (Exception ex)
-            {
-                return ToolResult.Error($"管理工作单失败: {ex.Message}");
-            }
+                    return ToolResult.Error($"管理工作单失败: {ex.Message}");
+                }
+            });
         }
     }
 }

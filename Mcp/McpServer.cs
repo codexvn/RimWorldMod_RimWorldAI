@@ -26,9 +26,32 @@ namespace RimWorldMCP.Mcp
             _ = HandleMessageAsync(rawJson);
         }
 
+
         // ---- 消息入口 ----
 
         private async Task HandleMessageAsync(string rawJson)
+        {
+            var resp = await ProcessMessageCore(rawJson);
+            if (resp != null)
+                await _transport.SendAsync(resp);
+        }
+
+        /// <summary>/mcp 端点专用：同步处理请求并返回 JSON 响应字符串</summary>
+        public string ProcessMessageSync(string rawJson)
+        {
+            try
+            {
+                var resp = ProcessMessageCore(rawJson).GetAwaiter().GetResult();
+                return resp ?? "{\"jsonrpc\":\"2.0\",\"id\":null}";
+            }
+            catch (Exception ex)
+            {
+                Log($"ProcessMessageSync 异常: {ex}");
+                return "{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32603,\"message\":\"Internal error\"}}";
+            }
+        }
+
+        private async Task<string?> ProcessMessageCore(string rawJson)
         {
             JsonRpcRequest? request;
 
@@ -38,36 +61,32 @@ namespace RimWorldMCP.Mcp
             }
             catch
             {
-                await SendError(null, -32700, "Parse error: 无效的 JSON");
-                return;
+                return BuildErrorJson(null, -32700, "Parse error: 无效的 JSON");
             }
 
             if (request == null)
-            {
-                await SendError(null, -32700, "Parse error: 无法解析");
-                return;
-            }
+                return BuildErrorJson(null, -32700, "Parse error: 无法解析");
 
-            // JSON-RPC 规范：必须校验 jsonrpc == "2.0"
             if (request.Jsonrpc != "2.0")
-            {
-                await SendError(request.Id, -32600, "Invalid Request: jsonrpc 必须为 \"2.0\"");
-                return;
-            }
+                return BuildErrorJson(request.Id, -32600, "Invalid Request: jsonrpc 必须为 \"2.0\"");
 
             try
             {
                 var response = await DispatchAsync(request);
-                if (response != null)
-                {
-                    await _transport.SendAsync(response.ToJson());
-                }
+                return response?.ToJson();
             }
             catch (Exception ex)
             {
                 Log($"Dispatch 异常: {ex}");
-                await SendError(request.Id, -32603, $"Internal error: {ex.Message}");
+                return BuildErrorJson(request.Id, -32603, $"Internal error: {ex.Message}");
             }
+        }
+
+        private static string? BuildErrorJson(JsonElement? id, int code, string message)
+        {
+            if (id == null || id.Value.ValueKind == JsonValueKind.Null)
+                return null; // 通知不需要响应
+            return JsonRpcResponse.Fail(id.Value, code, message).ToJson();
         }
 
         // ---- 方法路由 ----
