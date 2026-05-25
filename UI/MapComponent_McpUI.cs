@@ -28,7 +28,7 @@ namespace RimWorldMCP
             Color origColor = GUI.color;
             if (streaming)
                 GUI.color = Time.realtimeSinceStartup % 1.0f < 0.5f ? Color.cyan : Color.white;
-            else if (!GatewayClient.IsConnected)
+            else if (!CCClient.IsConnected)
                 GUI.color = Color.grey;
             else if (isOpen)
                 GUI.color = Color.cyan;

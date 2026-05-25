@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             return await McpCommandQueue.DispatchAsync(() =>
-                ToolResult.Success(GatewayEventMonitor.BuildGameContext()));
+                ToolResult.Success(GameContextProvider.BuildGameContext()));
         }
     }
 }

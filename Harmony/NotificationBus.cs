@@ -30,7 +30,7 @@ namespace RimWorldMCP.Harmony
         private const int MaxNotifiedMessages = 2000;
         private static readonly HashSet<string> NotifiedMessages = new();
 
-        /// <summary>高危通知标记 — GatewayEventMonitor.Tick() 每帧检查</summary>
+        /// <summary>高危通知标记 — BridgeLifecycle.CCEventTick() 每帧检查</summary>
         public static volatile bool HighDangerPending;
 
         // ========== 供 Patch 调用 ==========

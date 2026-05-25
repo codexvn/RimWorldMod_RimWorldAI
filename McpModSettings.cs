@@ -11,12 +11,6 @@ namespace RimWorldMCP
         public string McpHost = "0.0.0.0";
         public int McpPort = 9877;
 
-        // 桥接器
-        public int BridgeType = 0; // 0=无, 1=OpenClaw, 2=CC
-        public string BridgeUrl = "";
-        public string BridgeToken = "";
-        public string BridgePassword = "";
-
         // CC 桥接
         public string CCUrl = "ws://127.0.0.1:19999";
         public int LocalCCPort = 19999;
@@ -32,7 +26,6 @@ namespace RimWorldMCP
         public bool OssUseSignedUrl = true;
         public int OssSignedUrlExpiryHours = 24;
 
-        public static readonly string[] BridgeTypeLabels = { "无", "OpenClaw", "CC" };
         public static readonly string[] LogLevelLabels = { "Debug", "Info", "Warn", "Error" };
 
         public override void ExposeData()
@@ -43,10 +36,6 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref McpPort, "mcpPort", 9877);
             Scribe_Values.Look(ref logLevelInt, "logLevel", (int)LogLevel.Info);
             LogLevel = (LogLevel)logLevelInt;
-            Scribe_Values.Look(ref BridgeType, "bridgeType", 0);
-            Scribe_Values.Look(ref BridgeUrl, "bridgeUrl", "");
-            Scribe_Values.Look(ref BridgeToken, "bridgeToken", "");
-            Scribe_Values.Look(ref BridgePassword, "bridgePassword", "");
             Scribe_Values.Look(ref CCUrl, "ccUrl", "ws://127.0.0.1:19999");
             Scribe_Values.Look(ref LocalCCPort, "localCCPort", 19999);
             Scribe_Values.Look(ref CCToken, "ccToken", "");

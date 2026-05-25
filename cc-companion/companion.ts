@@ -40,24 +40,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // 3. 创建 SDK 会话
-  console.log('[cc-companion] 创建 Claude SDK 会话...');
-  const { inputStream, queryIterator } = createSession(sdk, CONFIG);
-
-  // 4. 启动后台响应处理
-  const { process: processResponses } = createResponseProcessor(queryIterator, CONFIG.projectPath);
-  processResponses().catch((err: any) => {
-    console.error(`[cc-companion] SDK 处理异常: ${err.message}`);
-  });
-
-  // 5. 启动 WebSocket 服务器
+  // 3. 启动 WebSocket 服务器（先于 session，broadcast 需要引用）
   console.log('[cc-companion] 启动 WebSocket 服务器...');
 
+  let processResponses: () => Promise<void>;
   const server = createWSServer(
     CONFIG.port,
     CONFIG.host,
     CONFIG.token,
-    // onEvent
+    // onEvent — RimWorld 游戏事件 → Claude 用户消息
     (wsMessage) => {
       const text = gameEventToText(wsMessage);
       console.log(`[event] ${wsMessage.event || 'unknown'}: ${text.substring(0, 100)}`);
@@ -77,6 +68,21 @@ async function main(): Promise<void> {
       }
     }
   );
+
+  // 4. 创建 SDK 会话
+  console.log('[cc-companion] 创建 Claude SDK 会话...');
+  const { inputStream, queryIterator } = createSession(sdk, CONFIG);
+
+  // 5. 启动后台响应处理——Claude 消息广播回 RimWorld 聊天窗
+  const proc = createResponseProcessor(
+    queryIterator,
+    CONFIG.projectPath,
+    (msg) => server.broadcast(JSON.stringify(msg)),
+  );
+  processResponses = proc.process;
+  processResponses().catch((err: any) => {
+    console.error(`[cc-companion] SDK 处理异常: ${err.message}`);
+  });
 
   // 6. 连接超时
   let connectTimer: ReturnType<typeof setTimeout> | null = null;

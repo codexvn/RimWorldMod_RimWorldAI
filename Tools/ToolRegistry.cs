@@ -85,12 +85,14 @@ namespace RimWorldMCP.Tools
                         var afterResult = await McpCommandQueue.DispatchAsync(() =>
                         {
                             var remainingStr = NotificationBus.DrainFormatted();
-                            var pauseStatus = GatewayEventMonitor.BuildPauseStatus();
+                            var pauseStatus = GameContextProvider.BuildPauseStatus();
                             var paused = Find.TickManager?.Paused ?? false;
                             return new { Remaining = remainingStr, IsPaused = paused, PauseStatus = pauseStatus };
                         });
                         if (!string.IsNullOrEmpty(afterResult.Remaining))
-                            GatewayMessageQueue.Enqueue(MessageCategory.Alert, afterResult.Remaining);
+                        {
+                            // 通知已发送到 CC Companion，无需额外入队
+                        }
                         if (afterResult.IsPaused)
                         {
                             result.Text += $"\n\n{afterResult.PauseStatus}";

@@ -118,53 +118,63 @@ namespace RimWorldMCP
                 return;
             }
 
-            // Phase 1: abort（持有 _messageLock，阻止并发 abort/send）
-            await _messageLock.WaitAsync();
+            await PauseGameAsync();
             try
             {
-                IsSendingMessage = true;
-                ChatDisplayState.OnUserMessage(text);
-                await AbortAgentInternal();
-            }
-            finally { _messageLock.Release(); }
+                await Task.Delay(3000);
 
-            // Phase 2: send（无锁，不阻塞其他 abort；IsSendingMessage 保持 true 阻止队列并发）
-            try
-            {
-                if (_sessionInitialized)
+                // Phase 1: abort（持有 _messageLock，阻止并发 abort/send）
+                await _messageLock.WaitAsync();
+                try
                 {
-                    await Request("sessions.send", new
-                    {
-                        key = SessionKey,
-                        message = text,
-                        idempotencyKey = Guid.NewGuid().ToString("N")
-                    });
+                    IsSendingMessage = true;
+                    ChatDisplayState.OnUserMessage(text);
+                    await AbortAgentInternal();
                 }
-                else
+                finally { _messageLock.Release(); }
+
+                // Phase 2: send（无锁，不阻塞其他 abort；IsSendingMessage 保持 true 阻止队列并发）
+                try
                 {
-                    // 锁 + 双重检查：Phase 2 无锁，两个并发 SendMessage 可能同时进入 else
-                    await _firstSendLock.WaitAsync();
-                    try
+                    if (_sessionInitialized)
                     {
-                        if (!_sessionInitialized)
+                        await Request("sessions.send", new
                         {
-                            _sessionInitialized = true;
-                            await FirstSend(text);
-                        }
-                        else
-                        {
-                            await Request("sessions.send", new
-                            {
-                                key = SessionKey,
-                                message = text,
-                                idempotencyKey = Guid.NewGuid().ToString("N")
-                            });
-                        }
+                            key = SessionKey,
+                            message = text,
+                            idempotencyKey = Guid.NewGuid().ToString("N")
+                        });
                     }
-                    finally { _firstSendLock.Release(); }
+                    else
+                    {
+                        // 锁 + 双重检查：Phase 2 无锁，两个并发 SendMessage 可能同时进入 else
+                        await _firstSendLock.WaitAsync();
+                        try
+                        {
+                            if (!_sessionInitialized)
+                            {
+                                _sessionInitialized = true;
+                                await FirstSend(text);
+                            }
+                            else
+                            {
+                                await Request("sessions.send", new
+                                {
+                                    key = SessionKey,
+                                    message = text,
+                                    idempotencyKey = Guid.NewGuid().ToString("N")
+                                });
+                            }
+                        }
+                        finally { _firstSendLock.Release(); }
+                    }
                 }
+                finally { IsSendingMessage = false; }
             }
-            finally { IsSendingMessage = false; }
+            finally
+            {
+                await ResumeGameAsync();
+            }
         }
 
         /// <summary>首条消息：agent 发送（自动创建 session）</summary>
@@ -198,19 +208,11 @@ namespace RimWorldMCP
         {
             if (!IsReady) return;
 
-            // abort 耗时较长，暂停游戏防意外事件
-            await McpCommandQueue.DispatchAsync<bool>(() =>
-            {
-                Find.TickManager?.Pause();
-                return true;
-            });
-
             var tcs = new TaskCompletionSource<bool>();
             _abortCompleteTcs = tcs;
 
             try
             {
-                await Task.Delay(3000);
                 var resp = await Request("chat.abort", new { sessionKey = SessionKey });
                 McpLog.Info("[ws] ← chat.abort 已确认");
 
@@ -237,11 +239,6 @@ namespace RimWorldMCP
             }
             finally
             {
-                await McpCommandQueue.DispatchAsync<bool>(() =>
-                {
-                    Find.TickManager?.TogglePaused();
-                    return true;
-                });
                 _abortCompleteTcs = null;
             }
         }
@@ -252,17 +249,46 @@ namespace RimWorldMCP
             if (!IsReady) return;
 
             var wasSending = IsSendingMessage;
-            await _messageLock.WaitAsync();
+            await PauseGameAsync();
             try
             {
-                IsSendingMessage = true;
-                await AbortAgentInternal();
+                await Task.Delay(3000);
+                await _messageLock.WaitAsync();
+                try
+                {
+                    IsSendingMessage = true;
+                    await AbortAgentInternal();
+                }
+                finally
+                {
+                    IsSendingMessage = wasSending;
+                    _messageLock.Release();
+                }
             }
             finally
             {
-                IsSendingMessage = wasSending;
-                _messageLock.Release();
+                await ResumeGameAsync();
             }
+        }
+
+        /// <summary>暂停游戏（主线程执行）</summary>
+        private static async Task PauseGameAsync()
+        {
+            await McpCommandQueue.DispatchAsync<bool>(() =>
+            {
+                Find.TickManager?.Pause();
+                return true;
+            });
+        }
+
+        /// <summary>恢复游戏（主线程执行 TogglePaused）</summary>
+        private static async Task ResumeGameAsync()
+        {
+            await McpCommandQueue.DispatchAsync<bool>(() =>
+            {
+                Find.TickManager?.TogglePaused();
+                return true;
+            });
         }
 
         // ========== 连接管理 ==========

@@ -201,6 +201,29 @@ namespace RimWorldMCP
                                 _helloOk?.TrySetResult(true);
                                 break;
 
+                            case "assistant":
+                            case "user":
+                                // Companion 广播的 Claude SDK 消息 → 聊天窗显示
+                                try
+                                {
+                                    var wrapper = JsonDocument.Parse(
+                                        $"{{\"type\":\"event\",\"event\":\"chat\",\"payload\":{root.GetRawText()}}}");
+                                    ChatDisplayState.OnChatEvent(wrapper.RootElement);
+                                }
+                                catch { }
+                                break;
+
+                            case "result":
+                                // Tool 执行结果 → Agent 事件
+                                try
+                                {
+                                    var rw = JsonDocument.Parse(
+                                        $"{{\"type\":\"event\",\"event\":\"agent\",\"payload\":{{\"stream\":\"tool\",\"data\":{root.GetRawText()}}}}}");
+                                    ChatDisplayState.OnAgentEvent(rw.RootElement);
+                                }
+                                catch { }
+                                break;
+
                             case "error":
                                 var err = root.TryGetProperty("error", out var e) ? e.GetString() : "unknown";
                                 McpLog.Error($"[cc] 服务器错误: {err}");

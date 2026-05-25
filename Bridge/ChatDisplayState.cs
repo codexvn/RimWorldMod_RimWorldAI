@@ -83,9 +83,7 @@ namespace RimWorldMCP
             if (payload.TryGetProperty("sessionKey", out var sk))
                 sessionKey = sk.GetString();
 
-            // 只接收我们自己 session 的消息
-            if (!string.IsNullOrEmpty(sessionKey) && sessionKey != GatewayClient.SessionKey)
-                return;
+            // CC 模式单 session，无需过滤
 
             string? text = ExtractMessageText(payload);
 
@@ -267,11 +265,6 @@ namespace RimWorldMCP
             // 上下文压缩事件 → 在聊天中显示提示
             if (stream == "compaction")
             {
-                string? compSessionKey = null;
-                if (payload.TryGetProperty("sessionKey", out var compSK))
-                    compSessionKey = compSK.GetString();
-                if (!string.IsNullOrEmpty(compSessionKey) && compSessionKey != GatewayClient.SessionKey)
-                    return;
                 HandleCompactionUI(payload);
                 return;
             }
@@ -281,8 +274,7 @@ namespace RimWorldMCP
             string? sessionKey = null;
             if (payload.TryGetProperty("sessionKey", out var sk))
                 sessionKey = sk.GetString();
-            if (!string.IsNullOrEmpty(sessionKey) && sessionKey != GatewayClient.SessionKey)
-                return;
+            // CC 模式单 session，无需过滤
 
             if (!payload.TryGetProperty("data", out var data)) return;
             var itemId = data.TryGetProperty("itemId", out var iid) ? iid.GetString() ?? "" : "";

@@ -80,6 +80,14 @@ export function createSession(sdk: any, config: CompanionConfig) {
       USER_TYPE: 'external',
     },
     settingSources: ['user', 'project', 'local'],
+    canUseTool: (toolName: string) => {
+      // 禁止 Bash——游戏控制不需要执行 shell 命令
+      if (toolName === 'Bash') {
+        console.log(`[cc-companion] 已阻止 Bash 调用`);
+        return false;
+      }
+      return true;
+    },
     mcpServers: {
       rimworld: mcpServerConfig,
     },
@@ -110,7 +118,11 @@ function sanitizePath(p: string): string {
   return p.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
 }
 
-export function createResponseProcessor(queryIterator: AsyncIterable<any>, cwd: string) {
+export function createResponseProcessor(
+  queryIterator: AsyncIterable<any>,
+  cwd: string,
+  onMessage?: (msg: any) => void,
+) {
   let sessionId = 'pending';
   let processing = false;
 
@@ -132,7 +144,8 @@ export function createResponseProcessor(queryIterator: AsyncIterable<any>, cwd: 
           }
         }
 
-        if (msgType === 'assistant') {
+        if (msgType === 'assistant' || msgType === 'user') {
+          onMessage?.(message);
           const content = message.message?.content;
           if (Array.isArray(content)) {
             for (const block of content) {
@@ -147,6 +160,7 @@ export function createResponseProcessor(queryIterator: AsyncIterable<any>, cwd: 
         }
 
         if (msgType === 'result') {
+          onMessage?.(message);
           const summary = message.subtype === 'success'
             ? '执行成功' : `执行失败: ${message.errors?.join(', ') || 'unknown'}`;
           console.log(`[result] ${summary}`);

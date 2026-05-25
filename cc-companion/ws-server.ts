@@ -123,6 +123,12 @@ export function createWSServer(
     getClients() {
       return [...wss.clients].filter((c: WebSocket) => c.readyState === 1);
     },
+    broadcast(data: string) {
+      const msg = typeof data === 'string' ? data : JSON.stringify(data);
+      for (const c of wss.clients) {
+        if (c.readyState === 1) c.send(msg);
+      }
+    },
   };
 }
 

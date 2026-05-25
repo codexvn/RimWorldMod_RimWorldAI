@@ -65,7 +65,7 @@ namespace RimWorldMCP
         {
             var text = _inputText.Trim();
             if (string.IsNullOrEmpty(text)) return;
-            if (!GatewayClient.IsConnected) return;
+            if (!CCClient.IsConnected) return;
             if (!string.IsNullOrEmpty(_pendingSendText)) return;
 
             _inputText = "";
@@ -87,8 +87,8 @@ namespace RimWorldMCP
             {
                 var t = _pendingSendText;
                 _pendingSendText = "";
-                if (GatewayClient.IsReady)
-                    _ = GatewayClient.SendMessage(t);
+                if (CCClient.IsReady)
+                    _ = CCClient.SendEventText("rimworld.chat", "UserMessage", t);
             }
 
             // 半透明背景
@@ -194,7 +194,7 @@ namespace RimWorldMCP
         private void DrawInputRow(Rect inRect, float y, float h)
         {
             // 用户随时可以发送（发送时自动打断当前 agent 任务），仅断开连接时置灰
-            bool canSend = GatewayClient.IsConnected;
+            bool canSend = CCClient.IsConnected;
 
             float btnW = 52f;
             float gap = 4f;
@@ -236,7 +236,7 @@ namespace RimWorldMCP
                 _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
             TooltipHandler.TipRegion(alphaPlus, $"透明度 {(int)(_alpha * 100)}%");
 
-            bool connected = GatewayClient.IsConnected;
+            bool connected = CCClient.IsConnected;
 
             // 中断按钮
             float abortX = inRect.width - abortBtnW - 4f;
@@ -244,8 +244,8 @@ namespace RimWorldMCP
             GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(abortRect, "中断"))
             {
-                if (GatewayClient.IsReady)
-                    _ = GatewayClient.AbortAgent();
+                if (CCClient.IsReady)
+                    _ = CCClient.SendEventText("rimworld.chat", "Abort", "");
             }
 
             // 清空
@@ -265,7 +265,7 @@ namespace RimWorldMCP
                     if (map != null)
                     {
                         var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                        _pendingSendText = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
+                        _pendingSendText = GameContextProvider.BuildColonyOverview(map, colonists, colonists.Count);
                     }
                 }
             }
