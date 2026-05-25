@@ -3,6 +3,7 @@
 MCP (Model Context Protocol) 服务器，将 RimWorld 游戏状态和操作暴露为 LLM 可调用的 Tool。作为 RimWorld mod DLL 内嵌运行。
 
 **游戏源码**: `F:\RiderProjects\Assembly-CSharp\`（RimWorld 反编译 C# 源码，net472 Class Library）
+**Openclaw源码**: `D:\WebstormProjects\openclaw`
 
 ## 项目结构
 

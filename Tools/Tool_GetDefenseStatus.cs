@@ -40,6 +40,7 @@ namespace RimWorldMCP.Tools
                 int unarmedCount = 0;
                 int armoredCount = 0;
                 int combatIncapableCount = 0;
+                int meleeCapableCount = 0;
 
                 foreach (var pawn in colonists)
                 {
@@ -72,6 +73,19 @@ namespace RimWorldMCP.Tools
                             meleeSkill = melee != null ? melee.Level.ToString() : "-";
                         }
                         catch (Exception) { }
+                    }
+
+                    // 近战适配判定：格斗者特性 / 高近战低射击
+                    bool isBrawler = pawn.story?.traits?.HasTrait(TraitDefOf.Brawler) ?? false;
+                    int meleeLevel = 0;
+                    int shootingLevel = 0;
+                    try { meleeLevel = pawn.skills?.GetSkill(SkillDefOf.Melee)?.Level ?? 0; } catch { }
+                    try { shootingLevel = pawn.skills?.GetSkill(SkillDefOf.Shooting)?.Level ?? 0; } catch { }
+                    bool isMeleeSuitable = isBrawler || (meleeLevel >= 8 && shootingLevel < 6);
+                    if (isMeleeSuitable && !isCombatIncapable)
+                    {
+                        meleeCapableCount++;
+                        if (isBrawler) name += " [格斗者]";
                     }
 
                     // 主武器
@@ -155,6 +169,7 @@ namespace RimWorldMCP.Tools
                 sb.AppendLine();
                 sb.AppendLine($"- 远程火力: {rangedCount} 人");
                 sb.AppendLine($"- 近战单位: {meleeCount} 人");
+                sb.AppendLine($"- 可配近战: {meleeCapableCount} 人 (格斗者/高近战)");
                 sb.AppendLine($"- 无武器: {unarmedCount} 人");
                 sb.AppendLine($"- 有护甲: {armoredCount} 人");
                 if (combatIncapableCount > 0)
@@ -206,7 +221,15 @@ namespace RimWorldMCP.Tools
                 var recommendations = new List<string>();
 
                 if (unarmedCount > 0)
-                    recommendations.Add($"有 {unarmedCount} 名殖民者未装备武器，建议配备基础远程武器。");
+                {
+                    if (meleeCapableCount > 0 && meleeCount == 0)
+                        recommendations.Add($"有 {meleeCapableCount} 名殖民者适合近战（格斗者/高近战技能），请为其配备近战武器用于堵门。");
+                    if (unarmedCount > meleeCapableCount || meleeCapableCount == 0)
+                        recommendations.Add($"有 {unarmedCount} 名殖民者未装备武器，建议配备基础远程武器。");
+                }
+
+                if (meleeCapableCount > 0 && meleeCount > 0 && meleeCount < meleeCapableCount)
+                    recommendations.Add($"还有 {meleeCapableCount - meleeCount} 名近战适配者未装备近战武器，建议配备。");
 
                 if (combatCapableCount > 0 && rangedCount < combatCapableCount * 0.6f)
                     recommendations.Add("远程火力覆盖不足，建议提升远程战斗人员比例。");

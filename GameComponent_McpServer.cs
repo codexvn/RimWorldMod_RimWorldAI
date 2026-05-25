@@ -204,6 +204,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_EquipPawn());
             registry.Register(new Tool_DraftPawn());
             registry.Register(new Tool_GetDefenseStatus());
+            registry.Register(new Tool_FindEquipment());
             registry.Register(new Tool_GetTileGrid());
             registry.Register(new Tool_GetTileDetail());
             registry.Register(new Tool_CheckColony());
