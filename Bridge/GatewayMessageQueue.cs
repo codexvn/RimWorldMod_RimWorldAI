@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Verse;
 
 namespace RimWorldMCP
@@ -30,7 +31,8 @@ namespace RimWorldMCP
         private static bool _abortSent;
         private static int _idleFrames;
         private const int IdleFramesBeforeSend = 30; // ~0.5s 窗口让同类消息覆盖
-        private static int _postAbortUntilMs; // Environment.TickCount 时间戳，游戏加速不影响
+        private static Task<bool>? _abortTask;
+        private static int _abortGraceUntilMs;
         private static int _lastSendRealMs;
         private static int _lastDailyDaySent = -1;
         private static bool _sessionPromptSent;
@@ -53,6 +55,8 @@ namespace RimWorldMCP
             {
                 _sending = false;
                 _abortSent = false;
+                _abortTask = null;
+                _abortGraceUntilMs = 0;
                 return;
             }
 
@@ -63,7 +67,7 @@ namespace RimWorldMCP
             {
                 if (_pending.Count > 0 && !_abortSent)
                 {
-                    GatewayClient.AbortAgent();
+                    _abortTask = GatewayClient.AbortAgentAsync();
                     _abortSent = true;
                 }
                 return;
@@ -71,9 +75,25 @@ namespace RimWorldMCP
 
             if (_pending.Count == 0) return;
 
-            // 打断后冷却期（真实时间 500ms），防止立刻重发导致并发问题
-            if (_postAbortUntilMs > 0 && Environment.TickCount < _postAbortUntilMs)
+            // 等待 abort RPC 完成
+            if (_abortTask != null && !_abortTask.IsCompleted)
                 return;
+
+            // abort 完成，仅成功时加 grace period
+            if (_abortTask != null && _abortTask.IsCompleted)
+            {
+                bool abortOk = _abortTask.Status == TaskStatus.RanToCompletion && _abortTask.Result;
+                _abortTask = null;
+                if (abortOk)
+                {
+                    _abortGraceUntilMs = Environment.TickCount + 200;
+                    return;
+                }
+            }
+
+            if (_abortGraceUntilMs > 0 && Environment.TickCount < _abortGraceUntilMs)
+                return;
+            _abortGraceUntilMs = 0;
 
             // 短暂稳定窗口让同类消息覆盖（但高危消息立即发）
             if (_idleFrames > 0)
@@ -106,7 +126,7 @@ namespace RimWorldMCP
             // 正在发送中——有通知即打断
             if (!_abortSent)
             {
-                GatewayClient.AbortAgent();
+                _abortTask = GatewayClient.AbortAgentAsync();
                 _abortSent = true;
             }
             _pending[category] = new PendingMessage { Category = category, Text = text };
@@ -122,7 +142,8 @@ namespace RimWorldMCP
             _pending.Clear();
             _sending = false;
             _abortSent = false;
-            _postAbortUntilMs = 0;
+            _abortTask = null;
+            _abortGraceUntilMs = 0;
             _lastSendRealMs = 0;
             _lastDailyDaySent = -1;
             _sessionPromptSent = false;
@@ -145,8 +166,6 @@ namespace RimWorldMCP
             finally
             {
                 _sending = false;
-                if (_abortSent)
-                    _postAbortUntilMs = Environment.TickCount + 500;
                 _abortSent = false;
             }
         }

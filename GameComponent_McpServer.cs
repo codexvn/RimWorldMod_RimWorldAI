@@ -197,6 +197,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_SetResearchProject());
             registry.Register(new Tool_GetColonists());
             registry.Register(new Tool_GetColonistNeeds());
+            registry.Register(new Tool_GetWorkPriorities());
             registry.Register(new Tool_SetWorkPriority());
             registry.Register(new Tool_GetColonistHealth());
             registry.Register(new Tool_ScheduleOperation());

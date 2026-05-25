@@ -241,6 +241,7 @@ namespace RimWorldMCP.Transport
             private readonly HttpListenerResponse _response;
             private readonly Stream _outputStream;
             private readonly TaskCompletionSource<bool> _disconnectTcs = new();
+            private readonly SemaphoreSlim _writeLock = new(1, 1);
 
             public SseSession(string sessionId, HttpListenerResponse response)
             {
@@ -251,6 +252,7 @@ namespace RimWorldMCP.Transport
 
             public async Task SendEventAsync(string eventType, string data)
             {
+                await _writeLock.WaitAsync();
                 try
                 {
                     var sb = new StringBuilder();
@@ -268,6 +270,10 @@ namespace RimWorldMCP.Transport
                 catch
                 {
                     _disconnectTcs.TrySetResult(true);
+                }
+                finally
+                {
+                    _writeLock.Release();
                 }
             }
 

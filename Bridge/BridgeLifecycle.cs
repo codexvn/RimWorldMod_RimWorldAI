@@ -39,9 +39,13 @@ namespace RimWorldMCP
             var prompt = LoadPromptFile();
             if (string.IsNullOrEmpty(prompt)) return;
 
-            GatewayMessageQueue.MarkSessionPromptSent();
-            McpLog.Info("[bridge] 会话 Prompt 已入队");
-            GatewayMessageQueue.Enqueue(MessageCategory.SessionInit, prompt);
+            _ = McpCommandQueue.DispatchAsync<bool>(() =>
+            {
+                GatewayMessageQueue.MarkSessionPromptSent();
+                McpLog.Info("[bridge] 会话 Prompt 已入队");
+                GatewayMessageQueue.Enqueue(MessageCategory.SessionInit, prompt);
+                return true;
+            });
         }
 
         private static string LoadPromptFile()

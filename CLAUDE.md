@@ -21,7 +21,7 @@ RimWorldMCP/
 ├── Mcp/                                   # MCP 协议层
 │   ├── McpServer.cs                       # JSON-RPC 调度：initialize/tools/list/tools/call/resources
 │   └── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
-├── Tools/                                 # 39 个 Tool（真实 RimWorld API 调用）
+├── Tools/                                 # 40 个 Tool（真实 RimWorld API 调用）
 │   ├── ITool.cs                           # Tool 接口 + ToolResult
 │   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射
 │   ├── ResourceCheckHelper.cs             # 建造资源检查辅助工具
@@ -221,7 +221,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 游戏启动后，MCP 服务自动运行在 `http://localhost:9877`。
 
-## Tool 清单（39 个，真实 API）
+## Tool 清单（40 个，真实 API）
 
 ### 通用查询 (4)
 | Tool | 说明 | 数据源 |
@@ -271,11 +271,12 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `get_research_progress` | 获取研究进度 | `Find.ResearchManager.GetProgress()` |
 | `set_research_project` | 设置研究项目 | `Find.ResearchManager.SetCurrentProject()` (入队) |
 
-### 殖民者需求 (3)
+### 殖民者需求 (4)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `get_colonists` | 殖民者信息 | `PawnsFinder.AllMaps_FreeColonistsSpawned` |
 | `get_colonist_needs` | 详细需求状态 | `pawn.needs.AllNeeds` |
+| `get_work_priorities` | 所有殖民者完整工作优先级表 | `pawn.workSettings.GetPriority()` |
 | `set_work_priority` | 设置工作优先级 | `pawn.workSettings.SetPriority()` (入队) |
 
 ### 医疗 (2)

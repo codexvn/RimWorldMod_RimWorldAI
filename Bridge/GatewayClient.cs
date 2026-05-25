@@ -53,6 +53,7 @@ namespace RimWorldMCP
         public static bool IsReady => _state == ClientState.Ready;
 
         public static readonly ConcurrentQueue<string> Incoming = new();
+        private static readonly SemaphoreSlim _sendLock = new(1, 1);
 
         /// <summary>当前存档的会话 ID，持久化在 ExposeData 中。</summary>
         public static string SessionId { get; set; } = "rimworld";
@@ -114,8 +115,24 @@ namespace RimWorldMCP
         public static void AbortAgent()
         {
             if (!IsReady) return;
-            _ = Request("chat.abort", new { sessionKey = SessionKey });
-            McpLog.Info($"[ws] → chat.abort sessionKey={SessionKey}");
+            _ = AbortAgentAsync();
+        }
+
+        /// <summary>中止整个会话，等待 OpenClaw 确认（含 transcript 持久化完成）</summary>
+        public static async Task<bool> AbortAgentAsync()
+        {
+            if (!IsReady) return false;
+            try
+            {
+                await Request("chat.abort", new { sessionKey = SessionKey });
+                McpLog.Info("[ws] ← chat.abort 已确认");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                McpLog.Warn($"[ws] chat.abort 失败: {ex.Message}");
+                return false;
+            }
         }
 
         // ========== 连接管理 ==========
@@ -176,12 +193,21 @@ namespace RimWorldMCP
 
         private static async Task SendJson(object obj)
         {
-            if (_ws?.State != WebSocketState.Open) return;
-            var json = JsonSerializer.Serialize(obj, McpJson.Options);
-            var bytes = Encoding.UTF8.GetBytes(json);
-            McpLog.Debug($"[ws] → {Truncate(json)}");
-            await _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
-                _cts?.Token ?? CancellationToken.None);
+            await _sendLock.WaitAsync();
+            try
+            {
+                var ws = _ws;
+                if (ws?.State != WebSocketState.Open) return;
+                var json = JsonSerializer.Serialize(obj, McpJson.Options);
+                var bytes = Encoding.UTF8.GetBytes(json);
+                McpLog.Debug($"[ws] → {Truncate(json)}");
+                await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
+                    _cts?.Token ?? CancellationToken.None);
+            }
+            finally
+            {
+                _sendLock.Release();
+            }
         }
 
         private static string Truncate(string s) => s.Length <= 200 ? s : s.Substring(0, 197) + "...";

@@ -6,6 +6,8 @@ namespace RimWorldMCP.Transport
 {
     public class StdioTransport : ITransport
     {
+        private readonly SemaphoreSlim _sendLock = new(1, 1);
+
         public string Name => "stdio";
 
         public event Action<string>? OnMessage;
@@ -19,8 +21,16 @@ namespace RimWorldMCP.Transport
 
         public async Task SendAsync(string message)
         {
-            await Console.Out.WriteLineAsync(message);
-            await Console.Out.FlushAsync();
+            await _sendLock.WaitAsync();
+            try
+            {
+                await Console.Out.WriteLineAsync(message);
+                await Console.Out.FlushAsync();
+            }
+            finally
+            {
+                _sendLock.Release();
+            }
         }
 
         public Task StopAsync()

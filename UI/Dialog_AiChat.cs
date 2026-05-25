@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -12,7 +13,7 @@ namespace RimWorldMCP
         private bool _scrollToBottom;
         private string _inputText = "";
         private string _pendingSendText = "";
-        private int _pendingSendUntilMs;
+        private Task<bool>? _abortTask;
         private static float _alpha = 0.8f;
         private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
         private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
@@ -60,23 +61,19 @@ namespace RimWorldMCP
             _scrollToBottom = true;
         }
 
-        /// <summary>发送输入框文本（先打断，延迟 500ms 后发送）</summary>
+        /// <summary>发送输入框文本（先打断，等待 abort 确认后再发送）</summary>
         private void TrySendInput()
         {
             var text = _inputText.Trim();
             if (string.IsNullOrEmpty(text)) return;
             if (!GatewayClient.IsConnected) return;
-            if (!string.IsNullOrEmpty(_pendingSendText) || _pendingSendUntilMs > 0) return;
+            if (!string.IsNullOrEmpty(_pendingSendText)) return;
 
             _inputText = "";
 
-            // 先打断当前 agent 任务，参考 GatewayMessageQueue._postAbortUntilMs 冷却模式
-            if (GatewayClient.IsReady)
-                GatewayClient.AbortAgent();
-
+            _abortTask = GatewayClient.IsReady ? GatewayClient.AbortAgentAsync() : null;
             ChatDisplayState.OnUserMessage(text);
             _pendingSendText = text;
-            _pendingSendUntilMs = Environment.TickCount + 500;
         }
 
         public override void DoWindowContents(Rect inRect)
@@ -89,14 +86,21 @@ namespace RimWorldMCP
                 Event.current.Use();
             }
 
-            // 处理延迟发送（冷却期满后发送，参考 GatewayMessageQueue._postAbortUntilMs）
-            if (!string.IsNullOrEmpty(_pendingSendText) && Environment.TickCount >= _pendingSendUntilMs)
+            // 处理延迟发送（等待 abort 确认后发送）
+            if (!string.IsNullOrEmpty(_pendingSendText))
             {
-                var t = _pendingSendText;
-                _pendingSendText = "";
-                _pendingSendUntilMs = 0;
-                if (GatewayClient.IsReady)
-                    _ = GatewayClient.SendMessage(t);
+                if (_abortTask != null && !_abortTask.IsCompleted)
+                {
+                    // abort 尚未完成，等待下一帧
+                }
+                else
+                {
+                    var t = _pendingSendText;
+                    _pendingSendText = "";
+                    _abortTask = null;
+                    if (GatewayClient.IsReady)
+                        _ = GatewayClient.SendMessage(t);
+                }
             }
 
             // 半透明背景
@@ -271,11 +275,10 @@ namespace RimWorldMCP
                     var map = Find.CurrentMap;
                     if (map != null)
                     {
-                        if (GatewayClient.IsReady)
-                            GatewayClient.AbortAgent();
                         var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
                         var text = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
-                        _ = GatewayClient.SendMessage(text);
+                        _abortTask = GatewayClient.IsReady ? GatewayClient.AbortAgentAsync() : null;
+                        _pendingSendText = text;
                     }
                 }
             }
