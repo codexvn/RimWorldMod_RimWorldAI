@@ -14,7 +14,7 @@ namespace RimWorldMCP.Tools
     public class Tool_FindEnemies : ITool
     {
         public string Name => "find_enemies";
-        public string Description => "查找地图上所有敌对目标，输出 thingIDNumber、名称、坐标、状态（含逃跑中），用于后续 force_attack 精确指定目标。";
+        public string Description => "查找地图上所有敌对目标（含逃跑中状态），并列出每个已征召殖民者可攻击的敌人编号列表。攻击范围覆盖 = 武器射程 + 射速/近战。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -53,6 +53,55 @@ namespace RimWorldMCP.Tools
                             : e.Drafted ? "征召"
                             : "活跃";
                         sb.AppendLine($"| {e.thingIDNumber} | {e.LabelShort} | {e.KindLabel} | ({e.Position.x},{e.Position.z}) | {status} |");
+                    }
+
+                    // 已征召殖民者的攻击范围覆盖
+                    var drafted = PawnsFinder.AllMaps_FreeColonistsSpawned
+                        .Where(p => p.Drafted && !p.Downed)
+                        .ToList();
+
+                    if (drafted.Count > 0)
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine("## 已征召殖民者 → 可攻击目标");
+                        sb.AppendLine();
+                        sb.AppendLine("| 殖民者 (ID) | 武器 | 类型 | 射程 | 可攻击 (ID) |");
+                        sb.AppendLine("|---|---:|---:|---|");
+
+                        foreach (var d in drafted)
+                        {
+                            var verb = d.CurrentEffectiveVerb;
+                            bool isMelee = verb?.verbProps.IsMeleeAttack ?? true;
+                            float effectiveRange = verb?.EffectiveRange ?? 1.42f;
+
+                            string weaponLabel;
+                            if (d.equipment?.Primary != null)
+                                weaponLabel = d.equipment.Primary.Label;
+                            else if (isMelee)
+                                weaponLabel = "空手/近战";
+                            else
+                                weaponLabel = "无武器";
+
+                            string atkType = isMelee ? "近战" : "远程";
+
+                            // 找出可攻击的敌人
+                            var inRange = enemies
+                                .Where(e =>
+                                {
+                                    float distSq = d.Position.DistanceToSquared(e.Position);
+                                    float rangeSq = effectiveRange * effectiveRange;
+                                    return distSq <= rangeSq;
+                                })
+                                .Select(e => e.thingIDNumber.ToString())
+                                .ToList();
+
+                            string rangeDisplay = isMelee ? "邻接" : effectiveRange.ToString("F0");
+                            string targetsDisplay = inRange.Count > 0
+                                ? string.Join(", ", inRange)
+                                : "-";
+
+                            sb.AppendLine($"| {d.LabelShort} ({d.thingIDNumber}) | {weaponLabel} | {atkType} | {rangeDisplay} | {targetsDisplay} |");
+                        }
                     }
 
                     return ToolResult.Success(sb.ToString().TrimEnd());
