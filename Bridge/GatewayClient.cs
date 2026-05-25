@@ -76,7 +76,7 @@ namespace RimWorldMCP
 
         // ========== 业务 API ==========
 
-        /// <summary>发送消息到 Agent，等待 agent 处理完成</summary>
+        /// <summary>发送消息到 Agent（内部统一 abort 后再发送），等待 agent 处理完成</summary>
         public static async Task SendMessage(string text)
         {
             if (!IsReady) return;
@@ -87,6 +87,8 @@ namespace RimWorldMCP
                 McpLog.Info("[compaction] 压缩中，消息发送已延迟...");
                 return;
             }
+
+            await AbortAgentAsync();
 
             ChatDisplayState.OnUserMessage(text);
             await Request("agent", new

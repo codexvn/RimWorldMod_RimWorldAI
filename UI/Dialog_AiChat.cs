@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -13,7 +12,6 @@ namespace RimWorldMCP
         private bool _scrollToBottom;
         private string _inputText = "";
         private string _pendingSendText = "";
-        private Task<bool>? _abortTask;
         private static float _alpha = 0.8f;
         private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
         private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
@@ -24,6 +22,7 @@ namespace RimWorldMCP
             optionalTitle = "AI 对话";
             doCloseX = true;
             closeOnCancel = true;
+            closeOnAccept = false;
             closeOnClickedOutside = false;
             draggable = true;
             resizeable = true;
@@ -61,7 +60,7 @@ namespace RimWorldMCP
             _scrollToBottom = true;
         }
 
-        /// <summary>发送输入框文本（先打断，等待 abort 确认后再发送）</summary>
+        /// <summary>发送输入框文本（SendMessage 入口统一 abort，此处只缓存文本）</summary>
         private void TrySendInput()
         {
             var text = _inputText.Trim();
@@ -70,8 +69,6 @@ namespace RimWorldMCP
             if (!string.IsNullOrEmpty(_pendingSendText)) return;
 
             _inputText = "";
-
-            _abortTask = GatewayClient.IsReady ? GatewayClient.AbortAgentAsync() : null;
             ChatDisplayState.OnUserMessage(text);
             _pendingSendText = text;
         }
@@ -86,21 +83,13 @@ namespace RimWorldMCP
                 Event.current.Use();
             }
 
-            // 处理延迟发送（等待 abort 确认后发送）
+            // 处理延迟发送（SendMessage 入口统一 abort）
             if (!string.IsNullOrEmpty(_pendingSendText))
             {
-                if (_abortTask != null && !_abortTask.IsCompleted)
-                {
-                    // abort 尚未完成，等待下一帧
-                }
-                else
-                {
-                    var t = _pendingSendText;
-                    _pendingSendText = "";
-                    _abortTask = null;
-                    if (GatewayClient.IsReady)
-                        _ = GatewayClient.SendMessage(t);
-                }
+                var t = _pendingSendText;
+                _pendingSendText = "";
+                if (GatewayClient.IsReady)
+                    _ = GatewayClient.SendMessage(t);
             }
 
             // 半透明背景
@@ -265,7 +254,7 @@ namespace RimWorldMCP
             if (Widgets.ButtonText(clearRect, "清空"))
                 ChatDisplayState.Clear();
 
-            // 继续 — 向 agent 发送殖民地概览（先打断再发送，与输入框逻辑一致）
+            // 继续 — 向 agent 发送殖民地概览（SendMessage 入口统一 abort）
             Rect continueRect = new Rect(abortX - 120f, y + 4f, 54f, h - 8f);
             GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(continueRect, "继续"))
@@ -276,9 +265,7 @@ namespace RimWorldMCP
                     if (map != null)
                     {
                         var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                        var text = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
-                        _abortTask = GatewayClient.IsReady ? GatewayClient.AbortAgentAsync() : null;
-                        _pendingSendText = text;
+                        _pendingSendText = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
                     }
                 }
             }
