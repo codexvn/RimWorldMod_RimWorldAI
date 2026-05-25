@@ -25,11 +25,14 @@ namespace RimWorldMCP
         public string RunId = "";
         // 流式：记录上一个 delta chunk 的长度，用于 replace 场景
         public int LastChunkLen;
+        // 由 UI 线程每帧写入，避免重复 Text.CalcHeight
+        public float CachedHeight;
     }
 
     /// <summary>线程安全的聊天状态管理器，接收 Gateway 的 "chat" / "agent" 事件</summary>
     public static class ChatDisplayState
     {
+        private const int MaxEntries = 100;
         private static readonly List<ChatEntry> _entries = new();
         private static readonly List<ToolCallInfo> _toolCalls = new();
         private static readonly object _lock = new();
@@ -174,9 +177,17 @@ namespace RimWorldMCP
                         }
                         break;
                 }
+                TrimEntries();
             }
 
             OnChanged?.Invoke();
+        }
+
+        /// <summary>限制条目上限，移除最旧的</summary>
+        private static void TrimEntries()
+        {
+            while (_entries.Count > MaxEntries)
+                _entries.RemoveAt(0);
         }
 
         /// <summary>用户发送消息时记录（从主线程调用）</summary>
@@ -190,6 +201,7 @@ namespace RimWorldMCP
                     Text = text,
                     State = ChatState.Done
                 });
+                TrimEntries();
             }
             OnChanged?.Invoke();
         }

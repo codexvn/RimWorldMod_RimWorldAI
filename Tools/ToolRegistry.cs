@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using RimWorldMCP.Harmony;
 using RimWorldMCP.Mcp;
+using Verse;
 
 namespace RimWorldMCP.Tools
 {
@@ -78,13 +79,19 @@ namespace RimWorldMCP.Tools
                 {
                     var result = await tool.ExecuteAsync(args);
 
-                    // 工具结束时补推剩余通知（非高危）
+                    // 工具结束时补推剩余通知 + 检查暂停状态
                     try
                     {
-                        var remaining = await McpCommandQueue.DispatchAsync(
-                            () => NotificationBus.DrainFormatted());
-                        if (!string.IsNullOrEmpty(remaining))
-                            GatewayMessageQueue.Enqueue(MessageCategory.Alert, remaining);
+                        var afterResult = await McpCommandQueue.DispatchAsync(() =>
+                        {
+                            var remainingStr = NotificationBus.DrainFormatted();
+                            var paused = Find.TickManager?.Paused ?? false;
+                            return new { Remaining = remainingStr, IsPaused = paused };
+                        });
+                        if (!string.IsNullOrEmpty(afterResult.Remaining))
+                            GatewayMessageQueue.Enqueue(MessageCategory.Alert, afterResult.Remaining);
+                        if (afterResult.IsPaused)
+                            result.Text += "\n\n[提示] 游戏当前已暂停。使用 toggle_pause 恢复时间流动。";
                     }
                     catch { /* 调度失败不影响工具结果 */ }
 

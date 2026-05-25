@@ -11,7 +11,7 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignateBuild : ITool
     {
         public string Name => "designate_build";
-        public string Description => "在指定地图坐标放置建造蓝图。可用于建造墙体、门、地板、家具、工作台等。";
+        public string Description => "在指定地图坐标放置建造蓝图。可用于建造墙体、门、地板、家具、工作台等。相邻房间可共用已有墙体，无需重复建造。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",

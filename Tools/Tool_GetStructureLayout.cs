@@ -21,7 +21,8 @@ namespace RimWorldMCP.Tools
                 pos_x = new { type = "integer", description = "查询区域左上角 X（可选，默认0）" },
                 pos_y = new { type = "integer", description = "查询区域左上角 Y（可选，默认0）" },
                 end_x = new { type = "integer", description = "查询区域右下角 X（可选，默认地图右边界）" },
-                end_y = new { type = "integer", description = "查询区域右下角 Y（可选，默认地图下边界）" }
+                end_y = new { type = "integer", description = "查询区域右下角 Y（可选，默认地图下边界）" },
+                include_natural_rock = new { type = "boolean", description = "是否包含天然岩壁（默认false，过滤山体/岩壁RLE减少噪音）" }
             }
         });
 
@@ -29,12 +30,55 @@ namespace RimWorldMCP.Tools
         private const int MaxGridHeight = 60;
         private const int MaxRooms = 30;
 
-        private static readonly Dictionary<char, string> LegendMap = new()
+        // 预定义建筑图标：defName 精确匹配
+        private static readonly Dictionary<string, (char Symbol, string Label)> KnownBuildingIcons = new()
+        {
+            ["Sandbags"] = ('▦', "沙袋"),
+            ["Barricade"] = ('▦', "路障"),
+            ["SpikeTrap"] = ('▼', "陷阱"),
+            ["TrapIED_HighExplosive"] = ('▼', "IED"),
+            ["TrapIED_Incendiary"] = ('▼', "IED燃烧"),
+            ["TrapIED_EMP"] = ('▼', "IEDEMP"),
+            ["PowerConduit"] = ('┄', "电缆"),
+            ["Battery"] = ('⚡', "电池"),
+            ["WoodFiredGenerator"] = ('⚡', "发电机"),
+            ["WindTurbine"] = ('⚡', "风电"),
+            ["SolarGenerator"] = ('⚡', "太阳能"),
+            ["GeothermalGenerator"] = ('⚡', "地热"),
+            ["WatermillGenerator"] = ('⚡', "水电"),
+            ["ChemfuelPoweredGenerator"] = ('⚡', "燃油发电"),
+            ["PlantPot"] = (';', "花盆"),
+            ["HydroponicsBasin"] = (';', "水培"),
+            ["NutrientPasteDispenser"] = ('%', "营养机"),
+            ["Hopper"] = ('○', "料斗"),
+        };
+
+        // 建筑类型匹配规则（按优先级，首次命中即返回）
+        private static readonly List<(Func<Building, bool> Match, char Symbol, string Label)> BuildingTypeRules = new()
+        {
+            (b => b is Building_TurretGun,                                 '☈', "迫击炮"),
+            (b => b is Building_Turret,                                    '☈', "炮塔"),
+            (b => b is Building_WorkTable,                                 '⊞', "工作台"),
+            (b => b is Building_ResearchBench,                             '⊞', "研究台"),
+            (b => b is Building_Bed,                                       '◻', "床"),
+            (b => b is Building_CommsConsole,                              '◆', "通讯台"),
+            (b => b is Building_OrbitalTradeBeacon,                        '◆', "信标"),
+            (b => b is Building_TempControl,                               '○', "温控"),
+            (b => b is Building_Art,                                       '★', "雕塑"),
+            (b => b is Building_SteamGeyser,                               '~', "喷泉"),
+        };
+
+        // 确定性兜底字符池（62 个，同 defName 始终分配同一字符，不同 defName 不重叠）
+        private const string FallbackPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        // 固定图例条目（墙/门/空地/区域，始终显示）
+        private static readonly Dictionary<char, string> FixedLegend = new()
         {
             ['#'] = "玩家墙",
             ['R'] = "自然岩壁",
             ['+'] = "门",
-            ['B'] = "其他建筑",
+            ['='] = "种植区",
+            ['S'] = "储存区",
             ['.'] = "空地"
         };
 
@@ -68,6 +112,10 @@ namespace RimWorldMCP.Tools
                     if (minX > maxX) { int t = minX; minX = maxX; maxX = t; }
                     if (minY > maxY) { int t = minY; minY = maxY; maxY = t; }
 
+                    bool includeNaturalRock = false;
+                    if (args != null && args.Value.TryGetProperty("include_natural_rock", out var jNR))
+                        includeNaturalRock = jNR.ValueKind == JsonValueKind.True;
+
                     minX = Math.Max(0, Math.Min(minX, mapW - 1));
                     maxX = Math.Max(0, Math.Min(maxX, mapW - 1));
                     minY = Math.Max(0, Math.Min(minY, mapH - 1));
@@ -86,10 +134,13 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine();
 
                     // 1. 空间网格（仅小范围）
-                    var usedSymbols = new HashSet<char>();
+                    HashSet<char> usedSymbols = new();
+                    Dictionary<char, string> legendEntries = new();
                     if (showGrid)
                     {
-                        usedSymbols = BuildGrid(sb, minX, minY, maxX, maxY, map);
+                        var gridResult = BuildGrid(sb, minX, minY, maxX, maxY, map, includeNaturalRock);
+                        usedSymbols = gridResult.Used;
+                        legendEntries = gridResult.Legend;
                         sb.AppendLine();
                     }
 
@@ -101,14 +152,18 @@ namespace RimWorldMCP.Tools
                     int doorCount = BuildDoorList(sb, minX, minY, maxX, maxY, map);
                     if (doorCount > 0) sb.AppendLine();
 
-                    // 4. 墙段 RLE
-                    BuildWallRuns(sb, minX, minY, maxX, maxY, map);
+                    // 4. 区域（种植区/储存区）
+                    int zoneCount = BuildZoneList(sb, minX, minY, maxX, maxY, map);
+                    if (zoneCount > 0) sb.AppendLine();
 
-                    // 5. 图例（仅小范围模式）
-                    if (showGrid && usedSymbols.Count > 0)
+                    // 5. 墙段 RLE
+                    BuildWallRuns(sb, minX, minY, maxX, maxY, map, includeNaturalRock);
+
+                    // 6. 图例（仅小范围模式）
+                    if (showGrid)
                     {
                         sb.AppendLine();
-                        BuildLegend(sb, usedSymbols);
+                        BuildLegend(sb, usedSymbols, legendEntries);
                     }
 
                     return ToolResult.Success(sb.ToString().TrimEnd());
@@ -147,48 +202,96 @@ namespace RimWorldMCP.Tools
             return false;
         }
 
-        private static char GetGridChar(IntVec3 c, Map map)
+        private static char GetGridChar(IntVec3 c, Map map,
+            Dictionary<string, char> fallbackMap, ref int fallbackIdx, Dictionary<char, string> legend,
+            bool includeNaturalRock)
         {
             var ed = c.GetEdifice(map);
-            if (ed == null) return '.';
+            if (ed == null)
+            {
+                var zone = map.zoneManager?.ZoneAt(c);
+                if (zone is Zone_Growing) return '=';
+                if (zone is Zone_Stockpile) return 'S';
+                return '.';
+            }
 
             if (ed is Building_Door) return '+';
 
             if (IsWallCell(ed, out bool isNatural))
+            {
+                if (isNatural && !includeNaturalRock) return '.';
                 return isNatural ? 'R' : '#';
+            }
 
-            return 'B';
+            // 预定义 defName 精确匹配
+            if (KnownBuildingIcons.TryGetValue(ed.def.defName, out var known))
+            {
+                legend[known.Symbol] = known.Label;
+                return known.Symbol;
+            }
+
+            // 类型规则匹配
+            foreach (var (match, symbol, label) in BuildingTypeRules)
+            {
+                if (match(ed))
+                {
+                    legend[symbol] = label;
+                    return symbol;
+                }
+            }
+
+            // 兜底：确定性分配（同 defName 始终同字符，不同 defName 不重叠）
+            if (!fallbackMap.TryGetValue(ed.def.defName, out char fb))
+            {
+                fb = fallbackIdx < FallbackPool.Length ? FallbackPool[fallbackIdx++] : '?';
+                fallbackMap[ed.def.defName] = fb;
+            }
+            legend[fb] = ed.def.defName;
+            return fb;
         }
 
-        private static HashSet<char> BuildGrid(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map)
+        private static (HashSet<char> Used, Dictionary<char, string> Legend) BuildGrid(
+            StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map, bool includeNaturalRock)
         {
             var used = new HashSet<char>();
-            int w = maxX - minX + 1;
+            var legend = new Dictionary<char, string>();
+            var fallbackMap = new Dictionary<string, char>();
+            int fallbackIdx = 0;
+
+            // 固定图例条目预填充（天然岩壁仅在开启时加入图例）
+            foreach (var kv in FixedLegend)
+            {
+                if (kv.Key == 'R' && !includeNaturalRock) continue;
+                legend[kv.Key] = kv.Value;
+            }
 
             sb.AppendLine("### 空间网格");
 
             for (int z = minY; z <= maxY; z++)
             {
+                sb.Append($"z{z}: ");
                 for (int x = minX; x <= maxX; x++)
                 {
-                    char ch = GetGridChar(new IntVec3(x, 0, z), map);
+                    char ch = GetGridChar(new IntVec3(x, 0, z), map, fallbackMap, ref fallbackIdx, legend,
+                        includeNaturalRock);
                     sb.Append(ch);
                     used.Add(ch);
                 }
                 sb.AppendLine();
             }
 
-            return used;
+            return (used, legend);
         }
 
-        private static void BuildLegend(StringBuilder sb, HashSet<char> usedSymbols)
+        private static void BuildLegend(StringBuilder sb, HashSet<char> usedSymbols,
+            Dictionary<char, string> legendEntries)
         {
             sb.Append("### 图例");
             sb.AppendLine();
             var parts = new List<string>();
             foreach (var ch in usedSymbols.OrderBy(c => c))
             {
-                if (LegendMap.TryGetValue(ch, out var label))
+                if (legendEntries.TryGetValue(ch, out var label))
                     parts.Add($"{ch}={label}");
             }
             if (parts.Count > 0)
@@ -306,6 +409,57 @@ namespace RimWorldMCP.Tools
             return doors.Count;
         }
 
+        private static int BuildZoneList(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map)
+        {
+            var zoneManager = map.zoneManager;
+            if (zoneManager == null) return 0;
+
+            var allZones = zoneManager.AllZones;
+            if (allZones == null) return 0;
+
+            var matched = new List<(Zone Zone, int MinX, int MinZ, int MaxX, int MaxZ, int Cells, int CellsInRange)>();
+            foreach (var zone in allZones)
+            {
+                if (zone == null) continue;
+
+                int zMinX = int.MaxValue, zMinZ = int.MaxValue, zMaxX = int.MinValue, zMaxZ = int.MinValue;
+                int cellCount = 0, inRange = 0;
+                bool intersects = false;
+
+                foreach (var cell in zone.Cells)
+                {
+                    zMinX = Math.Min(zMinX, cell.x);
+                    zMinZ = Math.Min(zMinZ, cell.z);
+                    zMaxX = Math.Max(zMaxX, cell.x);
+                    zMaxZ = Math.Max(zMaxZ, cell.z);
+                    cellCount++;
+                    if (cell.x >= minX && cell.x <= maxX && cell.z >= minY && cell.z <= maxY)
+                    {
+                        inRange++;
+                        intersects = true;
+                    }
+                }
+
+                if (!intersects || cellCount == 0) continue;
+                matched.Add((zone, zMinX, zMinZ, zMaxX, zMaxZ, cellCount, inRange));
+            }
+
+            if (matched.Count == 0) return 0;
+
+            sb.AppendLine($"### 区域 ({matched.Count})");
+
+            for (int i = 0; i < matched.Count; i++)
+            {
+                var (zone, zMinX, zMinZ, zMaxX, zMaxZ, cellCount, inRange) = matched[i];
+                string typeLabel = zone is Zone_Growing ? "种植区" : (zone is Zone_Stockpile ? "储存区" : "区域");
+                string areaInfo = inRange == cellCount ? $"{cellCount}格" : $"{inRange}/{cellCount}格(在范围内)";
+
+                sb.AppendLine($"[{i + 1}] {typeLabel} ({zMinX},{zMinZ})~({zMaxX},{zMaxZ})  {areaInfo}");
+            }
+
+            return matched.Count;
+        }
+
         private struct WallRun
         {
             public int Id;
@@ -313,7 +467,8 @@ namespace RimWorldMCP.Tools
             public bool IsNatural;
         }
 
-        private static int BuildWallRuns(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map)
+        private static int BuildWallRuns(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map,
+            bool includeNaturalRock)
         {
             var allRuns = new List<WallRun>();
             int globalId = 0;
@@ -326,8 +481,14 @@ namespace RimWorldMCP.Tools
                     var ed = new IntVec3(x, 0, z).GetEdifice(map);
                     if (ed != null && IsWallCell(ed, out bool isNatural))
                     {
+                        // 过滤天然岩壁（默认不输出）
+                        if (isNatural && !includeNaturalRock)
+                        {
+                            x++;
+                            continue;
+                        }
+
                         int startX = x;
-                        // 延伸同类型墙
                         while (x + 1 <= maxX)
                         {
                             var nextEd = new IntVec3(x + 1, 0, z).GetEdifice(map);

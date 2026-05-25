@@ -191,6 +191,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_GetTileGrid());
             registry.Register(new Tool_GetTileDetail());
             registry.Register(new Tool_CheckColony());
+            registry.Register(new Tool_TogglePause());
             registry.Register(new Tool_GetSkills(skillRegistry));
             registry.Register(new Tool_ActiveSkill(skillRegistry));
             registry.Register(new Tool_AllowAllItems());
@@ -216,6 +217,7 @@ namespace RimWorldMCP
             registry.Register(new Tool_InstallMinifiedThing());
             registry.Register(new Tool_FindEnemies());
             registry.Register(new Tool_GetStructureLayout());
+            registry.Register(new Tool_GetConstructionStatus());
             registry.Register(new Tool_AttackPawn());
             registry.Register(new Tool_ForceAttack());
             registry.Register(new Tool_GetOpenDialogs());

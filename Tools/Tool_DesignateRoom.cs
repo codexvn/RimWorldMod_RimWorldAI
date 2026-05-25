@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignateRoom : ITool
     {
         public string Name => "designate_room";
-        public string Description => "快速建造一个矩形房间（自动放置四面墙）。指定左上角和右下角坐标，会在矩形边界放置墙体。";
+        public string Description => "快速建造一个矩形房间。指定左上角和右下角坐标，在矩形边界放置墙体。已有墙体的格子会自动跳过（可共用墙），不会重复建造。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -158,7 +158,7 @@ namespace RimWorldMCP.Tools
                             return ToolResult.Error($"找不到地板 ThingDef: {floorDefName}。请确认 DefName 拼写正确。");
                     }
 
-                    int placedWalls = 0, placedDoors = 0, placedFloors = 0;
+                    int placedWalls = 0, placedDoors = 0, placedFloors = 0, skippedSharedWalls = 0;
                     var errors = new List<string>();
 
                     // 地图边界检查
@@ -231,11 +231,20 @@ namespace RimWorldMCP.Tools
                         if (floorStuff != null) floorDes.SetStuffDef(floorStuff);
                     }
 
-                    // 放置墙体（在门位置处替换为门）
+                    // 放置墙体（已有墙体处跳过——共用墙，在门位置处替换为门）
                     foreach (var (wx, wy) in wallPositions)
                     {
                         var ipos = new IntVec3(wx, 0, wy);
-                        if (doorPosSet.Contains((wx, wy)) && doorDes != null)
+                        bool isDoorPos = doorPosSet.Contains((wx, wy)) && doorDes != null;
+
+                        // 非门位置 + 已有墙体 → 共用墙，跳过
+                        if (!isDoorPos && RoomGenUtility.IsWallAt(ipos, map))
+                        {
+                            skippedSharedWalls++;
+                            continue;
+                        }
+
+                        if (isDoorPos)
                         {
                             if (!doorDes.CanDesignateCell(ipos).Accepted)
                             {
@@ -285,10 +294,13 @@ namespace RimWorldMCP.Tools
                     }
 
                     // 构建返回文本
+                    int materialSaved = skippedSharedWalls * 20; // 每段墙约 20 钢铁/石块
                     var sb = new StringBuilder();
                     sb.AppendLine($"房间建造蓝图规划完成:");
                     sb.AppendLine($"- 范围: ({minX}, {minZ}) ~ ({maxX}, {maxZ})，共 {roomWidth}x{roomHeight} 格");
                     sb.AppendLine($"- 外墙: {placedWalls} 格 {wallDef.label}（材料: {wallStuff?.label}）");
+                    if (skippedSharedWalls > 0)
+                        sb.AppendLine($"- 共用墙: 跳过 {skippedSharedWalls} 格已有墙体，节约约 {materialSaved} 材料");
                     if (placedDoors > 0)
                         sb.AppendLine($"- 门: {placedDoors} 扇 {doorDef?.label ?? doorDefName}");
                     if (placedFloors > 0)

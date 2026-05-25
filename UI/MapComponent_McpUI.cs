@@ -1,5 +1,7 @@
+using RimWorld;
 using UnityEngine;
 using Verse;
+using Verse.Sound;
 
 namespace RimWorldMCP
 {
@@ -37,6 +39,11 @@ namespace RimWorldMCP
                     Find.WindowStack.WindowOfType<Dialog_AiChat>()?.Close();
                 else
                     Find.WindowStack.Add(new Dialog_AiChat());
+
+                if (isOpen)
+                    SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
+                else
+                    SoundDefOf.Tick_High.PlayOneShotOnCamera(null);
             }
             GUI.color = origColor;
 
@@ -46,49 +53,12 @@ namespace RimWorldMCP
                 Widgets.DrawBoxSolid(markerRect, Color.green);
             }
 
-            // 工具调用状态文字（图标按钮左侧）
-            DrawToolCallLabel(btnRect);
+            // 勾选框叠加层，匹配原版 ToggleableIcon 样式
+            Rect cbRect = new Rect(btnRect.x + btnRect.width / 2f, btnRect.y,
+                btnRect.height / 2f, btnRect.height / 2f);
+            Texture2D cbTex = isOpen ? Widgets.CheckboxOnTex : Widgets.CheckboxOffTex;
+            GUI.DrawTexture(cbRect, cbTex);
         }
 
-        private static void DrawToolCallLabel(Rect btnRect)
-        {
-            var toolCalls = ChatDisplayState.ToolCallsSnapshot;
-            if (toolCalls.Count == 0) return;
-
-            // 只显示最近 2 个运行中的工具调用
-            var active = new System.Collections.Generic.List<ToolCallInfo>();
-            for (int i = toolCalls.Count - 1; i >= 0 && active.Count < 2; i--)
-            {
-                if (toolCalls[i].Status == ToolStatus.Running)
-                    active.Add(toolCalls[i]);
-            }
-
-            if (active.Count == 0) return;
-
-            float labelX = btnRect.x - 260f;
-            float labelY = btnRect.y;
-            float labelW = 250f;
-
-            for (int i = 0; i < active.Count; i++)
-            {
-                var tc = active[i];
-                // 格式: "调用工具: xxx (参数)"
-                string line = !string.IsNullOrEmpty(tc.Meta)
-                    ? $"{tc.Title} ({tc.Meta})"
-                    : tc.Title;
-                if (string.IsNullOrEmpty(line)) continue;
-
-                float rowY = labelY + i * 18f;
-
-                // 文字阴影增强可读性
-                Text.Font = GameFont.Tiny;
-                GUI.color = new Color(0, 0, 0, 0.6f);
-                Widgets.Label(new Rect(labelX + 1f, rowY + 1f, labelW, 18f), line);
-                GUI.color = Color.yellow;
-                Widgets.Label(new Rect(labelX, rowY, labelW, 18f), line);
-                GUI.color = Color.white;
-                Text.Font = GameFont.Small;
-            }
-        }
     }
 }

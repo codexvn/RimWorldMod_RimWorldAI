@@ -21,7 +21,7 @@ RimWorldMCP/
 ├── Mcp/                                   # MCP 协议层
 │   ├── McpServer.cs                       # JSON-RPC 调度：initialize/tools/list/tools/call/resources
 │   └── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
-├── Tools/                                 # 38 个 Tool（真实 RimWorld API 调用）
+├── Tools/                                 # 39 个 Tool（真实 RimWorld API 调用）
 │   ├── ITool.cs                           # Tool 接口 + ToolResult
 │   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射
 │   ├── ResourceCheckHelper.cs             # 建造资源检查辅助工具
@@ -221,14 +221,15 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 游戏启动后，MCP 服务自动运行在 `http://localhost:9877`。
 
-## Tool 清单（38 个，真实 API）
+## Tool 清单（39 个，真实 API）
 
-### 通用查询 (3)
+### 通用查询 (4)
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `get_game_context` | 游戏全局状态快照 | `Find.CurrentMap`, `Find.TickManager`, `Find.ResearchManager` |
 | `get_resources` | 资源库存报告 | `map.resourceCounter.AllCountedAmounts` |
 | `check_colony` | 殖民地提醒（空闲/崩溃/流血/食物/防御） | `PawnsFinder`, `map.wealthWatcher` |
+| `toggle_pause` | 切换游戏暂停状态 | `Find.TickManager.TogglePaused()` (入队) |
 
 ### 网格查询 (2)
 | Tool | 说明 | 参数 |

@@ -1,3 +1,4 @@
+using System;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -9,6 +10,9 @@ namespace RimWorldMCP
     {
         private Vector2 _scrollPos;
         private bool _scrollToBottom;
+        private string _inputText = "";
+        private string _pendingSendText = "";
+        private int _pendingSendUntilMs;
         private static float _alpha = 0.8f;
         private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
         private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
@@ -56,26 +60,80 @@ namespace RimWorldMCP
             _scrollToBottom = true;
         }
 
+        /// <summary>检查 agent 是否忙碌（正在流式输出或执行工具调用）</summary>
+        private static bool IsAgentBusy(System.Collections.Generic.List<ChatEntry> entries,
+            System.Collections.Generic.List<ToolCallInfo> toolCalls)
+        {
+            if (entries.Count > 0 && entries[entries.Count - 1].State == ChatState.Streaming)
+                return true;
+            foreach (var tc in toolCalls)
+                if (tc.Status == ToolStatus.Running)
+                    return true;
+            return false;
+        }
+
+        /// <summary>发送输入框文本（先打断，延迟 500ms 后发送）</summary>
+        private void TrySendInput()
+        {
+            var text = _inputText.Trim();
+            if (string.IsNullOrEmpty(text)) return;
+            if (!GatewayClient.IsConnected) return;
+            if (!string.IsNullOrEmpty(_pendingSendText) || _pendingSendUntilMs > 0) return;
+
+            _inputText = "";
+
+            // 先打断当前 agent 任务，参考 GatewayMessageQueue._postAbortUntilMs 冷却模式
+            if (GatewayClient.IsReady)
+                GatewayClient.AbortAgent();
+
+            ChatDisplayState.OnUserMessage(text);
+            _pendingSendText = text;
+            _pendingSendUntilMs = Environment.TickCount + 500;
+        }
+
         public override void DoWindowContents(Rect inRect)
         {
+            // 全局 Enter 键发送（在 GUI 绘制前处理，参考 Dialog_GiveName.cs）
+            if (Event.current.type == EventType.KeyDown
+                && (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter))
+            {
+                TrySendInput();
+                Event.current.Use();
+            }
+
+            // 处理延迟发送（冷却期满后发送，参考 GatewayMessageQueue._postAbortUntilMs）
+            if (!string.IsNullOrEmpty(_pendingSendText) && Environment.TickCount >= _pendingSendUntilMs)
+            {
+                var t = _pendingSendText;
+                _pendingSendText = "";
+                _pendingSendUntilMs = 0;
+                if (GatewayClient.IsReady)
+                    _ = GatewayClient.SendMessage(t);
+            }
+
             // 半透明背景
             Widgets.DrawBoxSolid(inRect, new Color(0.05f, 0.05f, 0.05f, _alpha));
 
             var entries = ChatDisplayState.Snapshot;
             var toolCalls = ChatDisplayState.ToolCallsSnapshot;
+            bool agentBusy = IsAgentBusy(entries, toolCalls);
 
             float toolStripH = toolCalls.Count > 0 ? 22f : 0f; // 工具状态条
+            float inputRowH = 28f;
             float footerHeight = 30f;
             float topMargin = 6f;
 
             Rect scrollRect = new Rect(inRect.x + 6f, inRect.y + topMargin,
-                inRect.width - 12f, inRect.height - toolStripH - footerHeight - topMargin - 4f);
+                inRect.width - 12f, inRect.height - toolStripH - inputRowH - footerHeight - topMargin - 4f);
 
             // 内容宽 = 可视区 - 垂直滚动条宽度(16) - 边距，避免横向滚动条
             float contentWidth = scrollRect.width - 16f - 4f;
             float totalH = 4f;
             foreach (var entry in entries)
-                totalH += CalcEntryHeight(entry, contentWidth) + 8f;
+            {
+                CalcEntryHeight(entry, contentWidth);
+                totalH += entry.CachedHeight + 8f;
+            }
 
             Rect viewRect = new Rect(0f, 0f, contentWidth,
                 Mathf.Max(totalH, scrollRect.height));
@@ -100,9 +158,13 @@ namespace RimWorldMCP
             float stripY = scrollRect.yMax + 2f;
             DrawToolStrip(inRect, stripY, toolStripH, toolCalls);
 
-            // 底部控制栏
-            float footerY = inRect.height - footerHeight;
-            DrawFooter(inRect, footerY, footerHeight);
+            // 输入行
+            float inputRowY = stripY + toolStripH + 2f;
+            DrawInputRow(inRect, inputRowY, inputRowH, agentBusy);
+
+            // 底部控制栏 — 复用顶部快照，避免重复 ChatDisplayState.Snapshot 调用
+            float footerY = inputRowY + inputRowH + 2f;
+            DrawFooter(inRect, footerY, footerHeight, agentBusy);
         }
 
         private void DrawToolStrip(Rect inRect, float y, float h, System.Collections.Generic.List<ToolCallInfo> toolCalls)
@@ -121,10 +183,10 @@ namespace RimWorldMCP
             for (int i = toolCalls.Count - 1; i >= 0; i--)
             {
                 var tc = toolCalls[i];
-                // 格式: "调用工具: xxx (参数)"
+                // 格式: "调用工具: xxx（参数）"
                 string label = !string.IsNullOrEmpty(tc.Meta)
-                    ? $"{tc.Title} ({tc.Meta})"
-                    : tc.Title;
+                    ? $"调用工具: {tc.Name}（{tc.Meta}）"
+                    : $"调用工具: {tc.Name}";
                 if (string.IsNullOrEmpty(label)) continue;
 
                 Color c;
@@ -147,7 +209,35 @@ namespace RimWorldMCP
             Text.Font = GameFont.Small;
         }
 
-        private void DrawFooter(Rect inRect, float y, float h)
+        private void DrawInputRow(Rect inRect, float y, float h, bool agentBusy)
+        {
+            // 用户随时可以发送（发送时自动打断当前 agent 任务），仅断开连接时置灰
+            bool canSend = GatewayClient.IsConnected;
+
+            float btnW = 52f;
+            float gap = 4f;
+            float x = inRect.x + 6f;
+            float width = inRect.width - 12f;
+
+            // 输入框
+            Rect tfRect = new Rect(x, y + 2f, width - btnW - gap, h - 4f);
+            GUI.color = canSend ? Color.white : Color.grey;
+            GUI.SetNextControlName("chatInput");
+            _inputText = Widgets.TextField(tfRect, _inputText);
+            GUI.color = Color.white;
+
+            // 发送按钮
+            Rect sendRect = new Rect(tfRect.xMax + gap, y + 2f, btnW, h - 4f);
+            GUI.color = canSend ? Color.white : Color.grey;
+            if (Widgets.ButtonText(sendRect, "发送"))
+            {
+                if (canSend)
+                    TrySendInput();
+            }
+            GUI.color = Color.white;
+        }
+
+        private void DrawFooter(Rect inRect, float y, float h, bool agentBusy)
         {
             float alphaBtnW = 24f;
             float abortBtnW = 56f;
@@ -182,14 +272,12 @@ namespace RimWorldMCP
             if (Widgets.ButtonText(clearRect, "清空"))
                 ChatDisplayState.Clear();
 
-            // 继续 — 无流式消息时发送殖民地状态
-            bool streaming = ChatDisplayState.Snapshot.Count > 0
-                && ChatDisplayState.Snapshot[ChatDisplayState.Snapshot.Count - 1].State == ChatState.Streaming;
+            // 继续 — 仅在 agent 空闲时发送殖民地状态
             Rect continueRect = new Rect(abortX - 120f, y + 4f, 54f, h - 8f);
-            GUI.color = connected && !streaming ? Color.white : Color.grey;
+            GUI.color = connected && !agentBusy ? Color.white : Color.grey;
             if (Widgets.ButtonText(continueRect, "继续"))
             {
-                if (connected && !streaming)
+                if (connected && !agentBusy)
                 {
                     var map = Find.CurrentMap;
                     if (map != null)
@@ -203,15 +291,15 @@ namespace RimWorldMCP
             GUI.color = Color.white;
         }
 
-        private float CalcEntryHeight(ChatEntry entry, float contentWidth)
+        private static void CalcEntryHeight(ChatEntry entry, float contentWidth)
         {
             var text = (entry.Text ?? "").StripTags();
             float bodyWidth = contentWidth - 20f;
             float bodyHeight = Text.CalcHeight(text, bodyWidth);
-            return 18f + Mathf.Max(bodyHeight, 10f);
+            entry.CachedHeight = 18f + Mathf.Max(bodyHeight, 10f);
         }
 
-        private float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
+        private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
         {
             string label = entry.Role == ChatRole.User ? "你" : "AI";
             string body = entry.Text ?? "";
@@ -222,8 +310,8 @@ namespace RimWorldMCP
             }
 
             float bodyWidth = contentWidth - 20f;
-            float bodyHeight = Text.CalcHeight(body, bodyWidth);
-            float entryHeight = 18f + Mathf.Max(bodyHeight, 10f);
+            float bodyHeight = Mathf.Max(0f, entry.CachedHeight - 18f);
+            float entryHeight = entry.CachedHeight;
 
             Rect bubbleRect = new Rect(2f, y, contentWidth, entryHeight);
             Color bgColor = entry.Role == ChatRole.User ? UserBgColor

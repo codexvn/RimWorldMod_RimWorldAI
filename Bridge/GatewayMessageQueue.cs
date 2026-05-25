@@ -30,6 +30,7 @@ namespace RimWorldMCP
         private static bool _abortSent;
         private static int _idleFrames;
         private const int IdleFramesBeforeSend = 30; // ~0.5s 窗口让同类消息覆盖
+        private static int _postAbortUntilMs; // Environment.TickCount 时间戳，游戏加速不影响
         private static int _lastSendTick;
         private static int _lastDailyDaySent = -1;
         private static bool _sessionPromptSent;
@@ -69,6 +70,10 @@ namespace RimWorldMCP
             }
 
             if (_pending.Count == 0) return;
+
+            // 打断后冷却期（真实时间 500ms），防止立刻重发导致并发问题
+            if (_postAbortUntilMs > 0 && Environment.TickCount < _postAbortUntilMs)
+                return;
 
             // 短暂稳定窗口让同类消息覆盖（但高危消息立即发）
             if (_idleFrames > 0)
@@ -117,6 +122,7 @@ namespace RimWorldMCP
             _pending.Clear();
             _sending = false;
             _abortSent = false;
+            _postAbortUntilMs = 0;
             _lastSendTick = 0;
             _lastDailyDaySent = -1;
             _sessionPromptSent = false;
@@ -139,6 +145,8 @@ namespace RimWorldMCP
             finally
             {
                 _sending = false;
+                if (_abortSent)
+                    _postAbortUntilMs = Environment.TickCount + 500;
                 _abortSent = false;
             }
         }
