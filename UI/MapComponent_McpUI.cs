@@ -3,7 +3,7 @@ using Verse;
 
 namespace RimWorldMCP
 {
-    /// <summary>右下角工具栏 "AI 对话" 按钮</summary>
+    /// <summary>右下角 AI 对话开关按钮，对齐原版开关风格</summary>
     public class MapComponent_McpUI : MapComponent
     {
         public MapComponent_McpUI(Map map) : base(map) { }
@@ -13,47 +13,38 @@ namespace RimWorldMCP
             base.MapComponentOnGUI();
             if (Find.CurrentMap == null) return;
 
-            // 右下角，在 RimWorld 底部栏和播放设置按钮上方
-            float x = UI.screenWidth - 100f;
-            float y = UI.screenHeight - 95f;
-            Rect btnRect = new Rect(x, y, 92f, 30f);
+            // 放在时间控件上方，不跟 PlaySettings WidgetRow 冲突
+            float btnSize = 32f;
+            float x = UI.screenWidth - 170f;
+            float y = UI.screenHeight - 75f;
+            Rect btnRect = new Rect(x, y, btnSize, btnSize);
 
             bool isOpen = Find.WindowStack.IsOpen<Dialog_AiChat>();
+            bool streaming = ChatDisplayState.Snapshot.Count > 0
+                && ChatDisplayState.Snapshot[ChatDisplayState.Snapshot.Count - 1].State == ChatState.Streaming;
+
             Color origColor = GUI.color;
-            if (!GatewayClient.IsConnected)
+            if (streaming)
+                GUI.color = Time.realtimeSinceStartup % 1.0f < 0.5f ? Color.cyan : Color.white;
+            else if (!GatewayClient.IsConnected)
                 GUI.color = Color.grey;
             else if (isOpen)
                 GUI.color = Color.cyan;
 
-            if (Widgets.ButtonText(btnRect, "AI 对话"))
+            if (Widgets.ButtonImage(btnRect, TexButton.Info))
             {
                 if (isOpen)
-                {
-                    var existing = Find.WindowStack.WindowOfType<Dialog_AiChat>();
-                    existing?.Close();
-                }
+                    Find.WindowStack.WindowOfType<Dialog_AiChat>()?.Close();
                 else
-                {
                     Find.WindowStack.Add(new Dialog_AiChat());
-                }
             }
             GUI.color = origColor;
 
-            // 连接状态绿点
-            if (GatewayClient.IsConnected)
+            // 开启状态下画小开关指示
+            if (isOpen)
             {
-                Rect dotRect = new Rect(x - 8f, y + 12f, 6f, 6f);
-                Widgets.DrawBoxSolid(dotRect, Color.green);
-            }
-
-            // 流式回复中闪烁指示
-            var entries = ChatDisplayState.Snapshot;
-            if (entries.Count > 0 && entries[entries.Count - 1].State == ChatState.Streaming)
-            {
-                Rect dotRect = new Rect(x - 18f, y + 12f, 6f, 6f);
-                bool blink = Time.realtimeSinceStartup % 1.0f < 0.5f;
-                if (blink)
-                    Widgets.DrawBoxSolid(dotRect, Color.cyan);
+                Rect markerRect = new Rect(btnRect.xMax - 8f, btnRect.yMax - 8f, 6f, 6f);
+                Widgets.DrawBoxSolid(markerRect, Color.green);
             }
         }
     }

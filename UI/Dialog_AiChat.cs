@@ -1,17 +1,17 @@
-using System.Collections.Generic;
 using UnityEngine;
 using Verse;
 
 namespace RimWorldMCP
 {
-    /// <summary>游戏内 AI 对话窗口，实时显示流式回复</summary>
+    /// <summary>右上角 AI 对话窗口，半透明、长方形，实时显示最新流式回复</summary>
     public class Dialog_AiChat : Window
     {
         private Vector2 _scrollPos;
         private bool _scrollToBottom;
-        private static readonly Color UserBgColor = new Color(0.15f, 0.22f, 0.35f);
-        private static readonly Color AiBgColor = new Color(0.1f, 0.28f, 0.12f);
-        private static readonly Color ErrorBgColor = new Color(0.35f, 0.1f, 0.1f);
+        private static float _alpha = 0.8f;
+        private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
+        private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
+        private static readonly Color ErrorBgColor = new Color(0.30f, 0.08f, 0.08f, 1f);
 
         public Dialog_AiChat()
         {
@@ -24,9 +24,19 @@ namespace RimWorldMCP
             forcePause = false;
             layer = WindowLayer.Dialog;
             preventCameraMotion = false;
+            doWindowBackground = false;
+            drawShadow = false;
         }
 
-        public override Vector2 InitialSize => new Vector2(550f, 480f);
+        public override Vector2 InitialSize =>
+            new Vector2(UI.screenWidth / 3f, UI.screenHeight / 3f);
+
+        protected override void SetInitialSizeAndPosition()
+        {
+            windowRect = new Rect(UI.screenWidth - InitialSize.x - 10f, 10f,
+                InitialSize.x, InitialSize.y);
+            windowRect = windowRect.Rounded();
+        }
 
         public override void PreOpen()
         {
@@ -47,25 +57,31 @@ namespace RimWorldMCP
 
         public override void DoWindowContents(Rect inRect)
         {
+            // 半透明背景
+            Widgets.DrawBoxSolid(inRect, new Color(0.05f, 0.05f, 0.05f, _alpha));
+
             var entries = ChatDisplayState.Snapshot;
 
-            Rect scrollRect = new Rect(inRect.x, inRect.y, inRect.width, inRect.height - 38f);
-            Rect viewRect = new Rect(0f, 0f, inRect.width - 20f, 0f);
-            // 先计算总高度
-            float totalHeight = 0f;
+            // 底部控制栏占高
+            float footerHeight = 30f;
+            Rect scrollRect = new Rect(inRect.x + 6f, inRect.y + 6f,
+                inRect.width - 12f, inRect.height - footerHeight - 12f);
+
+            // 计算消息列表总高度
+            float contentWidth = scrollRect.width - 8f;
+            float totalH = 4f;
             foreach (var entry in entries)
-            {
-                totalHeight += CalcEntryHeight(entry, inRect.width - 24f) + 8f;
-            }
-            viewRect.height = Mathf.Max(totalHeight + 4f, scrollRect.height);
+                totalH += CalcEntryHeight(entry, contentWidth) + 8f;
+
+            Rect viewRect = new Rect(0f, 0f, contentWidth,
+                Mathf.Max(totalH, scrollRect.height));
             Widgets.BeginScrollView(scrollRect, ref _scrollPos, viewRect);
 
             float curY = 4f;
-            float contentWidth = inRect.width - 24f;
             foreach (var entry in entries)
             {
                 curY += DrawEntry(entry, viewRect, contentWidth, curY);
-                curY += 8f; // gap
+                curY += 8f;
             }
 
             Widgets.EndScrollView();
@@ -76,34 +92,57 @@ namespace RimWorldMCP
                 _scrollToBottom = false;
             }
 
-            // 底部中断按钮
+            // 底部控制栏
+            float footerY = inRect.height - footerHeight;
+            DrawFooter(inRect, footerY, footerHeight);
+        }
+
+        private void DrawFooter(Rect inRect, float y, float h)
+        {
+            float alphaBtnW = 24f;
+            float abortBtnW = 72f;
+
+            // 透明度 -
+            Rect alphaMinus = new Rect(inRect.x + 4f, y + 4f, alphaBtnW, h - 8f);
+            if (Widgets.ButtonText(alphaMinus, "-"))
+                _alpha = Mathf.Clamp(_alpha - 0.1f, 0.2f, 1f);
+            TooltipHandler.TipRegion(alphaMinus, $"透明度 {(int)(_alpha * 100)}%");
+
+            // 透明度 +
+            Rect alphaPlus = new Rect(inRect.x + 30f, y + 4f, alphaBtnW, h - 8f);
+            if (Widgets.ButtonText(alphaPlus, "+"))
+                _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
+            TooltipHandler.TipRegion(alphaPlus, $"透明度 {(int)(_alpha * 100)}%");
+
+            // 中断按钮
             bool connected = GatewayClient.IsConnected;
-            float btnWidth = 80f;
-            float btnHeight = 30f;
-            Rect abortRect = new Rect(inRect.width - btnWidth - 4f, inRect.height - btnHeight - 4f, btnWidth, btnHeight);
+            float abortX = inRect.width - abortBtnW - 4f;
+            Rect abortRect = new Rect(abortX, y + 4f, abortBtnW, h - 8f);
             GUI.color = connected ? Color.white : Color.grey;
-            if (Widgets.ButtonText(abortRect, "中断 AI"))
+            if (Widgets.ButtonText(abortRect, "中断"))
             {
                 if (GatewayClient.IsReady)
                     GatewayClient.AbortAgent();
             }
             GUI.color = Color.white;
+
+            // 清空
+            Rect clearRect = new Rect(abortX - abortBtnW - 8f, y + 4f, 48f, h - 8f);
+            if (Widgets.ButtonText(clearRect, "清空"))
+                ChatDisplayState.Clear();
         }
 
         private float CalcEntryHeight(ChatEntry entry, float contentWidth)
         {
-            string label = entry.Role == ChatRole.User ? "你:" : "AI:";
-            var text = entry.Text.StripTags();
-            // 消息体区域 = 总宽 - 边距 - 标签缩进
-            float bodyWidth = contentWidth - 24f;
+            var text = (entry.Text ?? "").StripTags();
+            float bodyWidth = contentWidth - 20f;
             float bodyHeight = Text.CalcHeight(text, bodyWidth);
-            // 标签行高度 + 消息文本
-            return 20f + Mathf.Max(bodyHeight, 12f);
+            return 18f + Mathf.Max(bodyHeight, 10f);
         }
 
         private float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
         {
-            string label = entry.Role == ChatRole.User ? "你:" : "AI:";
+            string label = entry.Role == ChatRole.User ? "你" : "AI";
             string body = entry.Text ?? "";
             if (entry.State == ChatState.Streaming)
             {
@@ -111,27 +150,33 @@ namespace RimWorldMCP
                 body += showCursor ? "▌" : " ";
             }
 
-            // 计算高度
-            float bodyWidth = contentWidth - 24f;
+            float bodyWidth = contentWidth - 20f;
             float bodyHeight = Text.CalcHeight(body, bodyWidth);
-            float entryHeight = 20f + Mathf.Max(bodyHeight, 12f);
+            float entryHeight = 18f + Mathf.Max(bodyHeight, 10f);
 
-            Rect fullRect = new Rect(4f, y, contentWidth, entryHeight);
+            Rect bubbleRect = new Rect(2f, y, contentWidth, entryHeight);
             Color bgColor = entry.Role == ChatRole.User ? UserBgColor
                 : entry.State == ChatState.Error ? ErrorBgColor : AiBgColor;
+            bgColor.a = _alpha;
+            Widgets.DrawBoxSolid(bubbleRect, bgColor);
 
-            // 背景
-            Widgets.DrawBoxSolid(fullRect, bgColor);
-
-            Rect labelRect = new Rect(fullRect.x + 6f, fullRect.y + 2f, 36f, 18f);
+            // 标签
+            Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 2f, 24f, 16f);
             Text.Font = GameFont.Tiny;
-            GUI.color = entry.Role == ChatRole.User ? Color.cyan : Color.green;
+            GUI.color = entry.Role == ChatRole.User
+                ? new Color(0.4f, 0.8f, 1f, _alpha)
+                : new Color(0.4f, 1f, 0.4f, _alpha);
             Widgets.Label(labelRect, label);
-            GUI.color = Color.white;
 
-            Rect bodyRect = new Rect(fullRect.x + 8f, fullRect.y + 20f, bodyWidth - 16f, Mathf.Max(bodyHeight, 12f));
+            // 消息正文
+            Rect bodyRect = new Rect(bubbleRect.x + 8f, bubbleRect.y + 17f,
+                bodyWidth - 12f, Mathf.Max(bodyHeight, 10f));
+            GUI.color = new Color(1f, 1f, 1f, _alpha);
             Text.Font = GameFont.Small;
             Widgets.Label(bodyRect, body);
+
+            Text.Font = GameFont.Small;
+            GUI.color = Color.white;
             return entryHeight;
         }
     }
