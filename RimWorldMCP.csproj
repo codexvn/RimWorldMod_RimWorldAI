@@ -8,6 +8,7 @@
     <AssemblyName>RimWorldMCP</AssemblyName>
     <RootNamespace>RimWorldMCP</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

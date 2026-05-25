@@ -13,13 +13,18 @@ namespace RimWorldMCP
             base.MapComponentOnGUI();
             if (Find.CurrentMap == null) return;
 
-            float x = UI.screenWidth - 80f;
-            float y = UI.screenHeight - 35f;
-            Rect btnRect = new Rect(x, y, 72f, 30f);
+            // 右下角，在 RimWorld 底部栏和播放设置按钮上方
+            float x = UI.screenWidth - 100f;
+            float y = UI.screenHeight - 95f;
+            Rect btnRect = new Rect(x, y, 92f, 30f);
 
             bool isOpen = Find.WindowStack.IsOpen<Dialog_AiChat>();
             Color origColor = GUI.color;
-            GUI.color = isOpen ? Color.cyan : Color.white;
+            if (!GatewayClient.IsConnected)
+                GUI.color = Color.grey;
+            else if (isOpen)
+                GUI.color = Color.cyan;
+
             if (Widgets.ButtonText(btnRect, "AI 对话"))
             {
                 if (isOpen)
@@ -34,10 +39,10 @@ namespace RimWorldMCP
             }
             GUI.color = origColor;
 
-            // 连接状态小圆点
+            // 连接状态绿点
             if (GatewayClient.IsConnected)
             {
-                Rect dotRect = new Rect(x + 74f, y + 11f, 6f, 6f);
+                Rect dotRect = new Rect(x - 8f, y + 12f, 6f, 6f);
                 Widgets.DrawBoxSolid(dotRect, Color.green);
             }
 
@@ -45,11 +50,10 @@ namespace RimWorldMCP
             var entries = ChatDisplayState.Snapshot;
             if (entries.Count > 0 && entries[entries.Count - 1].State == ChatState.Streaming)
             {
-                Rect dotRect = new Rect(x + 74f, y + 2f, 6f, 6f);
+                Rect dotRect = new Rect(x - 18f, y + 12f, 6f, 6f);
                 bool blink = Time.realtimeSinceStartup % 1.0f < 0.5f;
-                GUI.color = blink ? Color.cyan : Color.clear;
-                Widgets.DrawBoxSolid(dotRect, Color.cyan);
-                GUI.color = origColor;
+                if (blink)
+                    Widgets.DrawBoxSolid(dotRect, Color.cyan);
             }
         }
     }
