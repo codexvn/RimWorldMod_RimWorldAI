@@ -12,7 +12,6 @@ import { CONFIG, parseArgs } from './config.js';
 import { setupApiAuth } from './auth.js';
 import { loadClaudeSdk } from './sdk-loader.js';
 import { createWSServer } from './ws-server.js';
-import { gameEventToText } from './rimworld/context.js';
 import { createSession, createResponseProcessor } from './session.js';
 
 parseArgs(process.argv);
@@ -48,9 +47,9 @@ async function main(): Promise<void> {
     CONFIG.port,
     CONFIG.host,
     CONFIG.token,
-    // onEvent — RimWorld 游戏事件 → Claude 用户消息
+    // onEvent — RimWorld 游戏事件（C# 端已格式化文本）
     (wsMessage) => {
-      const text = gameEventToText(wsMessage);
+      const text = wsMessage.payload?.text || '';
       console.log(`[event] ${wsMessage.event || 'unknown'}: ${text.substring(0, 100)}`);
       inputStream.enqueue({
         type: 'user',

@@ -90,10 +90,36 @@ namespace RimWorldMCP
             }
         }
 
+        private static string FormatGameEvent(string category, string rawText)
+        {
+            var icon = category switch
+            {
+                "RaidStart" => "⚠️ [紧急]",
+                "RaidEnd" => "✅",
+                "PawnDeath" => "💀 [紧急]",
+                "NegativeEvent" => "⚠️",
+                "AlertStart" => "⚠️",
+                "DailyMorning" => "🌅",
+                "IdleDetected" => "⏳",
+                _ => "📢"
+            };
+            var instruction = category switch
+            {
+                "RaidStart" => "\n请立即评估威胁并指挥防御。",
+                "PawnDeath" => "\n请检查殖民地状态并评估影响。",
+                "DailyMorning" => "\n请做全面的殖民地检查。",
+                "NegativeEvent" => "\n请评估严重程度并给出应对建议。",
+                "AlertStart" => "\n请检查并处理此警报。",
+                "IdleDetected" => "\n请检查是否有待分配的工作。",
+                _ => ""
+            };
+            return $"{icon} {rawText}{instruction}";
+        }
+
         private static void SendCCEvent(Notification n)
         {
             string category;
-            string text;
+            string rawText;
 
             switch (n.Type)
             {
@@ -104,7 +130,7 @@ namespace RimWorldMCP
                         "死亡" => "PawnDeath", "负面" => "NegativeEvent",
                         _ => "AlertStart"
                     };
-                    text = string.IsNullOrEmpty(n.Text) ? n.Label : $"{n.Label} — {n.Text}";
+                    rawText = string.IsNullOrEmpty(n.Text) ? n.Label : $"{n.Label} — {n.Text}";
                     break;
 
                 case NotificationType.Message:
@@ -114,12 +140,12 @@ namespace RimWorldMCP
                         "死亡" => "PawnDeath", "负面" => "NegativeEvent",
                         _ => "AlertStart"
                     };
-                    text = n.Text ?? n.Label;
+                    rawText = n.Text ?? n.Label;
                     break;
 
                 case NotificationType.AlertStart:
                     category = "AlertStart";
-                    text = n.Culprits != null && n.Culprits.Count > 0
+                    rawText = n.Culprits != null && n.Culprits.Count > 0
                         ? $"{n.Label}: {string.Join(", ", n.Culprits.Take(5))}"
                         : n.Label;
                     break;
@@ -127,6 +153,7 @@ namespace RimWorldMCP
                 default: return;
             }
 
+            var text = FormatGameEvent(category, rawText);
             _ = CCClient.SendEventText("rimworld.alert", category, text);
         }
 
