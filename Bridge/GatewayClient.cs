@@ -78,6 +78,7 @@ namespace RimWorldMCP
         public static async Task SendMessage(string text)
         {
             if (!IsReady) return;
+            ChatDisplayState.OnUserMessage(text);
             await Request("agent", new
             {
                 message = text,
@@ -268,6 +269,10 @@ namespace RimWorldMCP
             else if (evt == "tick")
             {
                 _lastTick = DateTime.UtcNow;
+            }
+            else if (evt == "chat")
+            {
+                ChatDisplayState.OnChatEvent(root);
             }
         }
 

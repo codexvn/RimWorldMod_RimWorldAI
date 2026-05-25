@@ -143,6 +143,35 @@ namespace RimWorldMCP.Harmony
             }
         }
 
+        // ========== 游戏减速拦截 ==========
+
+        [HarmonyPatch(typeof(TimeSlower), nameof(TimeSlower.SignalForceNormalSpeed))]
+        public static class Patch_SignalForceNormalSpeed
+        {
+            static void Postfix()
+            {
+                NotificationBus.NotifySpeedSlowdown("游戏速度强制降至1x (800 ticks)");
+            }
+        }
+
+        [HarmonyPatch(typeof(TimeSlower), nameof(TimeSlower.SignalForceNormalSpeedShort))]
+        public static class Patch_SignalForceNormalSpeedShort
+        {
+            static void Postfix()
+            {
+                NotificationBus.NotifySpeedSlowdown("游戏速度强制降至1x (240 ticks)");
+            }
+        }
+
+        [HarmonyPatch(typeof(TickManager), nameof(TickManager.Pause))]
+        public static class Patch_TickManager_Pause
+        {
+            static void Postfix()
+            {
+                NotificationBus.NotifySpeedSlowdown("游戏已暂停");
+            }
+        }
+
         // ========== 分类辅助 ==========
 
         private static string ClassifyLetter(LetterDef def)

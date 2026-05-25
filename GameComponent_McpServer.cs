@@ -30,6 +30,7 @@ namespace RimWorldMCP
             _sessionId = Guid.NewGuid().ToString("N").Substring(0, 12);
             _sessionKey = "agent:main:rimworld-" + Guid.NewGuid().ToString("N").Substring(0, 12);
             StartMcpService();
+            AttachMapUI();
         }
 
         public override void LoadedGame()
@@ -37,6 +38,7 @@ namespace RimWorldMCP
             base.LoadedGame();
             _sessionId = Guid.NewGuid().ToString("N").Substring(0, 12);
             StartMcpService();
+            AttachMapUI();
         }
 
         public override void GameComponentUpdate()
@@ -271,6 +273,16 @@ namespace RimWorldMCP
             if (Directory.Exists(dir)) return dir;
             McpLog.Warn("[skills] 后备路径也不存在，返回相对路径 'Skills'");
             return "Skills";
+        }
+
+        private static void AttachMapUI()
+        {
+            var map = Find.CurrentMap;
+            if (map == null) return;
+            // 防止重复添加
+            foreach (var c in map.components)
+                if (c is MapComponent_McpUI) return;
+            map.components.Add(new MapComponent_McpUI(map));
         }
 
     }

@@ -86,8 +86,20 @@ namespace RimWorldMCP.Tools
                     if (!canReach)
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法到达目标 {target.LabelShort}。");
 
-                    JobDef jobDef = mode == "ranged" ? JobDefOf.AttackStatic : JobDefOf.AttackMelee;
+                    // 选择攻击 Job
+                    JobDef jobDef;
+                    if (mode == "ranged")
+                        jobDef = JobDefOf.AttackStatic;
+                    else if (mode == "melee")
+                        jobDef = JobDefOf.AttackMelee;
+                    else // chase: 有远程武器用 AttackStatic（含移动找射击位），否则近战
+                        jobDef = pawn.equipment?.Primary?.def?.IsRangedWeapon == true
+                            ? JobDefOf.AttackStatic : JobDefOf.AttackMelee;
+
                     Job job = JobMaker.MakeJob(jobDef, target);
+                    job.expiryInterval = -1;    // 不超时，持续追击
+                    if (jobDef == JobDefOf.AttackStatic)
+                        job.maxNumStaticAttacks = int.MaxValue;
 
                     if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行攻击指令，目标可能已被预约。");

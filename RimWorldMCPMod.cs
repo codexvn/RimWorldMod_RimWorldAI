@@ -80,15 +80,6 @@ namespace RimWorldMCP
 
                 listing.Label("Password");
                 Settings.BridgePassword = listing.TextEntry(Settings.BridgePassword);
-
-                listing.Gap(12f);
-                if (listing.ButtonText("中断 Agent（chat.abort）"))
-                {
-                    if (GatewayClient.IsReady)
-                        GatewayClient.AbortAgent();
-                    else
-                        Messages.Message("Gateway 未连接", MessageTypeDefOf.RejectInput, false);
-                }
             }
 
             listing.Gap(24f);

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Verse;
 
 namespace RimWorldMCP.Harmony
 {
@@ -44,16 +45,20 @@ namespace RimWorldMCP.Harmony
 
         internal static bool IsHighDanger(NotificationType type, string dangerLabel, int alertPriority)
         {
-            switch (type)
+            return type != NotificationType.AlertEnd;
+        }
+
+        /// <summary>游戏速度被强制降低时调用（供 Harmony Patch 使用）。</summary>
+        public static void NotifySpeedSlowdown(string reason)
+        {
+            Pending.Enqueue(new Notification
             {
-                case NotificationType.Letter:
-                case NotificationType.Message:
-                    return dangerLabel is "大威胁" or "小威胁" or "死亡" or "角色死亡" or "健康事件";
-                case NotificationType.AlertStart:
-                    return alertPriority >= 2;
-                default:
-                    return false;
-            }
+                Type = NotificationType.Message,
+                DangerLabel = "游戏减速",
+                Text = reason,
+                Tick = Find.TickManager?.TicksGame ?? 0
+            });
+            HighDangerPending = true;
         }
 
         public static bool IsLetterNotified(int letterId) => NotifiedLetters.Contains(letterId);
