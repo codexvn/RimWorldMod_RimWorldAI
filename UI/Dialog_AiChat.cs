@@ -165,8 +165,9 @@ namespace RimWorldMCP
                 // 格式: "调用工具: xxx（参数）"
                 // Unity GUI.Label 会把 _ 当成键盘快捷键标记吃掉，双写 __ 可显示一个下划线
                 string displayName = tc.Name?.Replace("_", "__") ?? "";
-                string label = !string.IsNullOrEmpty(tc.Meta)
-                    ? $"调用工具: {displayName}（{tc.Meta}）"
+                string meta = tc.Meta?.Replace("_", "__") ?? "";
+                string label = !string.IsNullOrEmpty(meta)
+                    ? $"调用工具: {displayName}（{meta}）"
                     : $"调用工具: {displayName}";
                 if (string.IsNullOrEmpty(label)) continue;
 
@@ -287,7 +288,8 @@ namespace RimWorldMCP
         private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
         {
             string label = entry.Role == ChatRole.User ? "你" : "AI";
-            string body = entry.Text ?? "";
+            // Unity GUI.Label 把 _ 当作键盘快捷键标记吃掉，双写 __ 可显示一个下划线
+            string body = (entry.Text ?? "").Replace("_", "__");
             if (entry.State == ChatState.Streaming)
             {
                 bool showCursor = Time.realtimeSinceStartup % 1.0f < 0.6f;
