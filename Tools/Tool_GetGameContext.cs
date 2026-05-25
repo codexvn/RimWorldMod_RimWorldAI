@@ -31,11 +31,9 @@ namespace RimWorldMCP.Tools
                 int ticksGame = tickManager?.TicksGame ?? 0;
                 int day = ticksGame / 60000; // 1 day = 60000 ticks
 
-                sb.AppendLine("## 殖民地概况");
-                if (map != null)
-                {
-                    sb.AppendLine($"- 地图: {map.Tile} | 大小: {map.Size.x}x{map.Size.z} | 时间: 第{day / 15 + 1}年 第{day % 15 + 1}天");
-                }
+                sb.AppendLine("## 游戏状态");
+                sb.AppendLine($"- {GatewayEventMonitor.BuildPauseStatus()}");
+                sb.AppendLine($"- 地图: {map?.Tile ?? -1} | 大小: {map?.Size.x ?? 0}x{map?.Size.z ?? 0} | 时间: 第{day / 15 + 1}年 第{day % 15 + 1}天");
                 sb.AppendLine($"- 总 Tick: {ticksAbs} | 游戏 Tick: {ticksGame}");
 
                 // 殖民者

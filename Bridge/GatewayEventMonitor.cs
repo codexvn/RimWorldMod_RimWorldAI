@@ -196,6 +196,9 @@ namespace RimWorldMCP
             };
             sb.AppendLine($"## 每早汇报 第{year}年 {seasonStr}季 第{dayOfYear}天");
 
+            // 暂停状态
+            sb.AppendLine(BuildPauseStatus());
+
             // 天气
             var weather = map.weatherManager?.curWeather;
             float temp = map.mapTemperature?.OutdoorTemp ?? 0f;
@@ -259,6 +262,9 @@ namespace RimWorldMCP
         {
             var sb = new StringBuilder();
             sb.AppendLine("## 殖民地概览");
+
+            sb.AppendLine(BuildPauseStatus());
+            sb.AppendLine();
 
             var weather = map.weatherManager?.curWeather;
             float temp = map.mapTemperature?.OutdoorTemp ?? 0f;
@@ -366,6 +372,46 @@ namespace RimWorldMCP
                 if (kv.Key.defName == defName)
                     return kv.Value;
             return 0;
+        }
+
+        /// <summary>构建暂停状态描述（含暂停原因）</summary>
+        internal static string BuildPauseStatus()
+        {
+            var tm = Find.TickManager;
+            if (tm == null) return "游戏速度未知";
+
+            if (!tm.Paused) return "游戏运行中";
+
+            var sb = new StringBuilder();
+            sb.Append("游戏已暂停");
+
+            if (tm.ForcePaused)
+            {
+                var reasons = new List<string>();
+                var ws = Find.WindowStack;
+                if (ws != null)
+                {
+                    for (int i = 0; i < ws.Count; i++)
+                    {
+                        var w = ws[i];
+                        if (w.forcePause)
+                            reasons.Add($"窗口\"{w.GetType().Name}\"锁定");
+                    }
+                }
+                if (LongEventHandler.ForcePause) reasons.Add("长事件处理中");
+                if (Find.TilePicker?.Active == true) reasons.Add("地块选择器激活");
+
+                if (reasons.Count > 0)
+                    sb.Append($"（强制暂停: {string.Join("; ", reasons)}）");
+                else
+                    sb.Append("（强制暂停）");
+            }
+            else
+            {
+                sb.Append("（手动暂停）");
+            }
+
+            return sb.ToString();
         }
     }
 }
