@@ -103,7 +103,7 @@ namespace RimWorldMCP
 
         /// <summary>
         /// 发送消息到 Agent。内部使用 _messageLock 确保同一时刻只有一个 send 进行。
-        /// 首条消息用 sessions.send（服务端自动创建 session），后续用 sessions.steer（原子 abort+send）。
+        /// 先阻塞 abort 清理活跃 run，再 sessions.send（不 interrupt）。
         /// </summary>
         public static async Task SendMessage(string text)
         {
@@ -123,20 +123,17 @@ namespace RimWorldMCP
                 IsSendingMessage = true;
                 ChatDisplayState.OnUserMessage(text);
 
+                // 阻塞等待 abort 完成（~1-2s），再发送新消息
+                await AbortAgentInternal();
+
                 if (_sessionInitialized)
                 {
-                    var resp = await Request("sessions.steer", new
+                    await Request("sessions.send", new
                     {
                         key = SessionKey,
                         message = text,
                         idempotencyKey = Guid.NewGuid().ToString("N")
                     }, expectFinal: true);
-
-                    if (resp.TryGetProperty("interruptedActiveRun", out var interrupted)
-                        && interrupted.GetBoolean())
-                    {
-                        McpLog.Info("[ws] sessions.steer 已中断上一个活跃 run");
-                    }
                 }
                 else
                 {
@@ -150,12 +147,9 @@ namespace RimWorldMCP
             }
         }
 
-        /// <summary>首条消息：abort 清理残留 → agent 发送（自动创建 session）</summary>
+        /// <summary>首条消息：agent 发送（自动创建 session）</summary>
         private static async Task FirstSend(string text)
         {
-            // 先清理旧 session 的残留 run（无视错误）
-            try { await Request("chat.abort", new { sessionKey = SessionKey }); } catch { }
-
             await Request("agent", new
             {
                 message = text,
@@ -180,12 +174,11 @@ namespace RimWorldMCP
                 await SendJson(new { type = "ping" });
         }
 
-        /// <summary>中止当前 agent 运行，等待 lifecycle 事件确认完全停止后返回。等待期间阻止新消息发送</summary>
-        public static async Task AbortAgent()
+        /// <summary>内层 abort：chat.abort + lifecycle 等待，不加锁（调用方持有 _messageLock）</summary>
+        private static async Task AbortAgentInternal()
         {
             if (!IsReady) return;
 
-            // lifecycle 事件在 RPC 响应之前到达，必须先设好 TCS
             var tcs = new TaskCompletionSource<bool>();
             _abortCompleteTcs = tcs;
 
@@ -204,23 +197,12 @@ namespace RimWorldMCP
                     return;
                 }
 
-                // 持有 _messageLock 等待 lifecycle，阻止新 SendMessage 在此期间发送
-                await _messageLock.WaitAsync();
-                try
-                {
-                    IsSendingMessage = true;
-                    McpLog.Info("[ws] 等待 abort lifecycle 确认...");
-                    var completed = await Task.WhenAny(tcs.Task, Task.Delay(15000));
-                    if (completed == tcs.Task)
-                        McpLog.Info("[ws] abort lifecycle 已确认");
-                    else
-                        McpLog.Warn("[ws] abort lifecycle 等待超时");
-                }
-                finally
-                {
-                    IsSendingMessage = false;
-                    _messageLock.Release();
-                }
+                McpLog.Info("[ws] 等待 abort lifecycle 确认...");
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(15000));
+                if (completed == tcs.Task)
+                    McpLog.Info("[ws] abort lifecycle 已确认");
+                else
+                    McpLog.Warn("[ws] abort lifecycle 等待超时");
             }
             catch (Exception ex)
             {
@@ -229,6 +211,24 @@ namespace RimWorldMCP
             finally
             {
                 _abortCompleteTcs = null;
+            }
+        }
+
+        /// <summary>中止当前 agent 运行，阻塞等待 lifecycle 确认。等待期间阻止新消息发送</summary>
+        public static async Task AbortAgent()
+        {
+            if (!IsReady) return;
+
+            await _messageLock.WaitAsync();
+            try
+            {
+                IsSendingMessage = true;
+                await AbortAgentInternal();
+            }
+            finally
+            {
+                IsSendingMessage = false;
+                _messageLock.Release();
             }
         }
 
