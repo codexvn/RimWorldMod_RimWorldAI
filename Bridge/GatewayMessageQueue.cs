@@ -9,6 +9,7 @@ namespace RimWorldMCP
     {
         DailyMorning = 0,
         Alert = 10,
+        DialogPrompt = 25,
         RaidEnd = 20,
         RaidStart = 30,
         SessionInit = 40,

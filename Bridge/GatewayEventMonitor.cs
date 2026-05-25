@@ -15,10 +15,14 @@ namespace RimWorldMCP
         private const int CheckIntervalTicks = 120;
         private static int _lastColonistCount = -1;
         private const int IdleTimeoutTicks = 6000;
+        private static int _lastDialogCount;
+        private static string _lastDialogKey = "";
 
         public static void Reset()
         {
             NotificationBus.Reset();
+            _lastDialogCount = 0;
+            _lastDialogKey = "";
         }
 
         public static void Tick()
@@ -113,7 +117,55 @@ namespace RimWorldMCP
                 GatewayMessageQueue.Enqueue(MessageCategory.Alert, sb.ToString().TrimEnd());
             }
 
-            // === 4. 空闲兜底：长时间无 agent 消息时推送概览 ===
+            // === 4. 弹框检测：检测 FloatMenu / Dialog 出现 ===
+            if (GatewayClient.IsReady)
+            {
+                var stack = Find.WindowStack;
+                if (stack != null)
+                {
+                    int dialogCount = 0;
+                    string dialogKey = "";
+                    foreach (var w in stack.Windows)
+                    {
+                        if (w is FloatMenu)
+                        {
+                            dialogCount++;
+                            var optionsField = typeof(FloatMenu).GetField("options",
+                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                            var options = optionsField?.GetValue(w) as List<FloatMenuOption>;
+                            if (options != null)
+                            {
+                                dialogKey = "fm:" + string.Join("|", options.Take(10).Select(o => o.Label).OrderBy(s => s));
+                            }
+                        }
+                        if (w.layer == WindowLayer.Dialog && w is not FloatMenu)
+                        {
+                            dialogCount++;
+                            dialogKey += w.GetType().Name;
+                        }
+                    }
+
+                    if (dialogCount > 0 && (dialogCount != _lastDialogCount || dialogKey != _lastDialogKey))
+                    {
+                        _lastDialogCount = dialogCount;
+                        _lastDialogKey = dialogKey;
+
+                        var dsb = new StringBuilder();
+                        dsb.AppendLine("## 弹框提示");
+                        dsb.AppendLine($"当前有 {dialogCount} 个弹框需要选择。");
+                        dsb.AppendLine("使用 get_open_dialogs 查看选项，select_dialog_option 选择。");
+                        dsb.Append(BuildColonySummary(map, colonists, colonistCount));
+                        GatewayMessageQueue.Enqueue(MessageCategory.DialogPrompt, dsb.ToString().TrimEnd());
+                    }
+                    else if (dialogCount == 0 && _lastDialogCount > 0)
+                    {
+                        _lastDialogCount = 0;
+                        _lastDialogKey = "";
+                    }
+                }
+            }
+
+            // === 5. 空闲兜底：长时间无 agent 消息时推送概览 ===
             if (GatewayMessageQueue.LastSendTick > 0 && tick - GatewayMessageQueue.LastSendTick > IdleTimeoutTicks)
             {
                 var overview = BuildColonyOverview(map, colonists, colonistCount);
