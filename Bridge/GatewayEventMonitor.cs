@@ -207,7 +207,7 @@ namespace RimWorldMCP
         }
 
         /// <summary>轻量殖民地概览（空闲兜底推送）</summary>
-        private static string BuildColonyOverview(Map map, List<Pawn> colonists, int colonistCount)
+        internal static string BuildColonyOverview(Map map, List<Pawn> colonists, int colonistCount)
         {
             var sb = new StringBuilder();
             sb.AppendLine("## 殖民地概览");

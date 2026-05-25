@@ -1,3 +1,4 @@
+using RimWorld;
 using UnityEngine;
 using Verse;
 
@@ -149,7 +150,7 @@ namespace RimWorldMCP
         private void DrawFooter(Rect inRect, float y, float h)
         {
             float alphaBtnW = 24f;
-            float abortBtnW = 72f;
+            float abortBtnW = 56f;
 
             // 透明度 -
             Rect alphaMinus = new Rect(inRect.x + 4f, y + 4f, alphaBtnW, h - 8f);
@@ -163,8 +164,9 @@ namespace RimWorldMCP
                 _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
             TooltipHandler.TipRegion(alphaPlus, $"透明度 {(int)(_alpha * 100)}%");
 
-            // 中断按钮
             bool connected = GatewayClient.IsConnected;
+
+            // 中断按钮
             float abortX = inRect.width - abortBtnW - 4f;
             Rect abortRect = new Rect(abortX, y + 4f, abortBtnW, h - 8f);
             GUI.color = connected ? Color.white : Color.grey;
@@ -173,12 +175,32 @@ namespace RimWorldMCP
                 if (GatewayClient.IsReady)
                     GatewayClient.AbortAgent();
             }
-            GUI.color = Color.white;
 
             // 清空
-            Rect clearRect = new Rect(abortX - abortBtnW - 8f, y + 4f, 48f, h - 8f);
+            Rect clearRect = new Rect(abortX - 58f, y + 4f, 48f, h - 8f);
+            GUI.color = Color.white;
             if (Widgets.ButtonText(clearRect, "清空"))
                 ChatDisplayState.Clear();
+
+            // 继续 — 无流式消息时发送殖民地状态
+            bool streaming = ChatDisplayState.Snapshot.Count > 0
+                && ChatDisplayState.Snapshot[ChatDisplayState.Snapshot.Count - 1].State == ChatState.Streaming;
+            Rect continueRect = new Rect(abortX - 120f, y + 4f, 54f, h - 8f);
+            GUI.color = connected && !streaming ? Color.white : Color.grey;
+            if (Widgets.ButtonText(continueRect, "继续"))
+            {
+                if (connected && !streaming)
+                {
+                    var map = Find.CurrentMap;
+                    if (map != null)
+                    {
+                        var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
+                        var text = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
+                        _ = GatewayClient.SendMessage(text);
+                    }
+                }
+            }
+            GUI.color = Color.white;
         }
 
         private float CalcEntryHeight(ChatEntry entry, float contentWidth)
