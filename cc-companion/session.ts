@@ -6,6 +6,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { buildSystemPrompt } from './rimworld/context.js';
 import type { CompanionConfig } from './config.js';
+import {Options} from "@anthropic-ai/claude-agent-sdk";
 
 // ========== AsyncStream ==========
 
@@ -87,16 +88,12 @@ export function createSession(sdk: any, config: CompanionConfig) {
     mcpServers: {
       rimworld: mcpServerConfig,
     },
-    systemPrompt: {
-      type: 'preset',
-      preset: 'claude_code',
-      append: buildSystemPrompt(config.mcpUrl),
-    },
+    systemPrompt: buildSystemPrompt(config.mcpUrl),
     stderr: (data: string | Buffer) => {
       const text = typeof data === 'string' ? data : data.toString();
       process.stderr.write(`[sdk] ${text}`);
     },
-  };
+  } as Options;
 
   console.log(`[cc-companion] 项目目录: ${config.projectPath}`);
   console.log(`[cc-companion] MCP Server: ${config.mcpUrl}`);

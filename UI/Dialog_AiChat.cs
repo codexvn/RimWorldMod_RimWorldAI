@@ -63,7 +63,6 @@ namespace RimWorldMCP
         {
             var text = _inputText.Trim();
             if (string.IsNullOrEmpty(text)) return;
-            if (!CCClient.IsReady) return;
 
             _inputText = "";
             _ = CCClient.SendEventText("rimworld.chat", "UserMessage", text);
@@ -181,8 +180,7 @@ namespace RimWorldMCP
 
         private void DrawInputRow(Rect inRect, float y, float h)
         {
-            // 用户随时可以发送（发送时自动打断当前 agent 任务），仅断开连接时置灰
-            bool canSend = CCClient.IsConnected;
+            bool canSend = true;
 
             float btnW = 52f;
             float gap = 4f;
@@ -224,7 +222,7 @@ namespace RimWorldMCP
                 _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
             TooltipHandler.TipRegion(alphaPlus, $"透明度 {(int)(_alpha * 100)}%");
 
-            bool connected = CCClient.IsConnected;
+            bool connected = true;
 
             // 中断按钮
             float abortX = inRect.width - abortBtnW - 4f;

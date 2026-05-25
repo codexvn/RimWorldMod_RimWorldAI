@@ -96,6 +96,8 @@ namespace RimWorldMCP
             _state = CCClientState.Disconnected;
             try { _ws?.Dispose(); } catch { }
             _ws = null;
+            _lastPing = DateTime.MinValue;
+            _lastPong = DateTime.MinValue;
         }
 
         // ========== 事件发送 ==========

@@ -17,7 +17,7 @@
     "typescript": "^5.7.0"
   },
   "scripts": {
-    "start": "tsx companion.ts",
+    "start": "tsx companion.ts ",
     "dev": "tsx --watch companion.ts"
   }
 }
