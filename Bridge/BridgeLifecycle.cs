@@ -286,28 +286,11 @@ namespace RimWorldMCP
             var modRoot = FindModRoot();
             if (modRoot == null) return null;
 
-            // 发布模式: Mods/RimWorldMCP/cc-companion/
-            var publishDir = Path.Combine(modRoot, "cc-companion");
-            if (Directory.Exists(publishDir))
+            var dir = Path.Combine(modRoot, "cc-companion");
+            if (Directory.Exists(dir) && File.Exists(Path.Combine(dir, "companion.ts")))
             {
-                var mainJs = Path.Combine(publishDir, "companion.js");
-                if (File.Exists(mainJs))
-                {
-                    McpLog.Info($"[cc] Companion 目录: {publishDir}");
-                    return publishDir;
-                }
-            }
-
-            // 开发模式: RimWorldMCP/cc-companion/ (modRoot = publish/1.6/)
-            var devDir = Path.GetFullPath(Path.Combine(modRoot, "..", "..", "cc-companion"));
-            if (Directory.Exists(devDir))
-            {
-                var mainJs = Path.Combine(devDir, "companion.js");
-                if (File.Exists(mainJs))
-                {
-                    McpLog.Info($"[cc] Companion 目录 (开发): {devDir}");
-                    return devDir;
-                }
+                McpLog.Info($"[cc] Companion 目录: {dir}");
+                return dir;
             }
 
             McpLog.Error("[cc] 找不到 cc-companion 目录");
@@ -348,7 +331,13 @@ namespace RimWorldMCP
             var companionDir = FindCompanionDir();
             if (companionDir == null) return;
 
-            var args = $"companion.js --port {port}";
+            // 会话存在 Mod 目录下的 claude-sessions/
+            var modRoot = FindModRoot();
+            var sessionsDir = modRoot != null
+                ? Path.Combine(modRoot, "claude-sessions")
+                : Path.Combine(companionDir, "..", "claude-sessions");
+
+            var args = $"--import tsx/esm companion.ts --port {port} --project-path \"{sessionsDir}\"";
             if (!string.IsNullOrEmpty(token))
                 args += $" --token {token}";
 

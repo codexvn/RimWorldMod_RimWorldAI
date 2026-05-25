@@ -7,3 +7,4 @@ riderModule.iml
 *.sln.DotSettings.user
 cc-companion/node_modules/
 publish/cc-companion/
+publish/claude-sessions/
