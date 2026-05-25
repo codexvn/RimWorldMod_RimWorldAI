@@ -62,15 +62,6 @@ namespace RimWorldMCP
             McpCommandQueue.ProcessDeferredCleanup();
         }
 
-        public override void ExposeData()
-        {
-            base.ExposeData();
-            Scribe_Values.Look(ref _sessionKey, "mcpSessionKey", "");
-            // 旧存档没有此字段时自动生成
-            if (Scribe.mode == LoadSaveMode.LoadingVars && string.IsNullOrEmpty(_sessionKey))
-                _sessionKey = "agent:main:rimworld-" + Guid.NewGuid().ToString("N").Substring(0, 12);
-        }
-
         public override void FinalizeInit()
         {
             base.FinalizeInit();
