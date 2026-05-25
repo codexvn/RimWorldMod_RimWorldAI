@@ -210,7 +210,7 @@ Phase 2 (无锁):
 - `IsSendingMessage` 阻止 GatewayMessageQueue 在 send 期间并发推送
 - `AbortAgent()` 保存/恢复 `IsSendingMessage` 旧值，防止在 SendMessage Phase 2 期间误清标志
 
-### sessions.send / sessions.abort 响应格式
+### sessions.send / chat.abort 响应格式
 
 **sessions.send** 只返回即时 ack（`{ runId, status: "started" }`），AI 文本通过广播 `"chat"` 事件异步推送：
 ```json
@@ -221,21 +221,21 @@ Phase 2 (无锁):
 
 **agent RPC**（FirstSend）发两段响应：先 `{ status: "accepted" }`，再最终结果。`expectFinal: true` 必要。
 
-**sessions.abort** 返回 `{ ok, abortedRunId, status }`：
-| status | 含义 |
-|--------|------|
-| `"aborted"` | 有活跃 run 被中断，需等待 lifecycle 确认 |
-| `"no-active-run"` | 无活跃 run，跳过等待 |
+**chat.abort** 返回 `{ ok, aborted, runIds }`：
+- `aborted: true` → 有活跃 run 被中断，需等待 lifecycle 确认
+- `aborted: false` → 无活跃 run，跳过等待
+
+注意：`chat.abort` 需要 `sessionKey` 参数，与 Web UI 的停止按钮完全一致。不要用 `sessions.abort`——它多了 agent scoping 解析，可能在非标准 session key 格式下找不到 run。
 
 ### abort lifecycle 事件（TryHandleAbortLifecycle 匹配规则）
 
-`sessions.abort` 后，服务端 `abortChatRunById()` 同步广播事件，TCP 保序保证事件先于 RPC 响应到达：
+`chat.abort` 后，服务端 `abortChatRunById()` 同步广播事件，TCP 保序保证事件先于 RPC 响应到达：
 
 | # | 事件类型 | 内容 |
 |---|---------|------|
 | 1 | `"chat"` broadcast | `state: "aborted"`, `stopReason: "rpc"` |
 | 2 | `"agent"` broadcast | `stream: "lifecycle"`, `data: { phase: "end", status: "cancelled" }` |
-| 3 | RPC 响应 | `sessions.abort` 返回 |
+| 3 | RPC 响应 | `chat.abort` 返回 |
 
 `TryHandleAbortLifecycle` 匹配事件 2，4 个字段按短路顺序：
 

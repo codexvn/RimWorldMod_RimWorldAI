@@ -61,6 +61,9 @@ namespace RimWorldMCP
         private static readonly SemaphoreSlim _sendLock = new(1, 1);
         private static readonly SemaphoreSlim _messageLock = new(1, 1);
 
+        /// <summary>当前活跃的 runId（sessions.send/agent 响应中提取，传给 chat.abort）</summary>
+        private static string? _activeRunId;
+
         /// <summary>AbortAgent 等待 lifecycle 事件完成的信号</summary>
         private static TaskCompletionSource<bool>? _abortCompleteTcs;
 
@@ -132,12 +135,15 @@ namespace RimWorldMCP
             {
                 if (_sessionInitialized)
                 {
-                    await Request("sessions.send", new
+                    var resp = await Request("sessions.send", new
                     {
                         key = SessionKey,
                         message = text,
                         idempotencyKey = Guid.NewGuid().ToString("N")
                     });
+                    if (resp.TryGetProperty("payload", out var pl)
+                        && pl.TryGetProperty("runId", out var rid))
+                        _activeRunId = rid.GetString();
                 }
                 else
                 {
@@ -150,12 +156,17 @@ namespace RimWorldMCP
         /// <summary>首条消息：agent 发送（自动创建 session）</summary>
         private static async Task FirstSend(string text)
         {
-            await Request("agent", new
+            var resp = await Request("agent", new
             {
                 message = text,
                 sessionKey = SessionKey,
                 idempotencyKey = Guid.NewGuid().ToString("N")
             }, expectFinal: true);
+
+            // agent RPC 最终响应包含 runId
+            if (resp.TryGetProperty("payload", out var pl)
+                && pl.TryGetProperty("runId", out var rid))
+                _activeRunId = rid.GetString();
 
             _sessionInitialized = true;
             McpLog.Info("[ws] FirstSend 完成，session 已初始化");
@@ -174,7 +185,7 @@ namespace RimWorldMCP
                 await SendJson(new { type = "ping" });
         }
 
-        /// <summary>内层 abort：sessions.abort + lifecycle 等待，不加锁（调用方持有 _messageLock）</summary>
+        /// <summary>内层 abort：chat.abort + lifecycle 等待，不加锁（调用方持有 _messageLock）</summary>
         private static async Task AbortAgentInternal()
         {
             if (!IsReady) return;
@@ -184,14 +195,17 @@ namespace RimWorldMCP
 
             try
             {
-                var resp = await Request("sessions.abort", new { key = SessionKey });
-                McpLog.Info("[ws] ← sessions.abort 已确认");
+                var resp = await Request("chat.abort", new
+                {
+                    sessionKey = SessionKey,
+                    runId = _activeRunId
+                });
+                McpLog.Info("[ws] ← chat.abort 已确认");
 
-                // sessions.abort 返回 { ok, abortedRunId, status }
-                // status: "aborted" | "no-active-run"
+                // chat.abort 返回 { ok, aborted, runIds }
                 var aborted = resp.TryGetProperty("payload", out var pl)
-                    && pl.TryGetProperty("status", out var st)
-                    && st.GetString() == "aborted";
+                    && pl.TryGetProperty("aborted", out var a)
+                    && a.GetBoolean();
 
                 if (!aborted)
                 {
@@ -208,10 +222,11 @@ namespace RimWorldMCP
             }
             catch (Exception ex)
             {
-                McpLog.Warn($"[ws] sessions.abort 失败: {ex.Message}");
+                McpLog.Warn($"[ws] chat.abort 失败: {ex.Message}");
             }
             finally
             {
+                _activeRunId = null;
                 _abortCompleteTcs = null;
             }
         }
