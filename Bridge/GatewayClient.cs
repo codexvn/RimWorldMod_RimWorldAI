@@ -277,6 +277,53 @@ namespace RimWorldMCP
             else if (evt == "agent")
             {
                 ChatDisplayState.OnAgentEvent(root);
+                HandleCompactionEvent(root);
+            }
+            else if (evt == "session.operation")
+            {
+                HandleCompactionEvent(root);
+            }
+        }
+
+        /// <summary>处理 OpenClaw 上下文压缩事件</summary>
+        private static int _lastCompactionNotifyTick;
+        private static void HandleCompactionEvent(JsonElement root)
+        {
+            if (!root.TryGetProperty("payload", out var payload)) return;
+
+            string phase;
+            bool? completed = null;
+
+            // agent 事件: payload.stream == "compaction"
+            if (payload.TryGetProperty("stream", out var st) && st.GetString() == "compaction"
+                && payload.TryGetProperty("data", out var data))
+            {
+                if (data.TryGetProperty("phase", out var ph)) phase = ph.GetString() ?? "";
+                else return;
+                if (data.TryGetProperty("completed", out var cp)) completed = cp.GetBoolean();
+            }
+            // session.operation 事件: payload.operation == "compact"
+            else if (payload.TryGetProperty("operation", out var op) && op.GetString() == "compact")
+            {
+                if (payload.TryGetProperty("phase", out var ph)) phase = ph.GetString() ?? "";
+                else return;
+                if (payload.TryGetProperty("completed", out var cp)) completed = cp.GetBoolean();
+            }
+            else return;
+
+            int now = Environment.TickCount;
+            if (now - _lastCompactionNotifyTick < 2000) return;
+
+            if (phase == "start")
+            {
+                _lastCompactionNotifyTick = now;
+                McpLog.Info("[compaction] 上下文压缩开始...");
+            }
+            else if (phase == "end")
+            {
+                _lastCompactionNotifyTick = now;
+                string status = completed == true ? "完成" : (completed == false ? "失败" : "");
+                McpLog.Info($"[compaction] 上下文压缩{status}");
             }
         }
 
