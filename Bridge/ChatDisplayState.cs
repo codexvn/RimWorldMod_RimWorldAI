@@ -23,6 +23,8 @@ namespace RimWorldMCP
         public string Text = "";
         public ChatState State;
         public string RunId = "";
+        public string AgentId = "";
+        public string AgentType = "";
         // 流式：记录上一个 delta chunk 的长度，用于 replace 场景
         public int LastChunkLen;
         // 由 UI 线程每帧写入，避免重复 Text.CalcHeight
@@ -347,6 +349,10 @@ namespace RimWorldMCP
             var message = sdkMsg.TryGetProperty("message", out var msg) ? msg : sdkMsg;
             var role = message.TryGetProperty("role", out var r) ? r.GetString() : "assistant";
 
+            // 提取子代理信息
+            var agentId = sdkMsg.TryGetProperty("agent_id", out var aid) ? aid.GetString() ?? "" : "";
+            var agentType = sdkMsg.TryGetProperty("agent_type", out var at) ? at.GetString() ?? "" : "";
+
             if (!message.TryGetProperty("content", out var content)
                 || content.ValueKind != JsonValueKind.Array) return;
 
@@ -362,7 +368,9 @@ namespace RimWorldMCP
                         {
                             Role = role == "user" ? ChatRole.User : ChatRole.Assistant,
                             Text = text,
-                            State = ChatState.Done
+                            State = ChatState.Done,
+                            AgentId = agentId,
+                            AgentType = agentType,
                         });
                         TrimEntries();
                     }

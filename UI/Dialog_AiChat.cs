@@ -14,6 +14,7 @@ namespace RimWorldMCP
         private static float _alpha = 0.8f;
         private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
         private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
+        private static readonly Color SubagentBgColor = new Color(0.15f, 0.08f, 0.22f, 1f);
         private static readonly Color ErrorBgColor = new Color(0.30f, 0.08f, 0.08f, 1f);
 
         public Dialog_AiChat()
@@ -273,7 +274,9 @@ namespace RimWorldMCP
 
         private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
         {
-            string label = entry.Role == ChatRole.User ? "你" : "AI";
+            bool isSubagent = !string.IsNullOrEmpty(entry.AgentId);
+            string label = entry.Role == ChatRole.User ? "你"
+                : isSubagent ? entry.AgentType : "AI";
             // Unity GUI.Label 把 _ 当作键盘快捷键标记吃掉，双写 __ 可显示一个下划线
             string body = (entry.Text ?? "").Replace("_", "__");
             if (entry.State == ChatState.Streaming)
@@ -288,7 +291,8 @@ namespace RimWorldMCP
 
             Rect bubbleRect = new Rect(2f, y, contentWidth, entryHeight);
             Color bgColor = entry.Role == ChatRole.User ? UserBgColor
-                : entry.State == ChatState.Error ? ErrorBgColor : AiBgColor;
+                : entry.State == ChatState.Error ? ErrorBgColor
+                : isSubagent ? SubagentBgColor : AiBgColor;
             bgColor.a = _alpha;
             Widgets.DrawBoxSolid(bubbleRect, bgColor);
 
@@ -303,11 +307,14 @@ namespace RimWorldMCP
             }
 
             // 标签
-            Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 2f, 24f, 16f);
+            Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 2f,
+                isSubagent ? 60f : 24f, 16f);
             Text.Font = GameFont.Tiny;
             GUI.color = entry.Role == ChatRole.User
                 ? new Color(0.4f, 0.8f, 1f, _alpha)
-                : new Color(0.4f, 1f, 0.4f, _alpha);
+                : isSubagent
+                    ? new Color(0.8f, 0.4f, 1f, _alpha)
+                    : new Color(0.4f, 1f, 0.4f, _alpha);
             Widgets.Label(labelRect, label);
 
             // 消息正文

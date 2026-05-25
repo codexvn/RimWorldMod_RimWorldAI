@@ -5,6 +5,8 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea/
 *.sln.DotSettings.user
+*.pid
 cc-companion/node_modules/
+cc-companion/.claude/
 publish/cc-companion/
 publish/claude-sessions/
