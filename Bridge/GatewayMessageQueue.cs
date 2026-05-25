@@ -57,28 +57,29 @@ namespace RimWorldMCP
 
             if (!GatewayClient.IsReady) return;
 
-            // 正在发送中——检测是否需要打断
+            // 正在发送中——有通知即打断
             if (_sending)
             {
                 if (_pending.Count > 0 && !_abortSent)
                 {
-                    var best = _pending.Values.OrderByDescending(m => (int)m.Category).First();
-                    if ((int)best.Category > (int)_currentSendingCategory)
-                    {
-                        GatewayClient.AbortAgent();
-                        _abortSent = true;
-                    }
+                    GatewayClient.AbortAgent();
+                    _abortSent = true;
                 }
                 return;
             }
 
             if (_pending.Count == 0) return;
 
-            // 短暂稳定窗口让同类消息覆盖
+            // 短暂稳定窗口让同类消息覆盖（但高危消息立即发）
             if (_idleFrames > 0)
             {
-                _idleFrames--;
-                return;
+                var highest = _pending.Values.OrderByDescending(m => (int)m.Category).First();
+                if ((int)highest.Category < (int)MessageCategory.DialogPrompt)
+                {
+                    _idleFrames--;
+                    return;
+                }
+                _idleFrames = 0;
             }
 
             // 取最高优先级发送
@@ -97,20 +98,13 @@ namespace RimWorldMCP
                 return;
             }
 
-            // 正在发送中——比较优先级决定是否打断（仅首次）
-            if ((int)category > (int)_currentSendingCategory)
+            // 正在发送中——有通知即打断
+            if (!_abortSent)
             {
-                if (!_abortSent)
-                {
-                    GatewayClient.AbortAgent();
-                    _abortSent = true;
-                }
-                _pending[category] = new PendingMessage { Category = category, Text = text };
+                GatewayClient.AbortAgent();
+                _abortSent = true;
             }
-            else
-            {
-                _pending[category] = new PendingMessage { Category = category, Text = text };
-            }
+            _pending[category] = new PendingMessage { Category = category, Text = text };
         }
 
         public static void MarkDailySent(int day) => _lastDailyDaySent = day;
