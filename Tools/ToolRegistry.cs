@@ -91,7 +91,13 @@ namespace RimWorldMCP.Tools
                         if (!string.IsNullOrEmpty(afterResult.Remaining))
                             GatewayMessageQueue.Enqueue(MessageCategory.Alert, afterResult.Remaining);
                         if (afterResult.IsPaused)
-                            result.Text += "\n\n[提示] 游戏当前已暂停。使用 toggle_pause 恢复时间流动。";
+                        {
+                            var reason = GatewayClient.CompactionPauseReason;
+                            if (!string.IsNullOrEmpty(reason))
+                                result.Text += $"\n\n[提示] {reason}";
+                            else
+                                result.Text += "\n\n[提示] 游戏当前已暂停。使用 toggle_pause 恢复时间流动。";
+                        }
                     }
                     catch { /* 调度失败不影响工具结果 */ }
 

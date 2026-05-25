@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using System.Security.Cryptography;
+using Verse;
 using RimWorldMCP.Mcp;
 
 namespace RimWorldMCP
@@ -285,6 +286,9 @@ namespace RimWorldMCP
             }
         }
 
+        /// <summary>上下文压缩导致暂停游戏的原因</summary>
+        public static string? CompactionPauseReason;
+
         /// <summary>处理 OpenClaw 上下文压缩事件</summary>
         private static int _lastCompactionNotifyTick;
         private static void HandleCompactionEvent(JsonElement root)
@@ -317,11 +321,25 @@ namespace RimWorldMCP
             if (phase == "start")
             {
                 _lastCompactionNotifyTick = now;
-                McpLog.Info("[compaction] 上下文压缩开始...");
+                CompactionPauseReason = "上下文压缩中，消息队列将暂停以等待压缩完成...";
+                McpLog.Info("[compaction] 上下文压缩开始，暂停游戏...");
+
+                // 主线程暂停 + 通知补推
+                _ = McpCommandQueue.DispatchAsync<bool>(() =>
+                {
+                    Find.TickManager?.Pause();
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine("## 上下文压缩");
+                    sb.AppendLine("OpenClaw 正在压缩对话上下文以管理 Token 用量。");
+                    sb.AppendLine("游戏已暂停，压缩完成后自动恢复。");
+                    GatewayMessageQueue.Enqueue(MessageCategory.Alert, sb.ToString().TrimEnd());
+                    return true;
+                });
             }
             else if (phase == "end")
             {
                 _lastCompactionNotifyTick = now;
+                CompactionPauseReason = null;
                 string status = completed == true ? "完成" : (completed == false ? "失败" : "");
                 McpLog.Info($"[compaction] 上下文压缩{status}");
             }
