@@ -9,6 +9,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using System.Security.Cryptography;
 using Verse;
+using RimWorld;
 using RimWorldMCP.Mcp;
 
 namespace RimWorldMCP
@@ -79,6 +80,14 @@ namespace RimWorldMCP
         public static async Task SendMessage(string text)
         {
             if (!IsReady) return;
+
+            // 压缩期间阻塞消息发送
+            if (_isCompacting)
+            {
+                McpLog.Info("[compaction] 压缩中，消息发送已延迟...");
+                return;
+            }
+
             ChatDisplayState.OnUserMessage(text);
             await Request("agent", new
             {
@@ -289,6 +298,10 @@ namespace RimWorldMCP
         /// <summary>上下文压缩导致暂停游戏的原因</summary>
         public static string? CompactionPauseReason;
 
+        /// <summary>是否正在压缩上下文（压缩期间阻塞消息发送）</summary>
+        public static bool IsCompacting => _isCompacting;
+        private static volatile bool _isCompacting;
+
         /// <summary>处理 OpenClaw 上下文压缩事件</summary>
         private static int _lastCompactionNotifyTick;
         private static void HandleCompactionEvent(JsonElement root)
@@ -321,8 +334,9 @@ namespace RimWorldMCP
             if (phase == "start")
             {
                 _lastCompactionNotifyTick = now;
+                _isCompacting = true;
                 CompactionPauseReason = "上下文压缩中，消息队列将暂停以等待压缩完成...";
-                McpLog.Info("[compaction] 上下文压缩开始，暂停游戏...");
+                McpLog.Info("[compaction] 上下文压缩开始，暂停游戏 + 阻塞消息...");
 
                 // 主线程暂停 + 通知补推
                 _ = McpCommandQueue.DispatchAsync<bool>(() =>
@@ -339,9 +353,24 @@ namespace RimWorldMCP
             else if (phase == "end")
             {
                 _lastCompactionNotifyTick = now;
+                _isCompacting = false;
                 CompactionPauseReason = null;
                 string status = completed == true ? "完成" : (completed == false ? "失败" : "");
-                McpLog.Info($"[compaction] 上下文压缩{status}");
+                McpLog.Info($"[compaction] 上下文压缩{status}，恢复消息 + 触发 Agent...");
+
+                // 压缩完成后取消暂停 + 触发 Agent（复用"继续"按钮逻辑）
+                _ = McpCommandQueue.DispatchAsync<bool>(() =>
+                {
+                    Find.TickManager?.TogglePaused();
+                    var map = Find.CurrentMap;
+                    if (map != null)
+                    {
+                        var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
+                        var msg = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
+                        GatewayMessageQueue.Enqueue(MessageCategory.Alert, msg);
+                    }
+                    return true;
+                });
             }
         }
 
