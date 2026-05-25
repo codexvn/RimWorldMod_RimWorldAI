@@ -15,7 +15,7 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignateRoom : ITool
     {
         public string Name => "designate_room";
-        public string Description => "快速建造一个矩形房间。指定左上角和右下角坐标，在矩形边界放置墙体。已有墙体的格子会自动跳过（可共用墙），不会重复建造。";
+        public string Description => "快速建造一个矩形房间。指定左上角和右下角坐标，在矩形边界放置墙体。已有墙体的格子会自动跳过（可共用墙），不会重复建造。⚠ 调用前应先使用 get_structure_layout 查看当前布局。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",

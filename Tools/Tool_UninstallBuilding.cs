@@ -12,7 +12,7 @@ namespace RimWorldMCP.Tools
     public class Tool_UninstallBuilding : ITool
     {
         public string Name => "uninstall_building";
-        public string Description => "拆卸指定建筑为微缩物品。通过 thing_id 定位建筑，添加拆卸工作标记由殖民者执行，或即时拆卸零工作建筑/Frame。";
+        public string Description => "拆卸指定建筑为微缩物品。通过 thing_id 定位建筑，添加拆卸工作标记由殖民者执行，或即时拆卸零工作建筑/Frame。⚠ 调用前应先使用 get_structure_layout 查看当前布局。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",

@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_CreateStockpile : ITool
     {
         public string Name => "create_stockpile";
-        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型（食物/原料/武器等）和优先级。提供 end_x/end_y 可划定矩形范围。";
+        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型（食物/原料/武器等）和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 调用前应先使用 get_structure_layout 查看当前布局。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",

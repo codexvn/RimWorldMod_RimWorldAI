@@ -210,7 +210,7 @@ namespace RimWorldMCP
 
             try
             {
-                await Task.Delay(1000);
+                await Task.Delay(3000);
                 var resp = await Request("chat.abort", new { sessionKey = SessionKey });
                 McpLog.Info("[ws] ← chat.abort 已确认");
 

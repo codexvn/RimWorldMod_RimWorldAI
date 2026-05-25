@@ -11,7 +11,7 @@ namespace RimWorldMCP.Tools
     public class Tool_ManageStockpileFilter : ITool
     {
         public string Name => "manage_stockpile_filter";
-        public string Description => "管理存储区允许的物品类型。通过 def_name 指定 ThingDef，通过 allow 决定添加或移除。";
+        public string Description => "管理存储区允许的物品类型。通过 def_name 指定 ThingDef，通过 allow 决定添加或移除。⚠ 调用前应先使用 get_structure_layout 查看当前布局。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",

@@ -12,7 +12,7 @@ namespace RimWorldMCP.Tools
     public class Tool_CreateGrowingZone : ITool
     {
         public string Name => "create_growing_zone";
-        public string Description => "在指定矩形区域创建种植区并设置要种植的植物。坐标使用左上→右下模式,不提供 end 则只操作单格。";
+        public string Description => "在指定矩形区域创建种植区并设置要种植的植物。坐标使用左上→右下模式,不提供 end 则只操作单格。⚠ 调用前应先使用 get_structure_layout 查看当前布局。";
 
         private static string[] GetGroundPlantEnum()
         {
