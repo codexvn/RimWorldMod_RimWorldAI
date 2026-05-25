@@ -213,6 +213,14 @@ namespace RimWorldMCP
 
             if (!payload.TryGetProperty("stream", out var st)) return;
             var stream = st.GetString();
+
+            // 上下文压缩事件 → 在聊天中显示提示
+            if (stream == "compaction")
+            {
+                HandleCompactionUI(payload);
+                return;
+            }
+
             if (stream != "tool") return;
 
             string? sessionKey = null;
@@ -276,6 +284,36 @@ namespace RimWorldMCP
             {
                 _entries.Clear();
                 _toolCalls.Clear();
+            }
+            OnChanged?.Invoke();
+        }
+
+        /// <summary>上下文压缩事件 → 聊天内显示提示</summary>
+        private static void HandleCompactionUI(JsonElement payload)
+        {
+            if (!payload.TryGetProperty("data", out var data)) return;
+            if (!data.TryGetProperty("phase", out var ph)) return;
+            var phase = ph.GetString();
+
+            string text = phase switch
+            {
+                "start" => "上下文压缩中...",
+                "end" => data.TryGetProperty("completed", out var cp) && cp.GetBoolean()
+                    ? "上下文压缩完成"
+                    : "上下文压缩结束",
+                _ => ""
+            };
+            if (string.IsNullOrEmpty(text)) return;
+
+            lock (_lock)
+            {
+                _entries.Add(new ChatEntry
+                {
+                    Role = ChatRole.Assistant,
+                    Text = text,
+                    State = ChatState.Done
+                });
+                TrimEntries();
             }
             OnChanged?.Invoke();
         }
