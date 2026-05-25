@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
+using Verse.AI;
+using Verse.AI.Group;
 using RimWorld;
 using RimWorldMCP;
 
@@ -82,14 +84,19 @@ namespace RimWorldMCP.Tools
                     // 意识形态角色和头衔
                     string ideoAndTitle = GetIdeoAndTitle(pawn);
 
+                    // 逃跑检测
+                    bool isFleeing = IsFleeing(pawn);
+
                     // 精神态
                     string mentalStateStr = GetMentalState(pawn);
 
                     // 最近日志
                     string recentLogs = GetRecentLogs(pawn);
 
+                    string statusTag = isFleeing ? " **逃跑中!**" : (pawn.Downed ? " **倒地**" : "");
+
                     sb.AppendLine();
-                    sb.AppendLine($"### {name} (ID:{pawn.thingIDNumber})");
+                    sb.AppendLine($"### {name} (ID:{pawn.thingIDNumber}){statusTag}");
                     sb.AppendLine($"- {name} ({age}岁, {gender}) | 心情: {moodStr} ({moodLabel}) | 健康: {healthSummary}");
                     sb.AppendLine($"  特性: {traitsStr}");
                     sb.AppendLine($"  技能: {skillsStr}");
@@ -302,6 +309,22 @@ namespace RimWorldMCP.Tools
                 return string.Join(" | ", last2);
             }
             catch (Exception) { return ""; }
+        }
+
+        private static bool IsFleeing(Pawn pawn)
+        {
+            if (pawn.InMentalState)
+            {
+                var def = pawn.MentalStateDef;
+                if (def == MentalStateDefOf.PanicFlee || def == MentalStateDefOf.PanicFleeFire)
+                    return true;
+            }
+            if (pawn.CurJob?.def == JobDefOf.Flee)
+                return true;
+            var lord = pawn.GetLord();
+            if (lord?.CurLordToil is LordToil_PanicFlee)
+                return true;
+            return false;
         }
     }
 }
