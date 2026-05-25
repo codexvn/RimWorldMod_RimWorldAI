@@ -69,7 +69,6 @@ namespace RimWorldMCP
             if (!string.IsNullOrEmpty(_pendingSendText)) return;
 
             _inputText = "";
-            ChatDisplayState.OnUserMessage(text);
             _pendingSendText = text;
         }
 

@@ -28,6 +28,26 @@ namespace RimWorldMCP.Tools
         private static readonly MethodInfo? DiaOptionActivateMethod =
             typeof(DiaOption).GetMethod("Activate", BindingFlags.Instance | BindingFlags.NonPublic);
 
+        // Dialog_GiveName protected 成员
+        private static readonly FieldInfo? GiveNameCurNameField =
+            typeof(Dialog_GiveName).GetField("curName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameCurSecondNameField =
+            typeof(Dialog_GiveName).GetField("curSecondName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameUseSecondField =
+            typeof(Dialog_GiveName).GetField("useSecondName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameNameGenField =
+            typeof(Dialog_GiveName).GetField("nameGenerator", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameSecondNameGenField =
+            typeof(Dialog_GiveName).GetField("secondNameGenerator", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo? GiveNameIsValidNameMethod =
+            typeof(Dialog_GiveName).GetMethod("IsValidName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo? GiveNameIsValidSecondNameMethod =
+            typeof(Dialog_GiveName).GetMethod("IsValidSecondName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo? GiveNameNamedMethod =
+            typeof(Dialog_GiveName).GetMethod("Named", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo? GiveNameNamedSecondMethod =
+            typeof(Dialog_GiveName).GetMethod("NamedSecond", BindingFlags.Instance | BindingFlags.NonPublic);
+
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             if (args == null) return ToolResult.Error("缺少参数");
@@ -116,6 +136,60 @@ namespace RimWorldMCP.Tools
                             DiaOptionActivateMethod?.Invoke(opt, null);
                             string label = typeof(DiaOption).GetField("text", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(opt) as string ?? $"[{optIdx}]";
                             return ToolResult.Success($"已选择: {label}");
+                        }
+
+                        if (w is Dialog_GiveName giveNameInner)
+                        {
+                            if (curIdx != dialogIdx) { curIdx++; continue; }
+
+                            var useSecond = (bool)(GiveNameUseSecondField?.GetValue(w) ?? false);
+                            var maxOpt = useSecond ? 2 : 1;
+                            if (optIdx < 0 || optIdx > maxOpt)
+                                return ToolResult.Error($"选项编号 {optIdx} 超出范围 (0~{maxOpt})");
+
+                            if (optIdx == 0)
+                            {
+                                var curName = GiveNameCurNameField?.GetValue(w) as string ?? "";
+                                var curSecondName = useSecond ? (GiveNameCurSecondNameField?.GetValue(w) as string ?? "") : "";
+
+                                var isValid = (bool)(GiveNameIsValidNameMethod?.Invoke(w, new object[] { curName }) ?? false);
+                                if (!isValid)
+                                    return ToolResult.Error($"名称 '{curName}' 不合法，请先随机一个名称");
+
+                                if (useSecond)
+                                {
+                                    var isValidSecond = (bool)(GiveNameIsValidSecondNameMethod?.Invoke(w, new object[] { curSecondName }) ?? false);
+                                    if (!isValidSecond)
+                                        return ToolResult.Error($"定居点名称 '{curSecondName}' 不合法，请先随机一个名称");
+                                }
+
+                                GiveNameNamedMethod?.Invoke(w, new object[] { curName });
+                                if (useSecond)
+                                    GiveNameNamedSecondMethod?.Invoke(w, new object[] { curSecondName });
+
+                                Find.WindowStack.TryRemove(w, true);
+                                return ToolResult.Success(useSecond
+                                    ? $"已命名: {curName} / {curSecondName}"
+                                    : $"已命名: {curName}");
+                            }
+                            else if (optIdx == 1)
+                            {
+                                var nameGen = GiveNameNameGenField?.GetValue(w) as Func<string>;
+                                if (nameGen == null) return ToolResult.Error("无法获取名称生成器");
+                                var newName = nameGen();
+                                GiveNameCurNameField?.SetValue(w, newName);
+                                return ToolResult.Success($"已随机名称: {newName}");
+                            }
+                            else if (optIdx == 2 && useSecond)
+                            {
+                                var secondNameGen = GiveNameSecondNameGenField?.GetValue(w) as Func<string>;
+                                if (secondNameGen == null) return ToolResult.Error("无法获取定居点名称生成器");
+                                var newSecondName = secondNameGen();
+                                GiveNameCurSecondNameField?.SetValue(w, newSecondName);
+                                return ToolResult.Success($"已随机定居点名称: {newSecondName}");
+                            }
+
+                            return ToolResult.Error($"无效选项: {optIdx}");
                         }
 
                         if (curIdx == dialogIdx)

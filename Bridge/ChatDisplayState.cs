@@ -235,6 +235,11 @@ namespace RimWorldMCP
             // 上下文压缩事件 → 在聊天中显示提示
             if (stream == "compaction")
             {
+                string? compSessionKey = null;
+                if (payload.TryGetProperty("sessionKey", out var compSK))
+                    compSessionKey = compSK.GetString();
+                if (!string.IsNullOrEmpty(compSessionKey) && compSessionKey != GatewayClient.SessionKey)
+                    return;
                 HandleCompactionUI(payload);
                 return;
             }
@@ -302,6 +307,38 @@ namespace RimWorldMCP
             {
                 _entries.Clear();
                 _toolCalls.Clear();
+            }
+            OnChanged?.Invoke();
+        }
+
+        /// <summary>从 WebSocket 线程调用：处理 Gateway 广播的 "session.operation" 事件（压缩事件）</summary>
+        public static void OnSessionOperationEvent(JsonElement root)
+        {
+            if (!root.TryGetProperty("payload", out var payload)) return;
+            if (!payload.TryGetProperty("operation", out var op) || op.GetString() != "compact") return;
+
+            if (!payload.TryGetProperty("phase", out var ph)) return;
+            var phase = ph.GetString();
+
+            bool? completed = payload.TryGetProperty("completed", out var cp) ? cp.GetBoolean() : null;
+
+            string text = phase switch
+            {
+                "start" => "上下文压缩中...",
+                "end" => completed == true ? "上下文压缩完成" : "上下文压缩结束",
+                _ => ""
+            };
+            if (string.IsNullOrEmpty(text)) return;
+
+            lock (_lock)
+            {
+                _entries.Add(new ChatEntry
+                {
+                    Role = ChatRole.Assistant,
+                    Text = text,
+                    State = ChatState.Done
+                });
+                TrimEntries();
             }
             OnChanged?.Invoke();
         }

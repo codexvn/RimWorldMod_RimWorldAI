@@ -58,7 +58,7 @@ namespace RimWorldMCP
             if (!GatewayClient.IsReady) return;
 
             // 正在发送中——有通知即打断（SendMessage 入口会统一 abort，此处 fire-and-forget 快速中断）
-            if (_sending)
+            if (_sending || GatewayClient.IsSendingMessage)
             {
                 if (_pending.Count > 0 && !_abortSent)
                 {

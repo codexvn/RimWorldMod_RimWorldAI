@@ -52,8 +52,12 @@ namespace RimWorldMCP
         public static bool IsConnected => _state >= ClientState.Handshake;
         public static bool IsReady => _state == ClientState.Ready;
 
+        /// <summary>SendMessage 是否正在等待 agent 响应</summary>
+        public static bool IsSendingMessage { get; private set; }
+
         public static readonly ConcurrentQueue<string> Incoming = new();
         private static readonly SemaphoreSlim _sendLock = new(1, 1);
+        private static readonly SemaphoreSlim _messageLock = new(1, 1);
 
         /// <summary>当前存档的会话 ID，持久化在 ExposeData 中。</summary>
         public static string SessionId { get; set; } = "rimworld";
@@ -76,28 +80,42 @@ namespace RimWorldMCP
 
         // ========== 业务 API ==========
 
-        /// <summary>发送消息到 Agent（内部统一 abort 后再发送），等待 agent 处理完成</summary>
+        /// <summary>发送消息到 Agent（sessions.steer 内部处理 abort + wait + send），等待 agent 处理完成</summary>
         public static async Task SendMessage(string text)
         {
             if (!IsReady) return;
 
-            // 压缩期间阻塞消息发送
+            // 压缩期间暂存消息，压缩完成后自动发送
             if (_isCompacting)
             {
-                McpLog.Info("[compaction] 压缩中，消息发送已延迟...");
+                _pendingCompactionMessage = text;
+                McpLog.Info("[compaction] 压缩中，消息已暂存，压缩完成后自动发送...");
                 return;
             }
 
-            await AbortAgentAsync();
-
-            ChatDisplayState.OnUserMessage(text);
-            await Request("agent", new
+            IsSendingMessage = true;
+            await _messageLock.WaitAsync();
+            try
             {
-                message = text,
-                sessionKey = SessionKey,
-                sessionId = SessionId,
-                idempotencyKey = Guid.NewGuid().ToString("N")
-            }, expectFinal: true);
+                ChatDisplayState.OnUserMessage(text);
+                var resp = await Request("sessions.steer", new
+                {
+                    key = SessionKey,
+                    message = text,
+                    idempotencyKey = Guid.NewGuid().ToString("N")
+                }, expectFinal: true);
+
+                if (resp.TryGetProperty("interruptedActiveRun", out var interrupted)
+                    && interrupted.GetBoolean())
+                {
+                    McpLog.Info("[ws] sessions.steer 已中断上一个活跃 run");
+                }
+            }
+            finally
+            {
+                _messageLock.Release();
+                IsSendingMessage = false;
+            }
         }
 
         /// <summary>发送 RPC，不等待最终结果</summary>
@@ -318,6 +336,7 @@ namespace RimWorldMCP
             else if (evt == "session.operation")
             {
                 HandleCompactionEvent(root);
+                ChatDisplayState.OnSessionOperationEvent(root);
             }
         }
 
@@ -327,6 +346,9 @@ namespace RimWorldMCP
         /// <summary>是否正在压缩上下文（压缩期间阻塞消息发送）</summary>
         public static bool IsCompacting => _isCompacting;
         private static volatile bool _isCompacting;
+
+        /// <summary>压缩期间暂存的消息，压缩完成后自动发送</summary>
+        private static string? _pendingCompactionMessage;
 
         /// <summary>处理 OpenClaw 上下文压缩事件</summary>
         private static int _lastCompactionNotifyTick;
@@ -383,6 +405,14 @@ namespace RimWorldMCP
                 CompactionPauseReason = null;
                 string status = completed == true ? "完成" : (completed == false ? "失败" : "");
                 McpLog.Info($"[compaction] 上下文压缩{status}，恢复消息 + 触发 Agent...");
+
+                // 压缩完成后发送暂存的消息
+                var pending = Interlocked.Exchange(ref _pendingCompactionMessage, null);
+                if (pending != null)
+                {
+                    McpLog.Info($"[compaction] 发送暂存的消息: {pending}");
+                    _ = SendMessage(pending);
+                }
 
                 // 压缩完成后取消暂停 + 触发 Agent（复用"继续"按钮逻辑）
                 _ = McpCommandQueue.DispatchAsync<bool>(() =>

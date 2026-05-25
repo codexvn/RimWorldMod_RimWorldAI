@@ -24,6 +24,18 @@ namespace RimWorldMCP.Tools
         private static readonly FieldInfo? DiaOptionTextField =
             typeof(DiaOption).GetField("text", BindingFlags.Instance | BindingFlags.NonPublic);
 
+        // Dialog_GiveName protected 字段
+        private static readonly FieldInfo? GiveNameCurNameField =
+            typeof(Dialog_GiveName).GetField("curName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameCurSecondNameField =
+            typeof(Dialog_GiveName).GetField("curSecondName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameUseSecondField =
+            typeof(Dialog_GiveName).GetField("useSecondName", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNameMsgKeyField =
+            typeof(Dialog_GiveName).GetField("nameMessageKey", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? GiveNamePawnField =
+            typeof(Dialog_GiveName).GetField("suggestingPawn", BindingFlags.Instance | BindingFlags.NonPublic);
+
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             return await McpCommandQueue.DispatchAsync(() =>
@@ -134,6 +146,33 @@ namespace RimWorldMCP.Tools
                                 dialogIdx++;
                             }
                             catch { /* skip malfunctioning node tree */ }
+                        }
+                        else if (w is Dialog_GiveName giveName)
+                        {
+                            var curName = GiveNameCurNameField?.GetValue(w) as string ?? "";
+                            var useSecond = (bool)(GiveNameUseSecondField?.GetValue(w) ?? false);
+                            var curSecondName = useSecond ? (GiveNameCurSecondNameField?.GetValue(w) as string ?? "") : null;
+                            var msgKey = GiveNameMsgKeyField?.GetValue(w) as string ?? "";
+                            var pawn = GiveNamePawnField?.GetValue(w) as Pawn;
+                            var label = pawn?.LabelShort ?? "";
+
+                            string prompt;
+                            try { prompt = string.IsNullOrEmpty(msgKey) ? "" : msgKey.Translate(label, pawn).CapitalizeFirst(); }
+                            catch { prompt = msgKey; }
+
+                            sb.AppendLine();
+                            sb.AppendLine($"## 弹框 [{dialogIdx}] 命名 ({w.GetType().Name})");
+                            if (!string.IsNullOrEmpty(prompt))
+                                sb.AppendLine($"提示: {prompt}");
+                            sb.AppendLine($"当前名称: {curName}");
+                            if (curSecondName != null)
+                                sb.AppendLine($"当前定居点名称: {curSecondName}");
+
+                            sb.AppendLine($"[0] 确认 (使用当前名称)");
+                            sb.AppendLine($"[1] 随机名称");
+                            if (useSecond)
+                                sb.AppendLine($"[2] 随机定居点名称");
+                            dialogIdx++;
                         }
                         else
                         {
