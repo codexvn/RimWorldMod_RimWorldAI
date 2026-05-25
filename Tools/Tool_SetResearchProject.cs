@@ -13,13 +13,37 @@ namespace RimWorldMCP.Tools
     public class Tool_SetResearchProject : ITool
     {
         public string Name => "set_research_project";
-        public string Description => "设置当前研究项目。项目 defName 需先用 list_research_projects 查询获取。";
+        public string Description => "设置当前研究项目。project_defName 需从枚举中选择（已动态列出所有可用项目）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
-            properties = new { project_defName = new { type = "string", description = "研究项目 defName" } },
+            properties = new
+            {
+                project_defName = new
+                {
+                    type = "string",
+                    description = "研究项目 defName",
+                    @enum = GetResearchProjectEnum()
+                }
+            },
             required = new[] { "project_defName" }
         });
+
+        private static string[] GetResearchProjectEnum()
+        {
+            try
+            {
+                var projects = DefDatabase<ResearchProjectDef>.AllDefsListForReading
+                    .Select(d => d.defName)
+                    .OrderBy(n => n)
+                    .ToArray();
+                return projects.Length > 0 ? projects : new[] { "Please_call_list_research_projects_first" };
+            }
+            catch
+            {
+                return new[] { "Please_call_list_research_projects_first" };
+            }
+        }
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
@@ -38,9 +62,9 @@ namespace RimWorldMCP.Tools
                 try
                 {
                     // 查找研究项目
-                    var project = ResearchProjectDef.Named(projectDefName);
+                    var project = DefDatabase<ResearchProjectDef>.GetNamed(projectDefName, false);
                     if (project == null)
-                        return ToolResult.Error($"未知研究项目: {projectDefName}。请先用 list_research_projects 查询可用项目。");
+                        return ToolResult.Error($"未知研究项目: {projectDefName}。请从 project_defName 枚举中选择可用项目。");
 
                     var researchManager = Find.ResearchManager;
                     if (researchManager == null)
