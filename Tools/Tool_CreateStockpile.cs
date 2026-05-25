@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -34,7 +35,8 @@ namespace RimWorldMCP.Tools
                     description = "存储优先级",
                     @enum = new[] { "low", "normal", "preferred", "important", "critical" },
                     @default = "normal"
-                }
+                },
+                skip_roof_check = new { type = "boolean", description = "跳过屋顶校验（默认 false，存储区要求有屋顶）" }
             },
             required = new[] { "pos_x", "pos_y" }
         });
@@ -78,6 +80,10 @@ namespace RimWorldMCP.Tools
             if (!PriorityMap.TryGetValue(priorityStr, out var storagePriority))
                 return ToolResult.Error($"未知优先级: {priorityStr}。可选: low, normal, preferred, important, critical");
 
+            bool skipRoof = false;
+            if (args.Value.TryGetProperty("skip_roof_check", out var jSkipRoof) && jSkipRoof.ValueKind == JsonValueKind.True)
+                skipRoof = true;
+
             return await McpCommandQueue.DispatchAsync(() =>
             {
                 try
@@ -95,6 +101,31 @@ namespace RimWorldMCP.Tools
 
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外");
+
+                    // 屋顶校验：存储区上方必须有屋顶（防止物品露天劣化）
+                    if (!skipRoof)
+                    {
+                        int unroofedCount = 0;
+                        string sampleStr = "";
+                        int totalCells = 0;
+                        foreach (var cell in area.Cells)
+                        {
+                            totalCells++;
+                            if (!cell.Roofed(map))
+                            {
+                                if (unroofedCount < 3)
+                                    sampleStr += (unroofedCount > 0 ? ", " : "") + $"({cell.x},{cell.z})";
+                                unroofedCount++;
+                            }
+                        }
+                        if (unroofedCount > 0)
+                        {
+                            if (unroofedCount < totalCells)
+                                return ToolResult.Error($"存储区必须有屋顶！{unroofedCount} 格无屋顶: {sampleStr}... 请先建造屋顶或传 skip_roof_check=true");
+                            else
+                                return ToolResult.Error($"指定范围完全没有屋顶。室外存储会导致物品劣化。请先建造屋顶或传 skip_roof_check=true");
+                        }
+                    }
 
                     // 创建存储区
                     Zone_Stockpile zone;
