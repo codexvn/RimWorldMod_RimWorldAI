@@ -8,8 +8,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 export function buildSystemPrompt(mcpUrl: string): string {
-  const modRoot = join(process.cwd(), '..');
-  const promptPath = join(modRoot, 'Prompt.md');
+  const promptPath = join(process.cwd(), 'Prompt.md');
   console.log(`[cc-companion] 加载 Prompt: ${promptPath}`);
   const prompt = readFileSync(promptPath, 'utf8');
   return `${prompt}\n\n### 当前 MCP Server\n\n${mcpUrl}`;

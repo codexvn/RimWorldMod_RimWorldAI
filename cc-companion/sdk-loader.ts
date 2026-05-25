@@ -41,7 +41,7 @@ export async function loadClaudeSdk(): Promise<any> {
 
   if (!existsSync(pkgDir)) {
     throw new Error(
-      `找不到 Claude Agent SDK。请在 cc-companion 目录执行:\n` +
+      `找不到 Claude Agent SDK。请在 Claude Code 目录执行:\n` +
       `  npm install`
     );
   }

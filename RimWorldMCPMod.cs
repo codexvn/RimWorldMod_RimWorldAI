@@ -25,7 +25,7 @@ namespace RimWorldMCP
         public override void DoSettingsWindowContents(Rect inRect)
         {
             float h = 600f;
-            h += Settings.CCAutoStart ? 160f : 100f;
+            h += Settings.CCAutoStart ? 230f : 170f;
             if (Settings.OssEnabled) h += 220f;
             if (Settings.OssEnabled && Settings.OssUseSignedUrl) h += 50f;
 
@@ -80,6 +80,32 @@ namespace RimWorldMCP
 
                 listing.Label("Token (可选)");
                 Settings.CCToken = listing.TextEntry(Settings.CCToken);
+            }
+
+            listing.Gap(6f);
+            var installed = BridgeLifecycle.IsCompanionInstalled();
+            var installing = BridgeLifecycle.IsInstalling;
+            var status = BridgeLifecycle.InstallStatus;
+
+            if (installing)
+            {
+                listing.Label("安装中...");
+                if (!string.IsNullOrEmpty(status))
+                    listing.Label($"  {status}");
+            }
+            else if (installed)
+            {
+                listing.Label("Claude Code 状态: 已安装");
+                if (listing.ButtonText("重新安装"))
+                    BridgeLifecycle.InstallCompanion();
+                if (listing.ButtonText("卸载 Claude Code 依赖"))
+                    BridgeLifecycle.UninstallCompanion();
+            }
+            else
+            {
+                listing.Label($"Companion 状态: 未安装{(string.IsNullOrEmpty(status) ? "" : $" ({status})")}");
+                if (!installing && listing.ButtonText("安装 Claude Code 依赖"))
+                    BridgeLifecycle.InstallCompanion();
             }
 
             listing.Gap(24f);

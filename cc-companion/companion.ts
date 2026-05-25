@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * CC Companion — RimWorldMCP Claude Code 伴随进程
+ * Claude Code — RimWorldMCP 游戏 AI 助手
  *
  * 用法: tsx companion.ts [--port 19999] [--token xxx] [--model sonnet]
  * 详见 README.md
@@ -18,7 +18,7 @@ parseArgs(process.argv);
 
 async function main(): Promise<void> {
   console.log('='.repeat(60));
-  console.log('CC Companion — RimWorldMCP Claude Code 伴随进程');
+  console.log('Claude Code — RimWorldMCP 游戏 AI 助手');
   console.log('='.repeat(60));
   console.log(`CWD: ${process.cwd()}`);
   console.log(`ARGV: ${process.argv.slice(2).join(' ')}`);
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     CONFIG.token,
     // onEvent — RimWorld 游戏事件（C# 端已格式化文本）
     (wsMessage) => {
-      const text = wsMessage.payload?.text || '';
+      const text: string = (wsMessage.payload as any)?.text || '';
       console.log(`[event] ${wsMessage.event || 'unknown'}: ${text.substring(0, 100)}`);
       inputStream.enqueue({
         type: 'user',

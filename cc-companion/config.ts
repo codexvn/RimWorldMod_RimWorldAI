@@ -49,7 +49,7 @@ export function parseArgs(argv: string[]): void {
 
 export function printHelp(): void {
   console.log(`
-CC Companion — RimWorldMCP Claude Code 伴随进程
+Claude Code — RimWorldMCP 游戏 AI 助手
 
 用法: tsx companion.ts [选项]
 

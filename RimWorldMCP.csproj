@@ -58,19 +58,18 @@
     <None Include="CLAUDE.md" />
   </ItemGroup>
 
-  <!-- 复制 cc-companion 到 publish 目录 -->
-  <Target Name="CopyCCCompanion" AfterTargets="Build">
+  <!-- CC Companion: 复制源码到 publish + npm install -->
+  <Target Name="CCCompanionBuild" AfterTargets="Build">
     <PropertyGroup>
-      <CompanionSource>$(MSBuildProjectDirectory)\cc-companion\</CompanionSource>
-      <CompanionDest>$(MSBuildProjectDirectory)\$(OutputPath)..\..\cc-companion\</CompanionDest>
+      <CompanionSrc>$(MSBuildProjectDirectory)\cc-companion\</CompanionSrc>
+      <CompanionOut>$(MSBuildProjectDirectory)\publish\cc-companion\</CompanionOut>
     </PropertyGroup>
+    <RemoveDir Directories="$(CompanionOut)" Condition="Exists('$(CompanionOut)')" />
     <ItemGroup>
-      <CompanionFiles Include="$(CompanionSource)**\*" Exclude="$(CompanionSource)node_modules\**" />
+      <CompanionFiles Include="$(CompanionSrc)**\*" Exclude="$(CompanionSrc)node_modules\**;$(CompanionSrc)dist\**;$(CompanionSrc)README.md" />
     </ItemGroup>
-    <Message Text="[cc] 复制 Companion 到 $(CompanionDest)" Importance="high" />
-    <Copy SourceFiles="@(CompanionFiles)" DestinationFolder="$(CompanionDest)%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Exec Command="npm install" WorkingDirectory="$(CompanionDest)" ContinueOnError="true" />
-    <Message Text="[cc] Companion 就绪" Importance="high" />
+    <Copy SourceFiles="@(CompanionFiles)" DestinationFolder="$(CompanionOut)%(RecursiveDir)" />
+    <Exec Command="npm install" WorkingDirectory="$(CompanionOut)" ContinueOnError="true" />
   </Target>
 
 </Project>

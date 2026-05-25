@@ -3,7 +3,7 @@
 MCP (Model Context Protocol) 服务器，将 RimWorld 游戏状态和操作暴露为 LLM 可调用的 Tool。作为 RimWorld mod DLL 内嵌运行。
 
 **游戏源码**: `F:\RiderProjects\Assembly-CSharp\`（RimWorld 反编译 C# 源码，net472 Class Library）
-**Openclaw源码**: `D:\WebstormProjects\openclaw`
+**Openclaw源码**: `D:\WebstormProjects\openclaw`（已弃用，CC 替代）
 
 ## 项目结构
 
@@ -27,17 +27,26 @@ RimWorldMCP/
 │   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射
 │   ├── ResourceCheckHelper.cs             # 建造资源检查辅助工具
 │   └── Tool_*.cs                          # 各 Tool 实现
-├── Bridge/                                # OpenClaw Gateway 桥接
-│   ├── BridgeLifecycle.cs                 # 连接生命周期管理（独立于 MCP Server）
-│   ├── GatewayClient.cs                   # WebSocket 客户端 + ED25519 签名握手
-│   ├── GatewayEventMonitor.cs             # 事件监控（Letter/消息/空闲/早报/警报）
-│   └── GatewayMessageQueue.cs             # 消息队列（分类/节流/去重）
+├── Bridge/                                # Claude Code 桥接
+│   ├── BridgeLifecycle.cs                 # CC 连接生命周期 + 事件转发 + 子进程管理
+│   ├── CCClient.cs                        # WebSocket 客户端（心跳+重连）
+│   ├── ChatDisplayState.cs                # 线程安全聊天显示状态
+│   └── GameContextProvider.cs             # 游戏上下文文本构建
 ├── Skills/                                # 领域知识 Skill 系统
 │   ├── SkillInfo.cs                       # Skill 数据模型
 │   ├── SkillRegistry.cs                   # 加载 .md 文件、解析 frontmatter
 │   └── *.md                               # 6 个 Skill 文件
 ├── McpOssUploader.cs                      # 阿里云 OSS 截图自动上传
 ├── McpOssConfig.cs                        # OSS 配置数据
+├── cc-companion/                           # Claude Code 伴随进程（TypeScript, tsx 运行时）
+│   ├── companion.ts                       # 编排入口
+│   ├── config.ts                          # 配置解析
+│   ├── auth.ts                            # API 认证
+│   ├── sdk-loader.ts                      # SDK 加载
+│   ├── session.ts                         # SDK 会话管理
+│   ├── ws-server.ts                       # WebSocket Server
+│   ├── rimworld/context.ts                # 系统提示词加载
+│   └── Prompt.md                          # AI 行为提示词
 └── About/
     └── About.xml                          # Mod 元数据
 ```
@@ -86,176 +95,58 @@ RimWorld 返回主菜单时 `Game.Dispose()` 不通知 GameComponent，导致上
 | 日志级别 | Info | Debug / Info / Warn / Error 过滤 |
 | MCP 监听地址 | 0.0.0.0 | 可设为 localhost / 内网 IP |
 | MCP 端口 | 9877 | HTTP 监听端口 |
-| 桥接器类型 | 无 | 无 / OpenClaw |
-| Gateway URL | - | WebSocket 连接地址（ws://127.0.0.1:18789） |
-| Token / Password | - | 桥接认证凭据 |
+| CC 连接地址 | ws://127.0.0.1:19999 | Claude Code WebSocket 地址 |
+| 自动启动 | 开启 | 游戏加载时自动 spawn Node.js 子进程 |
+| 本地监听端口 | 19999 | 本地 Companion WS 端口 |
+| Token | - | CC 桥接认证凭据 |
 | OSS 上传 | 关闭 | 截图自动上传到阿里云 OSS |
 | OSS Endpoint/Bucket/Key | - | 阿里云 OSS 访问配置 |
 | 签名 URL | 开启 | 预签名 URL 有效期 24h |
 
-## OpenClaw Gateway 桥接
+## Claude Code 桥接
 
-GatewayClient 作为 WebSocket 客户端连接 OpenClaw Gateway（默认 `ws://127.0.0.1:18789`）。
+游戏事件通过 WebSocket 推送到本地 Node.js 进程（CC Companion），Companion 使用 Claude Agent SDK 与 Claude API 通信。Claude 的响应广播回游戏内聊天窗口。
+
+### 数据流
+
+```
+RimWorld (C#)                  CC Companion (Node.js)       Claude API
+    │                                │                         │
+    │ 游戏事件(WS)                     │  SDK query()            │
+    │──────────────────────────────▶ │────────────────────────▶│
+    │                                │                         │
+    │ 聊天窗 ◀─ WS broadcast ────────│  ◀── assistant/tool ────│
+    │                                │                         │
+    │  MCP Server :9877 ◀────────────│──── tools/call ─────────│
+```
 
 ### 连接流程
 
-```
-1. WebSocket 连接  ws://127.0.0.1:18789
-2. 启动 ReceiveLoop 后台接收
-3. 等待 Gateway 发送 connect.challenge 事件
-4. 收到 challenge 后发送 connect RPC 请求（含 ED25519 设备签名）
-5. 等待 hello-ok 响应
-6. 握手完成，进入 Ready
-```
+`BridgeLifecycle.StartAsync()` 在加载存档时执行：
+1. `StopCompanionProcess()` — 停止旧进程
+2. `KillStaleByPidFile()` — 清理 `.pid` 残留
+3. `StartCompanionProcess()` — spawn `node --import tsx/esm companion.ts`
+4. `CCClient.Connect()` — WebSocket 握手（hello/hello-ok）
 
-**Step 1: 收到 challenge**
-```json
-{"type":"event","event":"connect.challenge","payload":{"nonce":"xxx","ts":1737264000000}}
-```
+### 事件推送
 
-**Step 2: 发送 connect RPC**
-```json
-{
-  "type": "req",
-  "id": "uuid8",
-  "method": "connect",
-  "params": {
-    "minProtocol": 3,
-    "maxProtocol": 4,
-    "client": { "id": "gateway-client", "displayName": "RimWorldMCP", "version": "1.0", "platform": "windows", "mode": "backend" },
-    "role": "operator",
-    "scopes": ["operator.read", "operator.write"],
-    "caps": ["tool-events"],
-    "locale": "zh-CN",
-    "userAgent": "RimWorldMCP/1.0",
-    "auth": { "token": "..." },
-    "device": { "id": "abc123...", "publicKey": "base64url...", "signature": "base64url...", "signedAt": 1737264000000, "nonce": "xxx" }
-  }
-}
-```
+`BridgeLifecycle.CCEventTick()` 每帧检查 `NotificationBus`，高危通知即时推送，普通通知每 120 tick 批量。事件格式化在 C# 端完成（`FormatGameEvent()`），companion 透传文本。
 
-- ED25519 设备签名（BouncyCastle），V3 pipe 分隔载荷
-- 签名载荷: `v3|<deviceId>|gateway-client|backend|operator|<scopes>|<ts>|<token>|<nonce>|<platform>|`
-- protocol v3~v4 协商
+### 中断通知
 
-**Step 3: 收到 hello-ok**
-```json
-{"type":"res","ok":true,"payload":{"type":"hello-ok","protocol":4,"server":{"version":"...","connId":"..."},"policy":{"tickIntervalMs":30000}}}
-```
+6 个 Harmony Patch 拦截游戏事件 → `NotificationBus` → `IsHighDanger` 过滤。
 
-- `policy.tickIntervalMs` 心跳间隔，超时 `2×tickIntervalMs` 断开
+| 事件源 | 条件 |
+|--------|------|
+| Letter: 大威胁/小威胁 | `ThreatBig`/`ThreatSmall` |
+| Letter: 死亡 | `LetterDefOf.Death` |
+| Letter: 负面 | `LetterDefOf.NegativeEvent` |
+| Message: 大威胁/小威胁/死亡/负面 | 实时消息 |
+| AlertStart: 全部 | 饥饿、崩溃风险等 |
 
-### 事件监控
+### CC Companion 自动管理
 
-`GatewayEventMonitor` 在 `BridgeLifecycle.Tick()` 中每 120 tick 轮询，自动检测并推送以下事件到 Gateway：
-
-| 监控类型 | 说明 | 触发方式 |
-|----------|------|----------|
-| Letter 通知 | 游戏事件（袭击/死亡/完成等） | 检测 `Find.LetterStack` 新 Letter |
-| 右侧消息 | 游戏内飘字消息 | 检测 `Find.Archive` 新消息，推送后清除游戏内显示 |
-| 空闲检测 | 殖民者空闲提醒 | 对比上次空闲人数变化 |
-| 综合警报 | 崩溃风险/流血/食物/防御/床位 | 同 `check_colony` 逻辑 |
-| 每早汇报 | 游戏时间每日 6 点汇总 | 含天气/殖民者/资源/电力/研究/财富 |
-
-消息分类：
-- `MessageCategory.RaidStart` — 中断通知（chat.abort），高优先级立即发送
-- `MessageCategory.Alert` — 一般警报队列发送
-- `MessageCategory.DailyMorning` — 每日早报
-- `MessageCategory.SessionInit` — 连接后首次会话 Prompt
-
-### 中断通知（chat.abort）系统
-
-6 个 Harmony Patch 拦截游戏事件 → `NotificationBus` → `IsHighDanger` 过滤 → `PushEmergency`（每帧检查 `HighDangerPending`）→ `GatewayMessageQueue.SendNow(RaidStart)`。
-
-#### 触发中断的事件（Agent 应放弃当前任务优先处理）
-
-| 事件源 | 条件 | 实例 |
-|--------|------|------|
-| Letter: 大威胁 | `LetterDefOf.ThreatBig` | 袭击、虫害、猎杀人类包、异常实体群 |
-| Letter: 小威胁 | `LetterDefOf.ThreatSmall` | 单只发狂动物、越狱 |
-| Letter: 死亡 | `LetterDefOf.Death` | 殖民者/牵绊动物死亡 |
-| Letter: 负面 | `LetterDefOf.NegativeEvent` | 枯萎病、瘟疫、太阳耀斑、热浪、寒流 |
-| Message: 大威胁/小威胁 | `ThreatBig`/`ThreatSmall` | 袭击实时消息 |
-| Message: 角色死亡 | `PawnDeath` | 地圖上角色死亡 |
-| Message: 健康事件 | `NegativeHealthEvent` | 心脏病発作、伤口感染 |
-| Message: 游戏减速 | `TimeSlower.SignalForceNormalSpeed*` Patch | 战斗爆发、异常活动（限流 600 tick/10秒） |
-| AlertStart: 全部 | 饥饿、崩溃风险、需要治疗、裸奔、无武器等 | 所有原生警报变活跃 |
-
-#### 不触发中断的事件（走 120 tick 批量 Alert）
-
-| 事件 | 原因 |
-|------|------|
-| Letter: 正面/事件/通知 | 好事/中性/未分类，不紧急 |
-| Message: 正面/事件/完成/状态解除/拒绝/警告/消息 | 非紧急或高频噪声 |
-| AlertEnd: 全部 | 正向变化 |
-| `TickManager.Pause` | 对话框暂停不是危险信号（Letter 暂停已由 Letter Patch 覆盖） |
-
-### SendMessage / AbortAgent 并发模型
-
-`SendMessage` 分两阶段，只有 Phase 1 持有 `_messageLock`，Phase 2 无锁：
-
-```
-Phase 1 (加锁): _messageLock.WaitAsync()
-  → IsSendingMessage = true
-  → ChatDisplayState.OnUserMessage(text)
-  → AbortAgentInternal()  ← sessions.abort + lifecycle 等待
-  → _messageLock.Release()
-
-Phase 2 (无锁):
-  → sessions.send 或 agent RPC
-  → IsSendingMessage = false
-```
-
-- `_messageLock` 只序列化 abort，不阻塞 send。用户点"中断"时 `AbortAgent()` 可获取锁执行 abort，不会等 AI 回复完成
-- `IsSendingMessage` 阻止 GatewayMessageQueue 在 send 期间并发推送
-- `AbortAgent()` 保存/恢复 `IsSendingMessage` 旧值，防止在 SendMessage Phase 2 期间误清标志
-
-### sessions.send / chat.abort 响应格式
-
-**sessions.send** 只返回即时 ack（`{ runId, status: "started" }`），AI 文本通过广播 `"chat"` 事件异步推送：
-```json
-{"type":"event","event":"chat","payload":{"state":"delta"|"final","message":{"content":[...]}}}
-```
-→ `ChatDisplayState.OnChatEvent()` 处理流式输出。
-→ **不要对 sessions.send 用 `expectFinal: true`**（只跳过 `status: "accepted"`，对 `"started"` 无效，死代码）。
-
-**agent RPC**（FirstSend）发两段响应：先 `{ status: "accepted" }`，再最终结果。`expectFinal: true` 必要。
-
-**chat.abort** 返回 `{ ok, aborted, runIds }`：
-- `aborted: true` → 有活跃 run 被中断，需等待 lifecycle 确认
-- `aborted: false` → 无活跃 run，跳过等待
-
-注意：`chat.abort` 需要 `sessionKey` 参数，与 Web UI 的停止按钮完全一致。不要用 `sessions.abort`——它多了 agent scoping 解析，可能在非标准 session key 格式下找不到 run。
-
-### abort lifecycle 事件（TryHandleAbortLifecycle 匹配规则）
-
-`chat.abort` 后，服务端 `abortChatRunById()` 同步广播事件，TCP 保序保证事件先于 RPC 响应到达：
-
-| # | 事件类型 | 内容 |
-|---|---------|------|
-| 1 | `"chat"` broadcast | `state: "aborted"`, `stopReason: "rpc"` |
-| 2 | `"agent"` broadcast | `stream: "lifecycle"`, `data: { phase: "end", status: "cancelled" }` |
-| 3 | RPC 响应 | `chat.abort` 返回 |
-
-`TryHandleAbortLifecycle` 匹配事件 2，4 个字段按短路顺序：
-
-| 字段 | 值 | 原因 |
-|------|-----|------|
-| `payload.stream` | `"lifecycle"` | 排除 tool/compaction 事件 |
-| `payload.sessionKey` | `== SessionKey` | 排除其他 agent 事件 |
-| `payload.data.phase` | `"end"` | lifecycle 结束 |
-| `payload.data.status` | `"cancelled"` | **唯一标志**——正常完成 lifecycle 无 status 字段，abort 独有 |
-
-`status: "cancelled"` 只在 `chat-abort.ts:209` 产生，无其他值。正常完成 `emit("end")` 无 status，异常 `emit("error")` 有 `error` 字段无 status。
-
-### 已验证
-
-Gateway 2026.5.22 + ED25519 V3 签名握手已通过。
-
-### 设置
-
-游戏内 Options → Mod 设置 → RimWorld MCP → 桥接器按钮
-或游戏右下角工具栏 "MCP 桥接" 按钮。
+设置面板可安装/卸载/重装 Claude Code 依赖（`npm install`），状态和日志实时显示。安装状态通过 `BridgeLifecycle.InstallStatus` 暴露，设置窗口每帧刷新。
 
 ## OSS 截图上传
 

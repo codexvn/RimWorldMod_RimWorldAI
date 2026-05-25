@@ -41,11 +41,11 @@ namespace RimWorldMCP
             await CCClient.Connect(settings.CCUrl, settings.CCToken);
             if (CCClient.IsReady)
             {
-                McpLog.Info($"[bridge] 已连接到 CC Companion: {settings.CCUrl}");
+                McpLog.Info($"[bridge] 已连接到 Claude Code: {settings.CCUrl}");
             }
             else
             {
-                McpLog.Error($"[bridge] CC Companion 连接失败: {settings.CCUrl}");
+                McpLog.Error($"[bridge] Claude Code 连接失败: {settings.CCUrl}");
             }
         }
 
@@ -157,6 +157,80 @@ namespace RimWorldMCP
             _ = CCClient.SendEventText("rimworld.alert", category, text);
         }
 
+        // ========== 公开 API（设置 UI 调用） ==========
+
+        public static bool IsNodeAvailable() => FindNodeExe() != null;
+
+        public static bool IsCompanionInstalled()
+        {
+            var dir = FindCompanionDir();
+            if (dir == null) return false;
+            return Directory.Exists(Path.Combine(dir, "node_modules"));
+        }
+
+        public static bool IsInstalling { get; private set; }
+        public static string InstallStatus { get; private set; } = "";
+
+        public static void InstallCompanion()
+        {
+            var dir = FindCompanionDir();
+            if (dir == null) { InstallStatus = "找不到 cc-companion 目录"; return; }
+            if (IsInstalling) return;
+
+            IsInstalling = true;
+            InstallStatus = "正在安装...";
+            McpLog.Info($"[cc] 开始安装 Companion 依赖...");
+            _ = Task.Run(() =>
+            {
+                var log = new System.Text.StringBuilder();
+                try
+                {
+                    var psi = new ProcessStartInfo("npm", "install")
+                    {
+                        WorkingDirectory = dir,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                    };
+                    using var proc = Process.Start(psi);
+                    if (proc == null) { InstallStatus = "无法启动 npm install"; IsInstalling = false; return; }
+                    proc.OutputDataReceived += (_, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        { log.AppendLine(e.Data); InstallStatus = e.Data; McpLog.Info($"[npm] {e.Data}"); }
+                    };
+                    proc.ErrorDataReceived += (_, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        { log.AppendLine(e.Data); McpLog.Warn($"[npm] {e.Data}"); }
+                    };
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
+                    proc.WaitForExit(120000);
+                    if (proc.ExitCode == 0)
+                    { InstallStatus = "安装完成"; McpLog.Info("[cc] Companion 依赖安装完成"); }
+                    else
+                    { InstallStatus = $"npm install 失败，退出码: {proc.ExitCode}"; McpLog.Error($"[cc] {InstallStatus}"); }
+                }
+                catch (Exception ex)
+                { InstallStatus = $"安装失败: {ex.Message}"; McpLog.Error($"[cc] {InstallStatus}"); }
+                finally { IsInstalling = false; }
+            });
+        }
+
+        public static void UninstallCompanion()
+        {
+            var dir = FindCompanionDir();
+            if (dir == null) return;
+            var nodeModules = Path.Combine(dir, "node_modules");
+            if (!Directory.Exists(nodeModules)) { McpLog.Info("[cc] node_modules 不存在，无需卸载"); return; }
+
+            McpLog.Info($"[cc] 删除 {nodeModules} ...");
+            try { Directory.Delete(nodeModules, true); McpLog.Info("[cc] Companion 依赖已卸载"); }
+            catch (Exception ex) { McpLog.Error($"[cc] 卸载失败: {ex.Message}"); }
+        }
+
         // ========== Companion 目录/Node.js 查找 ==========
 
         private static string? FindModRoot()
@@ -172,7 +246,7 @@ namespace RimWorldMCP
             catch { return null; }
         }
 
-        private static string? FindNodeExe()
+        public static string? FindNodeExe()
         {
             try
             {
@@ -184,20 +258,11 @@ namespace RimWorldMCP
             }
             catch { }
 
-            var candidates = new[]
-            {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs", "node.exe"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "nodejs", "node.exe"),
-                Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") ?? "", "Programs", "nodejs", "node.exe"),
-            };
-            foreach (var c in candidates)
-                if (File.Exists(c)) { McpLog.Info($"[cc] 找到 Node.js: {c}"); return c; }
-
-            McpLog.Error("[cc] 找不到 Node.js。请安装 Node.js (https://nodejs.org)");
+            McpLog.Error("[cc] 未找到 Node.js，请确保已安装并加入 PATH (https://nodejs.org)");
             return null;
         }
 
-        private static string? FindCompanionDir()
+        public static string? FindCompanionDir()
         {
             var modRoot = FindModRoot();
             if (modRoot == null) return null;

@@ -55,7 +55,7 @@ namespace RimWorldMCP
                 _helloOk = new TaskCompletionSource<bool>();
                 _state = CCClientState.Connecting;
 
-                McpLog.Info($"[cc] 正在连接 CC Companion: {wsUrl}");
+                McpLog.Info($"[cc] 正在连接 Claude Code: {wsUrl}");
                 await _ws.ConnectAsync(new Uri(wsUrl), _cts.Token);
 
                 _state = CCClientState.Connected;
@@ -74,7 +74,7 @@ namespace RimWorldMCP
                     _state = CCClientState.Ready;
                     _reconnectAttempts = 0;
                     _reconnectDelayMs = 5000;
-                    McpLog.Info("[cc] 握手完成，CC Companion 就绪");
+                    McpLog.Info("[cc] 握手完成，Claude Code 就绪");
                 }
                 else
                 {
