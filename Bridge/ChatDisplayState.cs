@@ -22,6 +22,8 @@ namespace RimWorldMCP
         public string Text = "";
         public ChatState State;
         public string RunId = "";
+        // 流式：记录上一个 delta chunk 的长度，用于 replace 场景
+        public int LastChunkLen;
     }
 
     /// <summary>线程安全的聊天状态管理器，接收 Gateway 的 "chat" / "agent" 事件</summary>
@@ -83,6 +85,7 @@ namespace RimWorldMCP
                 switch (state)
                 {
                     case "delta":
+                    {
                         if (entry == null)
                         {
                             entry = new ChatEntry
@@ -93,17 +96,47 @@ namespace RimWorldMCP
                             };
                             _entries.Add(entry);
                         }
-                        // delta 的 message.content[0].text 是合并后的全文，直接覆盖
-                        if (!string.IsNullOrEmpty(text))
+
+                        // 提取增量 deltaText（非全文），实现流式逐字追加
+                        var deltaText = payload.TryGetProperty("deltaText", out var dt)
+                            ? dt.GetString() : null;
+                        bool replace = payload.TryGetProperty("replace", out var rp)
+                            && rp.GetBoolean();
+
+                        if (!string.IsNullOrEmpty(deltaText))
+                        {
+                            if (replace)
+                            {
+                                // 替换上一段 chunk：回退后再追加
+                                if (entry.LastChunkLen > 0)
+                                    entry.Text = entry.Text.Substring(0,
+                                        entry.Text.Length - entry.LastChunkLen);
+                                entry.Text += deltaText!;
+                                entry.LastChunkLen = deltaText!.Length;
+                            }
+                            else
+                            {
+                                entry.Text += deltaText!;
+                                entry.LastChunkLen = deltaText!.Length;
+                            }
+                        }
+                        // 如果 deltaText 为空，回退到全文覆盖（兼容旧 Gateway）
+                        else if (!string.IsNullOrEmpty(text))
+                        {
                             entry.Text = text!;
+                            entry.LastChunkLen = 0;
+                        }
                         entry.State = ChatState.Streaming;
                         break;
+                    }
 
                     case "final":
+                        // 用消息全文覆盖，确保最终文本准确
                         if (entry != null)
                         {
                             if (!string.IsNullOrEmpty(text))
                                 entry.Text = text!;
+                            entry.LastChunkLen = 0;
                             entry.State = ChatState.Done;
                         }
                         else if (!string.IsNullOrEmpty(text))
