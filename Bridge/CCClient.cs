@@ -51,6 +51,7 @@ namespace RimWorldMCP
             try
             {
                 _ws = new ClientWebSocket();
+                _ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
                 _cts = new CancellationTokenSource();
                 _helloOk = new TaskCompletionSource<bool>();
                 _state = CCClientState.Connecting;
@@ -245,10 +246,9 @@ namespace RimWorldMCP
 
             var now = DateTime.UtcNow;
 
-            // 发送 ping
+            // 发送 ping（实际发送成功后才更新 _lastPing，失败可立即重试）
             if ((now - _lastPing).TotalMilliseconds > PingIntervalMs)
             {
-                _lastPing = now;
                 _ = SendPing();
             }
 
@@ -266,10 +266,11 @@ namespace RimWorldMCP
             try
             {
                 await SendJson(new { type = "ping" });
+                _lastPing = DateTime.UtcNow;
             }
             catch (Exception ex)
             {
-                McpLog.Debug($"[cc] ping 失败: {ex.Message}");
+                McpLog.Warn($"[cc] ping 失败: {ex.Message}");
             }
         }
 
