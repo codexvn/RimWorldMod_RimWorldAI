@@ -60,18 +60,6 @@ namespace RimWorldMCP
             _scrollToBottom = true;
         }
 
-        /// <summary>检查 agent 是否忙碌（正在流式输出或执行工具调用）</summary>
-        private static bool IsAgentBusy(System.Collections.Generic.List<ChatEntry> entries,
-            System.Collections.Generic.List<ToolCallInfo> toolCalls)
-        {
-            if (entries.Count > 0 && entries[entries.Count - 1].State == ChatState.Streaming)
-                return true;
-            foreach (var tc in toolCalls)
-                if (tc.Status == ToolStatus.Running)
-                    return true;
-            return false;
-        }
-
         /// <summary>发送输入框文本（先打断，延迟 500ms 后发送）</summary>
         private void TrySendInput()
         {
@@ -116,7 +104,6 @@ namespace RimWorldMCP
 
             var entries = ChatDisplayState.Snapshot;
             var toolCalls = ChatDisplayState.ToolCallsSnapshot;
-            bool agentBusy = IsAgentBusy(entries, toolCalls);
 
             float toolStripH = toolCalls.Count > 0 ? 22f : 0f; // 工具状态条
             float inputRowH = 28f;
@@ -160,11 +147,11 @@ namespace RimWorldMCP
 
             // 输入行
             float inputRowY = stripY + toolStripH + 2f;
-            DrawInputRow(inRect, inputRowY, inputRowH, agentBusy);
+            DrawInputRow(inRect, inputRowY, inputRowH);
 
-            // 底部控制栏 — 复用顶部快照，避免重复 ChatDisplayState.Snapshot 调用
+            // 底部控制栏
             float footerY = inputRowY + inputRowH + 2f;
-            DrawFooter(inRect, footerY, footerHeight, agentBusy);
+            DrawFooter(inRect, footerY, footerHeight);
         }
 
         private void DrawToolStrip(Rect inRect, float y, float h, System.Collections.Generic.List<ToolCallInfo> toolCalls)
@@ -211,7 +198,7 @@ namespace RimWorldMCP
             Text.Font = GameFont.Small;
         }
 
-        private void DrawInputRow(Rect inRect, float y, float h, bool agentBusy)
+        private void DrawInputRow(Rect inRect, float y, float h)
         {
             // 用户随时可以发送（发送时自动打断当前 agent 任务），仅断开连接时置灰
             bool canSend = GatewayClient.IsConnected;
@@ -239,7 +226,7 @@ namespace RimWorldMCP
             GUI.color = Color.white;
         }
 
-        private void DrawFooter(Rect inRect, float y, float h, bool agentBusy)
+        private void DrawFooter(Rect inRect, float y, float h)
         {
             float alphaBtnW = 24f;
             float abortBtnW = 56f;
@@ -274,16 +261,18 @@ namespace RimWorldMCP
             if (Widgets.ButtonText(clearRect, "清空"))
                 ChatDisplayState.Clear();
 
-            // 继续 — 仅在 agent 空闲时发送殖民地状态
+            // 继续 — 向 agent 发送殖民地概览（先打断再发送，与输入框逻辑一致）
             Rect continueRect = new Rect(abortX - 120f, y + 4f, 54f, h - 8f);
-            GUI.color = connected && !agentBusy ? Color.white : Color.grey;
+            GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(continueRect, "继续"))
             {
-                if (connected && !agentBusy)
+                if (connected)
                 {
                     var map = Find.CurrentMap;
                     if (map != null)
                     {
+                        if (GatewayClient.IsReady)
+                            GatewayClient.AbortAgent();
                         var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
                         var text = GatewayEventMonitor.BuildColonyOverview(map, colonists, colonists.Count);
                         _ = GatewayClient.SendMessage(text);
@@ -295,10 +284,15 @@ namespace RimWorldMCP
 
         private static void CalcEntryHeight(ChatEntry entry, float contentWidth)
         {
-            var text = (entry.Text ?? "").StripTags();
+            // 已完成的消息高度不变，流式消息只在文本增长时重算
+            var text = entry.Text ?? "";
+            if (entry.State == ChatState.Done && entry.CachedHeight > 0f) return;
+            if (entry.CachedHeight > 0f && text.Length == entry.CachedTextLen) return;
+
             float bodyWidth = contentWidth - 20f;
-            float bodyHeight = Text.CalcHeight(text, bodyWidth);
+            float bodyHeight = Text.CalcHeight(text.StripTags(), bodyWidth);
             entry.CachedHeight = 18f + Mathf.Max(bodyHeight, 10f);
+            entry.CachedTextLen = text.Length;
         }
 
         private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)

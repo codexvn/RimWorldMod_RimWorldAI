@@ -42,7 +42,6 @@ namespace RimWorldMCP
         private static TaskCompletionSource<bool>? _helloOk;
         private static int _tickIntervalMs = 30000;
         private static DateTime _lastTick = DateTime.MinValue;
-        private static string? _currentRunId;
         private static int _reconnectDelayMs = 5000;
         private static int _reconnectAttempts = 0;
         private static bool _reconnecting = false;
@@ -111,12 +110,12 @@ namespace RimWorldMCP
                 await SendJson(new { type = "ping" });
         }
 
-        /// <summary>中止当前 agent run（chat.abort sessionKey + runId），不等待响应</summary>
+        /// <summary>中止整个会话（chat.abort 仅 sessionKey），不等待响应</summary>
         public static void AbortAgent()
         {
             if (!IsReady) return;
-            _ = Request("chat.abort", new { sessionKey = SessionKey, runId = _currentRunId });
-            McpLog.Info($"[ws] → chat.abort sessionKey={SessionKey} runId={_currentRunId}");
+            _ = Request("chat.abort", new { sessionKey = SessionKey });
+            McpLog.Info($"[ws] → chat.abort sessionKey={SessionKey}");
         }
 
         // ========== 连接管理 ==========
@@ -168,7 +167,6 @@ namespace RimWorldMCP
             _shuttingDown = true;
             _cts?.Cancel();
             _state = ClientState.Disconnected;
-            _currentRunId = null;
             FlushPending(new Exception("disconnected"));
             try { _ws?.Dispose(); } catch { }
             _ws = null;
@@ -403,11 +401,7 @@ namespace RimWorldMCP
                 status = stElem.GetString() ?? "ok";
 
             if (pr.ExpectFinal && status == "accepted")
-            {
-                if (resPl.TryGetProperty("runId", out var runIdElem))
-                    _currentRunId = runIdElem.GetString();
                 return; // 跳过中间 ack，等最终响应
-            }
 
             _pending.TryRemove(id, out _);
 

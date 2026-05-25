@@ -27,6 +27,7 @@ namespace RimWorldMCP
         public int LastChunkLen;
         // 由 UI 线程每帧写入，避免重复 Text.CalcHeight
         public float CachedHeight;
+        public int CachedTextLen;
     }
 
     /// <summary>线程安全的聊天状态管理器，接收 Gateway 的 "chat" / "agent" 事件</summary>
