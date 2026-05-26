@@ -108,7 +108,15 @@ async function main(): Promise<void> {
     CONFIG.token,
     // onEvent — RimWorld 游戏事件（C# 端已格式化文本）
     (wsMessage) => {
-      const text: string = (wsMessage.payload as any)?.text || '';
+      const payload = (wsMessage.payload || {}) as Record<string, unknown>;
+      const text: string = (payload.text as string) || '';
+
+      // 提取结构化殖民地统计并直接广播给聊天页（不经 SDK 转发）
+      const colonyStats = payload.colonyStats as Record<string, unknown> | undefined;
+      if (colonyStats && (colonyStats.colonistCount !== undefined || colonyStats.avgMood !== undefined)) {
+        server.broadcast(JSON.stringify({ type: 'colony-stats', ...colonyStats }));
+      }
+
       console.log(`[event] ${wsMessage.event || 'unknown'}: ${text.substring(0, 100)}`);
       inputStream.enqueue({
         type: 'user',

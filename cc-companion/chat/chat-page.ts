@@ -1,5 +1,6 @@
 /**
  * 聊天页面 HTML 生成 — 单文件自包含，内联 CSS + JS
+ * 终端 / 面板风格 UI
  */
 
 export interface ChatPageConfig {
@@ -18,363 +19,337 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RimWorld AI 助手</title>
+<title>RimWorld Bridge Agent</title>
 <style>
   /* ===== CSS Variables ===== */
   :root {
-    --bg: #12141a;
-    --bg-soft: #181b22;
-    --card: #1e2028;
-    --card-hover: #262a35;
+    --bg: #0d0f14;
+    --card: #151820;
+    --surface: #1a1e2a;
     --text: #e4e4e7;
     --text-strong: #fafafa;
     --muted: #71717a;
     --border: #27272a;
-    --border-strong: #3f3f46;
     --accent: #ff5c5c;
-    --accent-subtle: rgba(255,92,92,0.12);
-    --secondary: #1a1c23;
-    --ok: #22c55e;
-    --ok-muted: rgba(34,197,94,0.75);
-    --warn: #f59e0b;
-    --danger: #ef4444;
-    --info: #3b82f6;
-    --info-bg: rgba(59,130,246,0.12);
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --cyan: #22d3ee;
     --mono: "Cascadia Code","Fira Code","Consolas",monospace;
     --font: system-ui,-apple-system,"Microsoft YaHei","Segoe UI",sans-serif;
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-full: 9999px;
+    --radius: 6px;
     color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); }
   body {
-    font-family: var(--font);
-    background: var(--bg); color: var(--text);
+    font-family: var(--font); color: var(--text);
     display: flex; flex-direction: column;
   }
   #app {
     display: flex; flex-direction: column;
-    height: 100vh; max-width: 960px; margin: 0 auto; width: 100%;
+    height: 100vh; max-width: 900px; margin: 0 auto; width: 100%;
   }
 
-  /* ===== Global Scrollbar ===== */
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-full); }
-  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  /* ===== Header ===== */
-  header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 16px; background: var(--bg-soft);
+  /* ===== Top Header ===== */
+  #top-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--card);
     border-bottom: 1px solid var(--border);
-    flex-shrink: 0; position: relative;
+    flex-shrink: 0;
   }
-  header h1 { font-size: 15px; font-weight: 600; color: var(--text-strong); flex: 1; }
-  .status-dot {
-    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
+  #top-bar h1 { font-size: 14px; font-weight: 600; color: var(--text-strong); font-family: var(--mono); }
+  #top-bar .colony-info { margin-left: auto; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  #status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
   }
-  .status-dot.connected { background: var(--ok); box-shadow: 0 0 8px var(--ok-muted); }
-  .status-dot.connecting {
-    background: var(--warn); box-shadow: 0 0 8px rgba(245,158,11,0.66);
-    animation: dot-pulse 1s infinite;
-  }
-  .status-dot.disconnected { background: var(--danger); box-shadow: 0 0 8px rgba(239,68,68,0.66); }
-  @keyframes dot-pulse {
-    0%,100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.15); }
-  }
-  #status-text { font-size: 13px; color: var(--muted); }
+  #status-dot.connected { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+  #status-dot.connecting { background: var(--amber); animation: blink 1s infinite; }
+  #status-dot.disconnected { background: var(--red); }
+  @keyframes blink { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-  /* ===== Info button & panel ===== */
   #info-btn {
     background: none; border: 1px solid var(--border); color: var(--muted);
-    border-radius: 4px; padding: 2px 8px; cursor: pointer;
-    font-size: 13px; transition: background 0.2s, color 0.2s;
+    border-radius: 3px; padding: 1px 6px; cursor: pointer;
+    font-size: 12px; font-family: var(--mono); transition: background 0.2s;
   }
-  #info-btn:hover { background: var(--card-hover); color: var(--accent); }
+  #info-btn:hover { background: var(--surface); color: var(--text); }
 
+  /* ===== Stats Bar ===== */
+  #stats-bar {
+    display: flex; align-items: center; gap: 0;
+    padding: 6px 16px; background: var(--card);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0; font-family: var(--mono); font-size: 12px;
+    min-height: 32px; display: none;
+  }
+  #stats-bar .stat + .stat::before {
+    content: "|"; margin: 0 10px; color: var(--border); opacity: 0.5;
+  }
+  #stats-bar .stat-label { color: var(--muted); margin-right: 4px; }
+  #stats-bar .stat-value { color: var(--text); }
+  #stats-bar .stat-value.danger { color: var(--red); }
+  #stats-bar .stat-value.warning { color: var(--amber); }
+  #stats-bar .stat-value.ok { color: var(--green); }
+
+  /* ===== Info Overlay ===== */
   #info-overlay {
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 100; background: rgba(0,0,0,0.5);
   }
   #info-panel {
     position: absolute; top: 52px; left: 16px; right: 16px;
-    background: var(--card); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md); padding: 16px;
-    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.3));
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     max-width: 600px;
   }
   #info-close {
     float: right; background: none; border: none; color: var(--muted);
-    cursor: pointer; font-size: 18px; line-height: 1;
+    cursor: pointer; font-size: 16px; line-height: 1;
   }
-  #info-close:hover { color: var(--danger); }
-  #info-panel h2 { font-size: 14px; color: var(--accent); margin-bottom: 10px; }
-  .info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #info-close:hover { color: var(--red); }
+  #info-panel h2 { font-size: 13px; color: var(--cyan); margin-bottom: 8px; }
+  .info-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .info-table th, .info-table td {
-    text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border);
+    text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border);
   }
-  .info-table th { color: var(--muted); width: 80px; font-weight: 400; }
-  .info-table td { color: var(--text); word-break: break-all; }
+  .info-table th { color: var(--muted); width: 70px; font-weight: 400; }
+  .info-table td { color: var(--text); word-break: break-all; font-family: var(--mono); }
 
   /* ===== Message Thread ===== */
   #messages {
-    flex: 1; overflow-y: auto; padding: 16px 12px;
-    display: flex; flex-direction: column; gap: 4px;
+    flex: 1; overflow-y: auto; padding: 12px;
+    display: flex; flex-direction: column; gap: 6px;
     scroll-behavior: smooth;
   }
 
-  /* ===== Message Groups ===== */
-  .chat-group {
-    display: flex; gap: 10px; align-items: flex-start;
-    margin-bottom: 2px;
+  /* ===== Panels ===== */
+  .chat-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    overflow: hidden;
+    animation: panel-in 180ms ease-out both;
   }
-  .chat-group.user { flex-direction: row-reverse; }
-
-  .chat-avatar {
-    width: 34px; height: 34px; border-radius: var(--radius-md);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; font-size: 13px; font-weight: 600;
-    margin-top: 2px; user-select: none;
-  }
-  .chat-avatar.assistant {
-    background: var(--secondary); color: var(--accent); border: 1px solid var(--border);
-  }
-  .chat-avatar.user {
-    background: var(--accent-subtle); color: var(--accent); border: 1px solid transparent;
-  }
-  .chat-avatar.system {
-    background: var(--secondary); color: var(--info); border: 1px solid var(--border);
-  }
-
-  .chat-group-messages {
-    display: flex; flex-direction: column; gap: 2px;
-    max-width: 85%; min-width: 0;
-  }
-  .chat-group.user .chat-group-messages { align-items: flex-end; }
-
-  .chat-group-footer {
-    display: flex; gap: 6px; margin-top: 2px;
-    font-size: 11px; color: var(--muted); padding: 0 2px;
-  }
-  .chat-group.user .chat-group-footer { justify-content: flex-end; }
-  .chat-group-footer__name { font-weight: 500; }
-  .chat-group-footer__time { opacity: 0.7; }
-
-  /* ===== Chat Bubbles ===== */
-  .chat-bubble {
-    display: inline-block; max-width: 100%;
-    padding: 8px 12px; border-radius: var(--radius-lg);
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--text); font-size: 14px; line-height: 1.55;
-    word-wrap: break-word; white-space: pre-wrap;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .chat-group.user .chat-bubble {
-    background: var(--accent-subtle);
-    border-color: transparent;
-  }
-  .chat-bubble.fade-in {
-    animation: chat-fade-in 200ms ease-out both;
-  }
-  .chat-bubble.streaming {
-    animation: chat-pulse-border 1.5s ease-out infinite;
-  }
-
-  @keyframes chat-fade-in {
-    from { opacity: 0; transform: translateY(4px); }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(3px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  @keyframes chat-pulse-border {
-    0%,100% { border-color: var(--border); }
-    50% { border-color: var(--accent); }
+
+  /* USER panels — blue left accent */
+  .chat-panel.user {
+    border-left: 3px solid var(--blue);
+    margin-left: 24px;
+  }
+  .chat-panel.user .panel-header {
+    background: rgba(59,130,246,0.08);
+    color: var(--blue);
   }
 
-  /* ===== Tool Cards ===== */
-  .chat-tool-card {
-    border: 1px solid var(--border); border-radius: var(--radius-md);
-    margin-top: 6px; background: var(--secondary);
-    cursor: pointer; overflow: hidden; max-height: 120px;
-    transition: max-height 0.25s ease, border-color 0.2s;
+  /* AGENT panels — green left accent */
+  .chat-panel.agent {
+    border-left: 3px solid var(--green);
+    margin-right: 24px;
   }
-  .chat-tool-card:hover { border-color: var(--border-strong); }
-  .chat-tool-card.expanded { max-height: none; }
+  .chat-panel.agent .panel-header {
+    background: rgba(34,197,94,0.08);
+    color: var(--green);
+  }
 
-  .chat-tool-card__header {
+  /* Sub-agent panels — cyan left accent */
+  .chat-panel.agent.sub-agent {
+    border-left-color: var(--cyan);
+  }
+  .chat-panel.agent.sub-agent .panel-header {
+    background: rgba(34,211,238,0.08);
+    color: var(--cyan);
+  }
+
+  /* TOOL panels — amber left accent */
+  .chat-panel.tool {
+    border-left: 3px solid var(--amber);
+    margin: 0 24px;
+    border-style: dashed;
+  }
+  .chat-panel.tool .panel-header {
+    background: rgba(245,158,11,0.06);
+    color: var(--amber);
+  }
+  .chat-panel.tool .panel-header .tool-timing {
+    margin-left: auto; font-size: 11px; color: var(--green);
+  }
+  .chat-panel.tool .panel-header .tool-timing.error { color: var(--red); }
+  .chat-panel.tool .panel-header .tool-name { font-weight: 600; font-family: var(--mono); font-size: 13px; }
+  .chat-panel.tool .panel-body { padding: 6px 10px; font-family: var(--mono); font-size: 12px; }
+
+  .panel-header {
     display: flex; align-items: center; gap: 6px;
-    padding: 8px 10px; font-size: 13px; font-weight: 600;
+    padding: 5px 10px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
   }
-  .chat-tool-card__icon { flex-shrink: 0; font-size: 14px; }
-  .chat-tool-card__name { flex: 1; color: var(--text-strong); }
-  .chat-tool-card__expand { font-size: 11px; color: var(--muted); }
+  .panel-header .role-tag {
+    font-family: var(--mono); text-transform: uppercase;
+  }
+  .panel-body {
+    padding: 8px 10px; font-size: 14px; line-height: 1.6;
+    word-wrap: break-word; white-space: pre-wrap;
+  }
 
-  .chat-tool-card__detail {
-    padding: 0 10px 4px;
-    font-size: 12px; color: var(--muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  /* ===== Tool Output ===== */
+  .tool-output { padding: 4px 0; }
+  .tool-output .kv { display: flex; gap: 8px; }
+  .tool-output .kv-key { color: var(--muted); min-width: 80px; }
+  .tool-output .kv-val { color: var(--text); }
+  .tool-output .list-item { padding-left: 8px; }
+  .tool-output .list-item::before { content: "\\2022"; color: var(--muted); margin-right: 6px; }
+  .tool-output .section-title { color: var(--amber); font-weight: 600; margin: 4px 0 2px; }
 
-  .chat-tool-card__output {
-    padding: 6px 10px 8px;
-    font-family: var(--mono); font-size: 11px;
-    color: var(--text); white-space: pre-wrap; word-break: break-word;
+  .tool-output-wrap {
+    max-height: 200px; overflow: hidden; position: relative;
+    transition: max-height 0.2s ease;
   }
-  .chat-tool-card__output.inline {
-    max-height: none;
-  }
-  .chat-tool-card__output.truncated {
-    max-height: 44px; overflow: hidden;
-    position: relative;
-  }
-  .chat-tool-card__output.truncated::after {
+  .tool-output-wrap.expanded { max-height: none; }
+  .tool-output-wrap.collapsed::after {
     content: ""; position: absolute; bottom: 0; left: 0; right: 0;
-    height: 16px;
-    background: linear-gradient(to bottom, transparent, var(--secondary));
+    height: 24px;
+    background: linear-gradient(to bottom, transparent, var(--card));
     pointer-events: none;
   }
-
-  .chat-tool-card__status {
-    padding: 4px 10px 8px; font-size: 11px;
+  .tool-expand-btn {
+    display: block; width: 100%; padding: 3px;
+    background: var(--surface); border: none; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; cursor: pointer;
+    font-family: var(--mono); transition: color 0.15s;
   }
-  .chat-tool-card__status.done { color: var(--ok); }
-  .chat-tool-card__status.pending { color: var(--muted); }
-  .chat-tool-card__status.error { color: var(--danger); }
+  .tool-expand-btn:hover { color: var(--text); background: var(--card); }
 
-  /* ===== Reading Indicator ===== */
-  .chat-reading {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 12px 16px; border-radius: var(--radius-lg);
-    background: var(--card); border: 1px solid var(--border);
-  }
-  .chat-reading__dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--muted);
-    animation: reading-bounce 1.4s ease-in-out infinite both;
-  }
-  .chat-reading__dot:nth-child(1) { animation-delay: 0s; }
-  .chat-reading__dot:nth-child(2) { animation-delay: 0.2s; }
-  .chat-reading__dot:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes reading-bounce {
-    0%,60%,100% { opacity: 0.3; transform: scale(0.8); }
-    30% { opacity: 1; transform: scale(1); }
-  }
-
-  /* ===== Divider (result / compaction) ===== */
+  /* ===== Divider (result) ===== */
   .chat-divider {
-    display: flex; align-items: center; gap: 10px;
-    margin: 12px 8px;
+    display: flex; align-items: center; gap: 8px;
+    margin: 4px 16px;
   }
   .chat-divider__line { flex: 1; height: 1px; background: var(--border); }
   .chat-divider__label {
-    padding: 3px 12px; border-radius: var(--radius-full);
+    padding: 2px 10px; border-radius: 3px;
     border: 1px solid var(--border);
-    font-size: 11px; color: var(--muted); white-space: nowrap;
-    user-select: none;
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+    user-select: none; white-space: nowrap;
   }
-  .chat-divider__label.ok {
-    border-color: var(--ok-muted); color: var(--ok);
-    background: rgba(34,197,94,0.08);
+  .chat-divider__label.ok { border-color: rgba(34,197,94,0.3); color: var(--green); }
+  .chat-divider__label.error { border-color: rgba(239,68,68,0.3); color: var(--red); }
+  .chat-divider__label.warn { border-color: rgba(245,158,11,0.3); color: var(--amber); }
+
+  /* ===== System message ===== */
+  .chat-system {
+    text-align: center; font-size: 12px; color: var(--muted);
+    padding: 4px 8px; font-family: var(--mono); user-select: none;
   }
-  .chat-divider__label.error {
-    border-color: rgba(239,68,68,0.5); color: var(--danger);
-    background: rgba(239,68,68,0.08);
+
+  /* ===== Reading Indicator (terminal style) ===== */
+  .chat-reading {
+    display: flex; align-items: center;
+    padding: 8px 10px; margin: 0 24px; gap: 4px;
+    font-family: var(--mono); font-size: 14px; color: var(--green);
   }
-  .chat-divider__label.warn {
-    border-color: rgba(245,158,11,0.5); color: var(--warn);
-    background: rgba(245,158,11,0.08);
+  .chat-reading .prompt { color: var(--green); }
+  .chat-reading .cursor {
+    display: inline-block; width: 8px; height: 16px;
+    background: var(--green);
+    animation: cursor-blink 1s step-end infinite;
+    vertical-align: text-bottom;
   }
+  @keyframes cursor-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 
   /* ===== New Messages Pill ===== */
   #new-msg-pill {
     display: none; align-self: center;
     align-items: center; gap: 4px;
-    padding: 5px 14px; font-size: 12px; cursor: pointer;
-    color: var(--text); background: var(--card);
-    border: 1px solid var(--border); border-radius: var(--radius-full);
-    margin: 4px auto; transition: border-color 0.2s; z-index: 10;
+    padding: 4px 12px; font-size: 11px; cursor: pointer;
+    color: var(--muted); background: var(--card);
+    border: 1px solid var(--border); border-radius: 3px;
+    margin: 2px auto; font-family: var(--mono);
+    transition: border-color 0.2s; z-index: 10;
   }
-  #new-msg-pill:hover { border-color: var(--accent); }
+  #new-msg-pill:hover { border-color: var(--text); color: var(--text); }
 
   /* ===== Compose Area ===== */
   .chat-compose {
-    position: sticky; bottom: 0; flex-shrink: 0;
-    display: flex; flex-direction: column;
-    padding: 16px 16px 12px; gap: 8px;
-    background: linear-gradient(to bottom, transparent, var(--bg) 25%);
-    z-index: 10;
+    flex-shrink: 0; display: flex; align-items: center;
+    padding: 8px 12px; background: var(--card);
+    border-top: 1px solid var(--border); gap: 0;
   }
-  .chat-compose__row {
-    display: flex; gap: 8px; align-items: flex-end;
+  .chat-compose .prompt {
+    font-family: var(--mono); font-size: 14px; color: var(--green);
+    margin-right: 6px; user-select: none; flex-shrink: 0;
   }
   #chat-input {
-    flex: 1; resize: none; overflow-y: auto;
-    padding: 10px 12px; border-radius: var(--radius-md);
-    background: var(--card); color: var(--text);
-    border: 1px solid var(--border); outline: none;
-    font-family: var(--font); font-size: 14px; line-height: 1.5;
-    min-height: 40px; max-height: 150px;
-    transition: border-color 0.2s;
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-family: var(--mono); font-size: 14px;
+    line-height: 1.5; padding: 4px 0;
+    min-height: 24px; max-height: 150px; resize: none;
   }
-  #chat-input:focus { border-color: var(--accent); }
   #chat-input::placeholder { color: var(--muted); }
   #send-btn {
-    padding: 10px 18px; border-radius: var(--radius-md); border: none;
-    background: var(--accent); color: #fff; font-size: 14px;
-    cursor: pointer; transition: opacity 0.2s;
-    white-space: nowrap; align-self: flex-end;
-    display: flex; align-items: center; gap: 4px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; color: var(--muted); cursor: pointer;
+    padding: 4px 10px; font-size: 12px; font-family: var(--mono);
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
   }
-  #send-btn:hover { opacity: 0.85; }
-  #send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  #send-btn kbd {
-    display: inline-block; padding: 1px 5px; margin-left: 2px;
-    font-family: var(--mono); font-size: 11px;
-    border-radius: 3px;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.15);
-    vertical-align: middle;
-  }
+  #send-btn:hover:not(:disabled) { background: var(--border); color: var(--text); }
+  #send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <span class="status-dot disconnected" id="status-dot"></span>
-    <span id="status-text">未连接</span>
-    <h1>RimWorld AI 助手</h1>
-    <button id="info-btn">ℹ️</button>
-  </header>
+  <!-- Top Header -->
+  <div id="top-bar">
+    <span id="status-dot" class="disconnected"></span>
+    <h1>RimWorld Bridge Agent</h1>
+    <span class="colony-info" id="colony-info">Colony: --</span>
+    <button id="info-btn">i</button>
+  </div>
 
-  <!-- Info panel overlay -->
+  <!-- Stats Bar -->
+  <div id="stats-bar">
+    <span class="stat"><span class="stat-label">Pawns:</span><span class="stat-value" id="stat-pawns">--</span></span>
+    <span class="stat"><span class="stat-label">Mood:</span><span class="stat-value" id="stat-mood">--</span></span>
+    <span class="stat"><span class="stat-label">Food:</span><span class="stat-value" id="stat-food">--</span></span>
+  </div>
+
+  <!-- Info Overlay -->
   <div id="info-overlay">
     <div id="info-panel">
       <button id="info-close">&times;</button>
       <h2>SDK 信息</h2>
       <table class="info-table">
-        <tr><th>模型</th><td><span id="info-model">${modelName}</span></td></tr>
-        <tr><th>认证</th><td><span id="info-key-source">-</span></td></tr>
-        <tr><th>目录</th><td><span id="info-cwd">${projectPath}</span></td></tr>
-        <tr><th>版本</th><td><span id="info-version">-</span></td></tr>
-        <tr><th>会话</th><td><span id="info-session">-</span></td></tr>
-        <tr><th>权限</th><td><span id="info-permission">-</span></td></tr>
+        <tr><th>Model</th><td><span id="info-model">${modelName}</span></td></tr>
+        <tr><th>Project</th><td>${projectPath}</td></tr>
+        <tr><th>Session</th><td><span id="info-session">-</span></td></tr>
+        <tr><th>Version</th><td><span id="info-version">-</span></td></tr>
+        <tr><th>Permission</th><td><span id="info-permission">-</span></td></tr>
       </table>
     </div>
   </div>
 
   <div id="messages"></div>
   <button id="new-msg-pill" onclick="scrollToBottom()">↓ 回到底部</button>
+
+  <!-- Compose -->
   <div class="chat-compose">
-    <div class="chat-compose__row">
-      <textarea id="chat-input" placeholder="输入消息..." rows="1"></textarea>
-      <button id="send-btn" disabled>发送<kbd>↵</kbd></button>
-    </div>
+    <span class="prompt">&gt;</span>
+    <textarea id="chat-input" placeholder="输入消息..." rows="1"></textarea>
+    <button id="send-btn" disabled>Send</button>
   </div>
 </div>
 <script>
@@ -387,8 +362,14 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   const inputEl = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
   const statusDot = document.getElementById('status-dot');
-  const statusText = document.getElementById('status-text');
+  const colonyInfo = document.getElementById('colony-info');
   const newMsgPill = document.getElementById('new-msg-pill');
+
+  // Stats bar
+  const statsBar = document.getElementById('stats-bar');
+  const statPawns = document.getElementById('stat-pawns');
+  const statMood = document.getElementById('stat-mood');
+  const statFood = document.getElementById('stat-food');
 
   // Info panel
   const infoOverlay = document.getElementById('info-overlay');
@@ -406,17 +387,17 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   let reconnectDelay = RECONNECT_BASE;
   let connected = false;
 
-  // ===== Message Group State =====
-  let lastRole = null;
-  let currentGroupEl = null;
-  let awaitingResponse = false;
-  let readingIndicatorEl = null;
-  let streamingTimer = null;
+  // Tool timing
+  var toolStartTimes = {};
+
+  // Reading indicator state
+  var readingEl = null;
+  var awaitingResponse = false;
 
   // ===== WebSocket =====
   function connect() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-    setStatus('connecting', '连接中...');
+    setStatus('connecting');
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = protocol + '//' + location.host;
     ws = new WebSocket(url);
@@ -437,9 +418,9 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
     ws.onclose = () => {
       connected = false;
-      setStatus('disconnected', '已断开');
+      setStatus('disconnected');
       sendBtn.disabled = true;
-      hideReadingIndicator();
+      hideReading();
       scheduleReconnect();
     };
 
@@ -457,9 +438,29 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     }, reconnectDelay);
   }
 
-  function setStatus(state, text) {
-    statusDot.className = 'status-dot ' + state;
-    statusText.textContent = text;
+  function setStatus(state) {
+    statusDot.className = state;
+  }
+
+  // ===== Colony Stats =====
+  function updateColonyStats(data) {
+    if (data.colonyName) {
+      colonyInfo.textContent = 'Colony: ' + data.colonyName;
+    }
+    if (data.colonistCount !== undefined) {
+      statPawns.textContent = data.colonistCount;
+    }
+    if (data.avgMood !== undefined) {
+      var mood = Number(data.avgMood);
+      statMood.textContent = mood + '%';
+      statMood.className = 'stat-value' + (mood < 30 ? ' danger' : mood < 50 ? ' warning' : ' ok');
+    }
+    if (data.foodDays !== undefined) {
+      var fd = Number(data.foodDays);
+      statFood.textContent = fd + 'd';
+      statFood.className = 'stat-value' + (fd < 1 ? ' danger' : fd < 3 ? ' warning' : ' ok');
+    }
+    statsBar.style.display = 'flex';
   }
 
   // ===== Message handling =====
@@ -467,19 +468,22 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     switch (msg.type) {
       case 'hello-ok':
         connected = true;
-        setStatus('connected', '已连接');
+        setStatus('connected');
         sendBtn.disabled = false;
-        hideReadingIndicator();
+        hideReading();
+        break;
+
+      case 'colony-stats':
+        updateColonyStats(msg);
         break;
 
       case 'assistant':
       case 'user': {
         const isAssistant = msg.type === 'assistant';
-        const roleLabel = isAssistant ? 'AI' : '事件';
         const content = msg.message?.content;
         if (!content) return;
-        if (isAssistant) hideReadingIndicator();
-        addMessage(isAssistant ? 'assistant' : 'user', roleLabel, content);
+        if (isAssistant) hideReading();
+        addMessage(isAssistant, content, msg.agent_type);
         break;
       }
 
@@ -490,12 +494,11 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
       case 'result': {
         const sub = msg.subtype || 'unknown';
-        const label = sub === 'success' ? '✓ 执行成功'
-                     : sub === 'aborted' ? '⏹ 已中断'
-                     : '✗ 执行失败';
+        const label = sub === 'success' ? '✓ Done'
+                     : sub === 'aborted' ? '⏹ Aborted'
+                     : '✗ Failed';
         const cls = sub === 'success' ? 'ok' : sub === 'aborted' ? 'warn' : 'error';
-        hideReadingIndicator();
-        finalizeCurrentGroup(null);
+        hideReading();
         addResult(cls, label);
         break;
       }
@@ -507,280 +510,172 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     el = document.getElementById('info-model'); if (el) el.textContent = msg.model || '?';
     el = document.getElementById('info-version'); if (el) el.textContent = msg.claude_code_version || '?';
     el = document.getElementById('info-session'); if (el) el.textContent = msg.session_id || '?';
-    el = document.getElementById('info-cwd'); if (el) el.textContent = msg.cwd || '?';
     el = document.getElementById('info-permission'); if (el) el.textContent = msg.permissionMode || '?';
-    el = document.getElementById('info-key-source'); if (el) el.textContent = msg.apiKeySource || '?';
-    if (msg.mcp_servers) {
-      msg.mcp_servers.forEach(function(s) {
-        var span = document.querySelector('.mcp-status[data-name="' + s.name.replace(/"/g, '') + '"]');
-        if (span) span.textContent = s.status;
-      });
-    }
   }
 
-  // ===== Utils =====
-  function formatTime(d) {
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  }
-
-  function getAvatarText(role) {
-    if (role === 'assistant') return 'AI';
-    if (role === 'user') return '你';
-    return '系';
-  }
-
-  function getGroupName(role) {
-    if (role === 'assistant') return 'AI';
-    if (role === 'user') return '你';
-    return '系统';
-  }
-
-  // ===== Group Management =====
-  function finalizeCurrentGroup(newRole) {
-    if (!currentGroupEl) return;
-    var tsEl = currentGroupEl.querySelector('.chat-group-footer__time');
-    if (tsEl) tsEl.textContent = formatTime(new Date());
-    currentGroupEl = null;
-  }
-
-  function openNewGroup(role) {
-    var group = document.createElement('div');
-    group.className = 'chat-group' + (role === 'user' ? ' user' : '');
-
-    var avatar = document.createElement('div');
-    avatar.className = 'chat-avatar ' + role;
-    avatar.textContent = getAvatarText(role);
-
-    var col = document.createElement('div');
-    col.className = 'chat-group-messages';
-
-    var footer = document.createElement('div');
-    footer.className = 'chat-group-footer';
-    footer.innerHTML = '<span class="chat-group-footer__name">' + getGroupName(role) + '</span>'
-      + '<span class="chat-group-footer__time">' + formatTime(new Date()) + '</span>';
-
-    col.appendChild(footer);
-
-    group.appendChild(avatar);
-    group.appendChild(col);
-
-    messagesEl.appendChild(group);
-    currentGroupEl = group;
-  }
-
-  // ===== Tool Card =====
-  function createToolCard(block) {
-    var card = document.createElement('div');
-    card.className = 'chat-tool-card';
+  // ===== Panel Factory =====
+  function createPanel(role, opts) {
+    opts = opts || {};
+    var panel = document.createElement('div');
+    panel.className = 'chat-panel ' + role;
 
     var header = document.createElement('div');
-    header.className = 'chat-tool-card__header';
+    header.className = 'panel-header';
 
-    var icon = document.createElement('span');
-    icon.className = 'chat-tool-card__icon';
-    icon.textContent = block.type === 'tool_result' ? '📋' : '🔧';
-    header.appendChild(icon);
+    var tag = document.createElement('span');
+    tag.className = 'role-tag';
+    tag.textContent = opts.title || (role === 'user' ? 'USER' : role === 'tool' ? 'TOOL' : 'AGENT');
+    header.appendChild(tag);
 
-    var name = document.createElement('span');
-    name.className = 'chat-tool-card__name';
-    name.textContent = block.name || (block.type === 'tool_result' ? '工具结果' : '工具调用');
-    header.appendChild(name);
-
-    var expandHint = document.createElement('span');
-    expandHint.className = 'chat-tool-card__expand';
-    expandHint.textContent = '展开';
-    header.appendChild(expandHint);
-
-    card.appendChild(header);
-
-    // Detail line: first arg or summary
-    if (block.input) {
-      var keys = Object.keys(block.input);
-      if (keys.length > 0) {
-        var detail = document.createElement('div');
-        detail.className = 'chat-tool-card__detail';
-        detail.textContent = keys[0] + ': ' + String(block.input[keys[0]]).slice(0, 80);
-        card.appendChild(detail);
-      }
+    if (opts.subtitle) {
+      var sub = document.createElement('span');
+      sub.className = 'tool-name';
+      sub.textContent = opts.subtitle;
+      header.appendChild(sub);
     }
 
-    // Output section
-    var output = document.createElement('div');
-    output.className = 'chat-tool-card__output';
-
-    if (block.type === 'tool_result') {
-      var content = '';
-      if (typeof block.content === 'string') {
-        content = block.content;
-      } else if (Array.isArray(block.content)) {
-        content = block.content.map(function(c) { return c.text || ''; }).join('\n');
-      } else if (block.content) {
-        try { content = JSON.stringify(block.content, null, 2); } catch { content = String(block.content); }
-      }
-
-      if (content.length > 80) {
-        output.className += ' truncated';
-        output.textContent = content.slice(0, 100) + '...';
-        card.classList.add('has-long-output');
-        card.addEventListener('click', function() {
-          card.classList.toggle('expanded');
-          var isExp = card.classList.contains('expanded');
-          expandHint.textContent = isExp ? '收起' : '展开';
-          var out = card.querySelector('.chat-tool-card__output');
-          if (out) {
-            out.className = 'chat-tool-card__output' + (isExp ? '' : ' truncated');
-            if (isExp) { out.textContent = content; }
-            else { out.textContent = content.slice(0, 100) + '...'; }
-          }
-        });
-      } else {
-        output.className += ' inline';
-        output.textContent = content || '(空)';
-      }
-
-      var status = document.createElement('div');
-      status.className = 'chat-tool-card__status done';
-      status.textContent = block.isError ? '✗ 执行失败' : '✓ 已完成';
-      card.appendChild(status);
-    } else {
-      // tool_use — show args as JSON
-      var argsStr = '';
-      try { argsStr = JSON.stringify(block.input, null, 2); } catch { argsStr = String(block.input || ''); }
-      if (argsStr.length > 80) {
-        output.className += ' truncated';
-        output.textContent = argsStr.slice(0, 100) + '...';
-        card.classList.add('has-long-output');
-        card.addEventListener('click', function() {
-          card.classList.toggle('expanded');
-          var isExp = card.classList.contains('expanded');
-          expandHint.textContent = isExp ? '收起' : '展开';
-          var out = card.querySelector('.chat-tool-card__output');
-          if (out) {
-            out.className = 'chat-tool-card__output' + (isExp ? '' : ' truncated');
-            if (isExp) out.textContent = argsStr;
-            else out.textContent = argsStr.slice(0, 100) + '...';
-          }
-        });
-      } else {
-        output.className += ' inline';
-        output.textContent = argsStr || '(无参数)';
-      }
-
-      var status = document.createElement('div');
-      status.className = 'chat-tool-card__status pending';
-      status.textContent = '⏳ 等待执行...';
-      card.appendChild(status);
+    if (opts.timing) {
+      var timing = document.createElement('span');
+      timing.className = 'tool-timing' + (opts.timingError ? ' error' : '');
+      timing.textContent = '\\u2713 ' + opts.timing + 'ms';
+      header.appendChild(timing);
     }
 
-    card.appendChild(output);
-    return card;
+    panel.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'panel-body';
+    panel.appendChild(body);
+
+    messagesEl.appendChild(panel);
+    checkScroll();
+    return { panel: panel, body: body };
   }
 
-  // ===== Bubble Builder =====
-  function buildBubbles(type, content) {
-    var bubbles = [];
+  // ===== Tool Panel =====
+  function renderToolPanel(block, timing) {
+    var isResult = block.type === 'tool_result';
+    var opt = { title: 'TOOL', subtitle: block.name || '?' };
+
+    if (isResult && timing !== undefined && timing !== null) {
+      opt.timing = timing;
+      opt.timingError = block.isError;
+    }
+
+    var p = createPanel('tool', opt);
+    var body = p.body;
+    body.style.padding = '6px 10px';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'tool-output-wrap collapsed';
+
+    var out = document.createElement('div');
+    out.className = 'tool-output';
+
+    if (isResult) {
+      // Extract content string
+      var content = '';
+      if (typeof block.content === 'string') content = block.content;
+      else if (Array.isArray(block.content)) content = block.content.map(function(c) { return c.text || ''; }).join('\\n');
+      else if (block.content) { try { content = JSON.stringify(block.content, null, 2); } catch { content = String(block.content); } }
+
+      if (block.isError) {
+        var errDiv = document.createElement('div');
+        errDiv.style.color = 'var(--red)';
+        errDiv.textContent = content || 'Error';
+        out.appendChild(errDiv);
+      } else if (content.length > 120) {
+        // Long output — truncated with expand
+        var textDiv = document.createElement('div');
+        textDiv.textContent = content;
+        out.appendChild(textDiv);
+        wrap.classList.add('has-expand');
+        wrap.dataset.full = content;
+      } else {
+        var textDiv = document.createElement('div');
+        textDiv.textContent = content || '(empty)';
+        out.appendChild(textDiv);
+      }
+    } else {
+      // tool_use — show args
+      if (block.input) {
+        var argsStr = '';
+        try { argsStr = JSON.stringify(block.input, null, 2); } catch { argsStr = String(block.input || ''); }
+        var argsDiv = document.createElement('div');
+        argsDiv.textContent = argsStr || '(no args)';
+        out.appendChild(argsDiv);
+      }
+    }
+
+    wrap.appendChild(out);
+    body.appendChild(wrap);
+
+    // Expand button for long output
+    if (wrap.classList.contains('has-expand')) {
+      var btn = document.createElement('button');
+      btn.className = 'tool-expand-btn';
+      btn.textContent = '... show more';
+      btn.addEventListener('click', function() {
+        var isExp = wrap.classList.toggle('expanded');
+        btn.textContent = isExp ? 'show less' : '... show more';
+        if (isExp && wrap.dataset.full) {
+          out.textContent = wrap.dataset.full;
+        }
+      });
+      body.appendChild(btn);
+    }
+
+    return p;
+  }
+
+  // ===== Add Message =====
+  function addMessage(isAssistant, content, agentType) {
+    var role = isAssistant ? 'agent' : 'user';
+
+    // Group: consecutive same-role messages append content
+    var lastPanel = messagesEl.lastElementChild;
+    var sameRole = lastPanel && lastPanel.classList.contains('chat-panel') && lastPanel.classList.contains(role)
+      && role === 'agent' && !agentType;
+
+    if (!sameRole) {
+      var opts = { title: role === 'user' ? 'USER' : 'AGENT' };
+      if (isAssistant && agentType) {
+        opts.title = agentType.toUpperCase();
+      }
+      createPanel(role, opts);
+      lastPanel = messagesEl.lastElementChild;
+    }
+
+    var body = lastPanel.querySelector('.panel-body');
 
     if (typeof content === 'string') {
-      var bubble = document.createElement('div');
-      bubble.className = 'chat-bubble fade-in';
-      bubble.textContent = content;
-      bubbles.push(bubble);
+      var textDiv = document.createElement('div');
+      textDiv.textContent = content;
+      body.appendChild(textDiv);
     } else if (Array.isArray(content)) {
-      var textParts = [];
-      var hasToolBlock = false;
-
       for (var i = 0; i < content.length; i++) {
         var block = content[i];
         if (block.type === 'text') {
-          textParts.push(block.text || '');
-        } else if (block.type === 'tool_use' || block.type === 'tool_result') {
-          hasToolBlock = true;
-          // Flush accumulated text first
-          if (textParts.length > 0) {
-            var bubble = document.createElement('div');
-            bubble.className = 'chat-bubble fade-in';
-            bubble.textContent = textParts.join('\n');
-            bubbles.push(bubble);
-            textParts = [];
+          var textDiv = document.createElement('div');
+          textDiv.textContent = block.text || '';
+          body.appendChild(textDiv);
+        } else if (block.type === 'tool_use') {
+          var tid = block.id;
+          toolStartTimes[tid] = Date.now();
+          renderToolPanel(block, null);
+          // Reset panel target — tool panels are separate
+          lastPanel = null;
+        } else if (block.type === 'tool_result') {
+          var tid = block.id;
+          var elapsed = null;
+          if (tid && toolStartTimes[tid] !== undefined) {
+            elapsed = Date.now() - toolStartTimes[tid];
+            delete toolStartTimes[tid];
           }
-          // Create tool card bubble
-          var toolBubble = document.createElement('div');
-          toolBubble.className = 'chat-bubble fade-in';
-          toolBubble.style.padding = '0';
-          toolBubble.style.background = 'none';
-          toolBubble.style.border = 'none';
-          toolBubble.appendChild(createToolCard(block));
-          bubbles.push(toolBubble);
+          renderToolPanel(block, elapsed);
+          lastPanel = null;
         }
       }
-
-      // Remaining text
-      if (textParts.length > 0) {
-        var bubble = document.createElement('div');
-        bubble.className = 'chat-bubble fade-in';
-        bubble.textContent = textParts.join('\n');
-        bubbles.push(bubble);
-      }
-    }
-
-    return bubbles;
-  }
-
-  // ===== Add Message (with grouping) =====
-  function addMessage(type, label, content) {
-    var normRole = type === 'assistant' ? 'assistant'
-                 : type === 'user' ? 'user'
-                 : type === 'system' ? 'system'
-                 : 'tool';
-
-    // Open new group if role changed or no group exists
-    if (normRole !== lastRole || !currentGroupEl) {
-      finalizeCurrentGroup(normRole);
-      openNewGroup(normRole);
-      lastRole = normRole;
-    }
-
-    // Build bubbles
-    var bubbles = buildBubbles(type, content);
-
-    // Find messages container within current group (last child before footer)
-    var msgContainer = currentGroupEl.querySelector('.chat-group-messages');
-
-    // Insert bubbles before the footer
-    var footer = msgContainer.querySelector('.chat-group-footer');
-    for (var i = 0; i < bubbles.length; i++) {
-      msgContainer.insertBefore(bubbles[i], footer);
-    }
-
-    // Update timestamp
-    var tsEl = msgContainer.querySelector('.chat-group-footer__time');
-    if (tsEl) tsEl.textContent = formatTime(new Date());
-
-    // Streaming animation: if assistant and awaitingResponse, pulse the last bubble
-    if (normRole === 'assistant' && awaitingResponse) {
-      if (streamingTimer) clearTimeout(streamingTimer);
-      // Mark all bubbles in this group as streaming
-      var bubblesInGroup = msgContainer.querySelectorAll('.chat-bubble.streaming');
-      for (var j = 0; j < bubblesInGroup.length; j++) {
-        bubblesInGroup[j].classList.remove('streaming');
-      }
-      // Only mark the new bubbles
-      for (var k = 0; k < bubbles.length; k++) {
-        bubbles[k].classList.add('streaming');
-      }
-      streamingTimer = setTimeout(function() {
-        var allBubbles = msgContainer.querySelectorAll('.chat-bubble.streaming');
-        for (var l = 0; l < allBubbles.length; l++) {
-          allBubbles[l].classList.remove('streaming');
-        }
-      }, 2000);
-    }
-
-    // Remove fade-in class after animation
-    for (var m = 0; m < bubbles.length; m++) {
-      bubbles[m].addEventListener('animationend', function() {
-        this.classList.remove('fade-in');
-      });
     }
 
     checkScroll();
@@ -794,42 +689,23 @@ export function getChatPageHtml(config: ChatPageConfig): string {
       + '<span class="chat-divider__label ' + cls + '">' + label + '</span>'
       + '<span class="chat-divider__line"></span>';
     messagesEl.appendChild(div);
-    lastRole = null;
     checkScroll();
   }
 
-  // ===== Reading Indicator =====
-  function showReadingIndicator() {
-    if (readingIndicatorEl) return;
-    var group = document.createElement('div');
-    group.className = 'chat-group assistant';
-
-    var avatar = document.createElement('div');
-    avatar.className = 'chat-avatar assistant';
-    avatar.textContent = 'AI';
-
-    var col = document.createElement('div');
-    col.className = 'chat-group-messages';
-
-    var dots = document.createElement('div');
-    dots.className = 'chat-reading';
-    dots.innerHTML = '<span class="chat-reading__dot"></span>'
-      + '<span class="chat-reading__dot"></span>'
-      + '<span class="chat-reading__dot"></span>';
-
-    col.appendChild(dots);
-    group.appendChild(avatar);
-    group.appendChild(col);
-
-    messagesEl.appendChild(group);
-    readingIndicatorEl = group;
+  // ===== Reading Indicator (terminal style) =====
+  function showReading() {
+    if (readingEl) return;
+    readingEl = document.createElement('div');
+    readingEl.className = 'chat-reading';
+    readingEl.innerHTML = '<span class="prompt">></span> <span>...</span> <span class="cursor"></span>';
+    messagesEl.appendChild(readingEl);
     checkScroll();
   }
 
-  function hideReadingIndicator() {
-    if (readingIndicatorEl) {
-      readingIndicatorEl.remove();
-      readingIndicatorEl = null;
+  function hideReading() {
+    if (readingEl) {
+      readingEl.remove();
+      readingEl = null;
     }
     awaitingResponse = false;
   }
@@ -838,7 +714,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   let userScrolledUp = false;
 
   function checkScroll() {
-    const threshold = 100;
+    const threshold = 80;
     const diff = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
     userScrolledUp = diff > threshold;
     newMsgPill.style.display = userScrolledUp ? 'inline-flex' : 'none';
@@ -858,16 +734,19 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   function sendMessage() {
     const text = inputEl.value.trim();
     if (!text || !connected) return;
-    ws.send(JSON.stringify({ type: 'event', event: 'chat', payload: { text: text } }));
+    ws.send(JSON.stringify({
+      type: 'event', event: 'chat',
+      payload: { text: text }
+    }));
     inputEl.value = '';
-    adjustTextareaHeight();
+    adjustHeight();
     awaitingResponse = true;
-    showReadingIndicator();
+    showReading();
   }
 
-  function adjustTextareaHeight() {
+  function adjustHeight() {
     inputEl.style.height = 'auto';
-    var newH = Math.min(Math.max(inputEl.scrollHeight, 40), 150);
+    var newH = Math.min(Math.max(inputEl.scrollHeight, 24), 150);
     inputEl.style.height = newH + 'px';
   }
 
@@ -880,7 +759,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   });
 
   inputEl.addEventListener('input', function() {
-    adjustTextareaHeight();
+    adjustHeight();
     sendBtn.disabled = !connected || !inputEl.value.trim();
   });
 

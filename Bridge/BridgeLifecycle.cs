@@ -177,7 +177,8 @@ namespace RimWorldMCP
                 if (hour == 6 && _dailyReportDay != day)
                 {
                     _dailyReportDay = day;
-                    SendCCMessage("DailyMorning", BuildDailyBriefing(map, colonists, colonistCount));
+                    var dailyText = BuildDailyBriefing(map, colonists, colonistCount);
+                    SendCCMessage("DailyMorning", dailyText, BuildColonyStats(map, colonists));
                 }
             }
 
@@ -186,17 +187,18 @@ namespace RimWorldMCP
                 && unchecked((uint)(nowMs - _lastSendRealMs) >= IdleOverviewIntervalMs)
                 && !ChatDisplayState.IsBusy)
             {
-                SendCCMessage("IdleDetected", GameContextProvider.BuildColonyOverview(map, colonists, colonistCount));
+                var overview = GameContextProvider.BuildColonyOverview(map, colonists, colonistCount);
+                SendCCMessage("IdleDetected", overview, BuildColonyStats(map, colonists));
             }
         }
 
         /// <summary>统一发送入口 — 追踪最后发送时间，写入聊天窗并转发 AI</summary>
-        private static void SendCCMessage(string category, string text)
+        private static void SendCCMessage(string category, string text, object? colonyStats = null)
         {
             _lastSendRealMs = Environment.TickCount;
             var formatted = FormatGameEvent(category, text);
             ChatDisplayState.AddSystemMessage(formatted);
-            _ = CCClient.SendEventText("rimworld.chat", category, formatted);
+            _ = CCClient.SendEventText("rimworld.chat", category, formatted, colonyStats);
         }
 
         /// <summary>每日早报</summary>
@@ -327,6 +329,23 @@ namespace RimWorldMCP
             foreach (var kv in resources)
                 if (kv.Key.defName == defName) return kv.Value;
             return 0;
+        }
+
+        /// <summary>构建结构化殖民地统计（push 到前端统计条）</summary>
+        private static object BuildColonyStats(Map map, List<Pawn> colonists)
+        {
+            int colonistCount = colonists.Count;
+            float avgMood = colonistCount > 0
+                ? colonists.Average(c => c.needs?.mood?.CurLevelPercentage ?? 0.5f) * 100f : 0f;
+            int foodDays = CalcFoodDays(map, colonistCount);
+            string colonyName = Find.World?.info?.name ?? "?";
+            return new
+            {
+                colonistCount,
+                avgMood = (int)Math.Round(avgMood),
+                foodDays,
+                colonyName
+            };
         }
 
         private static int CalcFoodDays(Map map, int colonistCount)

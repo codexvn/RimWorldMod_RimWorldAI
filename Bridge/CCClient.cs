@@ -127,7 +127,7 @@ namespace RimWorldMCP
         }
 
         /// <summary>发送游戏事件（文本格式）</summary>
-        public static async Task SendEventText(string eventName, string category, string text)
+        public static async Task SendEventText(string eventName, string category, string text, object? colonyStats = null)
         {
             await SendEvent(eventName, new
             {
@@ -135,7 +135,8 @@ namespace RimWorldMCP
                 text,
                 severity = category is "RaidStart" or "PawnDeath" ? "high"
                     : category is "AlertStart" or "NegativeEvent" ? "medium" : "low",
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                colonyStats
             });
         }
 
