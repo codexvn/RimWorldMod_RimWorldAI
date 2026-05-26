@@ -118,6 +118,13 @@ namespace RimWorldMCP
                 // 结束上一轮 AI 流式条目，确保每轮对话独立记录
                 if (_streamingEntry != null)
                 {
+                    // 合并思考文本到正文（避免历史残留"AI 思考中"空标签）
+                    if (!string.IsNullOrEmpty(_streamingEntry.ThinkingText))
+                    {
+                        _streamingEntry.Text = (_streamingEntry.ThinkingText ?? "")
+                            + (string.IsNullOrEmpty(_streamingEntry.Text) ? "" : "\n" + _streamingEntry.Text);
+                        _streamingEntry.ThinkingText = "";
+                    }
                     _streamingEntry.State = ChatState.Done;
                     _streamingEntry = null;
                 }
@@ -182,13 +189,10 @@ namespace RimWorldMCP
         {
             var message = sdkMsg.TryGetProperty("message", out var msg) ? msg : sdkMsg;
             var role = message.TryGetProperty("role", out var r) ? r.GetString() : "assistant";
+            var isUser = role == "user";
 
-            // SDK 回显 user 消息 → 结束上一轮流式条目，确保每轮独立
-            if (role == "user")
-            {
-                FinalizeStreaming();
-                return;
-            }
+            // SDK 回显 user 消息 → 结束上一轮流式条目
+            if (isUser) FinalizeStreaming();
 
             // 提取子代理信息
             var agentId = sdkMsg.TryGetProperty("agent_id", out var aid) ? aid.GetString() ?? "" : "";
@@ -201,22 +205,25 @@ namespace RimWorldMCP
 
             if (content.ValueKind == JsonValueKind.String)
             {
-                streamingText = content.GetString() ?? "";
-                _deltaAccum = streamingText;
-                _deltaIsThinking = false;
+                if (!isUser)
+                {
+                    streamingText = content.GetString() ?? "";
+                    _deltaAccum = streamingText;
+                    _deltaIsThinking = false;
+                }
             }
             else if (content.ValueKind == JsonValueKind.Array)
             {
                 foreach (var block in content.EnumerateArray())
                 {
                     var blockType = block.TryGetProperty("type", out var bt) ? bt.GetString() : "";
-                    if (blockType == "text")
+                    if (blockType == "text" && !isUser)
                     {
                         streamingText = block.TryGetProperty("text", out var tt) ? tt.GetString() ?? "" : "";
                         _deltaAccum = streamingText;
                         _deltaIsThinking = false;
                     }
-                    else if (blockType == "thinking")
+                    else if (blockType == "thinking" && !isUser)
                     {
                         var thinking = block.TryGetProperty("thinking", out var th) ? th.GetString() ?? "" : "";
                         if (!string.IsNullOrEmpty(thinking))
@@ -248,6 +255,28 @@ namespace RimWorldMCP
                             }
                         }
                     }
+                    else if (blockType == "tool_result")
+                    {
+                        var itemId = block.TryGetProperty("tool_use_id", out var tuid) ? tuid.GetString() ?? "" : "";
+                        var isError = block.TryGetProperty("is_error", out var ie) && ie.GetBoolean();
+                        lock (_lock)
+                        {
+                            for (int i = 0; i < _toolCalls.Count; i++)
+                            {
+                                if (_toolCalls[i].ItemId == itemId)
+                                {
+                                    _toolCalls[i].Status = isError ? ToolStatus.Failed : ToolStatus.Completed;
+                                    // 提取错误简述
+                                    if (isError)
+                                    {
+                                        var errContent = block.TryGetProperty("content", out var ec) ? ec : default;
+                                        _toolCalls[i].Meta = ExtractToolError(errContent);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -256,10 +285,28 @@ namespace RimWorldMCP
                 UpsertStreaming(streamingText!, _deltaIsThinking, agentId, agentType);
             }
 
-            // tool_use 变更也需要刷新 UI
+            // tool_use / tool_result 变更也需要刷新 UI
             if (streamingText == null)
                 OnChanged?.Invoke();
         }
+
+        private static string ExtractToolError(JsonElement content)
+        {
+            if (content.ValueKind == JsonValueKind.String)
+                return Truncate(content.GetString() ?? "", 80);
+            if (content.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in content.EnumerateArray())
+                {
+                    if (item.TryGetProperty("text", out var tt))
+                        return Truncate(tt.GetString() ?? "", 80);
+                }
+            }
+            return "执行失败";
+        }
+
+        private static string Truncate(string s, int max) =>
+            s.Length <= max ? s : s.Substring(0, max - 3) + "...";
 
         // ========== 流式输出 ==========
 

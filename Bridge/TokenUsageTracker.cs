@@ -12,6 +12,8 @@ namespace RimWorldMCP
         public static long TotalCacheReadTokens;
         public static long TotalCacheCreateTokens;
         public static int TotalRequests;
+        public static int TotalToolSuccess;
+        public static int TotalToolFailure;
         public static long TotalDurationMs;
 
         public static void Record(long inputTokens, long outputTokens, long cacheRead, long cacheCreate, long durationMs)
@@ -24,6 +26,14 @@ namespace RimWorldMCP
             Interlocked.Add(ref TotalDurationMs, durationMs);
         }
 
+        public static void RecordToolResult(bool isError)
+        {
+            if (isError)
+                Interlocked.Increment(ref TotalToolFailure);
+            else
+                Interlocked.Increment(ref TotalToolSuccess);
+        }
+
         public static void ExposeData()
         {
             Scribe_Values.Look(ref TotalInputTokens, "usageInputTokens", 0L);
@@ -31,6 +41,8 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref TotalCacheReadTokens, "usageCacheRead", 0L);
             Scribe_Values.Look(ref TotalCacheCreateTokens, "usageCacheCreate", 0L);
             Scribe_Values.Look(ref TotalRequests, "usageRequests", 0);
+            Scribe_Values.Look(ref TotalToolSuccess, "usageToolSuccess", 0);
+            Scribe_Values.Look(ref TotalToolFailure, "usageToolFailure", 0);
             Scribe_Values.Look(ref TotalDurationMs, "usageDurationMs", 0L);
         }
 
@@ -51,6 +63,7 @@ namespace RimWorldMCP
             sb.AppendLine($"- 输入 Token: {TotalInputTokens:N0} | 缓存命中: {TotalCacheReadTokens:N0} ({cacheHitRate:F1}%) | 缓存新建: {TotalCacheCreateTokens:N0}");
             sb.AppendLine($"- 输出 Token: {TotalOutputTokens:N0}");
             sb.AppendLine($"- 合计 Token: {totalTokens:N0}");
+            sb.AppendLine($"- 工具调用: {TotalToolSuccess + TotalToolFailure} 次 (成功 {TotalToolSuccess}, 失败 {TotalToolFailure})");
 
             return sb.ToString();
         }
@@ -67,7 +80,11 @@ namespace RimWorldMCP
             string fmt(long v) => v >= 1_000_000 ? $"{v / 1_000_000f:F1}M" :
                                   v >= 1_000 ? $"{v / 1_000f:F0}K" : v.ToString();
 
-            return $"Token: {fmt(totalTokens)} | 缓存 {fmt(TotalCacheReadTokens)}({cacheHitRate:F0}%) | {TotalRequests}次";
+            int totalCalls = TotalToolSuccess + TotalToolFailure;
+            string toolStr = totalCalls > 0
+                ? $"工具 {TotalToolSuccess}✓{(TotalToolFailure > 0 ? $" {TotalToolFailure}✗" : "")} | "
+                : "";
+            return $"Token: {fmt(totalTokens)} | 缓存 {fmt(TotalCacheReadTokens)}({cacheHitRate:F0}%) | {toolStr}{TotalRequests}轮";
         }
     }
 }

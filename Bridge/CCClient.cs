@@ -224,6 +224,8 @@ namespace RimWorldMCP
                             case "assistant":
                             case "user":
                                 ChatDisplayState.OnSdkMessage(root);
+                                // 统计工具调用成败
+                                CountToolResults(root);
                                 break;
 
                             case "stream_event":
@@ -244,7 +246,12 @@ namespace RimWorldMCP
                                     if (usageEl.TryGetProperty("cache_read_input_tokens", out var cr)) cacheRead = cr.GetInt64();
                                     if (usageEl.TryGetProperty("cache_creation_input_tokens", out var cc)) cacheCreate = cc.GetInt64();
                                     if (root.TryGetProperty("duration_ms", out var dms)) durationMs = dms.GetInt64();
+                                    McpLog.Info($"[cc] Token: {inputTok}+{outputTok} (缓存 {cacheRead}+{cacheCreate}), {durationMs}ms");
                                     TokenUsageTracker.Record(inputTok, outputTok, cacheRead, cacheCreate, durationMs);
+                                }
+                                else
+                                {
+                                    McpLog.Warn("[cc] result 消息缺少 usage 字段");
                                 }
                                 break;
 
@@ -278,6 +285,22 @@ namespace RimWorldMCP
         // ========== 心跳 ==========
 
         /// <summary>每帧调用，负责心跳发送和接收检查</summary>
+        private static void CountToolResults(JsonElement root)
+        {
+            var message = root.TryGetProperty("message", out var msg) ? msg : root;
+            if (!message.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
+                return;
+
+            foreach (var block in content.EnumerateArray())
+            {
+                if (block.TryGetProperty("type", out var bt) && bt.GetString() == "tool_result")
+                {
+                    bool isError = block.TryGetProperty("is_error", out var ie) && ie.GetBoolean();
+                    TokenUsageTracker.RecordToolResult(isError);
+                }
+            }
+        }
+
         public static void Tick()
         {
             if (!IsReady) return;

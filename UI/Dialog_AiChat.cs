@@ -20,12 +20,12 @@ namespace RimWorldMCP
         private string _inputText = "";
         private static float _alpha = 0.85f;
 
-        private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
-        private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
-        private static readonly Color SubagentBgColor = new Color(0.15f, 0.08f, 0.22f, 1f);
-        private static readonly Color ErrorBgColor = new Color(0.30f, 0.08f, 0.08f, 1f);
-        private static Color ToolCardBg => new Color(0.08f, 0.10f, 0.18f, _alpha);
-        private static Color ToolCardHeaderBg => new Color(0.10f, 0.13f, 0.22f, _alpha);
+        private static readonly Color UserBgColor = new Color(0.18f, 0.20f, 0.24f, 1f);
+        private static readonly Color AiBgColor = new Color(0.14f, 0.16f, 0.18f, 1f);
+        private static readonly Color SubagentBgColor = new Color(0.16f, 0.14f, 0.20f, 1f);
+        private static readonly Color ErrorBgColor = new Color(0.24f, 0.12f, 0.12f, 1f);
+        private static Color ToolCardBg => new Color(0.12f, 0.14f, 0.17f, _alpha);
+        private static Color ToolCardHeaderBg => new Color(0.15f, 0.17f, 0.21f, _alpha);
 
         protected override float Margin => 6f;
 
@@ -71,7 +71,24 @@ namespace RimWorldMCP
 
         private bool _toolScrollToBottom;
         private bool _todoScrollToBottom;
-        private void OnChatChanged() { _scrollToBottom = true; _toolScrollToBottom = true; }
+        private int _lastChatCount;
+        private int _lastToolCount;
+        private bool _chatUserScrolledUp;
+        private bool _toolUserScrolledUp;
+
+        private void OnChatChanged()
+        {
+            // 流式期间的滚动由 DrawConversationPanel 直接处理，避免事件驱动滞后闪烁
+            var snap = ChatDisplayState.Snapshot;
+            bool streaming = snap.Count > 0 && snap[snap.Count - 1].State == ChatState.Streaming;
+            // 仅新增条目或流式时滚到底
+            if (snap.Count != _lastChatCount) _scrollToBottom = true;
+            _lastChatCount = snap.Count;
+
+            var tools = ChatDisplayState.ToolCallsSnapshot;
+            if (tools.Count != _lastToolCount) _toolScrollToBottom = true;
+            _lastToolCount = tools.Count;
+        }
         private void OnTodoChanged() { _todoScrollToBottom = true; }
 
         private void TrySendInput()
@@ -124,7 +141,7 @@ namespace RimWorldMCP
             // 分隔线（细条）
             float dividerX = inRect.x + leftW + panelGap / 2f;
             Widgets.DrawBoxSolid(new Rect(dividerX, panelsY, 1f, panelsH),
-                new Color(0.3f, 0.3f, 0.3f, _alpha));
+                new Color(0.22f, 0.22f, 0.24f, _alpha));
 
             // 右栏垂直拆分为二：上半工具调用，下半 TODO
             float rightX = dividerX + panelGap / 2f + 1f;
@@ -186,7 +203,7 @@ namespace RimWorldMCP
 
             string header = $"{colony}{dayInfo}";
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.5f, 0.8f, 0.5f, _alpha);
+            GUI.color = new Color(0.55f, 0.55f, 0.55f, _alpha);
             Widgets.Label(new Rect(rect.x, rect.y + 2f, rect.width * 0.55f, rect.height - 2f), header);
             GUI.color = Color.white;
 
@@ -194,14 +211,14 @@ namespace RimWorldMCP
             string tokenText = TokenUsageTracker.GetCompactDisplay();
             float tokenW = Text.CalcSize(tokenText).x;
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.45f, 0.75f, 0.9f, _alpha);
+            GUI.color = new Color(0.5f, 0.55f, 0.65f, _alpha);
             Widgets.Label(new Rect(rect.xMax - tokenW - 4f, rect.y + 2f, tokenW, rect.height - 2f), tokenText);
             GUI.color = Color.white;
             Text.Font = GameFont.Small;
 
             // 底部分隔线
             Widgets.DrawBoxSolid(new Rect(rect.x, rect.yMax, rect.width, 1f),
-                new Color(0.25f, 0.25f, 0.25f, _alpha));
+                new Color(0.18f, 0.18f, 0.20f, _alpha));
         }
 
         // ========== 左栏：对话流 ==========
@@ -210,7 +227,7 @@ namespace RimWorldMCP
         {
             // 标题
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.5f, 0.5f, 0.5f, _alpha);
+            GUI.color = new Color(0.4f, 0.4f, 0.42f, _alpha);
             Widgets.Label(new Rect(panelRect.x, panelRect.y, 100f, 16f), "对话");
             GUI.color = Color.white;
             Text.Font = GameFont.Small;
@@ -221,7 +238,7 @@ namespace RimWorldMCP
             if (entries.Count == 0)
             {
                 Text.Font = GameFont.Tiny;
-                GUI.color = new Color(0.4f, 0.4f, 0.4f, _alpha);
+                GUI.color = new Color(0.35f, 0.35f, 0.35f, _alpha);
                 Widgets.Label(new Rect(scrollRect.x, scrollRect.y + 4f,
                     scrollRect.width, 16f), "等待 AI 回应...");
                 GUI.color = Color.white;
@@ -239,6 +256,21 @@ namespace RimWorldMCP
 
             Rect viewRect = new Rect(0f, 0f, contentWidth,
                 Mathf.Max(totalH, scrollRect.height));
+
+            // 检测用户是否手动滚离底部
+            float bottomY = Mathf.Max(0f, viewRect.height - scrollRect.height);
+            if (_chatScrollPos.y < bottomY - 4f) _chatUserScrolledUp = true;
+            if (_chatScrollPos.y >= bottomY - 1f) _chatUserScrolledUp = false;
+
+            bool isStreaming = entries.Count > 0
+                && entries[entries.Count - 1].State == ChatState.Streaming;
+            if (isStreaming || (_scrollToBottom && !_chatUserScrolledUp))
+            {
+                _chatScrollPos.y = bottomY;
+                _scrollToBottom = false;
+                _chatUserScrolledUp = false;
+            }
+
             Widgets.BeginScrollView(scrollRect, ref _chatScrollPos, viewRect);
 
             float curY = 4f;
@@ -249,12 +281,6 @@ namespace RimWorldMCP
             }
 
             Widgets.EndScrollView();
-
-            if (_scrollToBottom && entries.Count > 0)
-            {
-                _chatScrollPos.y = Mathf.Max(0f, viewRect.height - scrollRect.height);
-                _scrollToBottom = false;
-            }
         }
 
         // ========== 右栏：工具调用卡片 ==========
@@ -263,7 +289,7 @@ namespace RimWorldMCP
         {
             // 标题
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.5f, 0.5f, 0.5f, _alpha);
+            GUI.color = new Color(0.4f, 0.4f, 0.42f, _alpha);
             string title = $"工具调用 ({toolCalls.Count})";
             Widgets.Label(new Rect(panelRect.x, panelRect.y, 120f, 16f), title);
             GUI.color = Color.white;
@@ -275,7 +301,7 @@ namespace RimWorldMCP
             if (toolCalls.Count == 0)
             {
                 Text.Font = GameFont.Tiny;
-                GUI.color = new Color(0.4f, 0.4f, 0.4f, _alpha);
+                GUI.color = new Color(0.35f, 0.35f, 0.35f, _alpha);
                 Widgets.Label(new Rect(scrollRect.x, scrollRect.y + 4f,
                     scrollRect.width, 16f), "暂无工具调用");
                 GUI.color = Color.white;
@@ -290,6 +316,18 @@ namespace RimWorldMCP
 
             Rect viewRect = new Rect(0f, 0f, scrollRect.width - 16f,
                 Mathf.Max(totalH, scrollRect.height));
+
+            // 检测用户是否手动滚离底部
+            float toolBottomY = Mathf.Max(0f, viewRect.height - scrollRect.height);
+            if (_toolScrollPos.y < toolBottomY - 4f) _toolUserScrolledUp = true;
+            if (_toolScrollPos.y >= toolBottomY - 1f) _toolUserScrolledUp = false;
+
+            if (_toolScrollToBottom && !_toolUserScrolledUp)
+            {
+                _toolScrollPos.y = toolBottomY;
+                _toolScrollToBottom = false;
+            }
+
             Widgets.BeginScrollView(scrollRect, ref _toolScrollPos, viewRect);
 
             float curY = 4f;
@@ -300,12 +338,6 @@ namespace RimWorldMCP
             }
 
             Widgets.EndScrollView();
-
-            if (_toolScrollToBottom && toolCalls.Count > 0)
-            {
-                _toolScrollPos.y = Mathf.Max(0f, viewRect.height - scrollRect.height);
-                _toolScrollToBottom = false;
-            }
         }
 
         private static float CalcCardHeight(ToolCallInfo tc, float width)
@@ -332,18 +364,28 @@ namespace RimWorldMCP
             float cardH = headerH + bodyH + 10f;
 
             Rect cardRect = new Rect(2f, y, width, cardH);
-            Widgets.DrawBoxSolid(cardRect, ToolCardBg);
+            Color bgColor = tc.Status == ToolStatus.Failed
+                ? new Color(0.18f, 0.06f, 0.06f, _alpha)
+                : ToolCardBg;
+            Widgets.DrawBoxSolid(cardRect, bgColor);
 
             // Card header
             Rect headerRect = new Rect(cardRect.x, cardRect.y, cardRect.width, headerH + 4f);
             Widgets.DrawBoxSolid(headerRect, ToolCardHeaderBg);
 
+            // 失败卡片加红左边框
+            if (tc.Status == ToolStatus.Failed)
+            {
+                Widgets.DrawBoxSolid(new Rect(cardRect.x, cardRect.y, 2f, cardRect.height),
+                    new Color(0.8f, 0.2f, 0.2f, _alpha));
+            }
+
             string statusIcon = tc.Status == ToolStatus.Running ? "◎"
-                : tc.Status == ToolStatus.Completed ? "✔" : "✘";
+                : tc.Status == ToolStatus.Completed ? "✓" : "✗";
             Color statusColor = tc.Status == ToolStatus.Running
-                ? new Color(1f, 0.8f, 0.3f)
+                ? new Color(1f, 0.75f, 0.3f)
                 : tc.Status == ToolStatus.Completed
-                    ? new Color(0.3f, 1f, 0.3f)
+                    ? new Color(0.3f, 0.9f, 0.3f)
                     : new Color(1f, 0.3f, 0.3f);
 
             // Index + status + name
@@ -354,12 +396,14 @@ namespace RimWorldMCP
                 headerRect.width - 8f, headerH), headerText);
             GUI.color = Color.white;
 
-            // Body (meta)
+            // Body (meta) — 失败用红色
             if (!string.IsNullOrEmpty(tc.Meta))
             {
                 float bodyY = headerRect.yMax + 2f;
                 Text.Font = GameFont.Tiny;
-                GUI.color = new Color(0.7f, 0.7f, 0.8f, _alpha);
+                GUI.color = tc.Status == ToolStatus.Failed
+                    ? new Color(0.9f, 0.4f, 0.4f, _alpha)
+                    : new Color(0.55f, 0.55f, 0.6f, _alpha);
                 Widgets.Label(new Rect(cardRect.x + 6f, bodyY,
                     cardRect.width - 12f, bodyH), tc.Meta);
                 GUI.color = Color.white;
@@ -379,7 +423,7 @@ namespace RimWorldMCP
 
             // 标题
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.5f, 0.5f, 0.5f, _alpha);
+            GUI.color = new Color(0.4f, 0.4f, 0.42f, _alpha);
             Widgets.Label(new Rect(panelRect.x, panelRect.y, 120f, 16f), $"TODO ({pendingCount})");
             GUI.color = Color.white;
             Text.Font = GameFont.Small;
@@ -390,7 +434,7 @@ namespace RimWorldMCP
             if (items.Count == 0)
             {
                 Text.Font = GameFont.Tiny;
-                GUI.color = new Color(0.4f, 0.4f, 0.4f, _alpha);
+                GUI.color = new Color(0.35f, 0.35f, 0.35f, _alpha);
                 Widgets.Label(new Rect(scrollRect.x, scrollRect.y + 4f,
                     scrollRect.width, 16f), "暂无待办事项");
                 GUI.color = Color.white;
@@ -412,15 +456,15 @@ namespace RimWorldMCP
                 bool isDone = item.Status == "done";
 
                 Color prioColor = item.Priority >= 4
-                    ? new Color(1f, 0.3f, 0.3f)
+                    ? new Color(0.7f, 0.35f, 0.35f)
                     : item.Priority >= 2
-                        ? new Color(1f, 0.75f, 0.3f)
-                        : new Color(0.5f, 0.5f, 0.5f);
-                Color textColor = isDone ? new Color(0.4f, 0.4f, 0.4f) : new Color(0.9f, 0.9f, 0.9f);
+                        ? new Color(0.7f, 0.6f, 0.35f)
+                        : new Color(0.45f, 0.45f, 0.45f);
+                Color textColor = isDone ? new Color(0.35f, 0.35f, 0.35f) : new Color(0.75f, 0.75f, 0.75f);
 
                 Rect rowRect = new Rect(2f, curY, contentW - 4f, itemH);
                 if (idx % 2 == 0)
-                    Widgets.DrawBoxSolid(rowRect, new Color(0.06f, 0.06f, 0.12f, 0.5f));
+                    Widgets.DrawBoxSolid(rowRect, new Color(0.1f, 0.1f, 0.14f, 0.5f));
 
                 string prioMark = $"P{item.Priority}";
                 Text.Font = GameFont.Tiny;
@@ -431,7 +475,7 @@ namespace RimWorldMCP
                 Widgets.Label(new Rect(rowRect.x + 26f, rowRect.y + 2f, rowRect.width - 70f, 16f),
                     item.Description ?? "");
 
-                GUI.color = new Color(0.4f, 0.4f, 0.4f);
+                GUI.color = new Color(0.35f, 0.35f, 0.35f);
                 Widgets.Label(new Rect(rowRect.x + rowRect.width - 44f, rowRect.y + 2f, 42f, 16f),
                     $"#{item.Id}");
 
@@ -484,7 +528,7 @@ namespace RimWorldMCP
             float statusX = rect.x + 2f;
             Rect statusRect = new Rect(statusX, y, 70f, btnH);
             Text.Font = GameFont.Tiny;
-            GUI.color = connected ? new Color(0.3f, 1f, 0.3f, _alpha) : new Color(1f, 0.4f, 0.4f, _alpha);
+            GUI.color = connected ? new Color(0.4f, 0.55f, 0.4f, _alpha) : new Color(0.7f, 0.35f, 0.35f, _alpha);
             Widgets.Label(statusRect, connected ? "● 已连接" : "● 未连接");
             GUI.color = Color.white;
 
@@ -493,7 +537,7 @@ namespace RimWorldMCP
             var toolCount = ChatDisplayState.ToolCallsSnapshot.Count;
             Rect toolsRect = new Rect(toolsX, y, 70f, btnH);
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.6f, 0.6f, 0.6f, _alpha);
+            GUI.color = new Color(0.45f, 0.45f, 0.45f, _alpha);
             Widgets.Label(toolsRect, $"Tools: {toolCount}");
             GUI.color = Color.white;
 
@@ -501,7 +545,7 @@ namespace RimWorldMCP
             float alphaLabelX = toolsX + 75f;
             Rect alphaLabel = new Rect(alphaLabelX, y, 40f, btnH);
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.5f, 0.5f, 0.5f, _alpha);
+            GUI.color = new Color(0.4f, 0.4f, 0.4f, _alpha);
             Widgets.Label(alphaLabel, "透明");
             GUI.color = Color.white;
 
@@ -563,31 +607,28 @@ namespace RimWorldMCP
 
         // ========== 对话条目 ==========
 
-        private static string GetDisplayBody(ChatEntry entry)
-        {
-            var body = (entry.Text ?? "").Replace("_", "__");
-            var thinking = (entry.ThinkingText ?? "").Replace("_", "__");
-            if (!string.IsNullOrEmpty(thinking))
-            {
-                if (!string.IsNullOrEmpty(body))
-                    thinking += "\n";
-                body = thinking + body;
-            }
-            return body;
-        }
-
         private static void CalcEntryHeight(ChatEntry entry, float contentWidth)
         {
-            var body = GetDisplayBody(entry);
+            var thinking = (entry.ThinkingText ?? "").Replace("_", "__");
+            var body = (entry.Text ?? "").Replace("_", "__");
             bool changed = body.Length != entry.CachedTextLen
-                        || (entry.ThinkingText ?? "").Length != entry.CachedThinkingLen;
+                        || thinking.Length != entry.CachedThinkingLen;
             if (!changed && entry.CachedHeight > 0f) return;
 
-            float labelWidth = contentWidth - 32f;
-            float bodyHeight = Text.CalcHeight(body.StripTags(), labelWidth);
-            entry.CachedHeight = 25f + Mathf.Max(bodyHeight, 10f);
+            float textAreaW = contentWidth - 32f;
+            bool streaming = entry.State == ChatState.Streaming;
+            bool cursorOnThinking = !string.IsNullOrEmpty(thinking) && streaming;
+            bool cursorOnBody = !cursorOnThinking && streaming;
+
+            float totalH = 0f;
+            if (!string.IsNullOrEmpty(thinking) || cursorOnThinking)
+                totalH += Text.CalcHeight((thinking + (cursorOnThinking ? " " : "")).StripTags(), textAreaW);
+            if (!string.IsNullOrEmpty(body) || cursorOnBody)
+                totalH += Text.CalcHeight((body + (cursorOnBody ? " " : "")).StripTags(), textAreaW);
+
+            entry.CachedHeight = 25f + Mathf.Max(totalH, 10f);
             entry.CachedTextLen = body.Length;
-            entry.CachedThinkingLen = (entry.ThinkingText ?? "").Length;
+            entry.CachedThinkingLen = thinking.Length;
         }
 
         private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
@@ -598,19 +639,18 @@ namespace RimWorldMCP
                 : entry.Role == ChatRole.User ? "你"
                 : isSubagent ? entry.AgentType
                 : isThinking ? "AI 思考中" : "AI";
-            string body = GetDisplayBody(entry);
-            if (entry.State == ChatState.Streaming)
-            {
-                bool showCursor = Time.realtimeSinceStartup % 1.0f < 0.6f;
-                body += showCursor ? "▌" : " ";
-            }
+
+            string body = (entry.Text ?? "").Replace("_", "__");
+            string thinking = (entry.ThinkingText ?? "").Replace("_", "__");
+            bool streaming = entry.State == ChatState.Streaming;
+            string cursor = streaming && Time.realtimeSinceStartup % 1.0f < 0.6f ? "▌" : " ";
 
             float bodyWidth = contentWidth - 20f;
-            float bodyHeight = Mathf.Max(0f, entry.CachedHeight - 25f);
+            float textAreaW = bodyWidth - 12f;
             float entryHeight = entry.CachedHeight;
 
             Rect bubbleRect = new Rect(2f, y, contentWidth, entryHeight);
-            Color bgColor = entry.IsContext ? new Color(0.08f, 0.08f, 0.18f, 1f)
+            Color bgColor = entry.IsContext ? new Color(0.12f, 0.12f, 0.18f, 1f)
                 : entry.Role == ChatRole.User ? UserBgColor
                 : entry.State == ChatState.Error ? ErrorBgColor
                 : isSubagent ? SubagentBgColor : AiBgColor;
@@ -631,23 +671,45 @@ namespace RimWorldMCP
             Text.Font = GameFont.Small;
             float labelW = Text.CalcSize(label).x + 4f;
             Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 3f, labelW, 20f);
-            GUI.color = entry.IsContext ? new Color(0.6f, 0.6f, 0.8f, _alpha)
+            GUI.color = entry.IsContext ? new Color(0.5f, 0.5f, 0.6f, _alpha)
                 : entry.Role == ChatRole.User
-                    ? new Color(0.4f, 0.8f, 1f, _alpha)
+                    ? new Color(0.5f, 0.55f, 0.65f, _alpha)
                     : isSubagent
-                        ? new Color(0.8f, 0.4f, 1f, _alpha)
+                        ? new Color(0.6f, 0.45f, 0.65f, _alpha)
                         : isThinking
-                            ? new Color(1f, 0.75f, 0.3f, _alpha)
-                            : new Color(0.4f, 1f, 0.4f, _alpha);
+                            ? new Color(0.7f, 0.6f, 0.35f, _alpha)
+                            : new Color(0.45f, 0.55f, 0.45f, _alpha);
             Widgets.Label(labelRect, label);
 
-            // 正文（含思考区段）
-            Rect bodyRect = new Rect(bubbleRect.x + 8f, labelRect.yMax + 2f,
-                bodyWidth - 12f, Mathf.Max(bodyHeight, 10f));
-            GUI.color = entry.IsContext ? new Color(0.7f, 0.7f, 0.8f, _alpha)
-                : new Color(1f, 1f, 1f, _alpha);
-            Text.Font = GameFont.Small;
-            Widgets.Label(bodyRect, body);
+            float curY = labelRect.yMax + 2f;
+
+            // 光标挂在最后活跃的文本块上
+            bool cursorOnThinking = isThinking && streaming;
+            bool cursorOnBody = !isThinking && streaming;
+
+            // 思考文本（暗黄色）
+            if (!string.IsNullOrEmpty(thinking) || cursorOnThinking)
+            {
+                var t = (thinking ?? "") + (cursorOnThinking ? cursor : "");
+                float h = Text.CalcHeight(t.StripTags(), textAreaW);
+                Rect r = new Rect(bubbleRect.x + 8f, curY, textAreaW, h);
+                GUI.color = new Color(0.5f, 0.48f, 0.35f, _alpha);
+                Text.Font = GameFont.Small;
+                Widgets.Label(r, t);
+                curY += h;
+            }
+
+            // 正文（白色）
+            if (!string.IsNullOrEmpty(body) || cursorOnBody)
+            {
+                var t = (body ?? "") + (cursorOnBody ? cursor : "");
+                float h = Text.CalcHeight(t.StripTags(), textAreaW);
+                Rect r = new Rect(bubbleRect.x + 8f, curY, textAreaW, Mathf.Max(h, 10f));
+                GUI.color = entry.IsContext ? new Color(0.55f, 0.55f, 0.6f, _alpha)
+                    : new Color(0.85f, 0.85f, 0.85f, _alpha);
+                Text.Font = GameFont.Small;
+                Widgets.Label(r, t);
+            }
 
             GUI.color = Color.white;
             return entryHeight;
