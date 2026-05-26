@@ -251,8 +251,11 @@ namespace RimWorldMCP.Tools
             try
             {
                 var curJob = pawn.CurJob;
-                if (curJob == null) return "空闲";
-                return curJob.def?.label ?? "空闲";
+                int queued = pawn.jobs?.jobQueue?.Count ?? 0;
+                string jobLabel = curJob?.def?.label ?? "";
+                string queueSuffix = queued > 0 ? $" (排队:{queued})" : "";
+                if (string.IsNullOrEmpty(jobLabel)) return $"空闲{queueSuffix}";
+                return $"{jobLabel}{queueSuffix}";
             }
             catch (Exception) { return "空闲"; }
         }
