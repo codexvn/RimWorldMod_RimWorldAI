@@ -13,14 +13,15 @@ namespace RimWorldMCP.Tools
     public class Tool_ActivateSettlement : ITool
     {
         public string Name => "activate_settlement_goods";
-        public string Description => "激活一个定居点的商品库存缓存（触发生成）。无参数时激活距离殖民地最近的未激活定居点。指定 settlement_name 则激活特定定居点，指定 faction_name 则激活该派系最近未激活的。已激活的自动跳过。";
+        public string Description => "激活定居点商品库存缓存。无参数时激活最近未激活定居点。传 deactivate 可删除缓存释放内存，下次访问会重新生成。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
                 settlement_name = new { type = "string", description = "定居点名称（可选）" },
-                faction_name = new { type = "string", description = "派系名称（可选）" }
+                faction_name = new { type = "string", description = "派系名称（可选）" },
+                deactivate = new { type = "boolean", description = "设为 true 删除缓存而非激活（释放内存）", @default = false }
             }
         });
 
@@ -42,12 +43,15 @@ namespace RimWorldMCP.Tools
         public Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             string? sn = null, fn = null;
+            bool deactivate = false;
             if (args != null)
             {
                 if (args.Value.TryGetProperty("settlement_name", out var jSn))
                     sn = jSn.GetString();
                 if (args.Value.TryGetProperty("faction_name", out var jFn))
                     fn = jFn.GetString();
+                if (args.Value.TryGetProperty("deactivate", out var jDe) && jDe.ValueKind == JsonValueKind.True)
+                    deactivate = true;
             }
 
             return McpCommandQueue.DispatchAsync(() =>
@@ -57,6 +61,26 @@ namespace RimWorldMCP.Tools
                     var all = Find.World.worldObjects.Settlements
                         .Where(s => s.CanTradeNow)
                         .ToList();
+
+                    // 删除缓存
+                    if (deactivate)
+                    {
+                        if (!string.IsNullOrWhiteSpace(sn))
+                        {
+                            var t = all.FirstOrDefault(s => s.Name.ToLowerInvariant().Contains(sn.ToLowerInvariant()));
+                            if (t == null) return ToolResult.Error($"找不到定居点: {sn}");
+                            if (!IsActivated(t)) return ToolResult.Success($"{t.Name} 没有缓存，无需删除");
+                            t.trader.TryDestroyStock();
+                            return ToolResult.Success($"{t.Name} 缓存已删除");
+                        }
+                        var cached = all.Where(IsActivated).ToList();
+                        if (cached.Count == 0) return ToolResult.Success("没有已缓存的定居点");
+                        var nearest = cached.OrderBy(s =>
+                            Find.WorldGrid.TraversalDistanceBetween(Find.CurrentMap?.Tile ?? 0, s.Tile, false, int.MaxValue))
+                            .First();
+                        nearest.trader.TryDestroyStock();
+                        return ToolResult.Success($"{nearest.Name} 缓存已删除（共 {cached.Count} 个已缓存定居点，最近优先）");
+                    }
 
                     Settlement? target;
                     string info;

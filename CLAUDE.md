@@ -22,7 +22,7 @@ RimWorldMCP/
 ├── Mcp/                                   # MCP 协议层
 │   ├── McpServer.cs                       # JSON-RPC 调度：initialize/tools/list/tools/call/resources
 │   └── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
-├── Tools/                                 # 80 个 Tool（真实 RimWorld API 调用）
+├── Tools/                                 # 90+ 个 Tool（真实 RimWorld API 调用）
 │   ├── ITool.cs                           # Tool 接口 + ToolResult
 │   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射（反射自动注册）
 │   ├── ResourceCheckHelper.cs             # 建造资源检查辅助工具
@@ -442,6 +442,24 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `get_open_dialogs` | 列出当前打开的弹框 | `Find.WindowStack` |
 | `select_dialog_option` | 选择弹框中的选项 | `WindowStack.TryRemove()` (入队) |
 
+### 右键菜单 (2)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `get_right_click_menu` | 生成指定坐标+殖民者的右键菜单 | `FloatMenuMakerMap.GetOptions()` |
+| `select_right_click` | 执行右键菜单选项 | `FloatMenuOption.Chosen()` (入队) |
+
+### 命令工具 (8)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `cancel_task` | 取消殖民者当前/排队任务 | `pawn.jobs.StopAll()` (入队) |
+| `cancel_build` | 取消蓝图/框架/标记（矩形范围） | `t.Destroy(Cancel)` + `RemoveDesignation` (入队) |
+| `designate_hunt` | 标记动物狩猎 | `AddDesignation(Hunt)` (入队) |
+| `designate_slaughter` | 标记已驯服动物宰杀 | `AddDesignation(Slaughter)` (入队) |
+| `designate_tame` | 标记野生动物驯服 | `AddDesignation(Tame)` (入队) |
+| `forbid_item` | 禁止区域内物品 | `t.SetForbidden(true)` (入队) |
+| `allow_item` | 允许区域内物品（精确范围版） | `t.SetForbidden(false)` (入队) |
+| `claim_item` | 占有区域内物品/建筑为玩家派系 | `t.SetFaction(Faction.OfPlayer)` (入队) |
+
 ### 区域管理 (2)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
@@ -558,13 +576,17 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 - `pos_x`/`pos_y` — 必填，区域起始角
 - `end_x`/`end_y` — 可选，区域结束角（不提供则只操作单格）
 
-**3. 坐标类 Tool 实现 GetTargetPos**
+**3. 坐标类 Tool 实现 GetTargetRange**
 
-所有接收坐标参数的 Tool 必须 override `GetTargetPos(JsonElement? args)` 返回目标坐标 `(int x, int y)?`。框架在开关开启时自动提取坐标并平滑移动视角，无需 Tool 自行处理。
+所有接收坐标参数的 Tool 必须 override `GetTargetRange(JsonElement? args)` 返回目标矩形 `(int minX, int minZ, int maxX, int maxZ)?`。框架在开关开启时自动提取矩形并移动视角+自适应缩放，无需 Tool 自行处理。
 
 - 从 `args` 提取 `pos_x`/`pos_y`，解析失败返回 `null`
+- 有 `end_x`/`end_y` 的返回完整矩形：`(posX, posY, endX, endY)`
+- 只有单点的返回退化矩形：`(posX, posY, posX, posY)`
 - 非坐标类 Tool 保持默认实现（返回 `null`）
 - `Tool_MoveCamera` 本身也不跳转（返回 `null`）
+
+**视角缩放规则**：只拉远不拉近；超出当前视野 30% 才拉远；视野过大(>50格)且目标很小(<30格)时回弹到 30 格舒适距离。
 
 **4. 用 thingIDNumber 精确定位 Pawn/物品**
 
