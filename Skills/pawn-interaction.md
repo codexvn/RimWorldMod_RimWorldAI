@@ -112,6 +112,39 @@ set_temp_control(thing_id=xxx, target_temp=21, power_on=true)
 - `Dialog_NodeTree` — 事件选项（任务/交易等）
 - `Dialog_GiveName` — 命名对话框
 
+## 右键菜单（万能入口）
+
+`get_right_click_menu` + `select_right_click` 是游戏右键菜单的通用入口，覆盖 53 类 FloatMenu Provider + 130+ WorkGiver，**几乎所有角色对物品/坐标的操作都能通过它完成**，不需要逐一实现专用 MCP 工具。
+
+### 用法
+
+```
+1. get_right_click_menu(colonist_id, thing_id|pos_x/pos_y) → 列出选项
+2. select_right_click(option_index) → 执行
+```
+
+### 常见场景
+
+| 场景 | 调用 |
+|------|------|
+| 安装机械师芯片 | `get_right_click_menu(colonist_id=1, thing_id=<芯片ID>)` → `select_right_click(0)` |
+| 植入异种胚 | `get_right_click_menu(colonist_id=1, thing_id=<异种胚ID>)` → 选植入项 |
+| 强制穿某件衣物 | `get_right_click_menu(colonist_id=2, thing_id=<衣物ID>)` → 选穿戴 |
+| 优先搬运物品 | `get_right_click_menu(colonist_id=3, thing_id=<物品ID>)` → 选优先搬运 |
+| 优先建造蓝图 | `get_right_click_menu(colonist_id=4, pos_x=56, pos_y=62)` → 选建造 |
+| 服食药物 | `get_right_click_menu(colonist_id=5, thing_id=<药品ID>)` → 选服食 |
+| 修理建筑 | `get_right_click_menu(colonist_id=6, thing_id=<建筑ID>)` → 选修理 |
+| 驯服动物 | `get_right_click_menu(colonist_id=7, thing_id=<动物ID>)` → 选驯服 |
+| 逮捕目标 | `get_right_click_menu(colonist_id=8, thing_id=<目标ID>)` → 选逮捕 |
+
+### 禁用选项
+带有 `[禁用]` 标记的选项不可执行，通常原因是技能不足、材料不够、不可达等。
+
+### 对比专用工具
+- 有专用工具优先用专用工具（`arrest_pawn`、`haul_item`、`equip_pawn` 等），参数更少更直接
+- 专用工具未覆盖的操作（植入芯片、修理、开建筑、仪式等）→ 用右键菜单
+- 不确定有什么操作可用时 → 先用右键菜单探查
+
 ## 移动控制
 - `move_pawn(colonist_name, pos_x, pos_y)` — 移动到指定坐标
 - `move_camera(pos_x, pos_y)` — 移动视角
