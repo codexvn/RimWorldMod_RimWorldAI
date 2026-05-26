@@ -224,7 +224,7 @@ namespace RimWorldMCP
                 SendCCMessage("IdleDetected", overview, BuildColonyStats(map, colonists));
             }
 
-            // === 第4层：暂停过久提醒 ===
+            // === 第4层：暂停过久提醒（AI 正在思考/调工具时跳过，不打扰） ===
             var paused = Find.TickManager?.Paused ?? false;
             if (paused)
             {
@@ -232,6 +232,12 @@ namespace RimWorldMCP
                 {
                     _pauseStartRealMs = nowMs;
                     _lastPauseRemindMs = 0;
+                }
+
+                // AI 正在处理中（流式输出/工具调用），持续推迟提醒计时，不打断
+                if (ChatDisplayState.IsBusy)
+                {
+                    _lastPauseRemindMs = nowMs;
                 }
                 else if (_lastPauseRemindMs == 0
                     && unchecked((uint)(nowMs - _pauseStartRealMs) >= PauseRemindFirstMs))
