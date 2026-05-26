@@ -16,6 +16,7 @@ namespace RimWorldMCP
         private ITransport? _transport;
         private CancellationTokenSource? _cts;
         private static ITransport? s_activeTransport;
+        internal static SkillRegistry? s_skillRegistry;
         private string _sessionId = "";
         private const int DefaultPort = 9877;
         private const string DefaultHost = "0.0.0.0";
@@ -94,6 +95,7 @@ namespace RimWorldMCP
                 var skillsDir = FindSkillsDirectory();
                 var skillRegistry = new SkillRegistry();
                 skillRegistry.LoadFromDirectory(skillsDir);
+                s_skillRegistry = skillRegistry;
 
                 // 1.5 从 ModSettings 加载 OSS 配置
                 if (RimWorldMCPMod.Instance != null)

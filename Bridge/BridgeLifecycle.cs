@@ -353,6 +353,17 @@ namespace RimWorldMCP
                 sb.AppendLine();
             }
 
+            // === 可用技能 ===
+            var skills = GameComponent_McpServer.s_skillRegistry?.GetAll();
+            if (skills != null && skills.Count > 0)
+            {
+                sb.AppendLine("### 可用领域技能");
+                foreach (var s in skills)
+                    sb.AppendLine($"- `{s.Name}`: {s.Description}");
+                sb.AppendLine("需要时用 `active_skill` 获取完整内容。");
+                sb.AppendLine();
+            }
+
             // === 昨日事件 ===
             if (_dailyEventLog.Count > 0)
             {
