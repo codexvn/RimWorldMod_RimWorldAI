@@ -22,9 +22,9 @@ RimWorldMCP/
 ├── Mcp/                                   # MCP 协议层
 │   ├── McpServer.cs                       # JSON-RPC 调度：initialize/tools/list/tools/call/resources
 │   └── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
-├── Tools/                                 # 40 个 Tool（真实 RimWorld API 调用）
+├── Tools/                                 # 78 个 Tool（真实 RimWorld API 调用）
 │   ├── ITool.cs                           # Tool 接口 + ToolResult
-│   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射
+│   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射（反射自动注册）
 │   ├── ResourceCheckHelper.cs             # 建造资源检查辅助工具
 │   └── Tool_*.cs                          # 各 Tool 实现
 ├── Bridge/                                # Claude Code 桥接
@@ -256,7 +256,9 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 游戏启动后，MCP 服务自动运行在 `http://localhost:9877`。
 
-## Tool 清单（含可达性检测）
+## Tool 清单（含 I18N 中文名 + 可达性检测）
+
+中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 78 个工具。
 
 ### 通用查询 (4)
 | Tool | 说明 | 数据源 |
@@ -297,11 +299,15 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `designate_deconstruct` | 标记建筑拆除（矩形范围） | `Designator_Deconstruct` (入队) |
 | `designate_clear_plants` | 标记清除非树木植物（草/灌木等） | `Designator_PlantsCut` (入队) |
 
-### 存储/种植 (2)
+### 存储/种植 (6)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `create_stockpile` | 创建物品储藏区（预设+优先级+筛选） | `Zone_Stockpile` (入队) |
 | `create_growing_zone` | 创建种植区并设置植物类型 | `Zone_Growing` (入队) |
+| `set_grower_plant` | 设置种植区作物类型 | 区域相关 API (入队) |
+| `manage_stockpile_filter` | 管理储藏区物品筛选 | `StorageSettings` (入队) |
+| `delete_zone` | 删除区域（储藏区/种植区） | `Zone.Deregister()` (入队) |
+| `expand_zone` | 扩展已有区域的范围 | `Zone.AddCell()` (入队) |
 
 ### 装备管理 (1)
 | Tool | 说明 | 数据源/操作 |
@@ -313,12 +319,14 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 |------|------|------------|
 | `take_screenshot` | 截取地图指定 X/Z 范围画面 | `ScreenshotTaker.TakeNonSteamShot()` (入队), 自动 OSS 上传 |
 
-### 研究 (3)
+### 研究 (5)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
-| `list_research_projects` | 列出研究项目 | `DefDatabase<ResearchProjectDef>.AllDefsListForReading` |
+| `list_research_projects` | 列出研究项目（分页） | `DefDatabase<ResearchProjectDef>.AllDefsListForReading` |
 | `get_research_progress` | 获取研究进度 | `Find.ResearchManager.GetProgress()` |
 | `set_research_project` | 设置研究项目 | `Find.ResearchManager.SetCurrentProject()` (入队) |
+| `stop_research` | 停止当前研究 | `Find.ResearchManager.StopProject()` (入队) |
+| `get_research_speed` | 研究速度详情 | `Find.ResearchManager.GetResearchSpeed()` |
 
 ### 殖民者需求 (4)
 | Tool | 说明 | 数据源/操作 |
@@ -328,20 +336,26 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `get_work_priorities` | 所有殖民者完整工作优先级表 | `pawn.workSettings.GetPriority()` |
 | `set_work_priority` | 设置工作优先级 | `pawn.workSettings.SetPriority()` (入队) |
 
-### 医疗 (2)
+### 医疗 (5)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `get_colonist_health` | 健康报告 | `pawn.health.hediffSet.hediffs` |
 | `schedule_operation` | 安排手术 | `billStack.AddBill(Bill_Medical)` (入队) |
+| `tend_now` | 立即治疗指定殖民者 | `JobDefOf.TendPatient` (入队) |
+| `force_surgery` | 强制执行指定手术 | `Bill_Medical` (入队) |
+| `get_available_surgeries` | 列出可用手术（分页） | `RecipeDefOf` |
 
-### 战斗 (3)
+### 战斗 (6)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `equip_pawn` | 强制殖民者拾取并装备（Job 系统，自然走过去） | `JobDefOf.Equip` / `JobDefOf.Wear` (入队) |
 | `draft_pawn` | 征召/解除征召 | `pawn.drafter.Drafted` (入队) |
 | `get_defense_status` | 防御状态报告 | `pawn.equipment.Primary`, `map.listerBuildings` |
+| `attack_pawn` | 攻击指定目标 | `JobDefOf.AttackMelee` / `JobDefOf.AttackStatic` (入队) |
+| `force_attack` | 强制攻击（无视掩体/过墙） | `JobDefOf.AttackStatic` (入队) |
+| `find_enemies` | 搜索地图上的敌人 | `map.mapPawns.AllPawnsSpawned` |
 
-### 右键菜单操作 (8)
+### 右键菜单操作 (10)
 | Tool | 说明 | 操作 |
 |------|------|------|
 | `pick_up_item` | 拾取物品 | `JobDefOf.TakeInventory` (入队) |
@@ -352,11 +366,73 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `capture_pawn` | 俘虏倒地敌人 | `JobDefOf.Capture` (入队) |
 | `ingest_item` | 服食物品 | `JobDefOf.Ingest` (入队) |
 | `force_dress` | 强制穿戴衣物 | `JobDefOf.Wear` (入队) |
+| `haul_item` | 搬运物品到目标位置 | `JobDefOf.HaulToCell` (入队) |
+| `drop_carried` | 放下手中物品 | `JobDefOf.DropEquipment` (入队) |
 
 ### 全局操作 (1)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `allow_all_items` | 允许地图上所有被禁止的物品 | `CompForbiddable.Forbidden = false` (入队) |
+
+### 搜索 (4)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `search_map` | 按类型搜索地图事物（分页） | `map.listerThings.AllThings` |
+| `find_pawn` | 搜索指定角色/生物（分页） | `map.mapPawns.AllPawnsSpawned` |
+| `get_thing_def` | 查询物品定义详情 | `ThingDef` |
+| `search_thing_def` | 按关键词搜索 ThingDef（分页） | `DefDatabase<ThingDef>.AllDefs` |
+
+### 建筑布局 (2)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `get_structure_layout` | 查看建筑物内部结构布局 | `Building` / `CellRect` |
+| `get_construction_status` | 查看建造项目进度 | `map.listerThings.ThingsOfDef` |
+
+### 移动 (2)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `move_pawn` | 移动角色到指定坐标 | `JobDefOf.Goto` (入队) |
+| `move_camera` | 移动视角（本身不返回 GetTargetPos） | `Find.CameraDriver` |
+
+### 弹框 (2)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `get_open_dialogs` | 列出当前打开的弹框 | `Find.WindowStack` |
+| `select_dialog_option` | 选择弹框中的选项 | `WindowStack.TryRemove()` (入队) |
+
+### 区域管理 (2)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `set_bed_owner_type` | 设置床位类型（医疗/囚犯/殖民者） | `Building_Bed.Medical`, `CompAssignableToPawn` (入队) |
+| `set_temp_control` | 设置温度控制设备 | `CompTempControl` (入队) |
+
+### TODO 系统 (3)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `todo_add` | 添加待办任务 | `TodoManager` |
+| `todo_delete` | 删除待办任务 | `TodoManager` |
+| `todo_query` | 查询待办任务 | `TodoManager` |
+
+### 基地模板 (2)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `list_base_templates` | 列出可用基地模板 | `BaseTemplateManager` |
+| `apply_base_template` | 应用基地模板到地图 | `Designator_Build` 批量 (入队) |
+
+### 反馈 (1)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `submit_feedback` | 向开发者提交反馈 | 文本收集 |
+
+### 腐坏追踪 (1)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `get_deteriorating_items` | 腐坏/耐久降低物品清单 | `DeteriorationTracker` |
+
+### 地图 (1)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `regenerate_map` | 重新生成当前地图（i_know_danger 确认） | `GetOrGenerateMapUtility` (入队) |
 
 ### Skill (2)
 | Tool | 说明 | 数据源 |
@@ -419,6 +495,14 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 - **坐标陷阱**：`IntVec3(x,y,z)` 中 `y` 是海拔，`z` 是网格垂直轴。MCP 用户的 `pos_y` 必须映射到 `IntVec3.z`，写 `new IntVec3(x, posY, 0)` 是 bug
 - **HttpListener 陷阱**：`StartAsync` 中 `HttpListener.Start()` 可能抛 `HttpListenerException`（端口占用/权限不足），需提供中文诊断；`_transport` 要在 `StartAsync` 成功后才赋值；RimWorld 返回主菜单会导致 Game 对象被 Dispose 但 GameComponent 不通知，需静态字段跨实例清理
 - **Session 隔离**：`cwd` 传入 SDK 后会被 sanitize 为目录名，checkpoint 落到 `~/.claude/projects/<sanitized-cwd>/`。不同存档的 `cwd` 不同 → sanitize 结果不同 → 隔离生效。不可改 SDK 内部的 `projects/` base path。
+
+### I18N / 简体中文翻译
+
+工具名称的简体中文翻译位于 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`，遵循 RimWorld Keyed 翻译格式：
+- Key 格式：`RimWorldMCP_Tool_<tool_name>` → 中文名称
+- 新增工具必须同步添加翻译条目
+- 分页工具在中文名称后标注（分页）
+- 工具名称应语义自包含：LLM 看到名称即知工具用途
 
 ### 开发规范
 
