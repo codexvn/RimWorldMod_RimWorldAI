@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_TradeExecute : ITool
     {
         public string Name => "trade_execute";
-        public string Description => "派系级虚空交易。按派系名称+商船类型即时生成货物执行交易，交易后清理不缓存。先用 list_faction_traders 查看可用派系和类型。";
+        public string Description => "派系级虚空交易。传 sell/buy 执行交易，不传则仅预览生成的货物。先用 list_faction_traders 查看可用派系和类型。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -58,6 +58,44 @@ namespace RimWorldMCP.Tools
         private static readonly PropertyInfo _allTradeablesProp = typeof(TradeDeal)
             .GetProperty("AllTradeables")!;
 
+        // 虚拟商船缓存：key = "factionName|traderKindDefName"，TTL 15 秒实时（约 1 游戏小时/超快）
+        private static readonly Dictionary<string, (TradeShip ship, int cachedTick)> _vcache = new();
+        private const int CacheTTLTicks = 37500; // 约 15 秒实时 = 1 游戏小时
+
+        /// <summary>获取或创建缓存的虚拟商船，TTL 内复用避免重复生成</summary>
+        private static TradeShip GetOrCreateVirtualShip(Map map, string key, TraderKindDef kind, Faction faction)
+        {
+            int now = Find.TickManager?.TicksGame ?? 0;
+            if (_vcache.TryGetValue(key, out var entry))
+            {
+                if (now - entry.cachedTick < CacheTTLTicks && !entry.ship.Departed)
+                {
+                    _vcache[key] = (entry.ship, now); // 刷新 tick 防过期
+                    return entry.ship;
+                }
+                // 过期 → 清理旧船
+                entry.ship.Depart();
+                map.passingShipManager.RemoveShip(entry.ship);
+                _vcache.Remove(key);
+            }
+            var ship = new TradeShip(kind, faction);
+            ship.GenerateThings();
+            map.passingShipManager.AddShip(ship);
+            _vcache[key] = (ship, now);
+            return ship;
+        }
+
+        /// <summary>清理所有缓存的虚拟商船</summary>
+        public static void ClearCache()
+        {
+            foreach (var kv in _vcache)
+            {
+                kv.Value.ship.Depart();
+                Find.CurrentMap?.passingShipManager.RemoveShip(kv.Value.ship);
+            }
+            _vcache.Clear();
+        }
+
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             if (args == null) return ToolResult.Error("缺少参数");
@@ -71,8 +109,7 @@ namespace RimWorldMCP.Tools
 
             var sellList = ParseItemList(args.Value, "sell");
             var buyList = ParseItemList(args.Value, "buy");
-            if (sellList.Count == 0 && buyList.Count == 0)
-                return ToolResult.Error("至少需要 sell 或 buy 之一");
+            bool previewOnly = sellList.Count == 0 && buyList.Count == 0;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -112,15 +149,36 @@ namespace RimWorldMCP.Tools
                         .FirstOrDefault(p => p.health.capacities.CapableOf(PawnCapacityDefOf.Talking));
                     if (pawn == null) return ToolResult.Error("没有能说话的殖民者");
 
-                    // 虚拟商船：即时生成货物，交易后销毁
-                    virtShip = new TradeShip(traderKind, faction);
-                    virtShip.GenerateThings();
-                    map.passingShipManager.AddShip(virtShip);
+                    // 虚拟商船：从缓存获取或新建，TTL 内同一批货不变
+                    string cacheKey = $"{faction.def.defName}|{traderKind.defName}";
+                    virtShip = GetOrCreateVirtualShip(map, cacheKey, traderKind, faction);
 
                     TradeSession.trader = virtShip;
                     TradeSession.playerNegotiator = pawn;
                     var deal = new TradeDeal();
                     var tradeables = (List<Tradeable>)_allTradeablesProp.GetValue(deal);
+
+                    if (previewOnly)
+                    {
+                        var log = new StringBuilder();
+                        log.AppendLine($"预览: {faction.Name} / {traderKind.label}");
+                        log.AppendLine($"缓存 TTL: {CacheTTLTicks / 2500:F1} 游戏小时\n");
+
+                        int shown = 0;
+                        foreach (var t in tradeables.OrderByDescending(t => t.AnyThing?.MarketValue ?? 0f))
+                        {
+                            if (t.IsCurrency) continue;
+                            if (t.CountToTransferToDestination <= 0) continue;
+                            shown++;
+                            float price = t.AnyThing?.MarketValue ?? 0f;
+                            log.AppendLine($"- {t.Label} x{t.CountToTransferToDestination} ({price * t.CountToTransferToDestination:F0} 银)");
+                        }
+                        if (shown == 0)
+                            log.AppendLine("（该商船类型无可购商品——可能不交易实物，或是纯收购型）");
+
+                        log.AppendLine($"\n用 trade_execute(faction_name, trader_kind, buy/sell) 执行交易。缓存期内同批货不变。");
+                        return ToolResult.Success(log.ToString().TrimEnd());
+                    }
 
                     var log = new StringBuilder();
                     log.AppendLine($"交易: {faction.Name} / {traderKind.label}");
@@ -167,11 +225,7 @@ namespace RimWorldMCP.Tools
                 {
                     TradeSession.trader = null!;
                     TradeSession.playerNegotiator = null!;
-                    if (virtShip != null)
-                    {
-                        virtShip.Depart();
-                        Find.CurrentMap?.passingShipManager.RemoveShip(virtShip);
-                    }
+                    // 缓存的商船不销毁，留给后续复用
                 }
             });
         }

@@ -308,11 +308,15 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `toggle_pause` | 切换游戏暂停状态，恢复时设为最大速度 | `Find.TickManager.CurTimeSpeed` (入队) |
 | `advance_tick` | 让游戏运行指定 tick 数后暂停返回状态，用于观察结果避免过度思考 | `Find.TickManager` (入队) |
 
-### 网格查询 (2)
+### 网格查询 (6)
 | Tool | 说明 | 参数 |
 |------|------|------|
 | `get_tile_detail` | 指定坐标范围详情（建筑/物品/植物/生物） | pos_x, pos_y, end_x, end_y |
 | `get_tile_grid` | 文本化字符网格地图（64 种符号） | pos_x, pos_y, end_x, end_y |
+| `fertility_grid` | 地面肥沃度视图（字符网格） | pos_x, pos_y, end_x, end_y |
+| `terrain_grid` | 地形类型视图（字符网格） | pos_x, pos_y, end_x, end_y |
+| `temperature_grid` | 温度分布视图（字符网格） | pos_x, pos_y, end_x, end_y |
+| `pollution_grid` | 污染程度视图（字符网格） | pos_x, pos_y, end_x, end_y |
 
 ### 制造 (4)
 | Tool | 说明 | 数据源/操作 |
@@ -416,7 +420,13 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 |------|------|------------|
 | `allow_all_items` | 允许地图上所有被禁止的物品 | `CompForbiddable.Forbidden = false` (入队) |
 
-### 搜索 (4)
+### 贸易 (2)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `list_faction_traders` | 列出可通讯的派系和商船 | `Find.FactionManager.AllFactionsVisible` |
+| `trade_execute` | 执行交易（商船或定居点） | `TradeUtility` (入队) |
+
+### 搜索 (6)
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `search_map` | 按类型搜索地图事物（分页） | `map.listerThings.AllThings` |

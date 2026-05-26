@@ -16,7 +16,7 @@ namespace RimWorldMCP.Tools
     public class Tool_RightClickMenu : ITool
     {
         public string Name => "get_right_click_menu";
-        public string Description => "在指定坐标对指定殖民者生成右键菜单，列出所有可用操作（如植入、应用蓝图、优先搬运等）。选中后用 select_right_click 执行。";
+        public string Description => "对指定物品/坐标生成右键菜单，列出该殖民者可执行的所有操作（如植入、应用蓝图、优先搬运等）。传 thing_id 则查看该物品能做什么，传 pos_x/pos_y 则查看该坐标能做什么。选中后用 select_right_click 执行。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
@@ -24,10 +24,11 @@ namespace RimWorldMCP.Tools
             properties = new
             {
                 colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists），右键执行者" },
-                pos_x = new { type = "integer", description = "点击目标 X 坐标" },
-                pos_y = new { type = "integer", description = "点击目标 Y 坐标" }
+                thing_id = new { type = "integer", description = "目标物品/建筑 ID（来自 get_tile_detail）。与 pos_x/pos_y 二选一" },
+                pos_x = new { type = "integer", description = "点击目标 X 坐标（与 thing_id 二选一）" },
+                pos_y = new { type = "integer", description = "点击目标 Y 坐标（与 thing_id 二选一）" }
             },
-            required = new[] { "colonist_id", "pos_x", "pos_y" }
+            required = new[] { "colonist_id" }
         });
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
@@ -35,10 +36,20 @@ namespace RimWorldMCP.Tools
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("colonist_id", out var jCid) || !jCid.TryGetInt32(out var colonistId))
                 return ToolResult.Error("缺少 colonist_id");
-            if (!args.Value.TryGetProperty("pos_x", out var jX) || !jX.TryGetInt32(out var posX))
-                return ToolResult.Error("缺少 pos_x");
-            if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY))
-                return ToolResult.Error("缺少 pos_y");
+
+            int thingId = 0;
+            bool hasThingId = false;
+            if (args.Value.TryGetProperty("thing_id", out var jTid) && jTid.TryGetInt32(out var tid))
+            { hasThingId = true; thingId = tid; }
+
+            int posX = 0, posY = 0;
+            bool hasPos = false;
+            if (args.Value.TryGetProperty("pos_x", out var jX) && jX.TryGetInt32(out var px)
+                && args.Value.TryGetProperty("pos_y", out var jY) && jY.TryGetInt32(out var py))
+            { hasPos = true; posX = px; posY = py; }
+
+            if (!hasThingId && !hasPos)
+                return ToolResult.Error("必须提供 thing_id 或 (pos_x + pos_y)");
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -51,8 +62,25 @@ namespace RimWorldMCP.Tools
                         .FirstOrDefault(c => c.thingIDNumber == colonistId);
                     if (pawn == null) return ToolResult.Error($"未找到殖民者 ID={colonistId}");
 
-                    var cell = new IntVec3(posX, 0, posY);
-                    if (!cell.InBounds(map)) return ToolResult.Error($"坐标 ({posX},{posY}) 超出地图范围");
+                    IntVec3 cell;
+                    Thing? targetThing = null;
+                    string targetLabel;
+
+                    if (hasThingId)
+                    {
+                        targetThing = map.listerThings.AllThings
+                            .FirstOrDefault(t => t.thingIDNumber == thingId);
+                        if (targetThing == null)
+                            return ToolResult.Error($"未找到物品 ID={thingId}");
+                        cell = targetThing.Position;
+                        targetLabel = $"{targetThing.Label} ({cell.x},{cell.z})";
+                    }
+                    else
+                    {
+                        cell = new IntVec3(posX, 0, posY);
+                        if (!cell.InBounds(map)) return ToolResult.Error($"坐标 ({posX},{posY}) 超出地图范围");
+                        targetLabel = $"({cell.x},{cell.z})";
+                    }
 
                     // 调用游戏原生右键菜单生成
                     var selectedPawns = new List<Pawn> { pawn };
@@ -60,13 +88,13 @@ namespace RimWorldMCP.Tools
                     var options = FloatMenuMakerMap.GetOptions(selectedPawns, clickPos, out var context);
 
                     if (options == null || options.Count == 0)
-                        return ToolResult.Success($"坐标 ({posX},{posY}) 没有 {pawn.LabelShort} 可用的右键操作。");
+                        return ToolResult.Success($"{targetLabel} 没有 {pawn.LabelShort} 可用的右键操作。");
 
                     // 存储供后续选择
                     RightClickMenuStore.Store(options, cell, pawn);
 
                     var sb = new StringBuilder();
-                    sb.AppendLine($"## 右键菜单 ({posX},{posY}) — {pawn.LabelShort}");
+                    sb.AppendLine($"## 右键菜单 {targetLabel} — {pawn.LabelShort}");
                     sb.AppendLine();
 
                     for (int i = 0; i < options.Count; i++)
