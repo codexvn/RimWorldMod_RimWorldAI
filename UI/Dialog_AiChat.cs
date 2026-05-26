@@ -284,7 +284,7 @@ namespace RimWorldMCP
             // 滚轮
             if (Event.current.type == EventType.ScrollWheel && Mouse.IsOver(scrollRect))
             {
-                _chatScrollPos.y -= Event.current.delta.y * 20f;
+                _chatScrollPos.y += Event.current.delta.y * 20f;
                 _chatScrollPos.y = Mathf.Clamp(_chatScrollPos.y, 0f, maxScroll);
                 Event.current.Use();
             }
@@ -372,7 +372,7 @@ namespace RimWorldMCP
             // 滚轮
             if (Event.current.type == EventType.ScrollWheel && Mouse.IsOver(scrollRect))
             {
-                _toolScrollPos.y -= Event.current.delta.y * 20f;
+                _toolScrollPos.y += Event.current.delta.y * 20f;
                 _toolScrollPos.y = Mathf.Clamp(_toolScrollPos.y, 0f, toolMaxScroll);
                 Event.current.Use();
             }
@@ -413,7 +413,10 @@ namespace RimWorldMCP
             if (!string.IsNullOrEmpty(tc.Meta))
                 bodyH = Text.CalcHeight(tc.Meta, width - 12f) + 4f;
 
-            return headerH + bodyH + 10f;
+            // 完成/失败后显示耗时行
+            float durH = tc.Status != ToolStatus.Running ? 16f : 0f;
+
+            return headerH + bodyH + durH + 10f;
         }
 
         private static float DrawToolCard(ToolCallInfo tc, int index, float width, float y)
@@ -472,8 +475,26 @@ namespace RimWorldMCP
                 GUI.color = Color.white;
             }
 
+            // 耗时（完成/失败后显示）
+            if (tc.Status != ToolStatus.Running)
+            {
+                float durY = bodyH > 0f ? headerRect.yMax + bodyH + 2f + 2f : headerRect.yMax + 2f;
+                string durText = FormatDuration(tc.DurationMs);
+                Text.Font = GameFont.Tiny;
+                GUI.color = new Color(0.35f, 0.35f, 0.35f, _alpha);
+                Widgets.Label(new Rect(cardRect.x + 6f, durY, cardRect.width - 12f, 16f), durText);
+                GUI.color = Color.white;
+            }
+
             Text.Font = GameFont.Small;
             return cardH;
+        }
+
+        private static string FormatDuration(double ms)
+        {
+            if (ms < 1000) return $"{(int)ms}ms";
+            if (ms < 60000) return $"{ms / 1000:F1}s";
+            return $"{(int)(ms / 60000)}m {((int)(ms / 1000)) % 60}s";
         }
 
         // ========== TODO 面板 ==========
@@ -674,12 +695,12 @@ namespace RimWorldMCP
         {
             var thinking = (entry.ThinkingText ?? "").Replace("_", "__");
             var body = (entry.Text ?? "").Replace("_", "__");
+            bool streaming = entry.State == ChatState.Streaming;
             bool changed = body.Length != entry.CachedTextLen
                         || thinking.Length != entry.CachedThinkingLen;
             if (!changed && entry.CachedHeight > 0f) return;
 
             float textAreaW = contentWidth - 32f;
-            bool streaming = entry.State == ChatState.Streaming;
             bool cursorOnThinking = !string.IsNullOrEmpty(thinking) && streaming;
             bool cursorOnBody = !cursorOnThinking && streaming;
 
@@ -689,7 +710,14 @@ namespace RimWorldMCP
             if (!string.IsNullOrEmpty(body) || cursorOnBody)
                 totalH += Text.CalcHeight((body + (cursorOnBody ? " " : "")).StripTags(), textAreaW);
 
-            entry.CachedHeight = 25f + Mathf.Max(totalH, 10f);
+            float newH = 25f + Mathf.Max(totalH, 10f);
+            // 流式时预分配 2 行 + 只增不减，避免换行瞬时高度突变闪烁
+            if (streaming)
+            {
+                newH += 28f;
+                if (newH < entry.CachedHeight) newH = entry.CachedHeight;
+            }
+            entry.CachedHeight = newH;
             entry.CachedTextLen = body.Length;
             entry.CachedThinkingLen = thinking.Length;
         }

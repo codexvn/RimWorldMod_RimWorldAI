@@ -236,9 +236,8 @@ namespace RimWorldMCP
                                 break;
 
                             case "result":
-                                // Tool 执行结果 → 清理工具调用状态 + 结束流式
+                                // 结束流式，工具卡片保留以显示耗时
                                 ChatDisplayState.FinalizeStreaming();
-                                ChatDisplayState.ClearToolCalls();
                                 break;
 
                             case "aborted":

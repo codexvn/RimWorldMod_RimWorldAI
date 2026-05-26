@@ -15,6 +15,8 @@ namespace RimWorldMCP
         public string Title = "";
         public string Meta = "";
         public ToolStatus Status;
+        public DateTime StartTime = DateTime.UtcNow;
+        public double DurationMs;
     }
 
     public class ChatEntry
@@ -115,6 +117,7 @@ namespace RimWorldMCP
         {
             lock (_lock)
             {
+                _toolCalls.Clear(); // 新消息 → 清理上轮工具卡片
                 // 结束上一轮 AI 流式条目，确保每轮对话独立记录
                 if (_streamingEntry != null)
                 {
@@ -126,6 +129,7 @@ namespace RimWorldMCP
                         _streamingEntry.ThinkingText = "";
                     }
                     _streamingEntry.State = ChatState.Done;
+                    _streamingEntry.CachedHeight = 0f;
                     _streamingEntry = null;
                 }
                 _entries.Add(new ChatEntry
@@ -177,6 +181,7 @@ namespace RimWorldMCP
                         _streamingEntry.Text = "（已中断）";
                     else
                         _streamingEntry.Text += "（已中断）";
+                    _streamingEntry.CachedHeight = 0f;
                     _streamingEntry = null;
                 }
             }
@@ -266,7 +271,7 @@ namespace RimWorldMCP
                                 if (_toolCalls[i].ItemId == itemId)
                                 {
                                     _toolCalls[i].Status = isError ? ToolStatus.Failed : ToolStatus.Completed;
-                                    // 提取错误简述
+                                    _toolCalls[i].DurationMs = (DateTime.UtcNow - _toolCalls[i].StartTime).TotalMilliseconds;
                                     if (isError)
                                     {
                                         var errContent = block.TryGetProperty("content", out var ec) ? ec : default;
@@ -402,6 +407,7 @@ namespace RimWorldMCP
                 if (_streamingEntry != null)
                 {
                     _streamingEntry.State = ChatState.Done;
+                    _streamingEntry.CachedHeight = 0f;
                     _streamingEntry = null;
                 }
             }
