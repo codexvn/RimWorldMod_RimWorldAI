@@ -640,6 +640,24 @@ namespace RimWorldMCP
             if (Widgets.ButtonText(alphaPlus, "+"))
                 _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
 
+            // 威胁摘要（仅 emoji）
+            string danger = BridgeLifecycle.DangerSummary;
+            if (!string.IsNullOrEmpty(danger))
+            {
+                float dangerX = alphaPlus.xMax + 8f;
+                float dangerW = rect.xMax - dangerX - 230f;
+                if (dangerW > 60f)
+                {
+                    // 去掉"待处理:"前缀，只保留 emoji
+                    string shortText = danger.Replace("待处理: ", "");
+                    Rect dangerRect = new Rect(dangerX, y, dangerW, btnH);
+                    Text.Font = GameFont.Tiny;
+                    GUI.color = new Color(1f, 0.6f, 0.3f, _alpha);
+                    Widgets.Label(dangerRect, shortText);
+                    GUI.color = Color.white;
+                }
+            }
+
             // 右侧按钮：清空 | 继续 | 中断
             float rightSide = rect.xMax;
             float actionBtnW = 52f;

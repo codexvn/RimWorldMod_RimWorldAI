@@ -20,7 +20,8 @@ namespace RimWorldMCP.Tools
             {
                 colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" },
                 thing_id = new { type = "integer", description = "物品唯一 ID（来自 get_tile_detail）" },
-                count = new { type = "integer", description = "拾取数量（可选，默认全部）" }
+                count = new { type = "integer", description = "拾取数量（可选，默认全部）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_id", "thing_id" }
         });
@@ -37,6 +38,11 @@ namespace RimWorldMCP.Tools
             int? userCount = null;
             if (args.Value.TryGetProperty("count", out var jCount))
                 userCount = jCount.GetInt32();
+
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -101,10 +107,11 @@ namespace RimWorldMCP.Tools
                     job.count = finalCount;
                     job.checkEncumbrance = true;
                     job.takeInventoryDelay = 120;
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法拾取物品（物品可能已被占用或当前任务无法中断）。");
 
-                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取: {thing.Label} ({thing.def.defName}) x{finalCount}");
+                    string queueLabel = capQueue ? "（已加入队列）" : "";
+                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取: {thing.Label} ({thing.def.defName}) x{finalCount}{queueLabel}");
                 }
                 catch (Exception ex)
                 {

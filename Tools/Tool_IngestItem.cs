@@ -19,7 +19,8 @@ namespace RimWorldMCP.Tools
             properties = new
             {
                 colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" },
-                thing_id = new { type = "integer", description = "物品唯一 ID（来自 get_tile_detail）" }
+                thing_id = new { type = "integer", description = "物品唯一 ID（来自 get_tile_detail）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_id", "thing_id" }
         });
@@ -32,6 +33,11 @@ namespace RimWorldMCP.Tools
 
             if (!args.Value.TryGetProperty("thing_id", out var jTid) || !jTid.TryGetInt32(out var thingId))
                 return ToolResult.Error("缺少必填参数: thing_id");
+
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -97,7 +103,7 @@ namespace RimWorldMCP.Tools
                     thing.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(JobDefOf.Ingest, thing);
                     job.count = maxAmount;
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行服食（物品可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"小人已前往服食: {thing.Label} x{maxAmount}");

@@ -18,7 +18,8 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" }
+                colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_id" }
         });
@@ -28,6 +29,11 @@ namespace RimWorldMCP.Tools
             if (args == null) return ToolResult.Error("缺少参数");
             if (!args.Value.TryGetProperty("colonist_id", out var jId) || !jId.TryGetInt32(out var colonistId))
                 return ToolResult.Error("缺少必填参数: colonist_id");
+
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -46,7 +52,7 @@ namespace RimWorldMCP.Tools
 
                     ThingWithComps weapon = pawn.equipment.Primary;
                     Job job = JobMaker.MakeJob(JobDefOf.DropEquipment, weapon);
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法丢弃武器（当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 将丢弃武器: {weapon.Label}");

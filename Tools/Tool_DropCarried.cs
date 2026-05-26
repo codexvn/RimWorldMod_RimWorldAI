@@ -21,7 +21,8 @@ namespace RimWorldMCP.Tools
                 colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" },
                 count = new { type = "integer", description = "放下数量（可选，默认全部放下）" },
                 pos_x = new { type = "integer", description = "放下位置 X（可选，与 pos_y 配对。不填则就地放下）" },
-                pos_y = new { type = "integer", description = "放下位置 Y（可选，与 pos_x 配对。不填则就地放下）" }
+                pos_y = new { type = "integer", description = "放下位置 Y（可选，与 pos_x 配对。不填则就地放下）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_id" }
         });
@@ -47,6 +48,11 @@ namespace RimWorldMCP.Tools
 
             // 捕获本地变量供 lambda 使用
             var capDestX = destX; var capDestY = destY; var capHasDest = hasDest;
+
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -92,7 +98,7 @@ namespace RimWorldMCP.Tools
                         Job job = JobMaker.MakeJob(JobDefOf.HaulToCell, carried, destCell);
                         job.haulMode = HaulMode.ToCellStorage;
                         job.count = finalCount;
-                        if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行搬运放下任务（当前任务无法中断）。");
 
                         return ToolResult.Success($"{pawn.Name.ToStringShort} 将把 {thingLabel} x{finalCount} 搬到 ({capDestX}, {capDestY}) 放下");

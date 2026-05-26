@@ -19,7 +19,8 @@ namespace RimWorldMCP.Tools
             properties = new
             {
                 colonist_id = new { type = "integer", description = "殖民者 ID（来自 get_colonists）" },
-                thing_id = new { type = "integer", description = "装备物品 ID（来自 get_tile_detail）" }
+                thing_id = new { type = "integer", description = "装备物品 ID（来自 get_tile_detail）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_id", "thing_id" }
         });
@@ -31,6 +32,10 @@ namespace RimWorldMCP.Tools
                 return ToolResult.Error("缺少必填参数: colonist_id");
             if (!args.Value.TryGetProperty("thing_id", out var jTid) || !jTid.TryGetInt32(out var thingId))
                 return ToolResult.Error("缺少必填参数: thing_id");
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -110,11 +115,12 @@ namespace RimWorldMCP.Tools
 
                     thing.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(isWeapon ? JobDefOf.Equip : JobDefOf.Wear, thing);
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行操作（物品可能已被占用或当前任务无法中断）。");
 
                     string typeLabel = isWeapon ? "武器" : "衣物";
-                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取并装备{typeLabel}: {thing.Label}{qualityStr}。");
+                    string queueLabel = capQueue ? "（已加入队列）" : "";
+                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取并装备{typeLabel}: {thing.Label}{qualityStr}。{queueLabel}");
                 }
                 catch (Exception ex) { return ToolResult.Error($"装备操作失败: {ex.Message}"); }
             });

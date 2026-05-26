@@ -20,7 +20,8 @@ namespace RimWorldMCP.Tools
             {
                 doer_id = new { type = "integer", description = "执行穿戴操作的殖民者 ID（去拿衣物的人，来自 get_colonists）" },
                 target_id = new { type = "integer", description = "目标殖民者 ID（被穿者，来自 get_colonists）" },
-                thing_id = new { type = "integer", description = "衣物唯一 ID（来自 get_tile_detail）" }
+                thing_id = new { type = "integer", description = "衣物唯一 ID（来自 get_tile_detail）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "doer_id", "target_id", "thing_id" }
         });
@@ -39,6 +40,11 @@ namespace RimWorldMCP.Tools
             string thingDefName = "";
             if (args.Value.TryGetProperty("thing_defName", out var jDef))
                 thingDefName = jDef.GetString() ?? "";
+
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -94,7 +100,7 @@ namespace RimWorldMCP.Tools
 
                     apparel.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(JobDefOf.ForceTargetWear, targetPawn, apparel);
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行强制穿戴（目标或物品可能已被占用）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往 ({apparel.Position.x},{apparel.Position.z}) 拿取衣物并给 {targetPawn.Name} 穿戴: {apparel.Label}");

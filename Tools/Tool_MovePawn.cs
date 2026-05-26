@@ -20,7 +20,8 @@ namespace RimWorldMCP.Tools
             {
                 colonist_name = new { type = "string", description = "殖民者名称" },
                 pos_x = new { type = "integer", description = "目标 X 坐标（水平网格轴）" },
-                pos_y = new { type = "integer", description = "目标 Y 坐标（垂直网格轴，映射到 IntVec3.z）" }
+                pos_y = new { type = "integer", description = "目标 Y 坐标（垂直网格轴，映射到 IntVec3.z）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_name", "pos_x", "pos_y" }
         });
@@ -39,6 +40,11 @@ namespace RimWorldMCP.Tools
                 return ToolResult.Error("缺少必填参数: pos_x");
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY))
                 return ToolResult.Error("缺少必填参数: pos_y");
+
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+            var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -70,10 +76,11 @@ namespace RimWorldMCP.Tools
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法移动。");
 
                     Job job = JobMaker.MakeJob(JobDefOf.Goto, dest);
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行移动指令，可能被阻塞。");
+                    string queueLabel = capQueue ? "（已加入队列）" : "";
 
-                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已开始移动到 ({posX}, {posY})。");
+                    return ToolResult.Success($"{pawn.Name.ToStringShort} 已开始移动到 ({posX}, {posY})。{queueLabel}");
                 }
                 catch (Exception ex)
                 {

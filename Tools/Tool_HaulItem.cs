@@ -22,7 +22,8 @@ namespace RimWorldMCP.Tools
                 thing_id = new { type = "integer", description = "物品唯一 ID（来自 get_tile_detail 或 find_thing）" },
                 pos_x = new { type = "integer", description = "目标 X 坐标（可选，与 pos_y 配对。不填则自动放入最佳存储区）" },
                 pos_y = new { type = "integer", description = "目标 Y 坐标（可选，与 pos_x 配对。不填则自动放入最佳存储区）" },
-                count = new { type = "integer", description = "搬运数量（可选，默认全部）" }
+                count = new { type = "integer", description = "搬运数量（可选，默认全部）" },
+                queue = new { type = "boolean", description = "加入任务队列末尾而非立即执行（默认 true）", @default = true }
             },
             required = new[] { "colonist_id", "thing_id" }
         });
@@ -48,8 +49,12 @@ namespace RimWorldMCP.Tools
             if (args.Value.TryGetProperty("count", out var jCount))
                 userCount = jCount.GetInt32();
 
+            bool queue = true;
+            if (args.Value.TryGetProperty("queue", out var jQueue) && jQueue.ValueKind == JsonValueKind.False)
+                queue = false;
+
             // 捕获本地变量供 lambda 使用
-            var capDestX = destX; var capDestY = destY; var capHasDest = hasDest;
+            var capDestX = destX; var capDestY = destY; var capHasDest = hasDest; var capQueue = queue;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -140,10 +145,11 @@ namespace RimWorldMCP.Tools
                             job.count = finalCount;
                     }
 
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法开始搬运（物品可能已被占用或当前任务无法中断）。");
 
-                    return ToolResult.Success($"{pawn.Name.ToStringShort} 开始搬运: {thing.Label} ({thing.def.defName}) x{finalCount} → {destInfo}");
+                    string queueLabel = capQueue ? "（已加入队列）" : "";
+                    return ToolResult.Success($"{pawn.Name.ToStringShort} 开始搬运: {thing.Label} ({thing.def.defName}) x{finalCount} → {destInfo}{queueLabel}");
                 }
                 catch (Exception ex)
                 {
