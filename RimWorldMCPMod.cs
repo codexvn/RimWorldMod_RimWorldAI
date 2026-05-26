@@ -24,7 +24,7 @@ namespace RimWorldMCP
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            float h = 590f;
+            float h = 830f;
             h += Settings.CCBAutoStart ? 70f : 170f;
             if (Settings.OssEnabled) h += 220f;
             if (Settings.OssEnabled && Settings.OssUseSignedUrl) h += 50f;
@@ -93,7 +93,16 @@ namespace RimWorldMCP
                 Settings.CCBModelName = listing.TextEntry(Settings.CCBModelName);
             }
 
+            listing.Gap(12f);
+            listing.Label("项目设置 JSON 模板（写出为 .claude/settings.json）");
+            listing.Gap(2f);
+            var textAreaRect = listing.GetRect(180f);
+            Settings.CCBProjectSettingsJson = Widgets.TextArea(textAreaRect, Settings.CCBProjectSettingsJson);
             listing.Gap(6f);
+            if (listing.ButtonText("复位为默认值"))
+            {
+                Settings.CCBProjectSettingsJson = BridgeLifecycle.BuildProjectSettingsJson(Settings.McpPort);
+            }
             var installed = BridgeLifecycle.IsCompanionInstalled();
             var installing = BridgeLifecycle.IsInstalling;
             var status = BridgeLifecycle.InstallStatus;

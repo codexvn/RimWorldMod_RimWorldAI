@@ -651,8 +651,33 @@ namespace RimWorldMCP
                 }
             }
 
+            // 6. Windows: cmd /c where node（shell 级 PATH 搜索，最可靠）
+            var whereNode = TryFindWithWhere("node");
+            if (whereNode != null) return whereNode;
+
             McpLog.Error("[cc] 未找到 Node.js，请确保已安装并加入 PATH (https://nodejs.org)");
             return null;
+        }
+
+        /// <summary>用 cmd /c where 查找可执行文件（Windows，支持 .cmd/.bat/.exe）</summary>
+        private static string? TryFindWithWhere(string name)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return null;
+            try
+            {
+                var psi = new ProcessStartInfo("cmd", "/c where " + name)
+                { UseShellExecute = false, RedirectStandardOutput = true,
+                  RedirectStandardError = true, CreateNoWindow = true };
+                using var proc = Process.Start(psi);
+                if (proc == null) return null;
+                proc.WaitForExit(5000);
+                if (proc.ExitCode != 0) return null;
+                var output = proc.StandardOutput.ReadToEnd().Trim();
+                if (string.IsNullOrEmpty(output)) return null;
+                var firstLine = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                return File.Exists(firstLine) ? firstLine : null;
+            }
+            catch { return null; }
         }
 
         /// <summary>尝试执行 node --version 验证给定路径的 node 可执行文件</summary>
@@ -670,7 +695,7 @@ namespace RimWorldMCP
             return null;
         }
 
-        /// <summary>查找 npm 可执行文件路径，基于 node 路径推导 + PATH 兜底</summary>
+        /// <summary>查找 npm 可执行文件路径，基于 node 路径推导 + where npm + PATH 兜底</summary>
         public static string? FindNpmPath()
         {
             // 1. 基于 node.exe 路径推导同目录下的 npm
@@ -690,7 +715,17 @@ namespace RimWorldMCP
                 }
             }
 
-            // 2. Fallback: 尝试 PATH 查找 "npm" / "npm.cmd"
+            // 2. Windows: cmd /c where npm（shell 级 PATH 搜索，支持 .cmd/.bat/.exe）
+            var whereNpm = TryFindWithWhere("npm");
+            if (whereNpm != null)
+            {
+                McpLog.Info($"[cc] 找到 npm: {whereNpm} (where npm)");
+                return whereNpm;
+            }
+
+            // 3. Fallback: 直接 Process.Start PATH 查找
+            //    ⚠ CreateProcess(UseShellExecute=false) 只搜索 PATH 中的 .exe,
+            //    不搜索 .cmd/.bat（对 npm.cmd 无效）。保留作为兜底以防 npm.exe 存在。
             try
             {
                 var psi = new ProcessStartInfo("npm", "--version")
@@ -767,17 +802,25 @@ namespace RimWorldMCP
             var baseSessionsDir = modRoot != null
                 ? Path.Combine(modRoot, "claude-sessions")
                 : Path.Combine(companionDir, "..", "claude-sessions");
-            var sessionsDir = Path.Combine(baseSessionsDir, $"rimworld-{sessionId}");
-            Directory.CreateDirectory(sessionsDir);
-            McpLog.Info($"[cc] 会话目录 (按存档): {sessionsDir}");
-
             var settings = RimWorldMCPMod.Instance?.Settings;
             var mcpPort = settings?.McpPort ?? 9877;
-            var projectSettingsJson = BuildProjectSettingsJson(mcpPort);
+
+            // 共享目录（跨存档共享 SDK 记忆/checkpoints）
+            Directory.CreateDirectory(baseSessionsDir);
+            McpLog.Info($"[cc] 会话目录 (共享): {baseSessionsDir}");
+
+            // 从设置读 ProjectSettingsJson 模板，空则用默认值
+            var template = settings?.CCBProjectSettingsJson;
+            if (string.IsNullOrWhiteSpace(template))
+                template = BuildProjectSettingsJson(mcpPort);
+
+            // C# 直接写出 .claude/settings.json（pretty JSON，支持多行编辑）
+            var settingsDir = Path.Combine(baseSessionsDir, ".claude");
+            Directory.CreateDirectory(settingsDir);
+            File.WriteAllText(Path.Combine(settingsDir, "settings.json"), template, Encoding.UTF8);
 
             var args = $"--import tsx/esm companion/companion.ts"
-                + $" --idle-timeout 30000"
-                + $" --project-setting-sources \"{EscapeJsonForArg(projectSettingsJson)}\"";
+                + $" --idle-timeout 30000";
             if (!string.IsNullOrEmpty(settings?.CCBModelName))
                 args += $" --model-name \"{EscapeJsonForArg(settings.CCBModelName)}\"";
 
@@ -791,7 +834,7 @@ namespace RimWorldMCP
                     RedirectStandardError = true, CreateNoWindow = true,
                 };
                 // 通过环境变量传递（替代 CLI args）
-                psi.Environment["RIMWORLD_PROJECT_PATH"] = sessionsDir;
+                psi.Environment["RIMWORLD_PROJECT_PATH"] = baseSessionsDir;
                 psi.Environment["CCB_HOST"] = host;
                 psi.Environment["CCB_PORT"] = port.ToString();
                 if (!string.IsNullOrEmpty(token)) psi.Environment["CCB_AUTH_TOKEN"] = token;
@@ -824,13 +867,14 @@ namespace RimWorldMCP
             catch (Exception ex) { McpLog.Error($"[cc] 启动 Companion 进程失败: {ex.Message}"); }
         }
 
-        private static string BuildProjectSettingsJson(int mcpPort)
+        internal static string BuildProjectSettingsJson(int mcpPort)
         {
             var obj = new Dictionary<string, object?>
             {
+                ["permissionMode"] = "bypassPermissions",
+                ["disallowedTools"] = new[] { "Bash", "FileWrite", "FileEdit" },
                 ["permissions"] = new Dictionary<string, object>
                 {
-                    ["permissionMode"] = "bypassPermissions",
                     ["allow"] = new[] { "mcp:*" }
                 },
                 ["mcpServers"] = new Dictionary<string, object>
@@ -842,7 +886,7 @@ namespace RimWorldMCP
                     }
                 }
             };
-            return JsonSerializer.Serialize(obj);
+            return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
         }
 
         /// <summary>JSON 字符串转义，使其可安全用于 CLI 双引号参数</summary>

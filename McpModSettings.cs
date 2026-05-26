@@ -18,6 +18,9 @@ namespace RimWorldMCP
         public bool CCBAutoStart = true;
         public string CCBModelName = "";
 
+        // CC 项目设置 JSON 模板
+        public string CCBProjectSettingsJson = "";
+
         // 工具行为
         public bool AutoMoveCamera = true;
 
@@ -45,6 +48,8 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref CCBAuthToken, "ccbAuthToken", "");
             Scribe_Values.Look(ref CCBAutoStart, "ccbAutoStart", true);
             Scribe_Values.Look(ref CCBModelName, "ccbModelName", "");
+            var defaultProjectSettingsJson = BridgeLifecycle.BuildProjectSettingsJson(9877);
+            Scribe_Values.Look(ref CCBProjectSettingsJson, "ccbProjectSettingsJson", defaultProjectSettingsJson);
             Scribe_Values.Look(ref AutoMoveCamera, "autoMoveCamera", true);
             Scribe_Values.Look(ref OssEnabled, "ossEnabled", false);
             Scribe_Values.Look(ref OssServiceUrl, "ossServiceUrl", "");

@@ -58,14 +58,20 @@
     <None Include="CLAUDE.md" />
   </ItemGroup>
 
-  <!-- CC Companion: 复制源码到 publish + npm install -->
+  <!-- CC Companion: 复制源码到 publish（保留 .gitignore 等，排除无关目录） -->
   <Target Name="CCCompanionBuild" AfterTargets="Build">
     <PropertyGroup>
       <CompanionSrc>$(MSBuildProjectDirectory)\cc-companion\</CompanionSrc>
       <CompanionOut>$(MSBuildProjectDirectory)\publish\cc-companion\</CompanionOut>
     </PropertyGroup>
+    <!-- 清理发布目录中的无关子目录 -->
+    <RemoveDir Directories="$(CompanionOut).idea" />
+    <RemoveDir Directories="$(CompanionOut)node_modules" />
+    <RemoveDir Directories="$(CompanionOut).claude" />
+    <!-- 复制源码（排除 dist、node_modules、.idea、.claude、README） -->
     <ItemGroup>
-      <CompanionFiles Include="$(CompanionSrc)**\*" Exclude="$(CompanionSrc)dist\**;$(CompanionSrc)node_modules\**;$(CompanionSrc)README.md" />
+      <CompanionFiles Include="$(CompanionSrc)**\*"
+        Exclude="$(CompanionSrc)dist\**;$(CompanionSrc)node_modules\**;$(CompanionSrc).idea\**;$(CompanionSrc).claude\**;$(CompanionSrc)README.md" />
     </ItemGroup>
     <Copy SourceFiles="@(CompanionFiles)" DestinationFolder="$(CompanionOut)%(RecursiveDir)" />
   </Target>
