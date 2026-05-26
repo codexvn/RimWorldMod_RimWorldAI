@@ -57,6 +57,8 @@ export function createSession(sdk: any, config: CompanionConfig, abortController
     cwd: config.projectPath,
     model: config.modelName || undefined,
     abortController,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
     settingSources: config.settingSources,
     systemPrompt: [buildSystemPrompt(), SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
     stderr: (data: string | Buffer) => {

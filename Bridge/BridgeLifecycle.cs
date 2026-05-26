@@ -868,10 +868,10 @@ namespace RimWorldMCP
             if (string.IsNullOrWhiteSpace(template))
                 template = BuildProjectSettingsJson(mcpPort);
 
-            // C# 写出 .claude/settings.local.json（local 层不受 trust filter 限制）
+            // C# 写出 .claude/settings.json（project 层）
             var settingsDir = Path.Combine(baseSessionsDir, ".claude");
             Directory.CreateDirectory(settingsDir);
-            File.WriteAllText(Path.Combine(settingsDir, "settings.local.json"), template, Encoding.UTF8);
+            File.WriteAllText(Path.Combine(settingsDir, "settings.json"), template, Encoding.UTF8);
 
             var args = $"--import tsx/esm companion/companion.ts"
                 + $" --idle-timeout 30000";
@@ -926,11 +926,6 @@ namespace RimWorldMCP
             var obj = new Dictionary<string, object?>
             {
                 ["disallowedTools"] = new[] { "Bash", "FileWrite", "FileEdit" },
-                ["permissions"] = new Dictionary<string, object>
-                {
-                    ["defaultMode"] = "bypassPermissions",
-                    ["allow"] = new[] { "mcp:*" }
-                },
                 ["mcpServers"] = new Dictionary<string, object>
                 {
                     ["rimworld"] = new Dictionary<string, string>
