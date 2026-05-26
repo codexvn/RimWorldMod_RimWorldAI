@@ -166,7 +166,6 @@
 | get_tile_grid / get_tile_detail | 查看地图                                                                    |
 | designate_mine / designate_plants_cut / designate_harvest | 资源采集                                                                    |
 | get_open_dialogs / select_dialog_option | 弹框拦截：读取选项并程序化选择                                                         |
-| get_skills / active_skill | 查看可用领域技能并按需激活获取详细指南                                                   |
 | create_growing_zone / set_grower_plant | 种植区创建与植物类型设置                                                            |
 | haul_item / drop_carried | 搬运物品到指定位置/放下手中物品                                                        |
 
