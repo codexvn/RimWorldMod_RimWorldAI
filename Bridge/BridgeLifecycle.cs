@@ -187,11 +187,13 @@ namespace RimWorldMCP
             }
         }
 
-        /// <summary>统一发送入口 — 追踪最后发送时间用于空闲兜底</summary>
+        /// <summary>统一发送入口 — 追踪最后发送时间，写入聊天窗并转发 AI</summary>
         private static void SendCCMessage(string category, string text)
         {
             _lastSendRealMs = Environment.TickCount;
-            _ = CCClient.SendEventText("rimworld.alert", category, FormatGameEvent(category, text));
+            var formatted = FormatGameEvent(category, text);
+            ChatDisplayState.AddSystemMessage(formatted);
+            _ = CCClient.SendEventText("rimworld.chat", category, formatted);
         }
 
         /// <summary>每日早报</summary>
@@ -388,7 +390,8 @@ namespace RimWorldMCP
             if (text.Length > 0)
             {
                 _lastSendRealMs = Environment.TickCount;
-                _ = CCClient.SendEventText("rimworld.alert", primaryCategory, text);
+                ChatDisplayState.AddSystemMessage(text);
+                _ = CCClient.SendEventText("rimworld.chat", primaryCategory, text);
             }
         }
 

@@ -65,9 +65,14 @@ namespace RimWorldMCP
             var text = _inputText.Trim();
             if (string.IsNullOrEmpty(text)) return;
 
+            if (!CCClient.IsReady)
+            {
+                Messages.Message("Claude Code 未连接，无法发送消息", MessageTypeDefOf.RejectInput, false);
+                return;
+            }
+
             _inputText = "";
             _ = CCClient.SendAbort();
-            ChatDisplayState.Clear();
             ChatDisplayState.OnUserMessage(text);
             _ = CCClient.SendEventText("rimworld.chat", "UserMessage", text);
         }
@@ -142,82 +147,35 @@ namespace RimWorldMCP
 
         private static float CalcToolStripHeight(System.Collections.Generic.List<ToolCallInfo> toolCalls, float stripWidth)
         {
-            if (toolCalls.Count == 0) return 0f;
-            if (stripWidth <= 0) stripWidth = 300f;
-
-            // 估算每个标签宽度 (Tiny 字体)
-            float gap = 6f;
-            float maxX = stripWidth - 4f;
-            float curX = 4f;
-            int rows = 1;
-            for (int i = 0; i < toolCalls.Count; i++)
-            {
-                string name = toolCalls[i].Name?.Replace("_", "__") ?? "";
-                if (string.IsNullOrEmpty(name)) continue;
-                float labelW = name.Length * 7f + gap; // Tiny 约 7px/字
-                if (curX + labelW > maxX && curX > 4f)
-                {
-                    rows++;
-                    curX = 4f;
-                }
-                curX += labelW;
-            }
-            return Mathf.Max(20f, rows * 18f);
+            // 单行工具条，只显示第一个 Running 工具
+            foreach (var tc in toolCalls)
+                if (tc.Status == ToolStatus.Running)
+                    return 20f;
+            return 0f;
         }
 
         private void DrawToolStrip(Rect inRect, float y, float h, System.Collections.Generic.List<ToolCallInfo> toolCalls)
         {
-            if (toolCalls.Count == 0) return;
+            // 单行工具条，只显示第一个 Running 工具
+            ToolCallInfo? running = null;
+            foreach (var tc in toolCalls)
+                if (tc.Status == ToolStatus.Running) { running = tc; break; }
+            if (running == null) return;
 
             float x = inRect.x + 6f;
             float width = inRect.width - 12f;
 
-            // 半透明背景条
             Widgets.DrawBoxSolid(new Rect(x, y, width, h),
                 new Color(0.1f, 0.1f, 0.15f, _alpha));
 
             Text.Font = GameFont.Tiny;
-            float maxX = x + width - 4f;
-            float curX = x + 4f;
-            float curY = y + 3f;
-            float lineH = 16f;
-            float gap = 6f;
+            string label = (running.Name ?? "").Replace("_", "__");
+            if (string.IsNullOrEmpty(label)) { Text.Font = GameFont.Small; return; }
 
-            for (int i = 0; i < toolCalls.Count; i++)
-            {
-                var tc = toolCalls[i];
-                // Unity GUI.Label 把 _ 当作键盘快捷键标记吃掉，双写 __ 可正确显示
-                // 只显示运行中的工具，已完成/失败的立即隐藏
-                if (tc.Status != ToolStatus.Running) continue;
-
-                string displayName = tc.Name?.Replace("_", "__") ?? "";
-                string label = displayName;
-                if (string.IsNullOrEmpty(label)) continue;
-
-                Color c;
-                if (tc.Status == ToolStatus.Running)
-                    c = new Color(1f, 0.8f, 0.3f, _alpha); // 黄色
-                else if (tc.Status == ToolStatus.Failed)
-                    c = new Color(1f, 0.3f, 0.3f, _alpha); // 红色
-                else
-                    c = new Color(0.3f, 1f, 0.3f, _alpha); // 绿色
-
-                float labelWidth = Text.CalcSize(label).x + gap;
-
-                // 换行：当前行放不下则折行
-                if (curX + labelWidth > maxX && curX > x + 4f)
-                {
-                    curX = x + 4f;
-                    curY += lineH;
-                    if (curY + lineH > y + h) break; // 超出高度
-                }
-
-                GUI.color = c;
-                Widgets.Label(new Rect(curX, curY, labelWidth, lineH), label);
-                GUI.color = Color.white;
-
-                curX += labelWidth;
-            }
+            float labelWidth = Mathf.Min(Text.CalcSize(label).x, width - 8f);
+            GUI.color = new Color(1f, 0.8f, 0.3f, _alpha);
+            Widgets.Label(new Rect(x + 4f, y + 3f, labelWidth, 16f), label);
+            GUI.color = Color.white;
             Text.Font = GameFont.Small;
         }
 
@@ -250,41 +208,41 @@ namespace RimWorldMCP
 
         private void DrawFooter(Rect inRect, float y, float h)
         {
+            bool connected = CCClient.IsReady;
             float alphaBtnW = 24f;
-            float abortBtnW = 56f;
+
+            // 连接状态指示
+            float statusX = inRect.x + 4f;
+            Rect statusRect = new Rect(statusX, y + 4f, 80f, h - 8f);
+            Text.Font = GameFont.Tiny;
+            GUI.color = connected ? new Color(0.3f, 1f, 0.3f, _alpha) : new Color(1f, 0.4f, 0.4f, _alpha);
+            Widgets.Label(statusRect, connected ? "已连接" : "未连接");
+            GUI.color = Color.white;
+            Text.Font = GameFont.Small;
 
             // 透明度 -
-            Rect alphaMinus = new Rect(inRect.x + 4f, y + 4f, alphaBtnW, h - 8f);
+            float alphaX = statusX + 78f;
+            Rect alphaMinus = new Rect(alphaX, y + 4f, alphaBtnW, h - 8f);
             if (Widgets.ButtonText(alphaMinus, "-"))
                 _alpha = Mathf.Clamp(_alpha - 0.1f, 0.2f, 1f);
             TooltipHandler.TipRegion(alphaMinus, $"透明度 {(int)(_alpha * 100)}%");
 
             // 透明度 +
-            Rect alphaPlus = new Rect(inRect.x + 30f, y + 4f, alphaBtnW, h - 8f);
+            Rect alphaPlus = new Rect(alphaX + alphaBtnW + 2f, y + 4f, alphaBtnW, h - 8f);
             if (Widgets.ButtonText(alphaPlus, "+"))
                 _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
             TooltipHandler.TipRegion(alphaPlus, $"透明度 {(int)(_alpha * 100)}%");
 
-            bool connected = true;
-
-            // 中断按钮
-            float abortX = inRect.width - abortBtnW - 4f;
-            Rect abortRect = new Rect(abortX, y + 4f, abortBtnW, h - 8f);
-            GUI.color = connected ? Color.white : Color.grey;
-            if (Widgets.ButtonText(abortRect, "中断"))
-            {
-                ChatDisplayState.MarkLastAborted();
-                _ = CCClient.SendAbort();
-            }
-
             // 清空
-            Rect clearRect = new Rect(abortX - 58f, y + 4f, 48f, h - 8f);
+            float rightSide = inRect.x + inRect.width - 4f;
+            float abortBtnW = 56f;
+            Rect clearRect = new Rect(rightSide - abortBtnW - 54f, y + 4f, 48f, h - 8f);
             GUI.color = Color.white;
             if (Widgets.ButtonText(clearRect, "清空"))
                 ChatDisplayState.Clear();
 
             // 继续 — 先打断当前回复，再向 agent 发送殖民地概览
-            Rect continueRect = new Rect(abortX - 120f, y + 4f, 54f, h - 8f);
+            Rect continueRect = new Rect(clearRect.xMax + 4f, y + 4f, 54f, h - 8f);
             GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(continueRect, "继续"))
             {
@@ -295,10 +253,21 @@ namespace RimWorldMCP
                     if (map != null)
                     {
                         var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                        _ = CCClient.SendEventText("rimworld.chat", "ColonyOverview",
-                            GameContextProvider.BuildColonyOverview(map, colonists, colonists.Count));
+                        var overview = GameContextProvider.BuildColonyOverview(map, colonists, colonists.Count);
+                        ChatDisplayState.AddSystemMessage(overview);
+                        _ = CCClient.SendEventText("rimworld.chat", "ColonyOverview", overview);
                     }
                 }
+            }
+            GUI.color = Color.white;
+
+            // 中断按钮
+            Rect abortRect = new Rect(continueRect.xMax + 4f, y + 4f, abortBtnW, h - 8f);
+            GUI.color = connected ? Color.white : Color.grey;
+            if (Widgets.ButtonText(abortRect, "中断"))
+            {
+                ChatDisplayState.MarkLastAborted();
+                _ = CCClient.SendAbort();
             }
             GUI.color = Color.white;
         }
@@ -319,7 +288,8 @@ namespace RimWorldMCP
         private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
         {
             bool isSubagent = !string.IsNullOrEmpty(entry.AgentId);
-            string label = entry.Role == ChatRole.User ? "你"
+            string label = entry.IsContext ? "系统"
+                : entry.Role == ChatRole.User ? "你"
                 : isSubagent ? entry.AgentType : "AI";
             // Unity GUI.Label 把 _ 当作键盘快捷键标记吃掉，双写 __ 可显示一个下划线
             string body = (entry.Text ?? "").Replace("_", "__");
@@ -334,7 +304,8 @@ namespace RimWorldMCP
             float entryHeight = entry.CachedHeight;
 
             Rect bubbleRect = new Rect(2f, y, contentWidth, entryHeight);
-            Color bgColor = entry.Role == ChatRole.User ? UserBgColor
+            Color bgColor = entry.IsContext ? new Color(0.08f, 0.08f, 0.18f, 1f)
+                : entry.Role == ChatRole.User ? UserBgColor
                 : entry.State == ChatState.Error ? ErrorBgColor
                 : isSubagent ? SubagentBgColor : AiBgColor;
             bgColor.a = _alpha;
@@ -354,17 +325,19 @@ namespace RimWorldMCP
             Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 2f,
                 isSubagent ? 60f : 24f, 16f);
             Text.Font = GameFont.Tiny;
-            GUI.color = entry.Role == ChatRole.User
-                ? new Color(0.4f, 0.8f, 1f, _alpha)
-                : isSubagent
-                    ? new Color(0.8f, 0.4f, 1f, _alpha)
-                    : new Color(0.4f, 1f, 0.4f, _alpha);
+            GUI.color = entry.IsContext ? new Color(0.6f, 0.6f, 0.8f, _alpha)
+                : entry.Role == ChatRole.User
+                    ? new Color(0.4f, 0.8f, 1f, _alpha)
+                    : isSubagent
+                        ? new Color(0.8f, 0.4f, 1f, _alpha)
+                        : new Color(0.4f, 1f, 0.4f, _alpha);
             Widgets.Label(labelRect, label);
 
             // 消息正文
             Rect bodyRect = new Rect(bubbleRect.x + 8f, bubbleRect.y + 17f,
                 bodyWidth - 12f, Mathf.Max(bodyHeight, 10f));
-            GUI.color = new Color(1f, 1f, 1f, _alpha);
+            GUI.color = entry.IsContext ? new Color(0.7f, 0.7f, 0.8f, _alpha)
+                : new Color(1f, 1f, 1f, _alpha);
             Text.Font = GameFont.Small;
             Widgets.Label(bodyRect, body);
 

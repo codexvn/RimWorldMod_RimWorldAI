@@ -25,6 +25,7 @@ namespace RimWorldMCP
         public string RunId = "";
         public string AgentId = "";
         public string AgentType = "";
+        public bool IsContext; // 事件系统推送的上下文消息（空闲兜底/早报等）
         // 流式：记录上一个 delta chunk 的长度，用于 replace 场景
         public int LastChunkLen;
         // 由 UI 线程每帧写入，避免重复 Text.CalcHeight
@@ -238,6 +239,23 @@ namespace RimWorldMCP
         {
             while (_entries.Count > MaxEntries)
                 _entries.RemoveAt(0);
+        }
+
+        /// <summary>事件系统上下文消息（空闲兜底/早报/弹框等），只显示不触发 AI</summary>
+        public static void AddSystemMessage(string text)
+        {
+            lock (_lock)
+            {
+                _entries.Add(new ChatEntry
+                {
+                    Role = ChatRole.Assistant,
+                    Text = text,
+                    State = ChatState.Done,
+                    IsContext = true,
+                });
+                TrimEntries();
+            }
+            OnChanged?.Invoke();
         }
 
         /// <summary>用户发送消息时记录（从主线程调用）</summary>
