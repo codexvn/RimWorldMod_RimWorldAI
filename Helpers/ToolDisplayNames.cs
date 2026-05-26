@@ -16,7 +16,8 @@ namespace RimWorldMCP.Helpers
             var lastSep = rawName.LastIndexOf("__");
             var toolName = lastSep >= 0 ? rawName.Substring(lastSep + 2) : rawName;
 
-            return (TranslationKeyPrefix + toolName).Translate();
+            var key = TranslationKeyPrefix + toolName;
+            return key.CanTranslate() ? key.Translate() : toolName;
         }
     }
 }

@@ -34,6 +34,10 @@ namespace RimWorldMCP
         private static int _lastDialogCount;
         private static string _lastDialogKey = "";
 
+        // 每日事件日志 — 晨报时汇总，之后清空
+        private static List<string> _dailyEventLog = new List<string>();
+        private const int MaxDailyEventLog = 100;
+
         // 暂停过久提醒
         private static int _pauseStartRealMs;
         private static int _lastPauseRemindMs;
@@ -131,9 +135,14 @@ namespace RimWorldMCP
                             AddNotifyLine(n, lowLines);
                     }
                     if (highList.Count > 0)
+                    {
+                        foreach (var n in highList)
+                            AddDailyEvent($"[高危] {n.Label}");
                         SendCCEvents(highList);
+                    }
                     if (lowLines.Count > 0)
                     {
+                        foreach (var line in lowLines) AddDailyEvent(line);
                         var sb = new StringBuilder("## 通知\n");
                         foreach (var line in lowLines) sb.AppendLine($"- {line}");
                         SendCCMessage("AlertStart", sb.ToString().TrimEnd());
@@ -166,12 +175,15 @@ namespace RimWorldMCP
                 if (countChanged)
                 {
                     int diff = colonistCount - _lastColonistCount;
-                    lines.Add($"殖民者 {_lastColonistCount}→{colonistCount} ({(diff > 0 ? "+" : "")}{diff})");
+                    var countLine = $"殖民者 {_lastColonistCount}→{colonistCount} ({(diff > 0 ? "+" : "")}{diff})";
+                    lines.Add(countLine);
+                    AddDailyEvent(countLine);
                 }
                 _lastColonistCount = colonistCount;
 
                 if (lines.Count > 0)
                 {
+                    foreach (var line in lines) AddDailyEvent(line);
                     var sb = new StringBuilder("## 通知\n");
                     foreach (var line in lines) sb.AppendLine($"- {line}");
                     SendCCMessage("AlertStart", sb.ToString().TrimEnd());
@@ -191,8 +203,15 @@ namespace RimWorldMCP
                 if (hour == 6 && _dailyReportDay != day)
                 {
                     _dailyReportDay = day;
+                    // 自动暂停游戏，让 AI 有充足时间做全面评估和规划
+                    if (Find.TickManager != null && !Find.TickManager.Paused)
+                    {
+                        Find.TickManager.TogglePaused();
+                        McpLog.Info("[cc] 晨报时间，自动暂停游戏以待 AI 评估规划");
+                    }
                     var dailyText = BuildDailyBriefing(map, colonists, colonistCount);
                     SendCCMessage("DailyMorning", dailyText, BuildColonyStats(map, colonists));
+                    _dailyEventLog.Clear();
                 }
             }
 
@@ -250,6 +269,8 @@ namespace RimWorldMCP
         {
             var tick = Find.TickManager?.TicksGame ?? 0;
             int day = tick / 60000;
+            int year = day / 15 + 1;
+            int dayOfSeason = day % 15 + 1;
             var season = GenLocalDate.Season(map);
             string seasonStr = season switch
             {
@@ -282,22 +303,79 @@ namespace RimWorldMCP
             float wealth = map.wealthWatcher?.WealthTotal ?? 0f;
 
             var sb = new StringBuilder();
-            sb.AppendLine($"## 每早汇报 第{day / 15 + 1}年 {seasonStr}季 第{day % 15 + 1}天");
+            sb.AppendLine($"## 每早汇报 第{year}年 {seasonStr}季 第{dayOfSeason}天");
             sb.AppendLine(GameContextProvider.BuildPauseStatus());
+            sb.AppendLine();
+
+            // === 基础概况 ===
+            sb.AppendLine("### 基础概况");
             sb.AppendLine($"天气: {weather?.label ?? "?"}, 室外 {temp:F0}°C");
             sb.AppendLine($"殖民者: {colonistCount} 人 | 平均心情 {avgMood:F0}%");
             sb.AppendLine($"资源: 钢{steel} 木{wood} 零件{components} | 食物约{foodDays}天");
             sb.AppendLine($"电力: 发{generated / 1000f:F0}kW 用{used / 1000f:F0}kW ({powerLabel})");
             if (curProj != null)
                 sb.AppendLine($"研究: {curProj.label} ({rm!.GetProgress(curProj) * 100f:F0}%)");
+            else
+                sb.AppendLine("研究: 无进行中项目");
             sb.AppendLine($"财富: {wealth:N0}");
+            sb.AppendLine();
 
+            // === 殖民者详情 ===
+            if (colonistCount > 0)
+            {
+                sb.AppendLine("### 殖民者详情");
+                foreach (var c in colonists)
+                {
+                    var healthIssues = new List<string>();
+                    foreach (var h in c.health?.hediffSet?.hediffs ?? new List<Hediff>())
+                        if (h.Visible && !h.IsPermanent())
+                            healthIssues.Add(h.LabelCap);
+                    string healthStr = healthIssues.Count > 0 ? $" | 伤势: {string.Join(", ", healthIssues.Take(3))}" : "";
+                    string equipStr = c.equipment?.Primary?.LabelCap ?? "无武器";
+                    sb.AppendLine($"- {c.LabelShort}: 心情{(c.needs?.mood?.CurLevelPercentage * 100f ?? 0):F0}% | {equipStr}{healthStr}");
+                }
+                sb.AppendLine();
+            }
+
+            // === 待办事项 ===
+            var todos = TodoManager.Query("pending");
+            if (todos.Count > 0)
+            {
+                sb.AppendLine("### 待办事项");
+                foreach (var t in todos.Take(10))
+                    sb.AppendLine($"- [P{t.Priority}] {t.Description}");
+                sb.AppendLine();
+            }
+
+            // === 昨日事件 ===
+            if (_dailyEventLog.Count > 0)
+            {
+                sb.AppendLine("### 昨日事件回顾");
+                var recentEvents = _dailyEventLog
+                    .Where(l => !string.IsNullOrWhiteSpace(l))
+                    .Distinct()
+                    .Take(20);
+                foreach (var evt in recentEvents)
+                    sb.AppendLine($"- {evt}");
+                sb.AppendLine();
+            }
+
+            // === 警报 ===
             var alertLines = NativeAlertHelper.BuildAlertLines(NativeAlertHelper.GetActiveAlerts());
             if (alertLines.Count > 0)
             {
-                sb.AppendLine("警报:");
+                sb.AppendLine("### 当前警报");
                 foreach (var a in alertLines) sb.AppendLine($"  - {a}");
+                sb.AppendLine();
             }
+
+            // === AI 行动指令 ===
+            sb.AppendLine("### 请按以下步骤执行");
+            sb.AppendLine("1. **全面检查**: 调用 `get_game_context` + `get_colonists` + `check_colony` 获取最新状态");
+            sb.AppendLine("2. **总结经验**: 回顾昨日事件，记录重要经验教训（什么做得好、什么需要改进）");
+            sb.AppendLine("3. **评估现状**: 分析当前资源缺口、威胁等级、殖民者状态、研究进度");
+            sb.AppendLine("4. **制定计划**: 确定今日优先事项，用 `todo_add` 添加待办任务");
+            sb.AppendLine("5. **恢复游戏**: 完成评估和规划后，调用 `toggle_pause` 恢复游戏运行");
 
             return sb.ToString().TrimEnd();
         }
@@ -366,6 +444,14 @@ namespace RimWorldMCP
             }
         }
 
+        /// <summary>记录每日事件到日志，晨报时汇总</summary>
+        private static void AddDailyEvent(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return;
+            if (_dailyEventLog.Count >= MaxDailyEventLog) return;
+            _dailyEventLog.Add(line.Trim());
+        }
+
         private static int GetResourceCount(Map map, string defName)
         {
             var resources = map.resourceCounter?.AllCountedAmounts;
@@ -428,7 +514,7 @@ namespace RimWorldMCP
             {
                 "RaidStart" => "\n请立即评估威胁并指挥防御。",
                 "PawnDeath" => "\n请检查殖民地状态并评估影响。",
-                "DailyMorning" => "\n请做全面的殖民地检查。",
+                "DailyMorning" => "\n游戏已自动暂停。请按简报中的步骤执行：全面检查 → 总结经验 → 评估现状 → 制定计划 → 恢复游戏。",
                 "NegativeEvent" => "\n请评估严重程度并给出应对建议。",
                 "AlertStart" => "\n请检查并处理此警报。",
                 "IdleDetected" => "\n请检查是否有待分配的工作。",

@@ -122,20 +122,31 @@ namespace RimWorldMCP.Tools
                                     curType = curType.BaseType;
                                 }
                                 var curNode = curNodeField?.GetValue(w);
-                                if (curNode == null) continue;
+                                if (curNode == null)
+                                {
+                                    sb.AppendLine();
+                                    sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name} (事件未加载)");
+                                    dialogIdx++;
+                                    continue;
+                                }
 
                                 var nodeTextProp = curNode.GetType().GetProperty("text", BindingFlags.Instance | BindingFlags.Public);
                                 var nodeText = nodeTextProp?.GetValue(curNode) as string ?? "";
 
-                                var optionsProp = curNode.GetType().GetProperty("options", BindingFlags.Instance | BindingFlags.Public);
-                                var diaOptions = optionsProp?.GetValue(curNode) as System.Collections.IList;
+                                // options 是 public field，不是 property
+                                var optionsField = curNode.GetType().GetField("options", BindingFlags.Instance | BindingFlags.Public);
+                                var diaOptions = optionsField?.GetValue(curNode) as System.Collections.IList;
 
                                 sb.AppendLine();
-                                sb.AppendLine($"## 弹框 [{dialogIdx}] 事件选项");
+                                sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name}");
                                 if (!string.IsNullOrEmpty(nodeText))
                                     sb.AppendLine($"正文: {nodeText}");
 
-                                if (diaOptions != null)
+                                if (diaOptions == null || diaOptions.Count == 0)
+                                {
+                                    sb.AppendLine("(没有可用选项)");
+                                }
+                                else
                                 {
                                     for (int i = 0; i < diaOptions.Count; i++)
                                     {
@@ -153,7 +164,13 @@ namespace RimWorldMCP.Tools
                                 }
                                 dialogIdx++;
                             }
-                            catch { /* skip malfunctioning node tree */ }
+                            catch (Exception ex)
+                            {
+                                sb.AppendLine();
+                                sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name} (解析异常)");
+                                sb.AppendLine($"(错误: {ex.Message})");
+                                dialogIdx++;
+                            }
                         }
                         else if (w is Dialog_GiveName giveName)
                         {

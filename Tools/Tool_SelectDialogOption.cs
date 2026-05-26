@@ -128,8 +128,9 @@ namespace RimWorldMCP.Tools
                             var curNode = curNodeField?.GetValue(w);
                             if (curNode == null) return ToolResult.Error("无法获取当前事件节点");
 
-                            var optionsProp = curNode.GetType().GetProperty("options", BindingFlags.Instance | BindingFlags.Public);
-                            var diaOptions = optionsProp?.GetValue(curNode) as System.Collections.IList;
+                            // options 是 public field，不是 property
+                            var optionsField = curNode.GetType().GetField("options", BindingFlags.Instance | BindingFlags.Public);
+                            var diaOptions = optionsField?.GetValue(curNode) as System.Collections.IList;
                             if (diaOptions == null || optIdx < 0 || optIdx >= diaOptions.Count)
                                 return ToolResult.Error($"选项编号 {optIdx} 超出范围");
 
