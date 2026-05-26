@@ -66,9 +66,9 @@ namespace RimWorldMCP
             if (string.IsNullOrEmpty(text)) return;
 
             _inputText = "";
+            _ = CCClient.SendAbort();
             ChatDisplayState.Clear();
             ChatDisplayState.OnUserMessage(text);
-            _ = CCClient.SendAbort();
             _ = CCClient.SendEventText("rimworld.chat", "UserMessage", text);
         }
 
@@ -187,6 +187,9 @@ namespace RimWorldMCP
             {
                 var tc = toolCalls[i];
                 // Unity GUI.Label 把 _ 当作键盘快捷键标记吃掉，双写 __ 可正确显示
+                // 只显示运行中的工具，已完成/失败的立即隐藏
+                if (tc.Status != ToolStatus.Running) continue;
+
                 string displayName = tc.Name?.Replace("_", "__") ?? "";
                 string label = displayName;
                 if (string.IsNullOrEmpty(label)) continue;
@@ -270,7 +273,7 @@ namespace RimWorldMCP
             GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(abortRect, "中断"))
             {
-                ChatDisplayState.Clear();
+                ChatDisplayState.MarkLastAborted();
                 _ = CCClient.SendAbort();
             }
 
@@ -280,13 +283,14 @@ namespace RimWorldMCP
             if (Widgets.ButtonText(clearRect, "清空"))
                 ChatDisplayState.Clear();
 
-            // 继续 — 向 agent 发送殖民地概览（SendMessage 入口统一 abort）
+            // 继续 — 先打断当前回复，再向 agent 发送殖民地概览
             Rect continueRect = new Rect(abortX - 120f, y + 4f, 54f, h - 8f);
             GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(continueRect, "继续"))
             {
                 if (connected)
                 {
+                    _ = CCClient.SendAbort();
                     var map = Find.CurrentMap;
                     if (map != null)
                     {

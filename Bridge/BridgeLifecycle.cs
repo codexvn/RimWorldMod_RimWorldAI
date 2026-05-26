@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Verse;
 using RimWorld;
@@ -15,10 +16,14 @@ namespace RimWorldMCP
     {
         private static int _nextCCEventTick;
         private const int CCEventCheckInterval = 120;
+        private static int _nextCCFallbackMs;
+        private const int CCFallbackIntervalMs = 5000;
         private static Process? _companionProcess;
+        private static string _currentSessionId = "";
 
-        public static async Task StartAsync()
+        public static async Task StartAsync(string sessionId)
         {
+            _currentSessionId = sessionId;
             var settings = RimWorldMCPMod.Instance?.Settings;
             if (settings == null || string.IsNullOrEmpty(settings.CCUrl)) return;
 
@@ -30,7 +35,7 @@ namespace RimWorldMCP
                 McpLog.Info("[bridge] 步骤2: 清理残留 PID 文件...");
                 KillStaleByPidFile();
                 McpLog.Info("[bridge] 步骤3: 启动 Companion 进程...");
-                StartCompanionProcess(settings.LocalCCPort, settings.CCToken);
+                StartCompanionProcess(settings.LocalCCPort, settings.CCToken, sessionId);
                 await Task.Delay(2000);
             }
             else
@@ -60,7 +65,7 @@ namespace RimWorldMCP
                 var settings = RimWorldMCPMod.Instance?.Settings;
                 if (settings?.CCAutoStart == true)
                 {
-                    StartCompanionProcess(settings.LocalCCPort, settings.CCToken);
+                    StartCompanionProcess(settings.LocalCCPort, settings.CCToken, _currentSessionId);
                     _ = CCClient.Connect(settings.CCUrl, settings.CCToken);
                 }
             }
@@ -81,27 +86,29 @@ namespace RimWorldMCP
         {
             if (!CCClient.IsReady) return;
 
+            // 高危事件：每帧立即推送（Harmony Patch 在暂停时仍会拦截，不受 TicksGame 影响）
             if (NotificationBus.HighDangerPending)
             {
                 NotificationBus.HighDangerPending = false;
                 var emergencyList = NotificationBus.Drain();
-                foreach (var n in emergencyList)
-                {
-                    if (NotificationBus.IsHighDanger(n.Type, n.DangerLabel, n.Priority))
-                        SendCCEvent(n);
-                }
+                SendCCEvents(emergencyList);
             }
 
             var tick = Find.TickManager?.TicksGame ?? 0;
-            if (tick < _nextCCEventTick) return;
-            _nextCCEventTick = tick + CCEventCheckInterval;
+            bool tickElapsed = tick >= _nextCCEventTick;
+            if (tickElapsed)
+                _nextCCEventTick = tick + CCEventCheckInterval;
+
+            // 兜底定时器：暂停时 TicksGame 不前进，用 wall clock 保证定期推送
+            int nowMs = Environment.TickCount;
+            bool fallbackElapsed = unchecked((uint)(nowMs - _nextCCFallbackMs) >= CCFallbackIntervalMs);
+            if (fallbackElapsed)
+                _nextCCFallbackMs = nowMs;
+
+            if (!tickElapsed && !fallbackElapsed) return;
 
             var notifications = NotificationBus.Drain();
-            foreach (var n in notifications)
-            {
-                if (NotificationBus.IsHighDanger(n.Type, n.DangerLabel, n.Priority))
-                    SendCCEvent(n);
-            }
+            SendCCEvents(notifications);
         }
 
         private static string FormatGameEvent(string category, string rawText)
@@ -130,11 +137,29 @@ namespace RimWorldMCP
             return $"{icon} {rawText}{instruction}";
         }
 
-        private static void SendCCEvent(Notification n)
+        private static void SendCCEvents(List<Notification> notifications)
         {
-            string category;
-            string rawText;
+            if (notifications.Count == 0) return;
 
+            var sb = new StringBuilder();
+            string primaryCategory = "AlertStart";
+
+            for (int i = 0; i < notifications.Count; i++)
+            {
+                var n = notifications[i];
+                if (!TryFormatNotification(n, out var category, out var rawText)) continue;
+
+                if (i == 0) primaryCategory = category;
+                sb.AppendLine(FormatGameEvent(category, rawText));
+            }
+
+            var text = sb.ToString().TrimEnd();
+            if (text.Length > 0)
+                _ = CCClient.SendEventText("rimworld.alert", primaryCategory, text);
+        }
+
+        private static bool TryFormatNotification(Notification n, out string category, out string rawText)
+        {
             switch (n.Type)
             {
                 case NotificationType.Letter:
@@ -145,7 +170,7 @@ namespace RimWorldMCP
                         _ => "AlertStart"
                     };
                     rawText = string.IsNullOrEmpty(n.Text) ? n.Label : $"{n.Label} — {n.Text}";
-                    break;
+                    return true;
 
                 case NotificationType.Message:
                     category = n.DangerLabel switch
@@ -155,20 +180,19 @@ namespace RimWorldMCP
                         _ => "AlertStart"
                     };
                     rawText = n.Text ?? n.Label;
-                    break;
+                    return true;
 
                 case NotificationType.AlertStart:
                     category = "AlertStart";
                     rawText = n.Culprits != null && n.Culprits.Count > 0
                         ? $"{n.Label}: {string.Join(", ", n.Culprits.Take(5))}"
                         : n.Label;
-                    break;
+                    return true;
 
-                default: return;
+                default:
+                    category = rawText = "";
+                    return false;
             }
-
-            var text = FormatGameEvent(category, rawText);
-            _ = CCClient.SendEventText("rimworld.alert", category, text);
         }
 
         // ========== 公开 API（设置 UI 调用） ==========
@@ -316,15 +340,18 @@ namespace RimWorldMCP
             finally { try { File.Delete(pidFile); } catch { } }
         }
 
-        private static void StartCompanionProcess(int port, string token)
+        private static void StartCompanionProcess(int port, string token, string sessionId)
         {
             var nodeExe = FindNodeExe(); if (nodeExe == null) return;
             var companionDir = FindCompanionDir(); if (companionDir == null) return;
 
             var modRoot = FindModRoot();
-            var sessionsDir = modRoot != null
+            var baseSessionsDir = modRoot != null
                 ? Path.Combine(modRoot, "claude-sessions")
                 : Path.Combine(companionDir, "..", "claude-sessions");
+            var sessionsDir = Path.Combine(baseSessionsDir, $"rimworld-{sessionId}");
+            Directory.CreateDirectory(sessionsDir);
+            McpLog.Info($"[cc] 会话目录 (按存档): {sessionsDir}");
 
             var settings = RimWorldMCPMod.Instance?.Settings;
             var mcpPort = settings?.McpPort ?? 9877;

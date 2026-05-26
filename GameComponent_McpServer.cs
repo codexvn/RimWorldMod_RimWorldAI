@@ -26,7 +26,7 @@ namespace RimWorldMCP
         public override void StartedNewGame()
         {
             base.StartedNewGame();
-            _sessionId = Guid.NewGuid().ToString("N").Substring(0, 12);
+            _sessionId = GenerateSessionId();
             StartMcpService();
             AttachMapUI();
         }
@@ -34,9 +34,21 @@ namespace RimWorldMCP
         public override void LoadedGame()
         {
             base.LoadedGame();
-            _sessionId = Guid.NewGuid().ToString("N").Substring(0, 12);
+            if (string.IsNullOrEmpty(_sessionId))
+                _sessionId = GenerateSessionId();
             StartMcpService();
             AttachMapUI();
+        }
+
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Values.Look(ref _sessionId, "mcpSessionId", "");
+        }
+
+        private static string GenerateSessionId()
+        {
+            return Guid.NewGuid().ToString("N").Substring(0, 12);
         }
 
         public override void GameComponentUpdate()
@@ -116,7 +128,7 @@ namespace RimWorldMCP
                 McpLog.Info($"[session] ID = {_sessionId}");
 
                 // 启动桥接器
-                _ = BridgeLifecycle.StartAsync();
+                _ = BridgeLifecycle.StartAsync(_sessionId);
             }
             catch (Exception ex)
             {

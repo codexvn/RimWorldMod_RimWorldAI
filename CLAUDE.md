@@ -57,7 +57,7 @@ RimWorldMCP/
 
 - **net472 Library**：与 RimWorld Unity 运行时一致，`OutputType=Library`
 - **引用 Assembly-CSharp.dll**：Tool 直接调用游戏 API（`Find.*`、`DefDatabase<>`、`PawnsFinder` 等）
-- **GameComponent 入口**：反射自动发现，`StartedNewGame()` 时启动 HttpListener
+- **GameComponent 入口**：反射自动发现，`StartedNewGame()` / `LoadedGame()` 时启动 HttpListener；`ExposeData()` 持久化 sessionId 到存档，按存档隔离 CC session 数据
 - **线程安全**：只读 Tool 在 HttpListener 线程直接执行；写操作 Tool 通过 `McpCommandQueue` 调度到主线程
 - **NuGet**: 仅 `System.Text.Json` 8.0.5（JSON 序列化）
 - **输出**: `publish/1.6/Assemblies/RimWorldMCP.dll`
@@ -125,18 +125,20 @@ RimWorld (C#)                  CC Companion (Node.js)       Claude API
 
 ### 连接流程
 
-`BridgeLifecycle.StartAsync()` 在加载存档时执行：
+`BridgeLifecycle.StartAsync(sessionId)` 在加载存档时执行：
 1. `StopCompanionProcess()` — 停止旧进程
 2. `KillStaleByPidFile()` — 清理 `.pid` 残留
-3. `StartCompanionProcess()` — spawn `node --import tsx/esm companion.ts`
+3. `StartCompanionProcess()` — 创建 `claude-sessions/rimworld-<sessionId>/` 目录，spawn `node --import tsx/esm companion.ts --project-path "..."` 
 4. `CCClient.Connect()` — WebSocket 握手（hello/hello-ok）
+
+sessionId 由 `GameComponent_McpServer` 生成并持久化：新游戏随机生成 12 位 hex，`ExposeData()` 通过 `Scribe_Values` 写入存档。读档时从存档恢复；兼容旧存档（无 sessionId 时自动补生成）。
 
 spawn 命令示例：
 ```bash
 node --import tsx/esm companion.ts \
   --port 19999 \
   --mcp-config '{"rimworld":{"type":"http","url":"http://localhost:9877/mcp"}}' \
-  --project-path "publish/claude-sessions" \
+  --project-path "publish/claude-sessions/rimworld-a1b2c3d4e5f6" \
   --api-key "sk-xxx" \
   --api-base-url "http://localhost:3000" \
   --model-name "deepseek-v4-pro[1m]"
@@ -349,6 +351,7 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 - `dotnet build` → `publish/1.6/Assemblies/RimWorldMCP.dll`
 - **坐标陷阱**：`IntVec3(x,y,z)` 中 `y` 是海拔，`z` 是网格垂直轴。MCP 用户的 `pos_y` 必须映射到 `IntVec3.z`，写 `new IntVec3(x, posY, 0)` 是 bug
 - **HttpListener 陷阱**：`StartAsync` 中 `HttpListener.Start()` 可能抛 `HttpListenerException`（端口占用/权限不足），需提供中文诊断；`_transport` 要在 `StartAsync` 成功后才赋值；RimWorld 返回主菜单会导致 Game 对象被 Dispose 但 GameComponent 不通知，需静态字段跨实例清理
+- **Session 隔离**：`cwd` 传入 SDK 后会被 sanitize 为目录名，checkpoint 落到 `~/.claude/projects/<sanitized-cwd>/`。不同存档的 `cwd` 不同 → sanitize 结果不同 → 隔离生效。不可改 SDK 内部的 `projects/` base path。
 
 ### 开发规范
 

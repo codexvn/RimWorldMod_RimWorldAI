@@ -230,6 +230,11 @@ namespace RimWorldMCP
                                 ChatDisplayState.ClearToolCalls();
                                 break;
 
+                            case "aborted":
+                                // 中断确认 → 标记最后一个流式条目
+                                ChatDisplayState.MarkLastAborted();
+                                break;
+
                             case "error":
                                 var err = root.TryGetProperty("error", out var e) ? e.GetString() : "unknown";
                                 McpLog.Error($"[cc] 服务器错误: {err}");

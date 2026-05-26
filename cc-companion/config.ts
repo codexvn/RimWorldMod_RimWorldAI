@@ -69,7 +69,7 @@ Claude Code — RimWorldMCP 游戏 AI 助手
   --max-turns <n>          最大对话轮次 (默认 500, 环境变量 CC_MAX_TURNS)
   --idle-timeout <ms>      空闲超时自动退出 (默认 300000, 环境变量 CC_IDLE_TIMEOUT)
   --no-idle-timeout        禁用空闲超时，永远等待
-  --project-path <dir>     会话存储目录 (默认 cwd, 环境变量 RIMWORLD_PROJECT_PATH)
+  --project-path <dir>     会话存储目录，SDK 据此隔离 checkpoint (默认 cwd)
   --api-key <key>          API Key (环境变量 CC_API_KEY)
   --api-base-url <url>     API 代理地址 (默认 http://localhost:3000, 环境变量 CC_API_BASE_URL)
   --model-name <name>      模型名称 (默认 deepseek-v4-pro[1m], 环境变量 CC_MODEL_NAME)

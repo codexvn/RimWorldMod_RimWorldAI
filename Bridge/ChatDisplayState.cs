@@ -343,6 +343,21 @@ namespace RimWorldMCP
             OnChanged?.Invoke();
         }
 
+        /// <summary>将最后一个流式输出的助理条目标记为"（已中断）"，用于中断按钮</summary>
+        public static void MarkLastAborted()
+        {
+            lock (_lock)
+            {
+                if (_entries.Count > 0 && _entries[_entries.Count - 1].State == ChatState.Streaming)
+                {
+                    _entries[_entries.Count - 1].State = ChatState.Done;
+                    if (string.IsNullOrEmpty(_entries[_entries.Count - 1].Text))
+                        _entries[_entries.Count - 1].Text = "（已中断）";
+                }
+            }
+            OnChanged?.Invoke();
+        }
+
         /// <summary>处理 Companion 广播的 SDK 消息（assistant/user 类型）</summary>
         public static void OnSdkMessage(JsonElement sdkMsg)
         {
