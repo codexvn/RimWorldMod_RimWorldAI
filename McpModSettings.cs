@@ -16,6 +16,7 @@ namespace RimWorldMCP
         public int CCBPort = 19999;
         public string CCBAuthToken = "";
         public bool CCBAutoStart = true;
+        public string CCBModelName = "";
 
         // OSS
         public bool OssEnabled = false;
@@ -40,6 +41,7 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref CCBPort, "ccbPort", 19999);
             Scribe_Values.Look(ref CCBAuthToken, "ccbAuthToken", "");
             Scribe_Values.Look(ref CCBAutoStart, "ccbAutoStart", true);
+            Scribe_Values.Look(ref CCBModelName, "ccbModelName", "");
             Scribe_Values.Look(ref OssEnabled, "ossEnabled", false);
             Scribe_Values.Look(ref OssServiceUrl, "ossServiceUrl", "");
             Scribe_Values.Look(ref OssBucketName, "ossBucketName", "");

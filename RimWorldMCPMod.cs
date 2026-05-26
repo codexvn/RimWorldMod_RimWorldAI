@@ -77,6 +77,8 @@ namespace RimWorldMCP
             {
                 listing.Label("Token (可选)");
                 Settings.CCBAuthToken = listing.TextEntry(Settings.CCBAuthToken);
+                listing.Label("模型 (留空用 settings.json)");
+                Settings.CCBModelName = listing.TextEntry(Settings.CCBModelName);
             }
 
             listing.Gap(6f);

@@ -161,6 +161,8 @@ namespace RimWorldMCP
                 try { _cts.Cancel(); _cts.Dispose(); } catch { }
                 _cts = null;
             }
+
+            BridgeLifecycle.Stop();
         }
 
         private static void RegisterAllTools(ToolRegistry registry, SkillRegistry skillRegistry)

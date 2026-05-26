@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using Verse;
 using RimWorld;
 using RimWorldMCP.Harmony;
@@ -21,6 +22,7 @@ namespace RimWorldMCP
         private static int _nextCCFallbackMs;
         private const int CCFallbackIntervalMs = 5000;
         private static Process? _companionProcess;
+        private static IntPtr _jobHandle = IntPtr.Zero;
         private static string _currentSessionId = "";
 
         // 空闲兜底 + 早报 + 殖民者追踪 + 弹框检测
@@ -615,7 +617,10 @@ namespace RimWorldMCP
             var projectSettingsJson = BuildProjectSettingsJson(mcpPort);
 
             var args = $"--import tsx/esm companion/companion.ts"
+                + $" --idle-timeout 30000"
                 + $" --project-setting-sources \"{EscapeJsonForArg(projectSettingsJson)}\"";
+            if (!string.IsNullOrEmpty(settings?.CCBModelName))
+                args += $" --model-name \"{EscapeJsonForArg(settings.CCBModelName)}\"";
 
             try
             {
@@ -634,6 +639,13 @@ namespace RimWorldMCP
 
                 _companionProcess = Process.Start(psi);
                 if (_companionProcess == null) { McpLog.Error("[cc] 无法启动 Companion 进程"); return; }
+
+                // Windows: JobObject 绑定，主进程退出时 OS 自动杀子进程
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    if (_jobHandle != IntPtr.Zero) { CloseHandle(_jobHandle); _jobHandle = IntPtr.Zero; }
+                    AttachToJobObject(_companionProcess);
+                }
 
                 _companionProcess.EnableRaisingEvents = true;
                 _companionProcess.Exited += (_, _) =>
@@ -693,7 +705,95 @@ namespace RimWorldMCP
                 else McpLog.Info($"[cc] Companion 进程已退出 (PID: {_companionProcess.Id})");
             }
             catch (Exception ex) { McpLog.Warn($"[cc] 停止 Companion 进程失败: {ex.Message}"); }
-            finally { _companionProcess.Dispose(); _companionProcess = null; }
+            finally
+            {
+                _companionProcess.Dispose(); _companionProcess = null;
+                if (_jobHandle != IntPtr.Zero) { CloseHandle(_jobHandle); _jobHandle = IntPtr.Zero; }
+            }
+        }
+
+        // ========== Windows Job Object：父进程死 → OS 自动杀子进程 ==========
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetInformationJobObject(
+            IntPtr hJob, int jobObjectInfoClass,
+            ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo,
+            uint cbJobObjectInfoLength);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr hObject);
+
+        private const int JobObjectExtendedLimitInformation = 9;
+        private const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct JOBOBJECT_BASIC_LIMIT_INFORMATION
+        {
+            public long PerProcessUserTimeLimit;
+            public long PerJobUserTimeLimit;
+            public uint LimitFlags;
+            public UIntPtr MinimumWorkingSetSize;
+            public UIntPtr MaximumWorkingSetSize;
+            public uint ActiveProcessLimit;
+            public UIntPtr Affinity;
+            public uint PriorityClass;
+            public uint SchedulingClass;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IO_COUNTERS
+        {
+            public ulong ReadOperationCount;
+            public ulong WriteOperationCount;
+            public ulong OtherOperationCount;
+            public ulong ReadTransferCount;
+            public ulong WriteTransferCount;
+            public ulong OtherTransferCount;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+        {
+            public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+            public IO_COUNTERS IoInfo;
+            public UIntPtr ProcessMemoryLimit;
+            public UIntPtr JobMemoryLimit;
+            public UIntPtr PeakProcessMemoryUsed;
+            public UIntPtr PeakJobMemoryUsed;
+        }
+
+        private static void AttachToJobObject(Process proc)
+        {
+            _jobHandle = CreateJobObject(IntPtr.Zero, null);
+            if (_jobHandle == IntPtr.Zero)
+            {
+                McpLog.Warn("[cc] 无法创建 JobObject（非管理员？不影响运行，但强杀 RimWorld 时 companion 不会自动退出）");
+                return;
+            }
+
+            var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
+            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+            var size = (uint)Marshal.SizeOf(typeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
+            if (!SetInformationJobObject(_jobHandle, JobObjectExtendedLimitInformation, ref info, size))
+            {
+                McpLog.Warn($"[cc] 无法设置 JobObject: {Marshal.GetLastWin32Error()}");
+                return;
+            }
+
+            if (!AssignProcessToJobObject(_jobHandle, proc.Handle))
+            {
+                McpLog.Warn($"[cc] 无法将 Companion 加入 JobObject: {Marshal.GetLastWin32Error()}");
+                return;
+            }
+
+            McpLog.Info("[cc] Companion 已绑定到 JobObject，RimWorld 退出时自动终止");
         }
     }
 }
