@@ -140,7 +140,8 @@ namespace RimWorldMCP.Tools
                             job.count = finalCount;
                     }
 
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法开始搬运（物品可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 开始搬运: {thing.Label} ({thing.def.defName}) x{finalCount} → {destInfo}");
                 }

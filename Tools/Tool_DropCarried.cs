@@ -92,7 +92,8 @@ namespace RimWorldMCP.Tools
                         Job job = JobMaker.MakeJob(JobDefOf.HaulToCell, carried, destCell);
                         job.haulMode = HaulMode.ToCellStorage;
                         job.count = finalCount;
-                        pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                        if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                            return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行搬运放下任务（当前任务无法中断）。");
 
                         return ToolResult.Success($"{pawn.Name.ToStringShort} 将把 {thingLabel} x{finalCount} 搬到 ({capDestX}, {capDestY}) 放下");
                     }

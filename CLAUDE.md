@@ -22,7 +22,7 @@ RimWorldMCP/
 ├── Mcp/                                   # MCP 协议层
 │   ├── McpServer.cs                       # JSON-RPC 调度：initialize/tools/list/tools/call/resources
 │   └── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
-├── Tools/                                 # 78 个 Tool（真实 RimWorld API 调用）
+├── Tools/                                 # 80 个 Tool（真实 RimWorld API 调用）
 │   ├── ITool.cs                           # Tool 接口 + ToolResult
 │   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射（反射自动注册）
 │   ├── ResourceCheckHelper.cs             # 建造资源检查辅助工具
@@ -309,10 +309,12 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `delete_zone` | 删除区域（储藏区/种植区） | `Zone.Deregister()` (入队) |
 | `expand_zone` | 扩展已有区域的范围 | `Zone.AddCell()` (入队) |
 
-### 装备管理 (1)
+### 装备管理 (3)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `find_equipment` | 搜索地图可用武器/衣物，按类型品质分组 | `map.listerThings.AllThings` |
+| `get_recommended_apparel` | 按游戏内置评分推荐衣物（复用 ApparelScoreGain） | `JobGiver_OptimizeApparel` |
+| `get_recommended_weapon` | 按科技等级推荐武器（支持远程/近战过滤） | `map.listerThings.AllThings` |
 
 ### 截图 (1)
 | Tool | 说明 | 数据源/操作 |

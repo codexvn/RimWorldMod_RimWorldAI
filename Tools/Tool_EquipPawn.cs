@@ -110,7 +110,8 @@ namespace RimWorldMCP.Tools
 
                     thing.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(isWeapon ? JobDefOf.Equip : JobDefOf.Wear, thing);
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行操作（物品可能已被占用或当前任务无法中断）。");
 
                     string typeLabel = isWeapon ? "武器" : "衣物";
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取并装备{typeLabel}: {thing.Label}{qualityStr}。");

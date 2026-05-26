@@ -73,7 +73,8 @@ namespace RimWorldMCP.Tools
                     // 执行俘虏 Job
                     Job job = JobMaker.MakeJob(JobDefOf.Capture, target, bed);
                     job.count = 1;
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行俘虏（目标可能已被占用或当前任务无法中断）。");
 
                     // 演示俘虏概念（首次俘获时触发教程，无副作用）
                     PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.Capturing, KnowledgeAmount.Total);

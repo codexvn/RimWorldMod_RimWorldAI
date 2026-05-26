@@ -94,7 +94,8 @@ namespace RimWorldMCP.Tools
 
                     apparel.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(JobDefOf.ForceTargetWear, targetPawn, apparel);
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行强制穿戴（目标或物品可能已被占用）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往 ({apparel.Position.x},{apparel.Position.z}) 拿取衣物并给 {targetPawn.Name} 穿戴: {apparel.Label}");
                 }

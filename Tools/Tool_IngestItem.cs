@@ -97,7 +97,8 @@ namespace RimWorldMCP.Tools
                     thing.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(JobDefOf.Ingest, thing);
                     job.count = maxAmount;
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行服食（物品可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"小人已前往服食: {thing.Label} x{maxAmount}");
                 }

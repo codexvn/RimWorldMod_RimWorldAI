@@ -25,9 +25,11 @@ namespace RimWorldMCP.Helpers
                 if (w is FloatMenu)
                     result.Add(w);
 
-            // Dialog 层，排除 FloatMenu 和本 mod 聊天窗
+            // Dialog / SubSuper / Super 层，排除 FloatMenu 和本 mod 聊天窗
+            // Dialog_NodeTreeWithFactionInfo 等可能在 SubSuper 层
             foreach (var w in stack.Windows)
-                if (w.layer == WindowLayer.Dialog && w is not FloatMenu && w.GetType().Name != "Dialog_AiChat")
+                if ((w.layer == WindowLayer.Dialog || w.layer == WindowLayer.SubSuper || w.layer == WindowLayer.Super)
+                    && w is not FloatMenu && w.GetType().Name != "Dialog_AiChat")
                     result.Add(w);
 
             return result;

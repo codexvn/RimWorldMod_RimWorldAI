@@ -112,8 +112,16 @@ namespace RimWorldMCP.Tools
                         {
                             try
                             {
-                                var curNodeProp = w.GetType().GetProperty("curNode", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                                var curNode = curNodeProp?.GetValue(w);
+                                // curNode 是 protected 字段 (field)，定义在基类 Dialog_NodeTree 中
+                                // .NET 的 GetField 对 NonPublic 字段不搜索继承链，需手动遍历基类
+                                Type curType = w.GetType();
+                                FieldInfo? curNodeField = null;
+                                while (curType != null && curNodeField == null)
+                                {
+                                    curNodeField = curType.GetField("curNode", BindingFlags.Instance | BindingFlags.NonPublic);
+                                    curType = curType.BaseType;
+                                }
+                                var curNode = curNodeField?.GetValue(w);
                                 if (curNode == null) continue;
 
                                 var nodeTextProp = curNode.GetType().GetProperty("text", BindingFlags.Instance | BindingFlags.Public);

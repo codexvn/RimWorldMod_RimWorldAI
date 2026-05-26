@@ -160,6 +160,8 @@
 | create_stockpile | 创建储藏区。⚠ 先调用get_structure_layout了解现有存储区位置 |
 | list_recipes / create_production_bill | 管理生产                                                                    |
 | draft_pawn / equip_pawn | 战斗准备                                                                    |
+| get_recommended_apparel | 按评分排名推荐衣物                                                              |
+| get_recommended_weapon | 按科技等级排名推荐武器（远程/近战）                                                   |
 | schedule_operation | 安排手术                                                                    |
 | get_tile_grid / get_tile_detail | 查看地图                                                                    |
 | designate_mine / designate_plants_cut / designate_harvest | 资源采集                                                                    |

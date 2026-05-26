@@ -126,7 +126,8 @@ namespace RimWorldMCP.Tools
 
                     // 创建治疗 Job
                     Job job = JobMaker.MakeJob(JobDefOf.TendPatient, patient, medicine);
-                    doctor.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!doctor.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{doctor.Name.ToStringShort} 无法执行治疗（目标可能已被占用或当前任务无法中断）。");
 
                     // 构建返回信息
                     var sb = new StringBuilder();

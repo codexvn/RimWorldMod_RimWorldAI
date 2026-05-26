@@ -85,7 +85,8 @@ namespace RimWorldMCP.Tools
                     // 执行救援 Job
                     Job job = JobMaker.MakeJob(JobDefOf.Rescue, target, bed);
                     job.count = 1;
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行救援（目标可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"小人已前往救援: {target.Name}");
                 }

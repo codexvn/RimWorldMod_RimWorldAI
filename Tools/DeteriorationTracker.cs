@@ -19,8 +19,12 @@ namespace RimWorldMCP.Tools
         private static List<DeterioratingItem> _topDangerous = new();
 
         // 扫描间隔控制
-        private static int _lastScanTick = -2000;
-        private const int ScanIntervalTicks = 2000;
+        private static int _lastScanTick = -6000;
+        private const int ScanIntervalTicks = 6000;
+
+        // 通知冷却：两次恶化警告之间最少间隔 15000 tick（约 4 分钟/1x 速度）
+        private static int _lastNotifiedTick = -15000;
+        private const int NotifyCooldownTicks = 15000;
 
         /// <summary>恶化物品数据结构</summary>
         public class DeterioratingItem
@@ -74,6 +78,11 @@ namespace RimWorldMCP.Tools
             if (newNotified.Count == 0)
                 return null;
 
+            // 冷却期内不重复推送
+            if (tick - _lastNotifiedTick < NotifyCooldownTicks)
+                return null;
+            _lastNotifiedTick = tick;
+
             var sb = new StringBuilder();
             sb.AppendLine("## 物品恶化警告");
             foreach (var item in newNotified.OrderByDescending(i => i.DegradationPct))
@@ -99,7 +108,8 @@ namespace RimWorldMCP.Tools
             _threshold50.Clear();
             _threshold70.Clear();
             _topDangerous.Clear();
-            _lastScanTick = -2000;
+            _lastScanTick = -6000;
+            _lastNotifiedTick = -15000;
         }
 
         /// <summary>扫描地图，找出所有正在腐烂或露天掉耐久的物品</summary>

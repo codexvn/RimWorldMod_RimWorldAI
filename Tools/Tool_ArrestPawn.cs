@@ -86,7 +86,8 @@ namespace RimWorldMCP.Tools
                     // 执行逮捕
                     Job job = JobMaker.MakeJob(JobDefOf.Arrest, clickedPawn, bed);
                     job.count = 1;
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行逮捕（目标可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往逮捕: {clickedPawn.Name}");
                 }

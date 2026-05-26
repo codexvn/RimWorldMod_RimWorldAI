@@ -101,7 +101,8 @@ namespace RimWorldMCP.Tools
                     job.count = finalCount;
                     job.checkEncumbrance = true;
                     job.takeInventoryDelay = 120;
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法拾取物品（物品可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往拾取: {thing.Label} ({thing.def.defName}) x{finalCount}");
                 }

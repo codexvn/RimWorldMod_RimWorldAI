@@ -82,7 +82,8 @@ namespace RimWorldMCP.Tools
                     target.SetForbidden(false, false);
                     StrippableUtility.CheckSendStrippingImpactsGoodwillMessage(target);
                     Job job = JobMaker.MakeJob(JobDefOf.Strip, target);
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行剥除（目标可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往剥除: {target.Label}");
                 }
