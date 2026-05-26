@@ -10,4 +10,4 @@ cc-companion/node_modules/
 cc-companion/.claude/
 publish/cc-companion/
 publish/claude-sessions/
-claude-sessions/
+claude-sessions/publish/**/*.pdb
