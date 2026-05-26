@@ -1,5 +1,6 @@
 using System;
 using RimWorld;
+using RimWorldMCP.Helpers;
 using UnityEngine;
 using Verse;
 
@@ -12,6 +13,7 @@ namespace RimWorldMCP
         private bool _scrollToBottom;
         private string _inputText = "";
         private static float _alpha = 0.8f;
+        private const float ToolScrollSpeed = 35f;
         private static readonly Color UserBgColor = new Color(0.12f, 0.18f, 0.30f, 1f);
         private static readonly Color AiBgColor = new Color(0.08f, 0.22f, 0.10f, 1f);
         private static readonly Color SubagentBgColor = new Color(0.15f, 0.08f, 0.22f, 1f);
@@ -29,8 +31,8 @@ namespace RimWorldMCP
             forcePause = false;
             layer = WindowLayer.Dialog;
             preventCameraMotion = false;
-            doWindowBackground = false;
-            drawShadow = false;
+            doWindowBackground = true;
+            drawShadow = true;
         }
 
         public override Vector2 InitialSize =>
@@ -85,9 +87,6 @@ namespace RimWorldMCP
                 TrySendInput();
                 Event.current.Use();
             }
-
-            // 半透明背景
-            Widgets.DrawBoxSolid(inRect, new Color(0.05f, 0.05f, 0.05f, _alpha));
 
             var entries = ChatDisplayState.Snapshot;
             var toolCalls = ChatDisplayState.ToolCallsSnapshot;
@@ -147,7 +146,6 @@ namespace RimWorldMCP
 
         private static float CalcToolStripHeight(System.Collections.Generic.List<ToolCallInfo> toolCalls, float stripWidth)
         {
-            // 单行工具条，只显示第一个 Running 工具
             foreach (var tc in toolCalls)
                 if (tc.Status == ToolStatus.Running)
                     return 20f;
@@ -156,11 +154,11 @@ namespace RimWorldMCP
 
         private void DrawToolStrip(Rect inRect, float y, float h, System.Collections.Generic.List<ToolCallInfo> toolCalls)
         {
-            // 单行工具条，只显示第一个 Running 工具
-            ToolCallInfo? running = null;
+            var running = new System.Collections.Generic.List<ToolCallInfo>();
             foreach (var tc in toolCalls)
-                if (tc.Status == ToolStatus.Running) { running = tc; break; }
-            if (running == null) return;
+                if (tc.Status == ToolStatus.Running)
+                    running.Add(tc);
+            if (running.Count == 0) return;
 
             float x = inRect.x + 6f;
             float width = inRect.width - 12f;
@@ -169,12 +167,70 @@ namespace RimWorldMCP
                 new Color(0.1f, 0.1f, 0.15f, _alpha));
 
             Text.Font = GameFont.Tiny;
-            string label = (running.Name ?? "").Replace("_", "__");
-            if (string.IsNullOrEmpty(label)) { Text.Font = GameFont.Small; return; }
+            float sepW = Text.CalcSize("  ◆  ").x;
 
-            float labelWidth = Mathf.Min(Text.CalcSize(label).x, width - 8f);
-            GUI.color = new Color(1f, 0.8f, 0.3f, _alpha);
-            Widgets.Label(new Rect(x + 4f, y + 3f, labelWidth, 16f), label);
+            // 构建轮播段落
+            var segments = new System.Collections.Generic.List<string>();
+            float totalW = 0f;
+            for (int i = 0; i < running.Count; i++)
+            {
+                if (i > 0) totalW += sepW;
+                string name = ToolDisplayNames.GetDisplayName(running[i].Name ?? "").Replace("_", "__");
+                segments.Add(name);
+                totalW += Text.CalcSize(name).x;
+            }
+            if (totalW == 0f) { Text.Font = GameFont.Small; return; }
+
+            // 不需要滚动时居中
+            if (totalW <= width)
+            {
+                float drawX = x + (width - totalW) / 2f;
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        GUI.color = new Color(0.5f, 0.5f, 0.5f, _alpha);
+                        Widgets.Label(new Rect(drawX, y + 2f, sepW, 16f), "◆");
+                        drawX += sepW;
+                    }
+                    GUI.color = new Color(1f, 0.75f, 0.2f, _alpha);
+                    float sw = Text.CalcSize(segments[i]).x;
+                    Widgets.Label(new Rect(drawX, y + 2f, sw, 16f), segments[i]);
+                    drawX += sw;
+                }
+            }
+            else
+            {
+                // 轮播：利用截断区循环绘制，实现无缝滚动
+                float offset = (Time.realtimeSinceStartup * ToolScrollSpeed) % totalW;
+                GUI.BeginGroup(new Rect(x, y, width, h));
+
+                float px = -offset;
+                int copies = 0;
+                while (px < width && copies < 10)
+                {
+                    for (int i = 0; i < segments.Count && px < width; i++)
+                    {
+                        if (copies > 0 || i > 0)
+                        {
+                            GUI.color = new Color(0.5f, 0.5f, 0.5f, _alpha);
+                            Widgets.Label(new Rect(px, 2f, sepW, 16f), "◆");
+                            px += sepW;
+                        }
+                        float sw = Text.CalcSize(segments[i]).x;
+                        if (px + sw > 0)
+                        {
+                            GUI.color = new Color(1f, 0.75f, 0.2f, _alpha);
+                            Widgets.Label(new Rect(px, 2f, sw, 16f), segments[i]);
+                        }
+                        px += sw;
+                    }
+                    copies++;
+                }
+
+                GUI.EndGroup();
+            }
+
             GUI.color = Color.white;
             Text.Font = GameFont.Small;
         }
@@ -233,16 +289,23 @@ namespace RimWorldMCP
                 _alpha = Mathf.Clamp(_alpha + 0.1f, 0.2f, 1f);
             TooltipHandler.TipRegion(alphaPlus, $"透明度 {(int)(_alpha * 100)}%");
 
-            // 清空
+            // 按钮从右往左排列：中断 | 继续 | 清空
             float rightSide = inRect.x + inRect.width - 4f;
-            float abortBtnW = 56f;
-            Rect clearRect = new Rect(rightSide - abortBtnW - 54f, y + 4f, 48f, h - 8f);
-            GUI.color = Color.white;
-            if (Widgets.ButtonText(clearRect, "清空"))
-                ChatDisplayState.Clear();
+            float btnY = y + 4f;
+            float btnH = h - 8f;
 
-            // 继续 — 先打断当前回复，再向 agent 发送殖民地概览
-            Rect continueRect = new Rect(clearRect.xMax + 4f, y + 4f, 54f, h - 8f);
+            float abortBtnW = 56f;
+            Rect abortRect = new Rect(rightSide - abortBtnW, btnY, abortBtnW, btnH);
+            GUI.color = connected ? Color.white : Color.grey;
+            if (Widgets.ButtonText(abortRect, "中断"))
+            {
+                ChatDisplayState.MarkLastAborted();
+                _ = CCClient.SendAbort();
+            }
+            GUI.color = Color.white;
+
+            float continueBtnW = 54f;
+            Rect continueRect = new Rect(abortRect.x - continueBtnW - 4f, btnY, continueBtnW, btnH);
             GUI.color = connected ? Color.white : Color.grey;
             if (Widgets.ButtonText(continueRect, "继续"))
             {
@@ -261,14 +324,11 @@ namespace RimWorldMCP
             }
             GUI.color = Color.white;
 
-            // 中断按钮
-            Rect abortRect = new Rect(continueRect.xMax + 4f, y + 4f, abortBtnW, h - 8f);
-            GUI.color = connected ? Color.white : Color.grey;
-            if (Widgets.ButtonText(abortRect, "中断"))
-            {
-                ChatDisplayState.MarkLastAborted();
-                _ = CCClient.SendAbort();
-            }
+            float clearBtnW = 48f;
+            Rect clearRect = new Rect(continueRect.x - clearBtnW - 4f, btnY, clearBtnW, btnH);
+            GUI.color = Color.white;
+            if (Widgets.ButtonText(clearRect, "清空"))
+                ChatDisplayState.Clear();
             GUI.color = Color.white;
         }
 
@@ -281,7 +341,7 @@ namespace RimWorldMCP
 
             float labelWidth = contentWidth - 32f; // 与 DrawEntry bodyRect 宽度一致
             float bodyHeight = Text.CalcHeight(text.StripTags(), labelWidth);
-            entry.CachedHeight = 18f + Mathf.Max(bodyHeight, 10f);
+            entry.CachedHeight = 25f + Mathf.Max(bodyHeight, 10f); // 3(标签上边距)+20(标签高)+2(间距)=25
             entry.CachedTextLen = text.Length;
         }
 
@@ -300,7 +360,7 @@ namespace RimWorldMCP
             }
 
             float bodyWidth = contentWidth - 20f;
-            float bodyHeight = Mathf.Max(0f, entry.CachedHeight - 18f);
+            float bodyHeight = Mathf.Max(0f, entry.CachedHeight - 25f);
             float entryHeight = entry.CachedHeight;
 
             Rect bubbleRect = new Rect(2f, y, contentWidth, entryHeight);
@@ -322,9 +382,9 @@ namespace RimWorldMCP
             }
 
             // 标签
-            Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 2f,
-                isSubagent ? 60f : 24f, 16f);
-            Text.Font = GameFont.Tiny;
+            Rect labelRect = new Rect(bubbleRect.x + 6f, bubbleRect.y + 3f,
+                isSubagent ? 60f : 24f, 20f);
+            Text.Font = GameFont.Small;
             GUI.color = entry.IsContext ? new Color(0.6f, 0.6f, 0.8f, _alpha)
                 : entry.Role == ChatRole.User
                     ? new Color(0.4f, 0.8f, 1f, _alpha)
@@ -334,7 +394,7 @@ namespace RimWorldMCP
             Widgets.Label(labelRect, label);
 
             // 消息正文
-            Rect bodyRect = new Rect(bubbleRect.x + 8f, bubbleRect.y + 17f,
+            Rect bodyRect = new Rect(bubbleRect.x + 8f, labelRect.yMax + 2f,
                 bodyWidth - 12f, Mathf.Max(bodyHeight, 10f));
             GUI.color = entry.IsContext ? new Color(0.7f, 0.7f, 0.8f, _alpha)
                 : new Color(1f, 1f, 1f, _alpha);
