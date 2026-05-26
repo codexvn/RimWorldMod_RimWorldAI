@@ -60,7 +60,6 @@ namespace RimWorldMCP
             base.PreOpen();
             ChatDisplayState.OnChanged += OnChatChanged;
             TodoManager.OnChanged += OnTodoChanged;
-            // 默认吸附开启——持续显示最新内容
             _chatUserScrolledUp = false;
             _toolUserScrolledUp = false;
             _scrollToBottom = true;
@@ -79,8 +78,8 @@ namespace RimWorldMCP
         private int _lastToolCount;
         private bool _chatUserScrolledUp;
         private bool _toolUserScrolledUp;
-        private float _stableViewH;
-        private float _stableToolViewH;
+        private float _lastMaxScroll = -1f;
+        private float _lastToolMaxScroll = -1f;
 
         private void OnChatChanged()
         {
@@ -252,7 +251,7 @@ namespace RimWorldMCP
                 return;
             }
 
-            float contentWidth = scrollRect.width - 16f - 4f;
+            float contentWidth = scrollRect.width - 16f;
             float totalH = 4f;
             foreach (var entry in entries)
             {
@@ -263,38 +262,57 @@ namespace RimWorldMCP
             bool isStreaming = entries.Count > 0
                 && entries[entries.Count - 1].State == ChatState.Streaming;
 
-            // 稳定 viewRect 高度（只增不减）避免 IMGUI 每帧重算导致闪烁
-            float minH = Mathf.Max(totalH, scrollRect.height);
-            if (minH <= scrollRect.height || !isStreaming) _stableViewH = minH;
-            else _stableViewH = Mathf.Max(_stableViewH, minH);
-            Rect viewRect = new Rect(0f, 0f, contentWidth, _stableViewH);
+            float maxScroll = Mathf.Max(0f, totalH - scrollRect.height);
 
-            // 磁吸：用户上滚→脱离，滚回底部→吸附
-            float contentBottom = Mathf.Max(0f, minH - scrollRect.height);
+            // 磁吸：检测上帧是否在底部（用旧 maxScroll 避免内容增长导致误断）
+            if (_lastMaxScroll >= 0f)
+            {
+                bool wasAtBottom = _chatScrollPos.y >= _lastMaxScroll - 4f;
+                if (!wasAtBottom && _chatScrollPos.y < maxScroll - 4f) _chatUserScrolledUp = true;
+                if (_chatScrollPos.y >= maxScroll - 2f) _chatUserScrolledUp = false;
+                if (wasAtBottom && isStreaming) _chatUserScrolledUp = false; // 内容增长时保持在底
+            }
+            if (!isStreaming) { _chatUserScrolledUp = false; _lastMaxScroll = -1f; }
+            else _lastMaxScroll = maxScroll;
 
-            if (!isStreaming) { _chatUserScrolledUp = false; _stableViewH = 0f; }
-
-            // 新内容 + 吸附中 → 先滚到底再进 ScrollView
             if ((isStreaming && !_chatUserScrolledUp) || (_scrollToBottom && !_chatUserScrolledUp))
             {
-                _chatScrollPos.y = contentBottom;
+                _chatScrollPos.y = maxScroll;
                 _scrollToBottom = false;
             }
 
-            Widgets.BeginScrollView(scrollRect, ref _chatScrollPos, viewRect);
+            // 滚轮
+            if (Event.current.type == EventType.ScrollWheel && Mouse.IsOver(scrollRect))
+            {
+                _chatScrollPos.y -= Event.current.delta.y * 20f;
+                _chatScrollPos.y = Mathf.Clamp(_chatScrollPos.y, 0f, maxScroll);
+                Event.current.Use();
+            }
+            _chatScrollPos.y = Mathf.Clamp(_chatScrollPos.y, 0f, maxScroll);
 
-            // 用 ScrollView 后的实际位置判断磁吸（IMGUI 可能 clamp 滚动位置）
-            if (_chatScrollPos.y < contentBottom - 4f) _chatUserScrolledUp = true;
-            if (_chatScrollPos.y >= contentBottom - 1f) _chatUserScrolledUp = false;
-
-            float curY = 4f;
+            // 手动裁剪 + 滚动，绕过 BeginScrollView 的闪烁问题
+            GUI.BeginGroup(scrollRect);
+            float curY = 4f - _chatScrollPos.y;
             foreach (var entry in entries)
             {
-                curY += DrawEntry(entry, viewRect, contentWidth, curY);
-                curY += 6f;
+                float entryH = entry.CachedHeight + 6f;
+                if (curY + entryH > 0f && curY < scrollRect.height)
+                    DrawEntry(entry, contentWidth, curY);
+                curY += entryH;
             }
+            GUI.EndGroup();
 
-            Widgets.EndScrollView();
+            // 手绘滚动条
+            if (maxScroll > 0f)
+            {
+                float barW = 6f;
+                float barX = scrollRect.xMax - barW - 2f;
+                float barAreaH = scrollRect.height;
+                float barH = Mathf.Max(barAreaH * barAreaH / totalH, 16f);
+                float barY = scrollRect.y + _chatScrollPos.y * barAreaH / totalH;
+                Rect barRect = new Rect(barX, barY, barW, barH);
+                Widgets.DrawBoxSolid(barRect, new Color(0.35f, 0.35f, 0.35f, 0.6f));
+            }
         }
 
         // ========== 右栏：工具调用卡片 ==========
@@ -332,33 +350,57 @@ namespace RimWorldMCP
             foreach (var tc in toolCalls)
                 if (tc.Status == ToolStatus.Running) { hasRunning = true; break; }
 
-            float toolMinH = Mathf.Max(totalH, scrollRect.height);
-            if (toolMinH <= scrollRect.height || !hasRunning) _stableToolViewH = toolMinH;
-            else _stableToolViewH = Mathf.Max(_stableToolViewH, toolMinH);
-            Rect viewRect = new Rect(0f, 0f, scrollRect.width - 16f, _stableToolViewH);
+            float toolMaxScroll = Mathf.Max(0f, totalH - scrollRect.height);
 
-            float toolContentBottom = Mathf.Max(0f, toolMinH - scrollRect.height);
+            // 磁吸
+            if (_lastToolMaxScroll >= 0f)
+            {
+                bool wasAtBottom = _toolScrollPos.y >= _lastToolMaxScroll - 4f;
+                if (!wasAtBottom && _toolScrollPos.y < toolMaxScroll - 4f) _toolUserScrolledUp = true;
+                if (_toolScrollPos.y >= toolMaxScroll - 2f) _toolUserScrolledUp = false;
+                if (wasAtBottom && hasRunning) _toolUserScrolledUp = false;
+            }
+            if (!hasRunning) { _toolUserScrolledUp = false; _lastToolMaxScroll = -1f; }
+            else _lastToolMaxScroll = toolMaxScroll;
 
             if ((hasRunning && !_toolUserScrolledUp) || (_toolScrollToBottom && !_toolUserScrolledUp))
             {
-                _toolScrollPos.y = toolContentBottom;
+                _toolScrollPos.y = toolMaxScroll;
                 _toolScrollToBottom = false;
             }
 
-            Widgets.BeginScrollView(scrollRect, ref _toolScrollPos, viewRect);
+            // 滚轮
+            if (Event.current.type == EventType.ScrollWheel && Mouse.IsOver(scrollRect))
+            {
+                _toolScrollPos.y -= Event.current.delta.y * 20f;
+                _toolScrollPos.y = Mathf.Clamp(_toolScrollPos.y, 0f, toolMaxScroll);
+                Event.current.Use();
+            }
+            _toolScrollPos.y = Mathf.Clamp(_toolScrollPos.y, 0f, toolMaxScroll);
 
-            // 用 ScrollView 后的实际位置判断磁吸
-            if (_toolScrollPos.y < toolContentBottom - 4f) _toolUserScrolledUp = true;
-            if (_toolScrollPos.y >= toolContentBottom - 1f) _toolUserScrolledUp = false;
-
-            float curY = 4f;
+            // 手动裁剪 + 滚动
+            GUI.BeginGroup(scrollRect);
+            float curY = 4f - _toolScrollPos.y;
             for (int i = 0; i < toolCalls.Count; i++)
             {
-                curY += DrawToolCard(toolCalls[i], i, viewRect, cardWidth, curY);
-                curY += 6f;
+                float cardH = CalcCardHeight(toolCalls[i], cardWidth) + 6f;
+                if (curY + cardH > 0f && curY < scrollRect.height)
+                    DrawToolCard(toolCalls[i], i, cardWidth, curY);
+                curY += cardH;
             }
+            GUI.EndGroup();
 
-            Widgets.EndScrollView();
+            // 手绘滚动条
+            if (toolMaxScroll > 0f)
+            {
+                float tBarW = 6f;
+                float tBarX = scrollRect.xMax - tBarW - 2f;
+                float tBarAreaH = scrollRect.height;
+                float tBarH = Mathf.Max(tBarAreaH * tBarAreaH / totalH, 16f);
+                float tBarY = scrollRect.y + _toolScrollPos.y * tBarAreaH / totalH;
+                Rect tBarRect = new Rect(tBarX, tBarY, tBarW, tBarH);
+                Widgets.DrawBoxSolid(tBarRect, new Color(0.35f, 0.35f, 0.35f, 0.6f));
+            }
         }
 
         private static float CalcCardHeight(ToolCallInfo tc, float width)
@@ -374,7 +416,7 @@ namespace RimWorldMCP
             return headerH + bodyH + 10f;
         }
 
-        private static float DrawToolCard(ToolCallInfo tc, int index, Rect viewRect, float width, float y)
+        private static float DrawToolCard(ToolCallInfo tc, int index, float width, float y)
         {
             string name = ToolDisplayNames.GetDisplayName(tc.Name ?? "").Replace("_", "__");
             if (string.IsNullOrEmpty(name)) name = tc.Name ?? "?";
@@ -652,7 +694,7 @@ namespace RimWorldMCP
             entry.CachedThinkingLen = thinking.Length;
         }
 
-        private static float DrawEntry(ChatEntry entry, Rect viewRect, float contentWidth, float y)
+        private static float DrawEntry(ChatEntry entry, float contentWidth, float y)
         {
             bool isSubagent = !string.IsNullOrEmpty(entry.AgentId);
             bool isThinking = !string.IsNullOrEmpty(entry.ThinkingText);
