@@ -58,6 +58,10 @@
     <None Include="CLAUDE.md" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="cc-companion\.claude\settings.json" />
+  </ItemGroup>
+
   <!-- 构建后删掉 pdb -->
   <Target Name="DeletePdb" AfterTargets="Build">
     <Delete Files="$(OutputPath)$(AssemblyName).pdb" />
@@ -74,6 +78,12 @@
         Exclude="$(CompanionSrc)dist\**;$(CompanionSrc)node_modules\**;$(CompanionSrc).idea\**;$(CompanionSrc).claude\**;$(CompanionSrc)README.md" />
     </ItemGroup>
     <Copy SourceFiles="@(CompanionFiles)" DestinationFolder="$(CompanionOut)%(RecursiveDir)" />
+  </Target>
+
+  <!-- 复制 README.md 到 publish -->
+  <Target Name="CopyReadme" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md"
+          DestinationFolder="$(MSBuildProjectDirectory)\publish\" />
   </Target>
 
 </Project>
