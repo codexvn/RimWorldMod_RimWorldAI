@@ -184,6 +184,17 @@ namespace RimWorldMCP.Harmony
             if (def == LetterDefOf.PositiveEvent) return "正面";
             if (def == LetterDefOf.Death) return "死亡";
             if (def == LetterDefOf.NeutralEvent) return "事件";
+            if (def == LetterDefOf.AcceptVisitors || def == LetterDefOf.AcceptJoiner) return "来人";
+            if (def == LetterDefOf.BabyBirth || def == LetterDefOf.BabyToChild
+                || def == LetterDefOf.ChildToAdult || def == LetterDefOf.ChildBirthday) return "成长";
+            if (def == LetterDefOf.RelicHuntInstallationFound || def == LetterDefOf.EntityDiscovered) return "任务";
+            if (def == LetterDefOf.RitualOutcomePositive) return "仪式成功";
+            if (def == LetterDefOf.RitualOutcomeNegative) return "仪式失败";
+            if (def == LetterDefOf.ChoosePawn) return "选择角色";
+            if (def == LetterDefOf.GameEnded) return "游戏结束";
+            if (def == LetterDefOf.Bossgroup) return "Boss";
+            if (def == LetterDefOf.BundleLetter) return "捆绑";
+            if (def == LetterDefOf.AcceptCreepJoiner) return "来人";
             return "通知";
         }
 
@@ -200,6 +211,7 @@ namespace RimWorldMCP.Harmony
             if (def == MessageTypeDefOf.SituationResolved) return "状态解除";
             if (def == MessageTypeDefOf.RejectInput) return "拒绝";
             if (def == MessageTypeDefOf.CautionInput) return "警告";
+            if (def == MessageTypeDefOf.SilentInput) return "静默";
             return def?.defName ?? "消息";
         }
     }

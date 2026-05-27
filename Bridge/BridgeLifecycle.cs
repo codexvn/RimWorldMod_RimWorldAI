@@ -46,6 +46,16 @@ namespace RimWorldMCP
         private const int PauseRemindFirstMs = 30000;   // 首次提醒：暂停 30 秒后
         private const int PauseRemindRepeatMs = 60000;  // 重复提醒：每隔 60 秒
 
+        // 非高危通知计数（L1+L2），供 ToolRegistry 注入工具返回值
+        private static int _pendingLevel12Count;
+
+        public static int PendingLevel12Count => _pendingLevel12Count;
+
+        public static void ResetPendingLevel12Count()
+        {
+            _pendingLevel12Count = 0;
+        }
+
         public static async Task StartAsync(string sessionId)
         {
             _currentSessionId = sessionId;
@@ -166,11 +176,20 @@ namespace RimWorldMCP
             }
         }
 
-        /// <summary>有新事件 → 暂停游戏 + 构建摘要，每个工具调用注入摘要催促 AI 收尾</summary>
+        /// <summary>L3 高危事件 → 暂停游戏 + 构建摘要</summary>
         private static void DangerPauseIfBusy(List<Notification> drained)
         {
             if (DangerPaused) return;
             if (!ChatDisplayState.IsBusy) return;
+
+            // 检查是否有 L3 Critical 事件
+            bool hasCritical = false;
+            foreach (var n in drained)
+            {
+                if (NotificationBus.IsHighDanger(n.Type, n.DangerLabel, n.Priority))
+                { hasCritical = true; break; }
+            }
+            if (!hasCritical) return;
 
             DangerPaused = true;
             DangerSummary = BuildDangerSummary(drained);
@@ -221,15 +240,20 @@ namespace RimWorldMCP
                 DangerPauseIfBusy(emergencyList);
                 if (emergencyList.Count > 0)
                 {
-                    // 高危单独推送，非高危合并到定期批次
+                    // 高危单独推送，非高危按级别处理
                     var highList = new List<Notification>();
                     var lowLines = new List<string>();
+                    int nonCritical = 0;
                     foreach (var n in emergencyList)
                     {
-                        if (NotificationBus.IsHighDanger(n.Type, n.DangerLabel, n.Priority))
+                        var level = NotificationBus.GetEventLevel(n.Type, n.DangerLabel);
+                        if (level == EventLevel.Critical)
                             highList.Add(n);
-                        else
+                        else if (level != EventLevel.Silent)  // L0 不入计数也不发聊天
+                        {
+                            nonCritical++;
                             AddNotifyLine(n, lowLines);
+                        }
                     }
                     if (highList.Count > 0)
                     {
@@ -237,6 +261,9 @@ namespace RimWorldMCP
                             AddDailyEvent($"[高危] {n.Label}");
                         SendCCEvents(highList);
                     }
+                    // L1+L2 通知：累加计数（供 ToolRegistry 注入工具返回值）
+                    if (nonCritical > 0)
+                        _pendingLevel12Count += nonCritical;
                     if (lowLines.Count > 0)
                     {
                         foreach (var line in lowLines) AddDailyEvent(line);
@@ -266,7 +293,8 @@ namespace RimWorldMCP
                 var lines = new List<string>();
                 foreach (var n in notifications)
                 {
-                    if (!NotificationBus.IsHighDanger(n.Type, n.DangerLabel, n.Priority))
+                    var level = NotificationBus.GetEventLevel(n.Type, n.DangerLabel);
+                    if (level != EventLevel.Critical && level != EventLevel.Silent)
                         AddNotifyLine(n, lines);
                 }
                 if (countChanged)

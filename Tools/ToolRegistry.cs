@@ -115,9 +115,17 @@ namespace RimWorldMCP.Tools
 
                     var result = await tool.ExecuteAsync(args);
 
-                    // 事件暂停中 → 每个工具调用后注入简短摘要（≤60 字符，缓存友好）
+                    // L3 事件暂停中 → 注入摘要催促 AI 收尾
                     if (BridgeLifecycle.DangerPaused)
                         result = ToolResult.Success((result.Text ?? "") + $"\n\n⚠ {BridgeLifecycle.DangerSummary} | 已暂停，请尽快完成");
+
+                    // L1+L2 非高危通知 → 注入计数，AI 自行决定是否暂停
+                    int pendingCount = BridgeLifecycle.PendingLevel12Count;
+                    if (pendingCount > 0 && !BridgeLifecycle.DangerPaused)
+                    {
+                        result = ToolResult.Success((result.Text ?? "") + $"\n\n📋 新事件: {pendingCount}件 | 如需处理请用 toggle_pause 暂停");
+                        BridgeLifecycle.ResetPendingLevel12Count();
+                    }
 
                     // 工具结束时补推剩余通知
                     try

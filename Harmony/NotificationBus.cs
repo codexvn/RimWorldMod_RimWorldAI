@@ -14,6 +14,15 @@ namespace RimWorldMCP.Harmony
         public string?[] Culprits { get; set; } = System.Array.Empty<string?>();
     }
 
+    /// <summary>事件等级 — 决定暂停/注入/忽略</summary>
+    public enum EventLevel
+    {
+        Silent = 0,   // 不推送也不注入
+        Info = 1,     // 注入工具结果
+        Warning = 2,  // 注入工具结果（稍优先）
+        Critical = 3  // 暂停游戏
+    }
+
     public static class NotificationBus
     {
         // 待推送通知队列
@@ -30,7 +39,7 @@ namespace RimWorldMCP.Harmony
         private const int MaxNotifiedMessages = 2000;
         private static readonly HashSet<string> NotifiedMessages = new();
 
-        /// <summary>高危通知标记 — BridgeLifecycle.CCEventTick() 每帧检查</summary>
+        /// <summary>事件通知标记 — BridgeLifecycle.CCEventTick() 每帧检查 (L3 Critical)</summary>
         public static volatile bool HighDangerPending;
 
         // ========== 供 Patch 调用 ==========
@@ -39,23 +48,44 @@ namespace RimWorldMCP.Harmony
         {
             Pending.Enqueue(n);
             McpLog.Info($"[notify] + {n.Type} danger={n.DangerLabel} pri={n.Priority} label={n.Label}");
-            if (!HighDangerPending && IsHighDanger(n.Type, n.DangerLabel, n.Priority))
+            if (!HighDangerPending && GetEventLevel(n.Type, n.DangerLabel) == EventLevel.Critical)
                 HighDangerPending = true;
         }
 
-        internal static bool IsHighDanger(NotificationType type, string dangerLabel, int alertPriority)
+        /// <summary>事件等级判定 — 统一入口</summary>
+        public static EventLevel GetEventLevel(NotificationType type, string dangerLabel)
         {
             switch (type)
             {
                 case NotificationType.Letter:
-                    return dangerLabel is "大威胁" or "小威胁" or "死亡" or "负面";
+                    return dangerLabel switch
+                    {
+                        "大威胁" or "小威胁" or "死亡" or "Boss" or "负面" => EventLevel.Critical,
+                        "仪式失败" => EventLevel.Warning,
+                        "选择角色" or "游戏结束" or "捆绑" => EventLevel.Silent,
+                        _ => EventLevel.Info  // 正面, 事件, 来人, 成长, 任务, 仪式成功
+                    };
                 case NotificationType.Message:
-                    return dangerLabel is "大威胁" or "小威胁" or "角色死亡" or "健康事件" or "游戏减速";
+                    return dangerLabel switch
+                    {
+                        "大威胁" or "小威胁" or "角色死亡" or "健康事件" or "负面" or "游戏减速" => EventLevel.Critical,
+                        "警告" => EventLevel.Warning,
+                        "拒绝" or "静默" => EventLevel.Silent,
+                        _ => EventLevel.Info  // 事件, 正面, 完成, 状态解除
+                    };
                 case NotificationType.AlertStart:
-                    return true;
+                    return EventLevel.Critical;
+                case NotificationType.AlertEnd:
+                    return EventLevel.Info;
                 default:
-                    return false;
+                    return EventLevel.Info;
             }
+        }
+
+        /// <summary>是否高危事件 (L3 Critical)，保持向后兼容</summary>
+        internal static bool IsHighDanger(NotificationType type, string dangerLabel, int alertPriority)
+        {
+            return GetEventLevel(type, dangerLabel) == EventLevel.Critical;
         }
 
         private static int _lastSpeedSlowdownTick;
