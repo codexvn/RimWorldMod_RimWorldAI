@@ -242,19 +242,13 @@ namespace RimWorldMCP.Tools
                         }
                         else
                         {
-                            // 判断是否可关闭
                             bool canClose = w.doCloseX || w.doCloseButton || w.closeOnClickedOutside
                                          || w.closeOnAccept || w.closeOnCancel;
                             sb.AppendLine();
                             if (canClose)
-                            {
-                                sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name}");
-                                sb.AppendLine($"[0] 关闭");
-                            }
+                                sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name}\n[0] 关闭");
                             else
-                            {
                                 sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name} (无法关闭，需手动处理)");
-                            }
                             dialogIdx++;
                         }
                     }
