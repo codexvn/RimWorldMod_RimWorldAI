@@ -43,11 +43,9 @@ namespace RimWorldMCP.Tools
 
             try
             {
-                var asmPath = typeof(Tool_SubmitFeedback).Assembly.Location;
-                var asmDir = Path.GetDirectoryName(asmPath);
-                // asmDir: .../Mods/RimWorldMCP/1.6/Assemblies
-                // 往上 3 级到 Mod 根目录
-                var modRoot = Path.GetFullPath(Path.Combine(asmDir, "..", "..", ".."));
+                var modRoot = FindModRoot();
+                if (modRoot == null)
+                    return Task.FromResult(ToolResult.Error("无法定位 mod 根目录，反馈写入失败。"));
                 var filePath = Path.Combine(modRoot, "feedback.md");
 
                 var now = DateTime.Now;
@@ -71,6 +69,32 @@ namespace RimWorldMCP.Tools
             {
                 return Task.FromResult(ToolResult.Error($"写入反馈失败: {ex.Message}"));
             }
+        }
+
+        /// <summary>定位 Mod 根目录。优先使用 RimWorld 官方 API，备选 Assembly.Location 向上两级。</summary>
+        private static string? FindModRoot()
+        {
+            try
+            {
+                var rootDir = RimWorldMCPMod.Instance?.Content?.RootDir;
+                if (!string.IsNullOrEmpty(rootDir))
+                    return rootDir;
+            }
+            catch { }
+
+            try
+            {
+                var asmPath = typeof(Tool_SubmitFeedback).Assembly.Location;
+                if (!string.IsNullOrEmpty(asmPath))
+                {
+                    var asmDir = Path.GetDirectoryName(asmPath);
+                    if (asmDir != null)
+                        return Path.GetFullPath(Path.Combine(asmDir, "..", ".."));
+                }
+            }
+            catch { }
+
+            return null;
         }
 
         public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args) => null;

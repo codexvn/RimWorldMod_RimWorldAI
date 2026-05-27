@@ -256,6 +256,15 @@ namespace RimWorldMCP.Tools
                         }
                     }
 
+                    if (wallDef.graphicData == null)
+                        return ToolResult.Error($"Wall 缺少 graphicData 图形定义，无法创建墙体设计器。");
+
+                    if (doorDef != null && doorDef.graphicData == null)
+                        return ToolResult.Error($"{doorDefName} 缺少 graphicData 图形定义，无法创建门设计器。");
+
+                    if (floorDef != null && floorDef.graphicData == null)
+                        return ToolResult.Error($"{floorDefName} 缺少 graphicData 图形定义，无法创建地板设计器。");
+
                     // 复用游戏原生 Designator_Build
                     var wallDes = new Designator_Build(wallDef);
                     if (wallStuff != null) wallDes.SetStuffDef(wallStuff);

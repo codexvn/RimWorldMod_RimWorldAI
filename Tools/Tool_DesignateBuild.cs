@@ -63,9 +63,9 @@ namespace RimWorldMCP.Tools
 
                     ThingDef def = DefDatabase<ThingDef>.GetNamed(thingDefName, false);
                     if (def == null)
-                        return ToolResult.Error($"找不到 ThingDef: {thingDefName}。请确认 DefName 拼写正确。");
+                        return ToolResult.Error($"找不到 ThingDef: {thingDefName}。请确认 DefName 拼写正确。\n\n💡 提示: 用 search_thing_def(keyword=\"{thingDefName}\", category=\"building\") 查找可用建筑。");
                     if (!(def is BuildableDef))
-                        return ToolResult.Error($"{thingDefName} 不是可建造的类型。");
+                        return ToolResult.Error($"{thingDefName} 不是可建造的类型。\n\n💡 提示: 用 search_thing_def(keyword=\"{thingDefName}\", category=\"building\") 查找可用建筑。");
 
                     Rot4 rot = rotationStr switch
                     {
@@ -92,6 +92,9 @@ namespace RimWorldMCP.Tools
                         return ToolResult.Error($"{def.label} ({thingDefName}) 不支持材料选择，请勿指定 stuff_defName。");
 
                     IntVec3 pos = new IntVec3(posX, 0, posY);
+
+                    if (def.graphicData == null)
+                        return ToolResult.Error($"{thingDefName} 缺少 graphicData 图形定义，无法创建设计器。\n\n💡 提示: 用 search_thing_def(keyword=\"{thingDefName}\", category=\"building\") 查找类似可用建筑。");
 
                     // 复用游戏原生 Designator_Build 放置逻辑
                     var designator = new Designator_Build(def);
