@@ -317,7 +317,7 @@ namespace RimWorldMCP
             if (msgEl.TryGetProperty("model", out var modelEl))
             {
                 var m = modelEl.GetString();
-                if (!string.IsNullOrEmpty(m)) TokenUsageTracker.CurrentModel = m;
+                if (!string.IsNullOrEmpty(m)) TokenUsageTracker.CurrentModel = m!;
             }
 
             if (!msgEl.TryGetProperty("usage", out var usageEl) || usageEl.ValueKind != JsonValueKind.Object) return;
@@ -331,7 +331,7 @@ namespace RimWorldMCP
             if (inputTok > 0 || outputTok > 0)
             {
                 McpLog.Info($"[cc] Token: in={inputTok} out={outputTok} cacheR={cacheRead} cacheW={cacheCreate}");
-                TokenUsageTracker.Record(TokenUsageTracker.CurrentModel, inputTok, outputTok, cacheRead, cacheCreate, 0);
+                TokenUsageTracker.Record(TokenUsageTracker.CurrentModel!, inputTok, outputTok, cacheRead, cacheCreate, 0);
             }
         }
 
@@ -353,7 +353,7 @@ namespace RimWorldMCP
                     if (usageEl.TryGetProperty("cache_read_input_tokens", out var cr)) cacheRead = cr.GetInt64();
                     if (usageEl.TryGetProperty("cache_creation_input_tokens", out var cc)) cacheCreate = cc.GetInt64();
                     if (inputTok > 0 || outputTok > 0)
-                        TokenUsageTracker.Record(TokenUsageTracker.CurrentModel, inputTok, outputTok, cacheRead, cacheCreate, 0);
+                        TokenUsageTracker.Record(TokenUsageTracker.CurrentModel!, inputTok, outputTok, cacheRead, cacheCreate, 0);
                 }
             }
             else if (eventType == "message_delta" && evt.TryGetProperty("usage", out var deltaUsage) && deltaUsage.ValueKind == JsonValueKind.Object)
@@ -364,7 +364,7 @@ namespace RimWorldMCP
                 if (deltaUsage.TryGetProperty("cache_read_input_tokens", out var cr)) cacheRead = cr.GetInt64();
                 if (deltaUsage.TryGetProperty("cache_creation_input_tokens", out var cc)) cacheCreate = cc.GetInt64();
                 if (outputTok > 0)
-                    TokenUsageTracker.Record(TokenUsageTracker.CurrentModel, inputTok, outputTok, cacheRead, cacheCreate, 0);
+                    TokenUsageTracker.Record(TokenUsageTracker.CurrentModel!, inputTok, outputTok, cacheRead, cacheCreate, 0);
             }
         }
 

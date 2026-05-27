@@ -62,10 +62,10 @@ namespace RimWorldMCP
             h += 100f;
             // CC 桥接
             h += 200f;
-            if (Settings.CCBAutoStart) h += 130f;
+            if (Settings.CCBAutoStart) h += 310f; // 连接认证+模型+思考+JSON
             if (Settings.CCBThinkingMode == ThinkingMode.Adaptive) h += 30f;
             if (Settings.CCBThinkingMode == ThinkingMode.Fixed) h += 40f;
-            h += 180f + 80f; // JSON + 安装按钮
+            h += 80f; // 安装按钮
             // Token 预算
             h += 140f;
             if (Settings.TokenBudgetExceedAction == TokenBudgetExceedAction.Warn) h += 50f;
@@ -129,7 +129,7 @@ namespace RimWorldMCP
                 Settings.CCBPort = ccPort;
 
             listing.Gap(6f);
-            listing.CheckboxLabeled("自动启动本地 Companion", ref Settings.CCBAutoStart,
+            listing.CheckboxLabeled("自动启动 Mod 附带的 Claude Code", ref Settings.CCBAutoStart,
                 "开启后，游戏加载时自动 spawn Node.js 子进程。");
 
             if (Settings.CCBAutoStart)
@@ -181,23 +181,23 @@ namespace RimWorldMCP
                     if (int.TryParse(tokenStr, out var parsedTokens) && parsedTokens > 0)
                         Settings.CCBMaxThinkingTokens = parsedTokens;
                 }
-            }
 
-            // --- 项目设置 JSON ---
-            listing.Gap(12f);
-            Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.5f, 0.5f, 0.55f, 1f);
-            listing.Label("  MCP 服务器配置模板 (.mcp.json)");
-            GUI.color = Color.white;
-            Text.Font = GameFont.Small;
-            var textAreaRect = listing.GetRect(180f);
-            var jsonViewRect = new Rect(0f, 0f, textAreaRect.width - 16f, Mathf.Max(
-                GUI.skin.textArea.CalcHeight(new GUIContent(Settings.CCBProjectSettingsJson), textAreaRect.width), 180f));
-            Widgets.BeginScrollView(textAreaRect, ref _jsonScrollPos, jsonViewRect);
-            Settings.CCBProjectSettingsJson = GUI.TextArea(jsonViewRect, Settings.CCBProjectSettingsJson);
-            Widgets.EndScrollView();
-            if (listing.ButtonText("  复位为默认值"))
-                Settings.CCBProjectSettingsJson = BridgeLifecycle.BuildMcpJson(Settings.McpPort);
+                // --- MCP 服务器配置 ---
+                listing.Gap(12f);
+                Text.Font = GameFont.Tiny;
+                GUI.color = new Color(0.5f, 0.5f, 0.55f, 1f);
+                listing.Label("  MCP 服务器配置 (.mcp.json)");
+                GUI.color = Color.white;
+                Text.Font = GameFont.Small;
+                var textAreaRect = listing.GetRect(180f);
+                var jsonViewRect = new Rect(0f, 0f, textAreaRect.width - 16f, Mathf.Max(
+                    GUI.skin.textArea.CalcHeight(new GUIContent(Settings.CCBProjectSettingsJson), textAreaRect.width), 180f));
+                Widgets.BeginScrollView(textAreaRect, ref _jsonScrollPos, jsonViewRect);
+                Settings.CCBProjectSettingsJson = GUI.TextArea(jsonViewRect, Settings.CCBProjectSettingsJson);
+                Widgets.EndScrollView();
+                if (listing.ButtonText("  复位为默认值"))
+                    Settings.CCBProjectSettingsJson = BridgeLifecycle.BuildMcpJson(Settings.McpPort);
+            }
 
             // --- 安装状态 ---
             var installed = BridgeLifecycle.IsCompanionInstalled();

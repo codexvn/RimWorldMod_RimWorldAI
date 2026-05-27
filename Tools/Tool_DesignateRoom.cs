@@ -302,7 +302,7 @@ namespace RimWorldMCP.Tools
 
                         if (isDoorPos)
                         {
-                            if (!doorDes.CanDesignateCell(ipos).Accepted)
+                            if (!doorDes!.CanDesignateCell(ipos).Accepted)
                             {
                                 // 门放不了，退化为墙
                                 if (wallDes.CanDesignateCell(ipos).Accepted)

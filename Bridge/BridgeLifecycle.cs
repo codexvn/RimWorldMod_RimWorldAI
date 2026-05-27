@@ -1142,7 +1142,7 @@ namespace RimWorldMCP
                 + $" --idle-timeout 30000"
                 + $" --project-path \"{EscapeJsonForArg(baseSessionsDir)}\"";
             if (!string.IsNullOrEmpty(settings?.CCBModelName))
-                args += $" --model-name \"{EscapeJsonForArg(settings.CCBModelName)}\"";
+                args += $" --model-name \"{EscapeJsonForArg(settings!.CCBModelName)}\"";
 
             try
             {
