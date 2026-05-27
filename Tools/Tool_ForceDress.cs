@@ -119,6 +119,23 @@ namespace RimWorldMCP.Tools
                     return t;
             return null;
         }
-        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args) => null;
+        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
+        {
+            if (args == null) return null;
+            var map = Find.CurrentMap;
+            if (map == null) return null;
+            if (!args.Value.TryGetProperty("doer_id", out var jD) || !jD.TryGetInt32(out var doerId)) return null;
+            if (!args.Value.TryGetProperty("target_id", out var jT) || !jT.TryGetInt32(out var targetId)) return null;
+            if (!args.Value.TryGetProperty("thing_id", out var jI) || !jI.TryGetInt32(out var thingId)) return null;
+            var doer = CameraHelper.FindPawnById(map, doerId);
+            var target = CameraHelper.FindPawnById(map, targetId);
+            var thing = CameraHelper.FindThingById(map, thingId);
+            if (doer == null || target == null || thing == null) return null;
+            int minX = Math.Min(Math.Min(doer.Position.x, target.Position.x), thing.Position.x);
+            int maxX = Math.Max(Math.Max(doer.Position.x, target.Position.x), thing.Position.x);
+            int minZ = Math.Min(Math.Min(doer.Position.z, target.Position.z), thing.Position.z);
+            int maxZ = Math.Max(Math.Max(doer.Position.z, target.Position.z), thing.Position.z);
+            return (minX, minZ, maxX, maxZ);
+        }
     }
 }

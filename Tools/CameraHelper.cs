@@ -6,14 +6,9 @@ namespace RimWorldMCP.Tools
 {
     public static class CameraHelper
     {
-        private const float ComfortableSize = 28f;
-        private const float ZoomOutThreshold = 1.3f;
         private const float MaxZoomOut = 40f;
 
-        /// <summary>移动到区域中心，智能双向缩放：
-        /// 超出视野 30% → 拉远（上限 40 格）
-        /// 视野远大于需求 → 拉近回舒适距离
-        /// 否则 → 只平移</summary>
+        /// <summary>移动到区域中心，默认 1x 缩放，仅在目标区域超出可视范围时拉远</summary>
         public static async Task MoveToRange(int minX, int minZ, int maxX, int maxZ)
         {
             await McpCommandQueue.DispatchAsync<object?>(() =>
@@ -31,27 +26,13 @@ namespace RimWorldMCP.Tools
 
                 float needSizeW = (rectW * 1.05f) / (2f * aspect);
                 float needSizeH = (rectH * 1.05f) / 2f;
-                float needSize = Mathf.Max(needSizeW, needSizeH);
-                needSize = Mathf.Clamp(needSize, driver.config.sizeRange.min, driver.config.sizeRange.max);
+                float needSizeRaw = Mathf.Max(needSizeW, needSizeH);
+                float minSize = driver.config.sizeRange.min;
 
-                float curSize = driver.RootSize;
-                float targetSize;
-
-                if (needSize > curSize * ZoomOutThreshold)
-                {
-                    // 矩形明显超出 → 拉远（有上限）
-                    targetSize = Mathf.Min(needSize, MaxZoomOut);
-                }
-                else if (needSize < curSize * 0.7f && curSize > ComfortableSize + 2f)
-                {
-                    // 视野太远，目标太小 → 拉近回舒适距离
-                    targetSize = Mathf.Max(needSize, ComfortableSize);
-                }
-                else
-                {
-                    // 缩放合适 → 不调
-                    targetSize = curSize;
-                }
+                float targetSize =
+                    needSizeRaw <= minSize
+                        ? minSize  // 1x 放得下 → 默认 1x
+                        : Mathf.Min(Mathf.Clamp(needSizeRaw, minSize, driver.config.sizeRange.max), MaxZoomOut);
 
                 float targetY = 15f + (targetSize - driver.config.sizeRange.min)
                     / (driver.config.sizeRange.max - driver.config.sizeRange.min) * 50f;
@@ -63,6 +44,20 @@ namespace RimWorldMCP.Tools
             });
 
             await Task.Delay(400);
+        }
+
+        internal static Pawn? FindPawnById(Map map, int id)
+        {
+            foreach (var p in map.mapPawns.AllPawnsSpawned)
+                if (p.thingIDNumber == id) return p;
+            return null;
+        }
+
+        internal static Thing? FindThingById(Map map, int id)
+        {
+            foreach (var t in map.listerThings.AllThings)
+                if (t.thingIDNumber == id) return t;
+            return null;
         }
     }
 }

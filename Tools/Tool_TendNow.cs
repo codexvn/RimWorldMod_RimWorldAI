@@ -179,7 +179,16 @@ namespace RimWorldMCP.Tools
 
         public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
         {
-            return null; // 返回 null，由 doctor 的位置决定视角
+            if (args == null) return null;
+            var map = Find.CurrentMap;
+            if (map == null) return null;
+            if (!args.Value.TryGetProperty("doctor_id", out var jA) || !jA.TryGetInt32(out var idA)) return null;
+            if (!args.Value.TryGetProperty("patient_id", out var jB) || !jB.TryGetInt32(out var idB)) return null;
+            var a = CameraHelper.FindPawnById(map, idA);
+            var b = CameraHelper.FindPawnById(map, idB);
+            if (a == null || b == null) return null;
+            return (Math.Min(a.Position.x, b.Position.x), Math.Min(a.Position.z, b.Position.z),
+                    Math.Max(a.Position.x, b.Position.x), Math.Max(a.Position.z, b.Position.z));
         }
     }
 }

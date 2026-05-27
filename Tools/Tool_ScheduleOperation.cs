@@ -146,6 +146,15 @@ namespace RimWorldMCP.Tools
                 }
             });
         }
-        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args) => null;
+        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
+        {
+            if (args == null) return null;
+            var map = Find.CurrentMap;
+            if (map == null) return null;
+            if (!args.Value.TryGetProperty("colonist_id", out var jC) || !jC.TryGetInt32(out var id)) return null;
+            var pawn = CameraHelper.FindPawnById(map, id);
+            if (pawn == null) return null;
+            return (pawn.Position.x, pawn.Position.z, pawn.Position.x, pawn.Position.z);
+        }
     }
 }

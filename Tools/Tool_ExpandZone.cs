@@ -138,10 +138,19 @@ namespace RimWorldMCP.Tools
         }
         public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
         {
-            if (args != null && args.Value.TryGetProperty("pos_x", out var jx) && jx.TryGetInt32(out var px)
-                && args.Value.TryGetProperty("pos_y", out var jy) && jy.TryGetInt32(out var py))
-                return (px, py, px, py);
-            return null;
+            if (args == null) return null;
+            if (!args.Value.TryGetProperty("zone_pos_x", out var jzx) || !jzx.TryGetInt32(out var zoneX)) return null;
+            if (!args.Value.TryGetProperty("zone_pos_y", out var jzy) || !jzy.TryGetInt32(out var zoneY)) return null;
+            if (!args.Value.TryGetProperty("pos_x", out var jpx) || !jpx.TryGetInt32(out var startX)) return null;
+            if (!args.Value.TryGetProperty("pos_y", out var jpy) || !jpy.TryGetInt32(out var startY)) return null;
+            int endX = startX, endY = startY;
+            if (args.Value.TryGetProperty("end_x", out var jex) && jex.TryGetInt32(out var ex)) endX = ex;
+            if (args.Value.TryGetProperty("end_y", out var jey) && jey.TryGetInt32(out var ey)) endY = ey;
+            int minX = Math.Min(zoneX, Math.Min(startX, endX));
+            int maxX = Math.Max(zoneX, Math.Max(startX, endX));
+            int minZ = Math.Min(zoneY, Math.Min(startY, endY));
+            int maxZ = Math.Max(zoneY, Math.Max(startY, endY));
+            return (minX, minZ, maxX, maxZ);
         }
     }
 }

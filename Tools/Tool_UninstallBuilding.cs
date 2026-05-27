@@ -74,6 +74,16 @@ namespace RimWorldMCP.Tools
                 }
             });
         }
-        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args) => null;
+        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
+        {
+            if (args == null) return null;
+            if (!args.Value.TryGetProperty("thing_id", out var jTid) || !jTid.TryGetInt32(out var thingId))
+                return null;
+            var map = Find.CurrentMap;
+            if (map == null) return null;
+            var thing = map.listerThings.AllThings.FirstOrDefault(t => t.thingIDNumber == thingId);
+            if (thing == null) return null;
+            return (thing.Position.x, thing.Position.z, thing.Position.x, thing.Position.z);
+        }
     }
 }

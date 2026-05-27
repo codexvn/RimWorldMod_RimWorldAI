@@ -156,6 +156,21 @@ namespace RimWorldMCP.Tools
                 }
             });
         }
-        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args) => null;
+        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
+        {
+            if (args == null) return null;
+            var map = Find.CurrentMap;
+            if (map == null) return null;
+            if (!args.Value.TryGetProperty("colonist_id", out var jC) || !jC.TryGetInt32(out var cid)) return null;
+            if (!args.Value.TryGetProperty("thing_id", out var jT) || !jT.TryGetInt32(out var tid)) return null;
+            var colonist = CameraHelper.FindPawnById(map, cid);
+            var thing = CameraHelper.FindThingById(map, tid);
+            if (colonist == null || thing == null) return null;
+            int destX = thing.Position.x, destZ = thing.Position.z;
+            if (args.Value.TryGetProperty("pos_x", out var jX) && jX.TryGetInt32(out var px)) destX = px;
+            if (args.Value.TryGetProperty("pos_y", out var jY) && jY.TryGetInt32(out var py)) destZ = py;
+            return (Math.Min(colonist.Position.x, destX), Math.Min(colonist.Position.z, destZ),
+                    Math.Max(colonist.Position.x, destX), Math.Max(colonist.Position.z, destZ));
+        }
     }
 }

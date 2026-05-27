@@ -99,6 +99,19 @@ namespace RimWorldMCP.Tools
                 }
             });
         }
-        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args) => null;
+        public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
+        {
+            if (args == null) return null;
+            var map = Find.CurrentMap;
+            if (map == null) return null;
+            if (!args.Value.TryGetProperty("doer_id", out var jD) || !jD.TryGetInt32(out var doerId)) return null;
+            if (!args.Value.TryGetProperty("target_id", out var jT) || !jT.TryGetInt32(out var targetId)) return null;
+            var doer = CameraHelper.FindPawnById(map, doerId);
+            if (doer == null) return null;
+            var target = (Thing?)CameraHelper.FindPawnById(map, targetId) ?? CameraHelper.FindThingById(map, targetId);
+            if (target == null) return null;
+            return (Math.Min(doer.Position.x, target.Position.x), Math.Min(doer.Position.z, target.Position.z),
+                    Math.Max(doer.Position.x, target.Position.x), Math.Max(doer.Position.z, target.Position.z));
+        }
     }
 }
