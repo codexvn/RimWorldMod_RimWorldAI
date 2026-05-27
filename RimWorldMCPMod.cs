@@ -61,7 +61,7 @@ namespace RimWorldMCP
             // MCP 服务器
             h += 100f;
             // CC 桥接
-            h += 200f;
+            h += 300f;
             if (Settings.CCBAutoStart) h += 310f; // 连接认证+模型+思考+JSON
             if (Settings.CCBThinkingMode == ThinkingMode.Adaptive) h += 30f;
             if (Settings.CCBThinkingMode == ThinkingMode.Fixed) h += 40f;
@@ -122,11 +122,28 @@ namespace RimWorldMCP
 
             // ==================== CC 桥接 ====================
             DrawSectionHeader(listing, "CC 桥接");
-            listing.Label("连接地址 (WebSocket)");
+
+            Text.Font = GameFont.Tiny;
+            GUI.color = new Color(0.5f, 0.5f, 0.55f, 1f);
+            listing.Label("  本地监听（companion 进程绑定地址）");
+            GUI.color = Color.white;
+            Text.Font = GameFont.Small;
             Settings.CCBHost = listing.TextEntry(Settings.CCBHost);
             var ccPortStr = listing.TextEntry(Settings.CCBPort.ToString());
             if (int.TryParse(ccPortStr, out int ccPort) && ccPort > 0 && ccPort <= 65535)
                 Settings.CCBPort = ccPort;
+
+            listing.Gap(6f);
+
+            Text.Font = GameFont.Tiny;
+            GUI.color = new Color(0.5f, 0.5f, 0.55f, 1f);
+            listing.Label("  远程连接（C# WebSocket 连接目标）");
+            GUI.color = Color.white;
+            Text.Font = GameFont.Small;
+            Settings.CCBRemoteHost = listing.TextEntry(Settings.CCBRemoteHost);
+            var ccRemotePortStr = listing.TextEntry(Settings.CCBRemotePort.ToString());
+            if (int.TryParse(ccRemotePortStr, out int ccRemotePort) && ccRemotePort > 0 && ccRemotePort <= 65535)
+                Settings.CCBRemotePort = ccRemotePort;
 
             listing.Gap(6f);
             listing.CheckboxLabeled("自动启动 Mod 附带的 Claude Code", ref Settings.CCBAutoStart,

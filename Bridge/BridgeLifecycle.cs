@@ -109,7 +109,7 @@ namespace RimWorldMCP
             // 仅当 auto-start 关闭（手动模式）或 companion 成功启动时才尝试连接
             if (!settings.CCBAutoStart || companionStarted)
             {
-                var ccbUrl = $"ws://{settings.CCBHost}:{settings.CCBPort}";
+                var ccbUrl = $"ws://{settings.CCBRemoteHost}:{settings.CCBRemotePort}";
                 await CCClient.Connect(ccbUrl, settings.CCBAuthToken);
                 if (CCClient.IsReady)
                 {
@@ -134,7 +134,7 @@ namespace RimWorldMCP
                 if (settings?.CCBAutoStart == true)
                 {
                     StartCompanionProcess(settings.CCBHost, settings.CCBPort, settings.CCBAuthToken, _currentSessionId);
-                    var ccbUrl = $"ws://{settings.CCBHost}:{settings.CCBPort}";
+                    var ccbUrl = $"ws://{settings.CCBRemoteHost}:{settings.CCBRemotePort}";
                     _ = CCClient.Connect(ccbUrl, settings.CCBAuthToken);
                 }
             }

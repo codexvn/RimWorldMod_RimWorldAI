@@ -17,6 +17,8 @@ namespace RimWorldMCP
         // CC 桥接
         public string CCBHost = "127.0.0.1";
         public int CCBPort = 19999;
+        public string CCBRemoteHost = "127.0.0.1";
+        public int CCBRemotePort = 19999;
         public string CCBAuthToken = "";
         public bool CCBAutoStart = true;
         public string CCBModelName = "";
@@ -61,6 +63,8 @@ namespace RimWorldMCP
             LogLevel = (LogLevel)logLevelInt;
             Scribe_Values.Look(ref CCBHost, "ccbHost", "127.0.0.1");
             Scribe_Values.Look(ref CCBPort, "ccbPort", 19999);
+            Scribe_Values.Look(ref CCBRemoteHost, "ccbRemoteHost", "127.0.0.1");
+            Scribe_Values.Look(ref CCBRemotePort, "ccbRemotePort", 19999);
             Scribe_Values.Look(ref CCBAuthToken, "ccbAuthToken", "");
             Scribe_Values.Look(ref CCBAutoStart, "ccbAutoStart", true);
             Scribe_Values.Look(ref CCBModelName, "ccbModelName", "");

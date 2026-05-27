@@ -36,9 +36,11 @@ RimWorld (C#)                  CC Companion (Node.js)       Claude API
 ```
 StopCompanionProcess()         → 停止旧进程
 KillStaleByPidFile()           → 清理 .pid 残留文件
-StartCompanionProcess()        → spawn Node.js 子进程
-CCClient.Connect()             → WebSocket 握手 (hello/hello-ok)
+StartCompanionProcess()        → spawn Node.js 子进程（绑定 CCBHost:CCBPort）
+CCClient.Connect()             → WebSocket 连接 CCBRemoteHost:CCBRemotePort
 ```
+
+**地址拆分设计**：C# 有两对地址设置——`CCBHost`/`CCBPort`（本地监听，companion 进程绑定地址）和 `CCBRemoteHost`/`CCBRemotePort`（远程连接，C# WebSocket 连接目标）。自动启动时 companion 监听本地地址，C# 连接远程地址。手动模式下 C# 直接连接远程地址，不启动本地进程。
 
 **Session 目录**：`claude-sessions/rimworld-<sessionId>/`，确保不同存档的 checkpoint 隔离。
 
