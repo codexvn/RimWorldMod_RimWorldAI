@@ -98,7 +98,7 @@ namespace RimWorldMCP.Tools
                     int bedsToAutoConvert = 0;    // 会被自动转为俘虏的床数
                     int otherBedsSameType = 0;     // 同房同类型的床数
                     string otherBedsSummary = "";
-                    var allAffectedPawnNames = new List<string>(); // 变更前所有床位持有者
+                    var allAffectedPawnIds = new List<int>(); // 变更前所有床位持有者 thingIDNumber
 
                     if (room != null)
                     {
@@ -110,15 +110,14 @@ namespace RimWorldMCP.Tools
                         if (targetType == BedOwnerType.Prisoner)
                             bedsToAutoConvert = allBeds.Count(b => b != bed && b.ForOwnerType != BedOwnerType.Prisoner && b.def.building.bed_humanlike);
 
-                        // 收集所有受影响角色
+                        // 收集所有受影响角色 thingIDNumber
                         foreach (var b in allBeds)
                         {
                             if (b.def.building.bed_humanlike)
                                 foreach (var owner in b.OwnersForReading ?? Enumerable.Empty<Pawn>())
                                 {
-                                    var name = owner.Name.ToStringShort;
-                                    if (!allAffectedPawnNames.Contains(name))
-                                        allAffectedPawnNames.Add(name);
+                                    if (!allAffectedPawnIds.Contains(owner.thingIDNumber))
+                                        allAffectedPawnIds.Add(owner.thingIDNumber);
                                 }
                         }
 
@@ -135,7 +134,7 @@ namespace RimWorldMCP.Tools
                     {
                         // 无房间（室外）
                         foreach (var owner in bed.OwnersForReading ?? Enumerable.Empty<Pawn>())
-                            allAffectedPawnNames.Add(owner.Name.ToStringShort);
+                            allAffectedPawnIds.Add(owner.thingIDNumber);
                     }
 
                     // ==================== 安全校验 ====================
@@ -257,7 +256,7 @@ namespace RimWorldMCP.Tools
                             result.AppendLine($"⚠ {w}");
                     }
 
-                    // 受影响角色（重叠床位已移除）
+                    // 已失床的（变更前持有床 thingIDNumber — 变更后不持有）
                     var stillOwnedIds = new HashSet<int>();
                     if (room != null)
                     {
@@ -270,16 +269,16 @@ namespace RimWorldMCP.Tools
                         foreach (var owner in bed.OwnersForReading ?? Enumerable.Empty<Pawn>())
                             stillOwnedIds.Add(owner.thingIDNumber);
                     }
-                    // 已失床的（变更前持有床、变更后不持有）
-                    var lostBedPawns = allAffectedPawnNames
-                        .Select(name => PawnsFinder.AllMaps_FreeColonistsSpawned
-                            .FirstOrDefault(p => p.Name.ToStringShort == name))
-                        .Where(p => p != null && !stillOwnedIds.Contains(p.thingIDNumber))
-                        .Select(p => p.Name.ToStringShort)
-                        .Distinct()
-                        .ToList();
-                    if (lostBedPawns.Count > 0)
-                        result.AppendLine($"已解除床位分配: {string.Join(", ", lostBedPawns)}");
+                    var lostBedIds = allAffectedPawnIds.Where(id => !stillOwnedIds.Contains(id)).ToList();
+                    if (lostBedIds.Count > 0)
+                    {
+                        var lostBedPawnNames = PawnsFinder.AllMaps_FreeColonistsSpawned
+                            .Where(p => lostBedIds.Contains(p.thingIDNumber))
+                            .Select(p => p.Name.ToStringShort)
+                            .ToList();
+                        if (lostBedPawnNames.Count > 0)
+                            result.AppendLine($"已解除床位分配: {string.Join(", ", lostBedPawnNames)}");
+                    }
 
                     return ToolResult.Success(result.ToString().TrimEnd());
                 }

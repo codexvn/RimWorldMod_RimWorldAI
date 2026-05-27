@@ -119,6 +119,10 @@ namespace RimWorldMCP.Tools
                         }
                     }
 
+                    // 迷雾检查
+                    if (pos.Fogged(Find.CurrentMap))
+                        return ToolResult.Error($"目标位置 ({posX}, {posY}) 被迷雾覆盖，无法建造。请先探索该区域。");
+
                     // 验证可放置性
                     var canPlace = designator.CanDesignateCell(pos);
                     if (!canPlace)
