@@ -169,6 +169,7 @@ namespace RimWorldMCP.Mcp
         private JsonRpcResponse HandleToolsList(JsonElement? id)
         {
             var tools = _toolRegistry.GetDefinitions();
+            McpLog.Info($"[mcp] tools/list: 返回 {tools.Count} 个工具");
             return JsonRpcResponse.Success(id!.Value, new { tools });
         }
 

@@ -36,6 +36,18 @@ namespace RimWorldMCP.Tools
         private static readonly FieldInfo? GiveNamePawnField =
             typeof(Dialog_GiveName).GetField("suggestingPawn", BindingFlags.Instance | BindingFlags.NonPublic);
 
+        // Dialog_Confirm 私有字段
+        private static readonly FieldInfo? ConfirmTitleField =
+            typeof(Dialog_Confirm).GetField("title", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? ConfirmButtonField =
+            typeof(Dialog_Confirm).GetField("confirm", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        // Dialog_Slider 私有字段
+        private static readonly FieldInfo? SliderCurValueField =
+            typeof(Dialog_Slider).GetField("curValue", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? SliderTextGetterField =
+            typeof(Dialog_Slider).GetField("textGetter", BindingFlags.Instance | BindingFlags.Public);
+
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             return await McpCommandQueue.DispatchAsync(() =>
@@ -199,11 +211,50 @@ namespace RimWorldMCP.Tools
                                 sb.AppendLine($"[2] 随机定居点名称");
                             dialogIdx++;
                         }
+                        else if (w is Dialog_Confirm)
+                        {
+                            var title = ConfirmTitleField?.GetValue(w) as string ?? "";
+                            var confirmBtn = ConfirmButtonField?.GetValue(w) as string ?? "确认";
+
+                            sb.AppendLine();
+                            sb.AppendLine($"## 弹框 [{dialogIdx}] 确认对话框 ({w.GetType().Name})");
+                            if (!string.IsNullOrEmpty(title))
+                                sb.AppendLine($"内容: {title}");
+                            sb.AppendLine($"[0] {confirmBtn}");
+                            sb.AppendLine($"[1] 取消");
+                            dialogIdx++;
+                        }
+                        else if (w is Dialog_Slider slider)
+                        {
+                            var curValue = (int)(SliderCurValueField?.GetValue(w) ?? 0);
+                            var textGetter = SliderTextGetterField?.GetValue(w) as Func<int, string>;
+                            var label = textGetter?.Invoke(curValue) ?? "";
+
+                            sb.AppendLine();
+                            sb.AppendLine($"## 弹框 [{dialogIdx}] 滑动条 ({w.GetType().Name})");
+                            if (!string.IsNullOrEmpty(label))
+                                sb.AppendLine($"说明: {label}");
+                            sb.AppendLine($"范围: {slider.from} ~ {slider.to}");
+                            sb.AppendLine($"当前值: {curValue}");
+                            sb.AppendLine($"[0] 确认 ({curValue})");
+                            sb.AppendLine($"[1] 取消");
+                            dialogIdx++;
+                        }
                         else
                         {
-                            // 未知对话框类型
+                            // 判断是否可关闭
+                            bool canClose = w.doCloseX || w.doCloseButton || w.closeOnClickedOutside
+                                         || w.closeOnAccept || w.closeOnCancel;
                             sb.AppendLine();
-                            sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name} (不支持操作)");
+                            if (canClose)
+                            {
+                                sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name}");
+                                sb.AppendLine($"[0] 关闭");
+                            }
+                            else
+                            {
+                                sb.AppendLine($"## 弹框 [{dialogIdx}] {w.GetType().Name} (无法关闭，需手动处理)");
+                            }
                             dialogIdx++;
                         }
                     }

@@ -19,7 +19,8 @@ namespace RimWorldMCP.Tools
             properties = new
             {
                 dialog_index = new { type = "integer", description = "弹框编号（来自 get_open_dialogs 输出的 [N]）" },
-                option_index = new { type = "integer", description = "选项编号（来自选项列表的 [N]）" }
+                option_index = new { type = "integer", description = "选项编号（来自选项列表的 [N]）" },
+                value = new { type = "integer", description = "滑动条目标值（仅 Dialog_Slider，与 option_index=0 配合使用）" }
             },
             required = new[] { "dialog_index", "option_index" }
         });
@@ -48,6 +49,16 @@ namespace RimWorldMCP.Tools
         private static readonly MethodInfo? GiveNameNamedSecondMethod =
             typeof(Dialog_GiveName).GetMethod("NamedSecond", BindingFlags.Instance | BindingFlags.NonPublic);
 
+        // Dialog_Confirm 私有成员
+        private static readonly FieldInfo? ConfirmOnConfirmField =
+            typeof(Dialog_Confirm).GetField("onConfirm", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        // Dialog_Slider 私有成员
+        private static readonly FieldInfo? SliderConfirmActionField =
+            typeof(Dialog_Slider).GetField("confirmAction", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo? SliderCurValueField =
+            typeof(Dialog_Slider).GetField("curValue", BindingFlags.Instance | BindingFlags.NonPublic);
+
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             if (args == null) return ToolResult.Error("缺少参数");
@@ -55,6 +66,10 @@ namespace RimWorldMCP.Tools
                 return ToolResult.Error("缺少必填参数: dialog_index");
             if (!args.Value.TryGetProperty("option_index", out var jOi) || !jOi.TryGetInt32(out var optIdx))
                 return ToolResult.Error("缺少必填参数: option_index");
+
+            int? sliderValue = null;
+            if (args.Value.TryGetProperty("value", out var jVal) && jVal.TryGetInt32(out var sv))
+                sliderValue = sv;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -201,8 +216,77 @@ namespace RimWorldMCP.Tools
                             return ToolResult.Error($"无效选项: {optIdx}");
                         }
 
+                        if (w is Dialog_Confirm)
+                        {
+                            if (curIdx != dialogIdx) { curIdx++; continue; }
+
+                            if (optIdx == 0)
+                            {
+                                var onConfirm = ConfirmOnConfirmField?.GetValue(w) as Action;
+                                onConfirm?.Invoke();
+                                Find.WindowStack.TryRemove(w, true);
+                                return ToolResult.Success("已确认");
+                            }
+                            else if (optIdx == 1)
+                            {
+                                Find.WindowStack.TryRemove(w, true);
+                                return ToolResult.Success("已取消");
+                            }
+                            else
+                            {
+                                return ToolResult.Error($"确认框选项编号 {optIdx} 无效 (有效: 0=确认, 1=取消)");
+                            }
+                        }
+
+                        if (w is Dialog_Slider)
+                        {
+                            if (curIdx != dialogIdx) { curIdx++; continue; }
+
+                            if (optIdx == 0)
+                            {
+                                // 确认：设置值（如有）→ 调用 confirmAction → 关闭
+                                var confirmAction = SliderConfirmActionField?.GetValue(w) as Action<int>;
+                                if (confirmAction == null)
+                                    return ToolResult.Error("无法获取滑动条确认回调");
+
+                                int finalValue;
+                                if (sliderValue.HasValue)
+                                {
+                                    finalValue = sliderValue.Value;
+                                    SliderCurValueField?.SetValue(w, finalValue);
+                                }
+                                else
+                                {
+                                    finalValue = (int)(SliderCurValueField?.GetValue(w) ?? 0);
+                                }
+
+                                confirmAction(finalValue);
+                                Find.WindowStack.TryRemove(w, true);
+                                return ToolResult.Success($"滑动条已确认，值: {finalValue}");
+                            }
+                            else if (optIdx == 1)
+                            {
+                                // 取消：直接关闭，不调用 confirmAction
+                                Find.WindowStack.TryRemove(w, true);
+                                return ToolResult.Success("滑动条已取消");
+                            }
+                            else
+                            {
+                                return ToolResult.Error($"滑动条选项编号 {optIdx} 无效 (有效: 0=确认, 1=取消)");
+                            }
+                        }
+
                         if (curIdx == dialogIdx)
+                        {
+                            bool canClose = w.doCloseX || w.doCloseButton || w.closeOnClickedOutside
+                                         || w.closeOnAccept || w.closeOnCancel;
+                            if (canClose && optIdx == 0)
+                            {
+                                Find.WindowStack.TryRemove(w, true);
+                                return ToolResult.Success($"已关闭 {w.GetType().Name}");
+                            }
                             return ToolResult.Error($"弹框 [{dialogIdx}] 类型为 {w.GetType().Name}，暂不支持程序化选择");
+                        }
                         curIdx++;
                     }
 
