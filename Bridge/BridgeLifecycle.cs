@@ -129,7 +129,11 @@ namespace RimWorldMCP
             // Companion 进程健康监控——崩溃时自动重启
             if (_companionProcess != null && _companionProcess.HasExited)
             {
-                McpLog.Error($"[cc] Companion 进程意外退出 (退出码: {_companionProcess.ExitCode})，正在重启...");
+                var exitCode = _companionProcess.ExitCode;
+                if (exitCode == 0)
+                    McpLog.Info($"[cc] Companion 进程已退出 (退出码: 0)，正在重启...");
+                else
+                    McpLog.Error($"[cc] Companion 进程异常退出 (退出码: {exitCode})，正在重启...");
                 StopCompanionProcess();
                 KillStaleByPidFile();
                 var settings = RimWorldMCPMod.Instance?.Settings;
