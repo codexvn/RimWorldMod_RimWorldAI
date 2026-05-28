@@ -24,7 +24,13 @@ RimWorldMCP/
 │   └── StdioTransport.cs                  # stdin/stdout（保留，不在游戏内使用）
 ├── Mcp/                                   # MCP 协议层
 │   ├── McpServer.cs                       # JSON-RPC 调度：initialize/tools/list/tools/call/resources
-│   └── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
+│   ├── McpMessage.cs                      # 数据类型：请求/响应/Tool定义/资源
+│   └── McpUtils.cs                        # MCP 工具函数（.mcp.json 构建等）
+├── Helpers/                               # 辅助工具
+│   ├── BuildingMaterialHelper.cs          # 建造材料计算
+│   ├── GameTimeHelper.cs                  # 游戏时间格式化
+│   ├── DialogHelper.cs                    # 弹框检测
+│   └── NativeAlertHelper.cs              # 活跃警报快照
 ├── Tools/                                 # 90+ 个 Tool（真实 RimWorld API 调用）
 │   ├── ITool.cs                           # Tool 接口 + ToolResult
 │   ├── ToolRegistry.cs                    # 注册表 + 执行调度 + 资源映射（反射自动注册）
@@ -36,13 +42,14 @@ RimWorldMCP/
 ├── Skills/                                # 领域知识 Skill 系统
 │   ├── SkillInfo.cs                       # Skill 数据模型
 │   ├── SkillRegistry.cs                   # 加载 .md 文件、解析 frontmatter
-│   └── *.md                               # 6 个 Skill 文件
+│   └── *.md                               # 11 个 Skill 文件
 ├── Harmony/                               # Harmony 补丁
 │   ├── Hook_Notification.cs               # 拦截 Letter/Message/Alert → NotificationBus
-│   └── NotificationBus.cs                 # 通知总线，SSE 事件源
+│   ├── NotificationBus.cs                 # 通知总线，SSE 事件源
+│   └── Notification.cs                    # 通知数据类
 ├── McpOssUploader.cs                      # 阿里云 OSS 截图自动上传
 ├── McpOssConfig.cs                        # OSS 配置数据
-└── About/
+└── publish/About/
     └── About.xml                          # Mod 元数据
 ```
 
@@ -128,9 +135,9 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 ## Tool 清单（含 I18N 中文名 + 可达性检测）
 
-中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 99 个工具。
+中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 112 个工具。
 
-### 通用查询 (4)
+### 通用查询 (5)
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `get_game_context` | 游戏全局状态快照 | `Find.CurrentMap`, `Find.TickManager`, `Find.ResearchManager` |
@@ -257,7 +264,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `list_faction_traders` | 列出可通讯的派系和商船 | `Find.FactionManager.AllFactionsVisible` |
 | `trade_execute` | 执行交易（商船或定居点） | `TradeUtility` (入队) |
 
-### 搜索 (6)
+### 搜索 (4)
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `search_map` | 按类型搜索地图事物（分页） | `map.listerThings.AllThings` |
@@ -307,12 +314,49 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `set_bed_owner_type` | 设置床位类型（医疗/囚犯/殖民者） | `Building_Bed.Medical`, `CompAssignableToPawn` (入队) |
 | `set_temp_control` | 设置温度控制设备 | `CompTempControl` (入队) |
 
-### TODO 系统 (3)
+### TODO 系统 (4)
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `todo_add` | 添加待办任务 | `TodoManager` |
 | `todo_delete` | 删除待办任务 | `TodoManager` |
 | `todo_query` | 查询待办任务 | `TodoManager` |
+| `todo_set_status` | 设置待办状态 | `TodoManager` |
+
+### 任务 (2)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `list_quests` | 任务列表（分页，按状态过滤） | `Find.QuestManager.QuestsListForReading` |
+| `accept_quest` | 接受任务 | `QuestUtility.AcceptQuest()` (入队) |
+
+### 意识形态 (1)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `convert_ideo` | 转换囚犯意识形态 | `Pawn_GuestTracker.ideo` (入队) |
+
+### 计划系统 (3)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `plan_add` | 添加建造计划 | `PlanManager` |
+| `plan_list` | 列出建造计划 | `PlanManager` |
+| `plan_remove` | 删除建造计划 | `PlanManager` |
+
+### 囚犯管理 (1)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `recruit_prisoner` | 招募囚犯为殖民者 | `Pawn_GuestTracker` (入队) |
+
+### 记忆系统 (4)
+| Tool | 说明 | 数据源 |
+|------|------|--------|
+| `add_memory` | 添加持久化记忆 | `MemoryManager` |
+| `list_memories` | 列出所有记忆 | `MemoryManager` |
+| `delete_memory` | 删除记忆 | `MemoryManager` |
+| `update_memory` | 更新记忆优先级/内容 | `MemoryManager` |
+
+### 游戏控制 (1)
+| Tool | 说明 | 数据源/操作 |
+|------|------|------------|
+| `restart_game` | 重新开始当前存档 | `GenScene` (入队，需确认) |
 
 ### 基地模板 (2)
 | Tool | 说明 | 数据源/操作 |
@@ -354,11 +398,16 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 | Skill | 内容 |
 |-------|------|
 | `equipment-crafting` | 装备制造策略、品质控制、材料选择 |
+| `equipment-optimization` | 装备优化、品质提升、材料替换 |
 | `colony-management` | 殖民地管理、工作分配、资源规划 |
 | `combat-preparation` | 战斗准备、阵地部署、武器射程 |
 | `base-building` | 基地布局设计、13x13 标准间、材料选择 |
 | `research-management` | 科技树优先级、研究资源配置 |
 | `medical-care` | 手术风险分析、植入体策略、药物使用 |
+| `pawn-interaction` | 角色交互、社交关系、心情管理 |
+| `resource-logistics` | 资源物流、存储管理、搬运优化 |
+| `trade` | 贸易策略、商船管理、价格谈判 |
+| `quest-management` | 任务管理、奖励评估、风险分析 |
 
 ## Claude Desktop 配置
 
