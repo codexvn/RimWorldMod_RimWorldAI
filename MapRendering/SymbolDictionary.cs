@@ -372,9 +372,7 @@ namespace RimWorldMCP.MapRendering
         {
             var sortedNames = allDefs.Select(d => d.defName).OrderBy(n => n).ToList();
             var combined = string.Join(",", sortedNames);
-            using var sha = SHA256.Create();
-            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(combined));
-            return BitConverter.ToString(hash, 0, 4).Replace("-", "").ToLowerInvariant();
+            return combined.Length.ToString("x8");
         }
 
         // ---- 查询方法 ----

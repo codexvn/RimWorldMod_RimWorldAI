@@ -3,8 +3,7 @@ using System.Text;
 namespace RimWorldMCP.Compression
 {
     /// <summary>
-    /// RLE 压缩: 连续相同字符合并。Count 编码: 1→直接写字符(不编码), 2-20→A-S, 21-62→a-p, 63+→2位hex。
-    /// 参考游戏源码: 无现有 RLE 实现，本实现为项目中首个。
+    /// RLE 压缩: 连续相同字符合并为 {字符}{十进制次数}。网格字符不含 0-9，十进制数字无二义性。
     /// </summary>
     public class RleCompressor : IChunkCompressor
     {
@@ -50,25 +49,9 @@ namespace RimWorldMCP.Compression
 
         private static void AppendRun(StringBuilder sb, char c, int count)
         {
-            if (count == 1)
-            {
-                sb.Append(c);
-                return;
-            }
-
             sb.Append(c);
-            sb.Append(EncodeCount(count));
-        }
-
-        internal static string EncodeCount(int count)
-        {
-            if (count <= 1) return "";
-            if (count <= 20) return ((char)('A' + count - 2)).ToString();    // A=2, B=3, ... S=20
-            if (count <= 62) return ((char)('a' + count - 21)).ToString();   // a=21, b=22, ... p=62
-            // 63+: 2位hex, 值=实际count-63
-            int hex = count - 63;
-            if (hex > 255) hex = 255; // 截断保护
-            return hex.ToString("X2");
+            if (count > 1)
+                sb.Append(count);
         }
     }
 }

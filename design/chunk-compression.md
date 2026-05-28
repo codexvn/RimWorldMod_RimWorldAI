@@ -40,7 +40,7 @@ Grid Tool (chunk_id → 单 Chunk)
 | `RimWorldMCPMod.cs` | 设置窗口：分块尺寸/压缩方法切换 |
 | `Compression/IChunkCompressor.cs` | 压缩接口：`Compress(char[][], chunkIndex) → string` |
 | `Compression/UncompressedCompressor.cs` | 未压缩：`L00=chars...` |
-| `Compression/RleCompressor.cs` | RLE：`L00=#1.30#1` |
+| `Compression/RleCompressor.cs` | RLE：`L00=#1.30#1`，十进制 count |
 | `Compression/RowRefCompressor.cs` | RowRef+RLE：`*L{row}` 同行去重引用 |
 | `Compression/CompressorFactory.cs` | 工厂：`Create(method) → IChunkCompressor` |
 | `MapRendering/MapChunk.cs` | 分块数据模型：XIndex/ZIndex, Bounds, CompressedData, IsAllFog |
@@ -58,39 +58,17 @@ Grid Tool (chunk_id → 单 Chunk)
 
 ## 压缩协议
 
-### Count 编码表（字母编码，避免数字分隔符二义性）
-
-| Count 范围 | 编码 | 示例 |
-|-----------|------|------|
-| 1 | 不编码 | `#` = 1个墙 |
-| 2-20 | `A`-`S` | `#C` = 4个墙 (A=2, B=3, C=4) |
-| 21-62 | `a`-`p` | `#a` = 21个墙 |
-| 63+ | 2位hex | `#0F` = 78个墙 (15+63) |
-
-### 未压缩
-
-```
-L00=################............
-L01=#..............#............
-```
-
 ### RLE（默认）
+
+连续相同字符合并为 `{字符}{十进制次数}`。网格字符不含 `0-9`（全为 Unicode 符号），十进制数字无二义性——读到字符后，后续数字即为其重复次数，遇非数字停止。
 
 ```
 L00=#32
 L01=#1.30#1
+L02=#1.5B2.6S4.10#1
 ```
 
-### RowRef + RLE
-
-在 RLE 基础上，相同 RLE 字符串的行用 `*L{refRow}` 引用。引用仅在同一 chunk 内有效。
-
-```
-L01=#1.30#1
-L17=*L01
-L18=#1.12S5.13#1
-L19=*L01
-```
+解读：`#1.30#1` → `#` ×1 + `.` ×30 + `#` ×1
 
 ## list_chunks 工具
 
@@ -164,7 +142,7 @@ JSON 文件：`Application.persistentDataPath/RimWorldMCP_SymbolDictionary.json`
 
 ### 字典 Hash
 
-所有 Def 的 defName 排序后 SHA256 前 8 位 hex。
+所有 Def 的 defName 排序后拼接字符串长度，转 8 位 hex。mod 增删必然改变长度。
 
 ## GetTargetRange 规范化
 
@@ -179,7 +157,7 @@ JSON 文件：`Application.persistentDataPath/RimWorldMCP_SymbolDictionary.json`
 1. **chunk_id 直接暴露**：`"0_0"` 是稳定标识符，LLM 可直接按需查询，缓存命中率最高
 2. **list_chunks 解耦**：LLM 先获取 chunk 列表，再并行查询各 chunk，Token 消耗可精确预估
 3. **压缩在服务端**：MCP 单向，LLM 根据格式说明自行解析
-4. **字母编码 count**：`A`=2..`S`=20, `a`=21..`p`=62, hex2=63+，避免数字 `#12` 二义性
+4. **十进制 count**：网格字符无 `0-9`，`{char}{十进制}` 无二义性，无需分隔符
 5. **RowRef 不跨 Chunk**：每个 Chunk 自包含
 6. **固定映射 + 动态分配**：常用 Def 直观可读，冷门 Def 自动扩展
 7. **默认 32x32**：2 的幂，与 RimWorld `Chunks` 二分惯例一致
