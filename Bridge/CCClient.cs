@@ -26,7 +26,7 @@ namespace RimWorldMCP
         private const int PingIntervalMs = 30000;
         private const int PongTimeoutMs = 60000;
         private static DateTime _lastPing = DateTime.MinValue;
-        private static int _lastTickMs;
+        private static System.Threading.Timer? _heartbeatTimer;
 
         private static int _reconnectDelayMs = 5000;
         private static int _reconnectAttempts;
@@ -78,6 +78,10 @@ namespace RimWorldMCP
                     _state = CCClientState.Ready;
                     _reconnectAttempts = 0;
                     _reconnectDelayMs = 5000;
+                    // 启动独立线程心跳（不受游戏加载/暂停影响）
+                    _heartbeatTimer?.Dispose();
+                    _heartbeatTimer = new System.Threading.Timer(
+                        _ => Heartbeat(), null, 5000, 5000);
                     McpLog.Info("[cc] 握手完成，Claude Code 就绪");
                 }
                 else
@@ -96,6 +100,8 @@ namespace RimWorldMCP
         public static void Disconnect()
         {
             _shuttingDown = true;
+            _heartbeatTimer?.Dispose();
+            _heartbeatTimer = null;
             _cts?.Cancel();
             _state = CCClientState.Disconnected;
             try { _ws?.Dispose(); } catch { }
@@ -375,29 +381,21 @@ namespace RimWorldMCP
             }
         }
 
-        public static void Tick()
+        // Tick 由游戏主线程每帧调用，心跳已移至独立线程，此方法保留为空
+        public static void Tick() { }
+
+        /// <summary>独立线程心跳，不受游戏加载/暂停影响</summary>
+        private static void Heartbeat()
         {
             if (!IsReady) return;
 
             var now = DateTime.UtcNow;
-            var tickMs = Environment.TickCount;
 
-            // 游戏加载/暂停可能导致 Tick 长时间不调用，墙钟过去了但连接并未断开。
-            // 此时 _lastPong 严重过期，恢复后应跳过超时检测，避免误报断开。
-            if (_lastTickMs > 0 && unchecked((uint)(tickMs - _lastTickMs) > 10000))
-            {
-                _lastPing = now;
-                _lastPong = now;
-            }
-            _lastTickMs = tickMs;
-
-            // 发送 ping（实际发送成功后才更新 _lastPing，失败可立即重试）
             if ((now - _lastPing).TotalMilliseconds > PingIntervalMs)
             {
                 _ = SendPing();
             }
 
-            // 检查 pong 超时
             if (_lastPong != DateTime.MinValue && (now - _lastPong).TotalMilliseconds > PongTimeoutMs)
             {
                 McpLog.Warn("[cc] pong 超时，断开连接（将自动重连）");
