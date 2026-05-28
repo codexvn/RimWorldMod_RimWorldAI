@@ -67,24 +67,15 @@ namespace RimWorldMCP
 
             if (settings.CCBAutoStart)
             {
-                // 首次启动：检查依赖是否安装
+                // 首次启动：自动安装依赖
                 if (!IsCompanionInstalled() && FindNodeExe() != null)
                 {
-                    McpLog.Info("[bridge] Companion 依赖未安装，弹框询问用户");
-                    Find.WindowStack.Add(new Dialog_ConfirmWide(
-                        "CC Companion 的 Node.js 依赖尚未安装。\n\n需运行 npm install 安装后方可启动 AI 助手。\n是否现在安装？",
-                        "安装",
-                        async () =>
-                        {
-                            McpLog.Info("[bridge] 用户确认安装 Companion 依赖");
-                            var ok = await InstallCompanionAsync();
-                            if (ok)
-                                await StartCompanionAndConnect(settings, sessionId);
-                            else
-                                McpLog.Error("[bridge] Companion 依赖安装失败，跳过启动");
-                        },
-                        new Vector2(480f, 200f)
-                    ));
+                    McpLog.Info("[bridge] Companion 依赖未安装，自动执行 npm install");
+                    var ok = await InstallCompanionAsync();
+                    if (ok)
+                        await StartCompanionAndConnect(settings, sessionId);
+                    else
+                        McpLog.Error("[bridge] Companion 依赖安装失败，跳过启动");
                     return;
                 }
 
