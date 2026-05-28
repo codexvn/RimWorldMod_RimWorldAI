@@ -9,8 +9,10 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_TakeScreenshot : ITool
+    public class Tool_TakeScreenshot : ITool, IHasAvailability
     {
+        public bool IsAvailable => McpOssConfig.IsConfigured;
+
         public string Name => "take_screenshot";
         public string Description => "截取地图指定区域的画面，自动上传 OSS 并返回公网 URL。需先在 Mod 设置中配置 OSS。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new

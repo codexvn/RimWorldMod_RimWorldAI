@@ -13,6 +13,12 @@ namespace RimWorldMCP.Tools
         (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args);
     }
 
+    /// <summary>可选接口：实现此接口的工具在注册时根据 IsAvailable 决定是否注册</summary>
+    public interface IHasAvailability
+    {
+        bool IsAvailable { get; }
+    }
+
     public class ToolResult
     {
         public string Text { get; set; } = "";

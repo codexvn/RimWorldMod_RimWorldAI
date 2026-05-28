@@ -134,7 +134,15 @@ namespace RimWorldMCP
                         tool = (ITool)Activator.CreateInstance(type);
 
                     if (tool != null)
+                    {
+                        // 检查可用性条件（如截图工具需 OSS 已启用）
+                        if (tool is IHasAvailability hasAvail && !hasAvail.IsAvailable)
+                        {
+                            McpLog.Info($"跳过不可用工具: {type.Name}");
+                            continue;
+                        }
                         registry.Register(tool);
+                    }
                 }
                 catch (Exception ex)
                 {
