@@ -32,7 +32,7 @@ export const RuntimeState = {
 };
 
 export const CONFIG: CompanionConfig = {
-  host: process.env.CCB_HOST || '127.0.0.1',
+  host: process.env.CCB_HOST || '0.0.0.0',
   port: parseInt(process.env.CCB_PORT || '19999'),
   token: process.env.CCB_AUTH_TOKEN || '',
   projectPath: process.env.RIMWORLD_PROJECT_PATH || process.cwd(),
