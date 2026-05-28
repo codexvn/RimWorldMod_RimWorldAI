@@ -212,11 +212,11 @@ async function main(): Promise<void> {
     (status) => {
       if (status.status === 'connected') {
         console.log(`[cc-companion] RimWorld 已连接: ${typeof status.client === 'string' ? status.client : status.client?.name || 'unknown'}`);
-        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+        if (disidleTimer) { clearTimeout(disidleTimer); disidleTimer = null; }
       } else if (status.status === 'disconnected') {
         console.log('[cc-companion] RimWorld 已断开');
         if (CONFIG.idleTimeout > 0) {
-          idleTimer = setTimeout(() => {
+          disidleTimer = setTimeout(() => {
             console.log(`[cc-companion] 断开后 ${CONFIG.idleTimeout / 1000}s 无重连，自动退出`);
             shutdown();
           }, CONFIG.idleTimeout);
@@ -249,16 +249,8 @@ async function main(): Promise<void> {
     console.error(`[cc-companion] SDK 处理异常: ${err.message}`);
   });
 
-  // 6. 连接/断开超时
-  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  // 6. 断开超时（仅断开后倒计时，启动后一直等首次连接）
   let disidleTimer: ReturnType<typeof setTimeout> | null = null;
-  if (CONFIG.idleTimeout > 0) {
-    idleTimer = setTimeout(() => {
-      console.log(`[cc-companion] 空闲超时：${CONFIG.idleTimeout / 1000}s 内无客户端连接，自动退出`);
-      shutdown();
-    }, CONFIG.idleTimeout);
-    console.log(`[cc-companion] ${CONFIG.idleTimeout / 1000}s 内无客户端连接将自动退出`);
-  }
 
   // 7. PID 文件
   const pidFile = join(process.cwd(), '.pid');
@@ -268,7 +260,6 @@ async function main(): Promise<void> {
   // 8. 关闭——直接 exit 走 RST，不产生 TIME_WAIT
   function shutdown() {
     console.log('\n[cc-companion] 正在关闭...');
-    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     if (disidleTimer) { clearTimeout(disidleTimer); disidleTimer = null; }
     try { unlinkSync(pidFile); } catch {}
     process.exit(0);
