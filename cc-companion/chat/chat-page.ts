@@ -54,7 +54,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; background: var(--bg); }
+  html, body { height: 100%; height: 100dvh; overflow: hidden; background: var(--bg); }
   body {
     font-family: var(--font); color: var(--text);
     font-size: 14px; line-height: 1.5;
@@ -63,7 +63,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   #app {
     display: grid;
     grid-template-columns: 90px 1fr minmax(400px, 700px) 1fr 220px;
-    height: 100vh; width: 100%;
+    height: 100dvh; width: 100%;
   }
   #sidebar { grid-column: 1; }
   #main {
@@ -536,7 +536,8 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   /* ===== Compose ===== */
   .compose {
     flex-shrink: 0; display: flex; align-items: center; gap: 8px;
-    padding: 10px 20px; background: var(--bg);
+    padding: 10px 20px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+    background: var(--bg);
     border-top: 1px solid var(--border);
   }
   .compose .prompt {
