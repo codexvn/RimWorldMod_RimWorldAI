@@ -73,9 +73,10 @@ namespace RimWorldMCP
             var globalModels = GlobalModelUsageStore.AllModels;
             h += 60f + globalModels.Count * 22f;
             // OSS
+            h += 70f; // 标题 + 启用开关（始终可见）
             if (Settings.OssEnabled)
             {
-                h += 260f;
+                h += 200f;
                 if (_showSecrets) h += 80f;
                 if (Settings.OssUseSignedUrl) h += 50f;
             }
