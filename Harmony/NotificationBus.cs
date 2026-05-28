@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using RimWorldMCP.AgentRuntime;
 using Verse;
 
 namespace RimWorldMCP.Harmony
@@ -50,6 +51,25 @@ namespace RimWorldMCP.Harmony
             McpLog.Info($"[notify] + {n.Type} danger={n.DangerLabel} pri={n.Priority} label={n.Label}");
             if (!HighDangerPending && GetEventLevel(n.Type, n.DangerLabel) == EventLevel.Critical)
                 HighDangerPending = true;
+
+            // 路由到 Agent 事件队列
+            var route = GetEventAgent(n.Type, n.DangerLabel, n.Label);
+            if (route != EventRoute.None)
+            {
+                var evt = new ColonyEvent
+                {
+                    Category = MapCategory(n.Type, n.DangerLabel),
+                    Severity = GetEventLevel(n.Type, n.DangerLabel) switch
+                    {
+                        EventLevel.Critical => "Critical",
+                        EventLevel.Warning => "Warning",
+                        _ => "Info"
+                    },
+                    Summary = $"{n.DangerLabel}: {n.Label ?? n.Text ?? ""}",
+                    Tick = n.Tick
+                };
+                AgentOrchestrator.DispatchEvent(evt, route);
+            }
         }
 
         /// <summary>事件等级判定 — 统一入口</summary>
@@ -196,6 +216,53 @@ namespace RimWorldMCP.Harmony
                 }
             }
             return sb.ToString().TrimEnd();
+        }
+
+        /// <summary>事件→Agent 路由，决定事件分发给哪个 Agent。</summary>
+        public static EventRoute GetEventAgent(NotificationType type, string dangerLabel, string? label)
+        {
+            var level = GetEventLevel(type, dangerLabel);
+            if (level == EventLevel.Silent) return EventRoute.None;
+
+            // L3 Critical → 立即唤醒的路由
+            if (level == EventLevel.Critical)
+            {
+                return dangerLabel switch
+                {
+                    "大威胁" or "小威胁" or "Boss" or "死亡" => EventRoute.Combat,
+                    "健康事件" => EventRoute.Medic,
+                    "角色死亡" => EventRoute.Combat,
+                    _ => EventRoute.Combat // 默认 L3 走 Combat
+                };
+            }
+
+            // L1-L2 排队路由
+            return dangerLabel switch
+            {
+                "食物" or "药品" or "资源"         => EventRoute.All,
+                "正面" or "事件" or "来人" or "成长" or "任务" => EventRoute.Overseer,
+                "仪式失败" or "仪式成功"            => EventRoute.Overseer,
+                "完成" or "状态解除"                => EventRoute.Economy,
+                "建造" or "制作" or "蓝图"          => EventRoute.Economy,
+                "研究"                              => EventRoute.Overseer,
+                _                                   => EventRoute.Overseer
+            };
+        }
+
+        private static string MapCategory(NotificationType type, string dangerLabel)
+        {
+            return dangerLabel switch
+            {
+                "大威胁" or "小威胁" or "Boss" => "Combat",
+                "死亡" or "角色死亡" => "Combat",
+                "健康事件" => "Health",
+                "食物" => "Food",
+                "正面" or "事件" or "来人" or "成长" => "Economy",
+                "研究" => "Research",
+                "建造" or "制作" or "蓝图" => "Construction",
+                "仪式失败" or "仪式成功" => "Mood",
+                _ => "Economy"
+            };
         }
 
         /// <summary>清空所有状态（新游戏开始时调用）。</summary>

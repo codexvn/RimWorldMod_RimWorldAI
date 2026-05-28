@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using RimWorldMCP.AgentRuntime;
 using RimWorldMCP.Harmony;
 using RimWorldMCP.Mcp;
 using Verse;
@@ -59,9 +60,12 @@ namespace RimWorldMCP.Tools
             });
         }
 
-        public List<ToolDefinition> GetDefinitions()
+        public List<ToolDefinition> GetDefinitions(string? agentFilter = null)
         {
-            return _tools.Values.Select(t =>
+            var query = _tools.Values.AsEnumerable();
+            if (!string.IsNullOrEmpty(agentFilter) && System.Enum.TryParse<AgentAffinity>(agentFilter, true, out var agent))
+                query = query.Where(t => IsToolVisibleToAgent(t, agent));
+            return query.Select(t =>
             {
                 var def = new ToolDefinition
                 {
@@ -72,6 +76,13 @@ namespace RimWorldMCP.Tools
                 };
                 return def;
             }).OrderBy(t => t.Name).ToList();
+        }
+
+        private static bool IsToolVisibleToAgent(ITool tool, AgentAffinity agent)
+        {
+            if (tool is IHasAgentAffinity hasAffinity)
+                return (hasAffinity.AgentAffinity & agent) != 0;
+            return true; // 未标记的工具对所有 Agent 可见
         }
 
         private static ToolAnnotations? GetAnnotations(string toolName)

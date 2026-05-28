@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using RimWorldMCP.MapRendering;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
@@ -21,8 +22,9 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上 X 坐标" },
-                pos_y = new { type = "integer", description = "左上 Y 坐标" },
+                chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")，优先于坐标参数" },
+                pos_x = new { type = "integer", description = "左上 X 坐标（chunk_id 未提供时需要）" },
+                pos_y = new { type = "integer", description = "左上 Y 坐标（chunk_id 未提供时需要）" },
                 end_x = new { type = "integer", description = "右下 X 坐标（可选，不提供则只查单格）" },
                 end_y = new { type = "integer", description = "右下 Y 坐标（可选，不提供则只查单格）" }
             },
@@ -32,14 +34,32 @@ namespace RimWorldMCP.Tools
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             if (args == null) return ToolResult.Error("缺少参数");
-            if (!args.Value.TryGetProperty("pos_x", out var jX) || !jX.TryGetInt32(out var posX))
-                return ToolResult.Error("缺少必填参数: pos_x");
-            if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY))
-                return ToolResult.Error("缺少必填参数: pos_y");
 
-            int endX = posX, endY = posY;
-            if (args.Value.TryGetProperty("end_x", out var jEx)) jEx.TryGetInt32(out endX);
-            if (args.Value.TryGetProperty("end_y", out var jEy)) jEy.TryGetInt32(out endY);
+            int posX, posY, endX, endY;
+
+            // chunk_id 优先
+            if (args.Value.TryGetProperty("chunk_id", out var jChunk) && jChunk.GetString() is string chunkId && !string.IsNullOrEmpty(chunkId))
+            {
+                if (!MapChunker.TryParseChunkId(chunkId, out int cx, out int cz))
+                    return ToolResult.Error($"无效的 chunk_id: {chunkId}");
+                if (Find.CurrentMap == null) return ToolResult.Error("当前没有可用地图。");
+                var s = RimWorldMCPMod.Instance?.Settings;
+                int cw = s?.ChunkWidth ?? 32, ch = s?.ChunkHeight ?? 32;
+                var chunk = MapChunker.GetChunkByIndex(cx, cz, Find.CurrentMap.Size.x, Find.CurrentMap.Size.z, cw, ch);
+                if (chunk == null) return ToolResult.Error($"Chunk {chunkId} 不存在");
+                posX = chunk.MinX; endX = chunk.MaxX;
+                posY = chunk.MinZ; endY = chunk.MaxZ;
+            }
+            else
+            {
+                if (!args.Value.TryGetProperty("pos_x", out var jX) || !jX.TryGetInt32(out posX))
+                    return ToolResult.Error("缺少必填参数: pos_x");
+                if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out posY))
+                    return ToolResult.Error("缺少必填参数: pos_y");
+                endX = posX; endY = posY;
+                if (args.Value.TryGetProperty("end_x", out var jEx)) jEx.TryGetInt32(out endX);
+                if (args.Value.TryGetProperty("end_y", out var jEy)) jEy.TryGetInt32(out endY);
+            }
 
             int minX = Math.Min(posX, endX), maxX = Math.Max(posX, endX);
             int minY = Math.Min(posY, endY), maxY = Math.Max(posY, endY);

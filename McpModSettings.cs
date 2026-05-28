@@ -50,6 +50,10 @@ namespace RimWorldMCP
         public string CCBThinkingEffort = "medium";
         public int CCBMaxThinkingTokens = 0;
 
+        // Agent Runtime
+        public bool AgentAutoRun = true;
+        public bool AgentOptimizeCache = true;
+
         // 地图分块与压缩
         public int ChunkWidth = 32;
         public int ChunkHeight = 32;
@@ -98,6 +102,8 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref CCBThinkingEffort, "ccbThinkingEffort", "medium");
             Scribe_Values.Look(ref CCBMaxThinkingTokens, "ccbMaxThinkingTokens", 0);
             var gridCompression = (int)GridCompression;
+            Scribe_Values.Look(ref AgentAutoRun, "agentAutoRun", true);
+            Scribe_Values.Look(ref AgentOptimizeCache, "agentOptimizeCache", true);
             Scribe_Values.Look(ref ChunkWidth, "chunkWidth", 32);
             Scribe_Values.Look(ref ChunkHeight, "chunkHeight", 32);
             Scribe_Values.Look(ref gridCompression, "gridCompression", (int)CompressionMethod.RLE);
