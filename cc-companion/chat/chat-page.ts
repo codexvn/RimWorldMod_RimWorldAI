@@ -899,7 +899,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     header.addEventListener('click', function() {
       var collapsed = panel.classList.toggle('collapsed');
       arrow.textContent = collapsed ? '▸' : '▾';
-      checkScroll();
+      scrollDeferred();
     });
     panel.appendChild(header);
     var body = document.createElement('div');
@@ -1199,7 +1199,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
             var activeBody = sg2 ? sg2.lastBody : lastAgentBody;
             if (activeBody) {
               activeBody.textContent += textContent;
-              checkScroll();
+              scrollDeferred();
             } else {
               var subLabel = currentStreamAgent || null;
               var p = makeAgentPanel(textContent, subLabel);
@@ -1305,7 +1305,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
         var hidden = b.style.display === 'none';
         b.style.display = hidden ? '' : 'none';
         arrow.textContent = hidden ? '▾' : '▸';
-        checkScroll();
+        scrollDeferred();
       });
     } else {
       label.textContent = 'AGENT';
@@ -1323,7 +1323,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     } else {
       messagesEl.appendChild(panel);
     }
-    checkScroll();
+    scrollDeferred();
     return panel;
   }
 
@@ -1353,7 +1353,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
               w.classList.toggle('truncated', !isExp);
               btn.textContent = isExp ? '收起' : '展开';
               if (isExp) w.textContent = fullText;
-              checkScroll();
+              scrollDeferred();
             });
           })(ew, argsStr, newBtn);
           existing.appendChild(newBtn);
@@ -1419,7 +1419,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
             w.classList.toggle('truncated', !isExp);
             btn.textContent = isExp ? '收起' : '展开';
             if (isExp) w.textContent = fullText;
-            checkScroll();
+            scrollDeferred();
           });
         })(wrap, argsStr, expandBtn);
         panel.appendChild(expandBtn);
@@ -1438,11 +1438,11 @@ export function getChatPageHtml(config: ChatPageConfig): string {
       var allBtns = panel.querySelectorAll('.tool-expand-btn');
       for (var bi = 0; bi < allBtns.length; bi++)
         allBtns[bi].style.display = hidden ? '' : 'none';
-      checkScroll();
+      scrollDeferred();
     });
 
     messagesEl.appendChild(panel);
-    checkScroll();
+    scrollDeferred();
     return panel;
   }
 
@@ -1487,7 +1487,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
               w.classList.toggle('truncated', !isExp);
               btn.textContent = isExp ? '收起' : '展开';
               if (isExp) w.textContent = fullText;
-              checkScroll();
+              scrollDeferred();
             });
           })(wrap, resultText, expandBtn);
           panel.appendChild(expandBtn);
@@ -1570,7 +1570,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
             w.classList.toggle('truncated', !isExp);
             btn.textContent = isExp ? '收起' : '展开';
             if (isExp) w.textContent = fullText;
-            checkScroll();
+            scrollDeferred();
           });
         })(wrap, content, expandBtn);
         panel.appendChild(expandBtn);
@@ -1582,12 +1582,12 @@ export function getChatPageHtml(config: ChatPageConfig): string {
         body.style.display = hidden ? '' : 'none';
         if (expandBtn) expandBtn.style.display = hidden ? '' : 'none';
         arrow.textContent = hidden ? '▾' : '▸';
-        checkScroll();
+        scrollDeferred();
       });
     }
 
     messagesEl.appendChild(panel);
-    checkScroll();
+    scrollDeferred();
     return panel;
   }
 
@@ -1645,7 +1645,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
         }
       }
     }
-    checkScroll();
+    scrollDeferred();
   }
 
   // ===== Result divider =====
@@ -1656,7 +1656,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
       + '<span class="result-label ' + cls + '">' + label + '</span>'
       + '<span class="result-line"></span>';
     messagesEl.appendChild(div);
-    checkScroll();
+    scrollDeferred();
   }
 
   // ===== Typing indicator =====
@@ -1666,7 +1666,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     readingEl.className = 'typing-indicator';
     readingEl.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
     messagesEl.appendChild(readingEl);
-    checkScroll();
+    scrollDeferred();
   }
 
   function hideReading() {
@@ -1675,34 +1675,56 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
   // ===== Auto-scroll =====
   var userScrolledUp = false;
+  var scrollRaf = 0;
+
+  function scrollNow() {
+    cancelAnimationFrame(scrollRaf);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    scrollRaf = 0;
+  }
+
+  function scrollDeferred() {
+    if (userScrolledUp) return;
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(function() {
+      scrollRaf = 0;
+      if (!userScrolledUp) scrollNow();
+    });
+  }
 
   function checkScroll() {
     if (userScrolledUp) {
-      // 已脱离磁吸：只在用户手动滚到底时重新吸附（距底部 < 4px）
+      // 已脱离磁吸：只在用户手动滚到底时重新吸附（距底部 < 6px）
       var diff2 = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
-      if (diff2 < 4) {
+      if (diff2 < 6) {
         userScrolledUp = false;
         newMsgPill.style.display = 'none';
       }
       return;
     }
-    // 磁吸模式：检测用户是否手动滚离底部
-    var diff = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
-    if (diff > 40) {
-      userScrolledUp = true;
-      newMsgPill.style.display = 'block';
-    } else {
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+    // 磁吸模式：仅响应真实用户滚动（被动触发），不作同步检测
   }
 
+  // 用户触摸/滚轮 → 退出磁吸
+  var scrollTimeout = 0;
+  messagesEl.addEventListener('scroll', function() {
+    if (userScrolledUp) return;
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(function() {
+      var diff = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
+      if (diff > 50) {
+        userScrolledUp = true;
+        newMsgPill.style.display = 'block';
+      }
+    }, 150); // 等惯性滚动结束再判断
+  }, { passive: true });
+
   function scrollToBottom() {
-    messagesEl.scrollTop = messagesEl.scrollHeight;
     userScrolledUp = false;
     newMsgPill.style.display = 'none';
+    scrollNow();
   }
   window.scrollToBottom = scrollToBottom;
-  messagesEl.addEventListener('scroll', checkScroll);
 
   // ===== History =====
   var loadingHistory = false;
@@ -1727,7 +1749,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
           addResult(cls, label);
         }
       }
-      checkScroll();
+      scrollDeferred();
     }).catch(function(e) { console.error('[history] fetch 失败', e); }).then(function() {
       loadingHistory = false;
       if (pendingWs.length) {
@@ -1760,7 +1782,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
         }
       }
     }
-    checkScroll();
+    scrollDeferred();
   }
 
   // ===== Send =====
