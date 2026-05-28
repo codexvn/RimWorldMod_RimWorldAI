@@ -1684,11 +1684,16 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   // ===== Auto-scroll =====
   var userScrolledUp = false;
   var scrollRaf = 0;
+  var autoScrolling = false;
+  var scrollEventTimer = 0;
+
 
   function scrollNow() {
     cancelAnimationFrame(scrollRaf);
+    autoScrolling = true;
     messagesEl.scrollTop = messagesEl.scrollHeight;
     scrollRaf = 0;
+    requestAnimationFrame(function() { autoScrolling = false; });
   }
 
   function scrollDeferred() {
@@ -1702,7 +1707,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
   function checkScroll() {
     if (userScrolledUp) {
-      // 已脱离磁吸：只在用户手动滚到底时重新吸附（距底部 < 6px）
       var diff2 = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
       if (diff2 < 6) {
         userScrolledUp = false;
@@ -1710,23 +1714,20 @@ export function getChatPageHtml(config: ChatPageConfig): string {
       }
       return;
     }
-    // 磁吸模式：仅响应真实用户滚动（被动触发），不作同步检测
   }
 
-  // 用户触摸/滚轮 → 退出磁吸
-  var scrollTimeout = 0;
   messagesEl.addEventListener('scroll', function() {
-    if (userScrolledUp) return;
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(function() {
+    if (userScrolledUp || autoScrolling) return;
+    clearTimeout(scrollEventTimer);
+    scrollEventTimer = setTimeout(function() {
+      if (autoScrolling) return;
       var diff = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
       if (diff > 50) {
         userScrolledUp = true;
         newMsgPill.style.display = 'block';
       }
-    }, 150); // 等惯性滚动结束再判断
+    }, 150);
   }, { passive: true });
-
   function scrollToBottom() {
     userScrolledUp = false;
     newMsgPill.style.display = 'none';
