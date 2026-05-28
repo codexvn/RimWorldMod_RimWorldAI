@@ -20,6 +20,7 @@ namespace RimWorldMCP
             base.StartedNewGame();
             _sessionId = GenerateSessionId();
             CurrentSessionId = _sessionId;
+            TokenUsageTracker.Init(_sessionId);
             DeteriorationTracker.Reset();
             StartBridgeService();
             AttachMapUI();
@@ -31,6 +32,7 @@ namespace RimWorldMCP
             if (string.IsNullOrEmpty(_sessionId))
                 _sessionId = GenerateSessionId();
             CurrentSessionId = _sessionId;
+            TokenUsageTracker.Init(_sessionId);
             DeteriorationTracker.Reset();
             StartBridgeService();
             AttachMapUI();
@@ -41,7 +43,6 @@ namespace RimWorldMCP
             base.ExposeData();
             Scribe_Values.Look(ref _sessionId, "mcpSessionId", "");
             TodoManager.ExposeData();
-            TokenUsageTracker.ExposeData();
         }
 
         private static string GenerateSessionId()

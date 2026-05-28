@@ -1,17 +1,21 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
+using UnityEngine;
 using Verse;
 
 namespace RimWorldMCP
 {
     public enum BudgetStatus { Ok, Warning, Critical, Exceeded }
 
-    /// <summary>Token 消耗追踪器 — 按存档 + 按模型追踪，持久化到存档，同步写入全局汇总</summary>
+    /// <summary>Token 消耗追踪器 — 按存档 + 按模型追踪，JSON 独立文件持久化，每次 Record() 实时写入</summary>
     public static class TokenUsageTracker
     {
-        // 合计字段（兼容旧代码 + 存档持久化）
+        // 合计字段
         public static long TotalInputTokens;
         public static long TotalOutputTokens;
         public static long TotalCacheReadTokens;
@@ -21,11 +25,14 @@ namespace RimWorldMCP
         public static int TotalToolFailure;
         public static long TotalDurationMs;
 
-        // 当前存档各模型用量（持久化到存档）
+        // 当前存档各模型用量
         public static Dictionary<string, ModelUsageData> PerModelUsages = new Dictionary<string, ModelUsageData>();
 
         // 当前会话模型名（从 SDK init 消息获取）
         public static string CurrentModel = "";
+
+        // 当前 sessionId，用于区分存档
+        private static string _sessionId = "";
 
         public static long TotalAllTokens =>
             TotalInputTokens + TotalOutputTokens + TotalCacheReadTokens + TotalCacheCreateTokens;
@@ -63,6 +70,9 @@ namespace RimWorldMCP
 
             // 同步写入全局汇总
             GlobalModelUsageStore.Contribute(key, inputTokens, outputTokens, cacheRead, cacheCreate);
+
+            // 实时写入 JSON 文件
+            Save();
 
             // 实时刷新 UI 预算状态（不等游戏事件推送）
             RefreshBudgetDisplay();
@@ -119,64 +129,91 @@ namespace RimWorldMCP
             return (double)TotalAllTokens / limit * 100.0;
         }
 
-        // ===== 持久化 =====
+        // ===== 持久化 (JSON 独立文件，按 sessionId) =====
 
-        public static void ExposeData()
+        public static void Init(string sessionId)
         {
-            Scribe_Values.Look(ref TotalInputTokens, "usageInputTokens", 0L);
-            Scribe_Values.Look(ref TotalOutputTokens, "usageOutputTokens", 0L);
-            Scribe_Values.Look(ref TotalCacheReadTokens, "usageCacheRead", 0L);
-            Scribe_Values.Look(ref TotalCacheCreateTokens, "usageCacheCreate", 0L);
-            Scribe_Values.Look(ref TotalRequests, "usageRequests", 0);
-            Scribe_Values.Look(ref TotalToolSuccess, "usageToolSuccess", 0);
-            Scribe_Values.Look(ref TotalToolFailure, "usageToolFailure", 0);
-            Scribe_Values.Look(ref TotalDurationMs, "usageDurationMs", 0L);
+            _sessionId = sessionId;
+            Load();
+        }
 
-            // 序列化 PerModelUsages：key1|v1,v2,v3,v4,v5;key2|...
-            if (Scribe.mode == LoadSaveMode.Saving)
+        private static string FilePath => Path.Combine(
+            Application.persistentDataPath, $"RimWorldMCP_TokenUsage_{_sessionId}.json");
+
+        private static readonly object _saveLock = new();
+
+        public static void Save()
+        {
+            if (string.IsNullOrEmpty(_sessionId)) return;
+            lock (_saveLock)
             {
-                var parts = new List<string>();
-                lock (PerModelUsages)
+                try
                 {
-                    foreach (var kv in PerModelUsages)
+                    var payload = new
                     {
-                        var d = kv.Value;
-                        parts.Add($"{kv.Key}|{d.InputTokens},{d.OutputTokens},{d.CacheReadTokens},{d.CacheCreateTokens},{d.RequestCount}");
-                    }
+                        totalInputTokens = TotalInputTokens,
+                        totalOutputTokens = TotalOutputTokens,
+                        totalCacheReadTokens = TotalCacheReadTokens,
+                        totalCacheCreateTokens = TotalCacheCreateTokens,
+                        totalRequests = TotalRequests,
+                        totalToolSuccess = TotalToolSuccess,
+                        totalToolFailure = TotalToolFailure,
+                        totalDurationMs = TotalDurationMs,
+                        currentModel = CurrentModel,
+                        perModelUsages = PerModelUsages
+                    };
+                    string json = JsonSerializer.Serialize(payload);
+                    File.WriteAllText(FilePath, json, Encoding.UTF8);
                 }
-                var str = string.Join(";", parts);
-                Scribe_Values.Look(ref str, "usagePerModel", "");
-            }
-            else if (Scribe.mode == LoadSaveMode.LoadingVars)
-            {
-                var str = "";
-                Scribe_Values.Look(ref str, "usagePerModel", "");
-                PerModelUsages = new Dictionary<string, ModelUsageData>();
-                if (!string.IsNullOrEmpty(str))
+                catch (Exception ex)
                 {
-                    foreach (var part in str.Split(';'))
+                    McpLog.Warn($"[TokenUsage] 保存失败: {ex.Message}");
+                }
+            }
+        }
+
+        public static void Load()
+        {
+            lock (_saveLock)
+            {
+                try
+                {
+                    if (!File.Exists(FilePath)) return;
+
+                    string json = File.ReadAllText(FilePath, Encoding.UTF8);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+
+                    if (root.TryGetProperty("TotalInputTokens", out var jIt)) TotalInputTokens = jIt.GetInt64();
+                    if (root.TryGetProperty("TotalOutputTokens", out var jOt)) TotalOutputTokens = jOt.GetInt64();
+                    if (root.TryGetProperty("TotalCacheReadTokens", out var jCr)) TotalCacheReadTokens = jCr.GetInt64();
+                    if (root.TryGetProperty("TotalCacheCreateTokens", out var jCc)) TotalCacheCreateTokens = jCc.GetInt64();
+                    if (root.TryGetProperty("TotalRequests", out var jRq)) TotalRequests = jRq.GetInt32();
+                    if (root.TryGetProperty("TotalToolSuccess", out var jTs)) TotalToolSuccess = jTs.GetInt32();
+                    if (root.TryGetProperty("TotalToolFailure", out var jTf)) TotalToolFailure = jTf.GetInt32();
+                    if (root.TryGetProperty("TotalDurationMs", out var jDu)) TotalDurationMs = jDu.GetInt64();
+                    if (root.TryGetProperty("CurrentModel", out var jCm)) CurrentModel = jCm.GetString() ?? "";
+
+                    if (root.TryGetProperty("PerModelUsages", out var perModel))
                     {
-                        var sep = part.IndexOf('|');
-                        if (sep < 0) continue;
-                        var model = part.Substring(0, sep);
-                        var vals = part.Substring(sep + 1).Split(',');
-                        if (vals.Length >= 5
-                            && long.TryParse(vals[0], out var inp)
-                            && long.TryParse(vals[1], out var outp)
-                            && long.TryParse(vals[2], out var cr)
-                            && long.TryParse(vals[3], out var cc)
-                            && int.TryParse(vals[4], out var rc))
+                        PerModelUsages = new Dictionary<string, ModelUsageData>();
+                        foreach (var kv in perModel.EnumerateObject())
                         {
-                            PerModelUsages[model] = new ModelUsageData
+                            var d = kv.Value;
+                            PerModelUsages[kv.Name] = new ModelUsageData
                             {
-                                InputTokens = inp,
-                                OutputTokens = outp,
-                                CacheReadTokens = cr,
-                                CacheCreateTokens = cc,
-                                RequestCount = rc
+                                InputTokens = d.TryGetProperty("InputTokens", out var i) ? i.GetInt64() : 0,
+                                OutputTokens = d.TryGetProperty("OutputTokens", out var o) ? o.GetInt64() : 0,
+                                CacheReadTokens = d.TryGetProperty("CacheReadTokens", out var cr) ? cr.GetInt64() : 0,
+                                CacheCreateTokens = d.TryGetProperty("CacheCreateTokens", out var cc) ? cc.GetInt64() : 0,
+                                RequestCount = d.TryGetProperty("RequestCount", out var rc) ? rc.GetInt32() : 0,
                             };
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    McpLog.Warn($"[TokenUsage] 加载失败: {ex.Message}");
                 }
             }
         }
