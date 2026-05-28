@@ -26,6 +26,7 @@ namespace RimWorldMCP
         private const int PingIntervalMs = 30000;
         private const int PongTimeoutMs = 60000;
         private static DateTime _lastPing = DateTime.MinValue;
+        private static int _lastTickMs;
 
         private static int _reconnectDelayMs = 5000;
         private static int _reconnectAttempts;
@@ -379,6 +380,16 @@ namespace RimWorldMCP
             if (!IsReady) return;
 
             var now = DateTime.UtcNow;
+            var tickMs = Environment.TickCount;
+
+            // 游戏加载/暂停可能导致 Tick 长时间不调用，墙钟过去了但连接并未断开。
+            // 此时 _lastPong 严重过期，恢复后应跳过超时检测，避免误报断开。
+            if (_lastTickMs > 0 && unchecked((uint)(tickMs - _lastTickMs) > 10000))
+            {
+                _lastPing = now;
+                _lastPong = now;
+            }
+            _lastTickMs = tickMs;
 
             // 发送 ping（实际发送成功后才更新 _lastPing，失败可立即重试）
             if ((now - _lastPing).TotalMilliseconds > PingIntervalMs)
