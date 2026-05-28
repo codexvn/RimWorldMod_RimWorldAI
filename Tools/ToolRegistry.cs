@@ -119,15 +119,15 @@ namespace RimWorldMCP.Tools
                     var prefixes = new List<string>();
 
                     // L3 事件暂停中 → 注入摘要催促 AI 先学技能再收尾
-                    if (BridgeLifecycle.DangerPaused)
-                        prefixes.Add($"⚠ {BridgeLifecycle.DangerSummary} | 已暂停。建议先用 get_skills 查看可用领域技能，用 active_skill 获取知识后再处理。");
+                    if (McpInternalState.DangerPaused)
+                        prefixes.Add($"⚠ {McpInternalState.DangerSummary} | 已暂停。建议先用 get_skills 查看可用领域技能，用 active_skill 获取知识后再处理。");
 
                     // L1+L2 非高危通知 → 注入计数，AI 自行决定是否暂停
-                    int pendingCount = BridgeLifecycle.PendingLevel12Count;
-                    if (pendingCount > 0 && !BridgeLifecycle.DangerPaused)
+                    int pendingCount = McpInternalState.PendingLevel12Count;
+                    if (pendingCount > 0 && !McpInternalState.DangerPaused)
                     {
                         prefixes.Add($"📋 新事件: {pendingCount}件 | 暂停后用 get_skills 查看可用技能，active_skill 获取知识后处理。");
-                        BridgeLifecycle.ResetPendingLevel12Count();
+                        McpInternalState.ResetPendingLevel12Count();
                     }
 
                     // 低速警告 → 注入一次

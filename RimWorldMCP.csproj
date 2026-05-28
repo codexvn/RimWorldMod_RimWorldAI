@@ -50,7 +50,6 @@
       <Private>False</Private>
     </Reference>
     <PackageReference Include="Aliyun.OSS.SDK" Version="2.14.*" />
-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
@@ -59,25 +58,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="publish\cc-companion\.claude\settings.local.json" />
   </ItemGroup>
 
   <!-- 构建后删掉 pdb -->
   <Target Name="DeletePdb" AfterTargets="Build">
     <Delete Files="$(OutputPath)$(AssemblyName).pdb" />
-  </Target>
-
-  <!-- CC Companion: 复制源码到 publish（跨平台，排除无关目录） -->
-  <Target Name="CCCompanionBuild" AfterTargets="Build">
-    <PropertyGroup>
-      <CompanionSrc>$(MSBuildProjectDirectory)\cc-companion\</CompanionSrc>
-      <CompanionOut>$(MSBuildProjectDirectory)\publish\cc-companion\</CompanionOut>
-    </PropertyGroup>
-    <ItemGroup>
-      <CompanionFiles Include="$(CompanionSrc)**\*"
-        Exclude="$(CompanionSrc)dist\**;$(CompanionSrc)node_modules\**;$(CompanionSrc).idea\**;$(CompanionSrc).claude\**;$(CompanionSrc)README.md" />
-    </ItemGroup>
-    <Copy SourceFiles="@(CompanionFiles)" DestinationFolder="$(CompanionOut)%(RecursiveDir)" />
   </Target>
 
   <!-- 复制 README.md 到 publish -->

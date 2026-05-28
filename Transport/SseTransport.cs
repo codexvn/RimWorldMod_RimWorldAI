@@ -15,7 +15,7 @@ namespace RimWorldMCP.Transport
         private readonly string _host;       // 显示用
         private readonly string _prefixHost; // http.sys 实际绑定的 host
         private HttpListener? _listener;
-        private readonly ConcurrentDictionary<string, SseSession> _sessions = new();
+        private static readonly ConcurrentDictionary<string, SseSession> _sessions = new();
         // /mcp 端点专用同步处理器（绕过 OnMessage→SendAsync 事件通道，避免 SSE 串台）
         private Func<string, string>? _mcpHandler;
 
@@ -71,6 +71,18 @@ namespace RimWorldMCP.Transport
                 var session = kvp.Value;
                 await session.SendEventAsync("message", message);
             }
+        }
+
+        /// <summary>向所有连接的 SSE 客户端广播事件（供 GameComponent 推送游戏事件）</summary>
+        public static Task BroadcastEvent(string eventType, string data)
+        {
+            var tasks = new List<Task>();
+            foreach (var kvp in _sessions)
+            {
+                var session = kvp.Value;
+                tasks.Add(session.SendEventAsync(eventType, data));
+            }
+            return Task.WhenAll(tasks);
         }
 
         public Task StopAsync()

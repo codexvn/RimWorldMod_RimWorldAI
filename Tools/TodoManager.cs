@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using RimWorld;
+using RimWorldMCP.Transport;
 using Verse;
 
 namespace RimWorldMCP.Tools
@@ -51,7 +53,7 @@ namespace RimWorldMCP.Tools
                 _items.Add(item);
             }
             OnChanged?.Invoke();
-            PushToCompanion();
+            PushToSse();
             return item;
         }
 
@@ -62,7 +64,7 @@ namespace RimWorldMCP.Tools
             if (removed)
             {
                 OnChanged?.Invoke();
-                PushToCompanion();
+                PushToSse();
             }
             return removed;
         }
@@ -83,7 +85,7 @@ namespace RimWorldMCP.Tools
             if (found)
             {
                 OnChanged?.Invoke();
-                PushToCompanion();
+                PushToSse();
             }
             return found;
         }
@@ -121,7 +123,7 @@ namespace RimWorldMCP.Tools
             if (hadItems)
             {
                 OnChanged?.Invoke();
-                PushToCompanion();
+                PushToSse();
             }
         }
 
@@ -133,7 +135,7 @@ namespace RimWorldMCP.Tools
                 _items = new List<TodoItem>();
         }
 
-        internal static object BuildCompanionPayload()
+        internal static object BuildTodoPayload()
         {
             var items = Query(null);
             return new
@@ -150,9 +152,10 @@ namespace RimWorldMCP.Tools
             };
         }
 
-        private static void PushToCompanion()
+        private static void PushToSse()
         {
-            _ = CCClient.SendEvent("todo-state", BuildCompanionPayload());
+            var json = JsonSerializer.Serialize(BuildTodoPayload());
+            _ = SseTransport.BroadcastEvent("todo_state", json);
         }
     }
 }

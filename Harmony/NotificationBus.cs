@@ -83,7 +83,7 @@ namespace RimWorldMCP.Harmony
         }
 
         /// <summary>是否高危事件 (L3 Critical)，保持向后兼容</summary>
-        internal static bool IsHighDanger(NotificationType type, string dangerLabel, int alertPriority)
+        public static bool IsHighDanger(NotificationType type, string dangerLabel, int alertPriority)
         {
             return GetEventLevel(type, dangerLabel) == EventLevel.Critical;
         }

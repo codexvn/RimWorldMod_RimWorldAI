@@ -1,8 +1,11 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using RimWorldMCP.Harmony;
 using RimWorldMCP.Mcp;
 using RimWorldMCP.Skills;
 using RimWorldMCP.Tools;
@@ -16,11 +19,20 @@ namespace RimWorldMCP
         private ITransport? _transport;
         private CancellationTokenSource? _cts;
         private static ITransport? s_activeTransport;
+        /// <summary>Skill 注册表 — Agent 读取用于晨报</summary>
+        public static SkillRegistry? SkillRegistry => s_skillRegistry;
         internal static SkillRegistry? s_skillRegistry;
-        private string _sessionId = "";
-        public static string CurrentSessionId { get; private set; } = "";
+
+        /// <summary>当前会话 ID — 由存档 ExposeData 持久化，供 Agent 读取</summary>
+        public static string CurrentSessionId { get; set; } = "";
+
         private const int DefaultPort = 9877;
         private const string DefaultHost = "0.0.0.0";
+        private static int _lastEventPushTick;
+
+        // 弹框扫描跟踪
+        private static int _lastDialogCount;
+        private static string _lastDialogKey = "";
 
         public GameComponent_McpServer(Game game)
         {
@@ -29,73 +41,152 @@ namespace RimWorldMCP
         public override void StartedNewGame()
         {
             base.StartedNewGame();
-            _sessionId = GenerateSessionId();
-            CurrentSessionId = _sessionId;
             DeteriorationTracker.Reset();
+            CurrentSessionId = Guid.NewGuid().ToString("N").Substring(0, 12);
             StartMcpService();
-            AttachMapUI();
         }
 
         public override void LoadedGame()
         {
             base.LoadedGame();
-            if (string.IsNullOrEmpty(_sessionId))
-                _sessionId = GenerateSessionId();
-            CurrentSessionId = _sessionId;
             DeteriorationTracker.Reset();
+            if (string.IsNullOrEmpty(CurrentSessionId))
+                CurrentSessionId = Guid.NewGuid().ToString("N").Substring(0, 12);
             StartMcpService();
-            AttachMapUI();
         }
 
         public override void ExposeData()
         {
             base.ExposeData();
-            Scribe_Values.Look(ref _sessionId, "mcpSessionId", "");
-            TodoManager.ExposeData();
-            TokenUsageTracker.ExposeData();
+            if (Scribe.mode == LoadSaveMode.Saving)
+                _sessionIdBacking = CurrentSessionId;
+            Scribe_Values.Look(ref _sessionIdBacking, "sessionId", "");
+            if (Scribe.mode == LoadSaveMode.LoadingVars)
+                CurrentSessionId = _sessionIdBacking;
         }
 
-        private static string GenerateSessionId()
-        {
-            return Guid.NewGuid().ToString("N").Substring(0, 12);
-        }
+        private static string _sessionIdBacking = "";
 
         public override void GameComponentUpdate()
         {
             base.GameComponentUpdate();
 
-            // 进入游戏自动打开对话窗口
-            if (AutoOpenChat)
-            {
-                AutoOpenChat = false;
-                try
-                {
-                    if (Find.CurrentMap != null && !Find.WindowStack.IsOpen<Dialog_AiChat>())
-                        Find.WindowStack.Add(new Dialog_AiChat());
-                }
-                catch { /* 窗口创建失败不影响游戏 */ }
-            }
-
             McpLog.Flush();
             McpCommandQueue.ProcessPending();
             Tool_AdvanceTick.ProcessPending();
             Tool_AdvanceTick.LowSpeedTick();
-            BridgeLifecycle.Tick();
+            PushGameEventsToSse();
             McpOssUploader.ProcessPendingUploads();
             McpCommandQueue.ProcessDeferredCleanup();
 
-            // 自动追踪殖民者（帧末，不影响其他处理）
             CameraHelper.AutoTrackColonistsTick();
         }
 
-        public override void FinalizeInit()
+        /// <summary>从 NotificationBus 取出游戏事件，通过 SSE 推送给所有客户端</summary>
+        private static void PushGameEventsToSse()
         {
-            base.FinalizeInit();
+            if (!NotificationBus.Pending.IsEmpty)
+            {
+                var events = NotificationBus.Drain();
+                if (events.Count == 0) return;
+
+                bool hasCritical = false;
+                int nonCritical = 0;
+
+                foreach (var e in events)
+                {
+                    var level = NotificationBus.GetEventLevel(e.Type, e.DangerLabel);
+                    if (level == EventLevel.Silent) continue;
+
+                    if (level == EventLevel.Critical)
+                        hasCritical = true;
+                    else
+                        nonCritical++;
+
+                    var json = JsonSerializer.Serialize(new
+                    {
+                        type = "game_event",
+                        level = level.ToString(),
+                        letterType = e.Type.ToString(),
+                        label = e.Label,
+                        text = e.Text,
+                        dangerLabel = e.DangerLabel,
+                        priority = e.Priority
+                    });
+                    _ = SseTransport.BroadcastEvent("game_event", json);
+                }
+
+                if (hasCritical)
+                {
+                    int high = 0, warn = 0;
+                    foreach (var n in events)
+                    {
+                        if (NotificationBus.IsHighDanger(n.Type, n.DangerLabel, n.Priority))
+                            high++;
+                        else if (n.Type == NotificationType.Letter || n.Type == NotificationType.Message)
+                            warn++;
+                    }
+                    var parts = new System.Collections.Generic.List<string>(3);
+                    if (high > 0) parts.Add($"\U0001f534x{high}");
+                    if (warn > 0) parts.Add($"\U0001f7e1x{warn}");
+                    if (parts.Count == 0) parts.Add($"ℹ️x{events.Count}");
+                    McpInternalState.DangerSummary = $"待处理: {string.Join(" ", parts)}";
+                    McpInternalState.DangerPaused = true;
+                }
+                else
+                {
+                    // 此批无 L3 事件，清除危险暂停状态
+                    McpInternalState.DangerPaused = false;
+                    McpInternalState.DangerSummary = "";
+                }
+
+                if (nonCritical > 0)
+                    McpInternalState.PendingLevel12Count += nonCritical;
+            }
+
+            // 周期性检查物品腐坏，推送 SSE 事件
+            CheckDeteriorationAndPushSse();
+
+            // 周期性检查弹框变化，推送 SSE 事件
+            CheckDialogsAndPushSse();
+        }
+
+        /// <summary>周期性检查物品腐坏/耐久降低，通过 SSE 推送</summary>
+        private static void CheckDeteriorationAndPushSse()
+        {
+            var map = Find.CurrentMap;
+            if (map == null) return;
+
+            var result = DeteriorationTracker.CheckAndNotify(map);
+            if (result != null)
+            {
+                var json = JsonSerializer.Serialize(new { text = result });
+                _ = SseTransport.BroadcastEvent("deterioration_warning", json);
+            }
+        }
+
+        /// <summary>检查弹框变化，通过 SSE 推送（避免每帧重复广播）</summary>
+        private static void CheckDialogsAndPushSse()
+        {
+            var dialogs = Helpers.DialogHelper.GetInteractableDialogs();
+            int count = dialogs.Count;
+            string key = count > 0 ? string.Join("|", dialogs.Select(w => w.GetType().Name)) : "";
+
+            if (count == _lastDialogCount && key == _lastDialogKey) return;
+
+            _lastDialogCount = count;
+            _lastDialogKey = key;
+
+            var json = JsonSerializer.Serialize(new
+            {
+                count,
+                dialogs = dialogs.ConvertAll(w => new { type = w.GetType().Name })
+            });
+            _ = SseTransport.BroadcastEvent("dialog_state", json);
         }
 
         private void StartMcpService()
         {
-            // 先清理上一 Game 实例可能遗留的监听器（RimWorld 返回主菜单时 Game.Dispose 不通知 GameComponent）
             StopMcpService();
 
             try
@@ -110,7 +201,7 @@ namespace RimWorldMCP
                 if (RimWorldMCPMod.Instance != null)
                     McpOssConfig.LoadFromModSettings(RimWorldMCPMod.Instance.Settings);
 
-                // 2. 创建 ToolRegistry + 注册 24 个 Tool
+                // 2. 创建 ToolRegistry + 注册 Tool
                 var toolRegistry = new ToolRegistry();
                 RegisterAllTools(toolRegistry, skillRegistry);
 
@@ -121,17 +212,17 @@ namespace RimWorldMCP
                         $"skill://{skill.Name}", skill.Name, skill.Description);
                 }
 
-                // 4. 创建 Transport（SSE + Streamable HTTP）
+                // 4. 创建 Transport
                 var host = RimWorldMCPMod.Instance?.Settings?.McpHost ?? DefaultHost;
                 var port = RimWorldMCPMod.Instance?.Settings?.McpPort ?? DefaultPort;
                 var transport = new SseTransport(port, host);
 
-                // 5. 创建 McpServer + 注入 /mcp 同步处理器
+                // 5. 创建 McpServer + 注入 /mcp 处理器
                 var server = new McpServer(transport, toolRegistry);
                 ((SseTransport)transport).SetMcpHandler(rawJson =>
                     server.ProcessMessageSync(rawJson));
 
-                // 6. 启动 Transport（成功后才赋值 _transport，确保失败时下次可重试）
+                // 6. 启动 Transport
                 _cts = new CancellationTokenSource();
                 transport.StartAsync(_cts.Token);
 
@@ -139,15 +230,9 @@ namespace RimWorldMCP
                 s_activeTransport = transport;
 
                 McpLog.Info($"MCP 服务已启动: http://{host}:{port}, 传输: http");
-
-                McpLog.Info($"[session] ID = {_sessionId}");
-
-                // 启动桥接器
-                _ = BridgeLifecycle.StartAsync(_sessionId);
             }
             catch (Exception ex)
             {
-                // 启动失败时清理 _cts，_transport 保持 null 以便下次重试
                 if (_cts != null)
                 {
                     try { _cts.Cancel(); _cts.Dispose(); } catch { }
@@ -176,9 +261,6 @@ namespace RimWorldMCP
                 try { _cts.Cancel(); _cts.Dispose(); } catch { }
                 _cts = null;
             }
-
-            TodoManager.Clear();
-            BridgeLifecycle.Stop();
         }
 
         private static void RegisterAllTools(ToolRegistry registry, SkillRegistry skillRegistry)
@@ -212,7 +294,6 @@ namespace RimWorldMCP
         {
             try
             {
-                // 首选：通过 Mod.Content.RootDir 定位（最可靠，不依赖 Assembly.Location）
                 var modRoot = TryGetModRootDir();
                 if (modRoot != null)
                 {
@@ -222,7 +303,6 @@ namespace RimWorldMCP
                         return skillsDir;
                 }
 
-                // 备选：Assembly.Location 向上两级（仅当 Assembly 从磁盘加载时可用）
                 var asmPath = typeof(GameComponent_McpServer).Assembly.Location;
                 if (!string.IsNullOrEmpty(asmPath))
                 {
@@ -242,7 +322,6 @@ namespace RimWorldMCP
                 McpLog.Warn($"[skills] 查找 Skills 目录异常: {ex.Message}");
             }
 
-            // 最终后备
             var fallback = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
             McpLog.Info($"[skills] 后备 Skills 路径 = {fallback} (Exists={Directory.Exists(fallback)})");
             if (Directory.Exists(fallback)) return fallback;
@@ -261,20 +340,5 @@ namespace RimWorldMCP
             catch { }
             return null;
         }
-
-        /// <summary>新游戏/加载后自动打开对话窗口</summary>
-        internal static bool AutoOpenChat;
-
-        private static void AttachMapUI()
-        {
-            var map = Find.CurrentMap;
-            if (map == null) return;
-            // 防止重复添加
-            foreach (var c in map.components)
-                if (c is MapComponent_McpUI) return;
-            map.components.Add(new MapComponent_McpUI(map));
-            AutoOpenChat = true;
-        }
-
     }
 }

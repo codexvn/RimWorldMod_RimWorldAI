@@ -11,20 +11,17 @@ RimWorld 1.6 模组——将游戏状态和操作暴露为 MCP (Model Context Pr
 
 ## 功能
 
-- **100+ 个 MCP Tool**：覆盖通用查询、网格查询、制造管理、建造规划、标记、存储/种植、研究控制、殖民者管理、医疗、战斗、右键操作、搜索、任务管理、区域管理、记忆系统等类别
+- **99 个 MCP Tool**：覆盖通用查询、网格查询、制造管理、建造规划、标记、存储/种植、研究控制、殖民者管理、医疗、战斗、右键操作、搜索、任务管理、区域管理、记忆系统等类别
 - **真实游戏状态查询**：通过 `Find.*`、`DefDatabase<>` 等 RimWorld API 直接读取殖民地数据
 - **反射自动注册**：新增 Tool 只需放在 Tools/ 目录，无需手动注册
 - **分页查询**：列表类工具支持 `page`/`page_size` 参数，避免大段返回导致缓存失效
 - **写操作线程安全**：所有修改操作通过 `McpCommandQueue` 调度到主线程执行
-- **游戏内聊天窗**：双栏布局（对话流 + 工具调用记录 + TODO），流式思考/正文显示，AI 思考中标签，工具执行耗时
-- **Claude Code 桥接**：WebSocket 连接 CC Companion 进程，事件推送（袭击/死亡/负面通知/腐坏告警/空闲兜底/每日早报）+ 自动暂停
-- **Token 预算系统**：按存档限制 Token 消耗，Block/Warn 模式 + Webhook 回调
 - **物品腐坏追踪**：自动监控腐烂/耐久降低物品
 - **OSS 截图上传**：截图自动上传阿里云 OSS，返回图片 URL
-- **任务系统**：查询任务 (`list_quests`)、接受任务 (`accept_quest`)
-- **领域知识 Skill 系统**：11 个领域知识（基地建造、殖民地管理、战斗准备、装备制造/优化、医疗、角色交互、研究、资源物流、贸易、任务管理）
-- **SSE / Streamable HTTP 双传输**
+- **领域知识 Skill 系统**：6 个领域知识（基地建造、殖民地管理、战斗准备、装备制造、医疗、研究）
+- **SSE / Streamable HTTP 双传输**：兼容 Claude Desktop、VS Code 等 MCP 客户端
 - **简体中文**：工具名称内置中文翻译
+- **游戏事件 SSE 推送**：为配套 Agent Mod 提供实时事件流（通知/腐坏/弹框/TODO/advance_tick）
 
 ## Tool 清单
 
@@ -111,8 +108,6 @@ RimWorld 1.6 模组——将游戏状态和操作暴露为 MCP (Model Context Pr
 | | `move_camera` | 移动视角到指定坐标 |
 | 弹框 | `get_open_dialogs` | 当前弹框列表 |
 | | `select_dialog_option` | 选择弹框选项 |
-| 任务 | `list_quests` | 任务列表（分页，按状态过滤） |
-| | `accept_quest` | 接受任务 |
 | 区域管理 | `set_bed_owner_type` | 设置床位类型 |
 | | `set_temp_control` | 设置温度控制 |
 | Skill | `get_skills` | 列出可用领域知识 |
@@ -125,10 +120,6 @@ RimWorld 1.6 模组——将游戏状态和操作暴露为 MCP (Model Context Pr
 | 反馈 | `submit_feedback` | 提交反馈 |
 | 腐坏追踪 | `get_deteriorating_items` | 腐坏物品清单 |
 | 地图 | `regenerate_map` | 重新生成地图 |
-| 记忆 | `add_memory` | 添加记忆（JSON 持久化） |
-| | `list_memories` | 列出所有记忆 |
-| | `delete_memory` | 删除记忆 |
-| | `update_memory` | 更新记忆优先级/内容 |
 
 ## Claude Desktop 配置
 
@@ -179,21 +170,23 @@ RimWorldMCP/
 ├── RimWorldMCPMod.cs                  # Mod 入口，管理设置窗口
 ├── GameComponent_McpServer.cs         # GameComponent，管理 MCP 服务生命周期
 ├── McpCommandQueue.cs                 # 线程安全命令队列
-├── Transport/                         # 传输层 (SSE, Streamable HTTP)
+├── Transport/                         # 传输层 (SSE, Streamable HTTP, Stdio)
 ├── Mcp/                               # MCP 协议层 (JSON-RPC 调度)
-├── Tools/                             # 100+ 个 Tool 实现 + 注册表 + MemoryManager
-├── Bridge/                            # CC 桥接（生命周期/WS/事件/Token 追踪）
-├── Skills/                            # 11 个领域知识 .md + 加载器
-├── UI/                                # 游戏内聊天窗（双栏布局、流式显示）
+├── Tools/                             # 99 个 Tool 实现 + 注册表
+├── Bridge/                            # 游戏上下文构建 + MCP 内部状态
+├── Skills/                            # 6 个领域知识 .md + 加载器
+├── Harmony/                           # Harmony 补丁（事件拦截 → NotificationBus → SSE）
 ├── McpModSettings.cs                  # Mod 设置
 ├── McpLog.cs                          # 统一日志
 ├── McpOssUploader.cs                  # 阿里云 OSS 上传
-├── cc-companion/                      # CC Companion (TypeScript, tsx 运行时)
 ├── publish/Languages/                 # 简体中文工具名称翻译
-├── publish/cc-companion/              # Companion 源码副本
 └── About/                             # Mod 元数据
 ```
 
 - **net472 Library**：与 RimWorld Unity 运行时一致
 - **NuGet 依赖**：`System.Text.Json` 8.0.5 + Aliyun OSS SDK
 - **引用 Assembly-CSharp**：Tool 直接调用 `Find.*`、`DefDatabase<>` 等游戏 API
+
+## 配套 Mod
+
+[RimWorldAgent](https://github.com/codexvn/RimWorldAgent) — AI 智能助手桥接，通过本 Mod 的 MCP 协议接收游戏事件、驱动 Claude Code 操控 RimWorld。提供游戏内聊天窗、Token 预算追踪、事件驱动自动暂停等功能。

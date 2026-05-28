@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using RimWorld;
 using RimWorldMCP.Harmony;
+using RimWorldMCP.Transport;
 using Verse;
 
 namespace RimWorldMCP.Tools
@@ -44,6 +45,7 @@ namespace RimWorldMCP.Tools
                 cancelled = new List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed)>(_pending.Values);
                 _pending.Clear();
             }
+            _ = SseTransport.BroadcastEvent("advance_tick_complete", "{\"cancelled\":true}");
             var tm = Find.TickManager;
             // 恢复到最早保存的速度，没有则用 3 倍速
             var restoreSpeed = cancelled.Count > 0 ? cancelled[0].savedSpeed : TimeSpeed.Superfast;
@@ -110,11 +112,13 @@ namespace RimWorldMCP.Tools
 
                 if (playerPaused)
                 {
+                    _ = SseTransport.BroadcastEvent("advance_tick_complete", "{\"cancelled\":true}");
                     foreach (var (_, tcs, _) in completed)
                         tcs.TrySetResult(ToolResult.Success("advance_tick 已被中断（玩家暂停），已恢复原速度。"));
                 }
                 else if (highDanger)
                 {
+                    _ = SseTransport.BroadcastEvent("advance_tick_complete", "{\"cancelled\":true}");
                     var dangerList = NotificationBus.Drain();
                     var sb = new StringBuilder();
                     sb.AppendLine("## 紧急事件！advance_tick 提前退出");
@@ -126,6 +130,7 @@ namespace RimWorldMCP.Tools
                 }
                 else
                 {
+                    _ = SseTransport.BroadcastEvent("advance_tick_complete", "{\"cancelled\":false}");
                     var status = BuildGameStatus();
                     foreach (var (_, tcs, _) in completed)
                         tcs.TrySetResult(ToolResult.Success(status));
@@ -224,6 +229,7 @@ namespace RimWorldMCP.Tools
                 var savedSpeed = tm.CurTimeSpeed;
                 lock (_lock) { _pending[target] = (tcs, savedSpeed); }
                 tm.CurTimeSpeed = TimeSpeed.Ultrafast;
+                _ = SseTransport.BroadcastEvent("advance_tick_active", "{}");
                 return null!;
             });
 

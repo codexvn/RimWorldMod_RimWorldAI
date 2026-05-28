@@ -69,7 +69,7 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref CCBAuthToken, "ccbAuthToken", "");
             Scribe_Values.Look(ref CCBAutoStart, "ccbAutoStart", true);
             Scribe_Values.Look(ref CCBModelName, "ccbModelName", "");
-            var defaultProjectSettingsJson = BridgeLifecycle.BuildMcpJson(9877);
+            var defaultProjectSettingsJson = McpUtils.BuildMcpJson(9877);
             Scribe_Values.Look(ref CCBProjectSettingsJson, "ccbProjectSettingsJson", defaultProjectSettingsJson);
             Scribe_Values.Look(ref AutoMoveCamera, "autoMoveCamera", true);
             Scribe_Values.Look(ref AutoTrackColonists, "autoTrackColonists", true);
