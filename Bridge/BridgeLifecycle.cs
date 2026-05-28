@@ -532,7 +532,7 @@ namespace RimWorldMCP
             }
 
             // === 可用技能 ===
-            var skills = GameComponent_McpServer.s_skillRegistry?.GetAll();
+            var skills = McpServiceManager.SkillRegistry?.GetAll();
             if (skills != null && skills.Count > 0)
             {
                 sb.AppendLine("### 可用领域技能");

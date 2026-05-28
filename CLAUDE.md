@@ -16,7 +16,8 @@ RimWorldMCP/
 ├── RimWorldMCPMod.cs                      # Mod 入口：Mod 子类，管理设置窗口与生命周期
 ├── McpModSettings.cs                      # Mod 设置数据模型（日志/监听/桥接器/OSS）
 ├── McpLog.cs                              # 统一日志（按级别过滤，输出到 Verse.Log）
-├── GameComponent_McpServer.cs             # GameComponent 子类，管理 MCP 服务生命周期
+├── GameComponent_McpServer.cs             # GameComponent 子类，管理桥接器与会话生命周期
+│   ├── McpServiceManager.cs               # MCP 服务全局单例（主菜单即启动，跨存档持续运行）
 ├── McpCommandQueue.cs                     # 线程安全命令队列（ConcurrentQueue + TaskCompletionSource）
 ├── Transport/                             # 传输层
 │   ├── ITransport.cs                      # 抽象接口
@@ -65,7 +66,7 @@ RimWorldMCP/
 
 - **net472 Library**：与 RimWorld Unity 运行时一致，`OutputType=Library`
 - **引用 Assembly-CSharp.dll**：Tool 直接调用游戏 API（`Find.*`、`DefDatabase<>`、`PawnsFinder` 等）
-- **GameComponent 入口**：反射自动发现，`StartedNewGame()` / `LoadedGame()` 时启动 HttpListener；`ExposeData()` 持久化 sessionId 到存档，按存档隔离 CC session 数据
+- **McpServiceManager 入口**：`[StaticConstructorOnStartup]` 时启动，Def 加载完毕后创建 Transport + McpServer 并在主菜单即监听端口，跨存档持续运行。`GameComponent_McpServer` 仅管理 Bridge 与会话生命周期：`StartedNewGame()` / `LoadedGame()` 时启动桥接器，`Game.Dispose()` 时停止桥接器；`ExposeData()` 持久化 sessionId 到存档
 - **线程安全**：只读 Tool 在 HttpListener 线程直接执行；写操作 Tool 通过 `McpCommandQueue` 调度到主线程
 - **NuGet**: 仅 `System.Text.Json` 8.0.5（JSON 序列化）
 - **输出**: `publish/1.6/Assemblies/RimWorldMCP.dll`
@@ -87,12 +88,7 @@ RimWorld 的 `IntVec3(x, y, z)` 字段含义：
 
 ### 端口清理机制
 
-RimWorld 返回主菜单时 `Game.Dispose()` 不通知 GameComponent，导致上一 Game 实例的 HttpListener（http.sys 内核级 URL 注册）残留。
-
-- `GameComponent_McpServer.StopMcpService()` — 启动前调用，停止当前实例及静态残留的传输层，同时调用 `BridgeLifecycle.Stop()` 杀旧 companion 进程
-- `s_activeTransport` — 静态字段跨 Game 实例追踪活跃监听器
-- `HttpListenerException` 错误码中文诊断（5=拒绝访问, 183=端口占用）
-- `_transport` 在 `StartAsync()` 成功后才赋值，失败保持 null 允许下次重试
+`McpServiceManager` 全局单例管理唯一传输层实例。通过 `[StaticConstructorOnStartup]` 在 Def 加载后立即启动，跨存档持续运行。`McpServiceManager.Start()` 幂等（`IsRunning` 检查）。端口变更需重启 RimWorld 生效。
 
 ### 进程生命周期
 

@@ -14,6 +14,12 @@ namespace RimWorldMCP.Harmony
             var harmony = new HarmonyLib.Harmony("com.rimworldmcp.notification");
             harmony.PatchAll(typeof(Hook_Notification).Assembly);
             McpLog.Info("Harmony notification patches installed.");
+
+            // 在 Def 加载完毕后启动 MCP 服务（主菜单即可用）
+            LongEventHandler.ExecuteWhenFinished(() =>
+            {
+                McpServiceManager.Start();
+            });
         }
 
         // ========== Letter 拦截 ==========
