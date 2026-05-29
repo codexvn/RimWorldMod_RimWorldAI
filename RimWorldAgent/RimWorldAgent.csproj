@@ -42,7 +42,6 @@
     <Reference Include="System.Net.Http" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <ProjectReference Include="..\SimpleMspServer\SimpleMspServer.csproj" />
-    <ProjectReference Include="..\RimWorldMCP\RimWorldMCP.csproj" />
   </ItemGroup>
 
   <!-- 构建前清空根 publish -->
