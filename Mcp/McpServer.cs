@@ -109,7 +109,7 @@ namespace RimWorldMCP.Mcp
                     return null;
 
                 case "tools/list":
-                    return HandleToolsList(request.Id, request.Params);
+                    return HandleToolsList(request.Id);
 
                 case "tools/call":
                     return await HandleToolsCallAsync(request);
@@ -168,11 +168,8 @@ namespace RimWorldMCP.Mcp
 
         private JsonRpcResponse HandleToolsList(JsonElement? id, JsonElement? prms = null)
         {
-            string? agent = null;
-            if (prms != null && prms.Value.TryGetProperty("agent", out var jAgent))
-                agent = jAgent.GetString();
-            var tools = _toolRegistry.GetDefinitions(agent);
-            McpLog.Info($"[mcp] tools/list: 返回 {tools.Count} 个工具 (agent={agent ?? "all"})");
+            var tools = _toolRegistry.GetDefinitions();
+            McpLog.Info($"[mcp] tools/list: 返回 {tools.Count} 个工具");
             return JsonRpcResponse.Success(id!.Value, new { tools });
         }
 

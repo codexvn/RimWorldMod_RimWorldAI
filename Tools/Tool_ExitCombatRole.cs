@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Threading.Tasks;
-using RimWorldMCP.AgentRuntime;
 using Verse;
 
 namespace RimWorldMCP.Tools
@@ -9,11 +8,10 @@ namespace RimWorldMCP.Tools
     /// Combat Agent 主动退出战斗角色，触发收尾流程。
     /// 由 AI 自主调用，不是 Runtime 替它判断战斗是否结束。
     /// </summary>
-    public class Tool_ExitCombatRole : ITool, IHasAgentAffinity
+    public class Tool_ExitCombatRole : ITool
     {
         public string Name => "exit_combat_role";
         public string Description => "退出战斗指挥官角色，恢复游戏速度，结束当前 Combat session。确保已处理完伤员和俘虏后再调用。";
-        public AgentAffinity AgentAffinity => AgentAffinity.Combat;
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
