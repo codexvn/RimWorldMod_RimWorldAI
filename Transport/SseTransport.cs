@@ -16,6 +16,10 @@ namespace RimWorldMCP.Transport
         private readonly string _prefixHost; // http.sys 实际绑定的 host
         private HttpListener? _listener;
         private readonly ConcurrentDictionary<string, SseSession> _sessions = new();
+        // Agent SSE 会话（区分普通 MCP 客户端）
+        private readonly ConcurrentDictionary<string, SseSession> _agentSessions = new();
+        /// <summary>全局单例，供 NotificationBus 推送事件到 Agent SSE 订阅者</summary>
+        public static SseTransport? Instance { get; private set; }
         // /mcp 端点专用同步处理器（绕过 OnMessage→SendAsync 事件通道，避免 SSE 串台）
         private Func<string, string>? _mcpHandler;
 
@@ -28,11 +32,21 @@ namespace RimWorldMCP.Transport
             _mcpHandler = handler;
         }
 
+        /// <summary>推送游戏事件到所有 Agent SSE 订阅者（fire-and-forget）</summary>
+        public void PushToAgents(string jsonData)
+        {
+            foreach (var kv in _agentSessions)
+            {
+                _ = kv.Value.SendEventAsync("gameEvent", jsonData);
+            }
+        }
+
         public SseTransport(int port = 9877, string host = "0.0.0.0")
         {
             _port = port;
             _host = host;
             _prefixHost = host == "0.0.0.0" ? "+" : host;
+            Instance = this;
         }
 
         public Task StartAsync(CancellationToken ct)
@@ -169,17 +183,36 @@ namespace RimWorldMCP.Transport
             var response = context.Response;
             var sessionId = Guid.NewGuid().ToString("N");
 
+            // 检测 Agent SSE 订阅（?agent=overseer）
+            var isAgent = false;
+            var query = context.Request.Url?.Query ?? "";
+            if (query.Contains("agent="))
+            {
+                isAgent = true;
+                var pi = query.IndexOf("agent=") + 6;
+                var end = query.IndexOf('&', pi);
+                var agent = end > 0 ? query.Substring(pi, end - pi) : query.Substring(pi);
+                sessionId = $"agent-{agent}-{sessionId}";
+            }
+
             response.ContentType = "text/event-stream";
             response.Headers.Add("Cache-Control", "no-cache");
             response.Headers.Add("Connection", "keep-alive");
 
             var session = new SseSession(sessionId, response);
-            _sessions[sessionId] = session;
-            Log($"SSE 客户端连接: {sessionId}");
-
-            // MCP SSE 规范: 第一个事件必须是 endpoint，告知客户端 POST 地址
-            await session.SendEventAsync("endpoint", "/message");
-            await session.SendEventAsync("connected", $"{{\"sessionId\":\"{sessionId}\"}}");
+            if (isAgent)
+            {
+                _agentSessions[sessionId] = session;
+                Log($"Agent SSE 连接: {sessionId}");
+                await session.SendEventAsync("connected", $"{{\"sessionId\":\"{sessionId}\",\"agent\":true}}");
+            }
+            else
+            {
+                _sessions[sessionId] = session;
+                Log($"SSE 客户端连接: {sessionId}");
+                await session.SendEventAsync("endpoint", "/message");
+                await session.SendEventAsync("connected", $"{{\"sessionId\":\"{sessionId}\"}}");
+            }
 
             try
             {
@@ -187,9 +220,10 @@ namespace RimWorldMCP.Transport
             }
             finally
             {
-                _sessions.TryRemove(sessionId, out _);
+                if (isAgent) _agentSessions.TryRemove(sessionId, out _);
+                else _sessions.TryRemove(sessionId, out _);
                 session.Dispose();
-                Log($"SSE 客户端断开: {sessionId}");
+                Log($"SSE {(isAgent ? "Agent " : "")}断开: {sessionId}");
             }
         }
 
