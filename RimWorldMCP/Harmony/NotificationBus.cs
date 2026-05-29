@@ -101,7 +101,7 @@ namespace RimWorldMCP.Harmony
                         evt.Summary,
                         evt.Tick
                     });
-                    SimpleMspServer.McpServiceHost.Instance?.PostEvent(sseJson);
+                    SimpleMspServer.McpServiceHost.Instance?.SendEvent(sseJson);
                 }
                 catch { /* SSE 推送失败不影响主流程 */ }
             }
