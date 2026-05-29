@@ -20,7 +20,7 @@ namespace SimpleMspServer.Tests.Cli
             Console.WriteLine($"SimpleMCP Demo Server");
             Console.WriteLine($"端口: {port}");
             Console.WriteLine($"MCP 端点: http://localhost:{port}/mcp");
-            Console.WriteLine($"健康检查: http://localhost:{port}/health");
+            Console.WriteLine($"SSE: curl -N -H \"Mcp-Session-Id: <sid>\" http://localhost:{port}/mcp");
             Console.WriteLine($"按 Ctrl+C 退出");
             Console.WriteLine();
 
@@ -29,11 +29,30 @@ namespace SimpleMspServer.Tests.Cli
             host.RegisterProvider(new DemoProvider());
             host.Start();
 
+            // 每 5 秒推送测试事件
+            int counter = 0;
+            var timer = new System.Threading.Timer(_ =>
+            {
+                counter++;
+                var now = DateTime.Now.ToString("HH:mm:ss");
+                var json = JsonSerializer.Serialize(new
+                {
+                    type = "event",
+                    category = "Test",
+                    severity = "Info",
+                    summary = $"测试事件 #{counter}",
+                    time = now
+                });
+                host.SendEvent(json);
+                Console.WriteLine($"  [event] 已发送 #{counter} ({now})");
+            }, null, 5000, 5000);
+
             // 阻塞主线程直到 Ctrl+C
             var done = new System.Threading.ManualResetEventSlim(false);
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; done.Set(); };
             done.Wait();
 
+            timer.Dispose();
             Console.WriteLine("\n正在停止...");
             host.Stop();
             Console.WriteLine("已退出。");
