@@ -55,7 +55,8 @@ namespace RimWorldAgent
 
             // Agent MCP Server — 暴露内部 Tool 给 CCB（端口从设置读取）
             var agentMcpPort = settings?.AgentMcpPort ?? 9878;
-            _agentHost = new SimpleMspServer.McpServiceHost(agentMcpPort);
+            _agentHost = new SimpleMspServer.McpServiceHost(agentMcpPort, "0.0.0.0",
+                    new SimpleMspServer.DelegateMspLog(Verse.Log.Message));
             _agentHost.RegisterProvider(InternalToolRegistry.Instance);
             _agentHost.Start();
             Log.Message($"[agent-mod] AgentMcpServer :{agentMcpPort} 启动");
@@ -93,6 +94,15 @@ namespace RimWorldAgent
             else Log.Warning("[agent-mod] CCB WebSocket 连接失败，事件转发不可用");
 
             _mcp = new McpClient($"http://localhost:{mcpPort}");
+            _mcp.OnGameEvent += evt =>
+            {
+                if (evt.Severity == "Critical" && evt.Category == "Combat")
+                    AgentOrchestrator.DispatchEvent(evt, EventRoute.Combat);
+                else if (evt.Severity != "Critical")
+                    AgentOrchestrator.DispatchEvent(evt, EventRoute.Overseer);
+            };
+            _mcp.StartSse();
+
             _ctx = new ContextBuilder(_mcp);
             _lastTick = 0;
             Log.Message("[agent-mod] Agent Runtime 初始化完成");
@@ -127,12 +137,14 @@ namespace RimWorldAgent
 
             try
             {
+                // 1. 获取世界状态
                 var summary = await _mcp.CallTool("get_world_summary");
                 var input = ParseToSchedulerInput(summary);
                 Scheduler.Tick(input);
                 AgentOrchestrator.GameDay = input.CurrentTick / 60000;
+
             }
-            catch { return; }
+            catch { /* 轮询失败不影响主循环，下次重试 */ }
 
             var currentTick = Environment.TickCount;
             foreach (var config in AgentConfigs.All)
@@ -187,8 +199,6 @@ namespace RimWorldAgent
                 _ccbWs.OnResult -= OnSessionResult;
                 _ccbWs.OnToolUse -= OnSessionToolUse;
             }
-            var timeout = Task.Delay(config.Name == "combat" ? 300000 : 120000);
-            await Task.WhenAny(tcs.Task, timeout);
 
             try { MemoryManager.Append(config.Name, new MemoryEntry { Day = AgentOrchestrator.GameDay, Insight = $"Load={Scheduler.LoadScore}({Scheduler.Mode})", Type = "session" }); } catch { }
         }

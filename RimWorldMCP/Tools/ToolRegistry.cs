@@ -14,6 +14,7 @@ namespace RimWorldMCP.Tools
     {
         string SimpleMspServer.Mcp.IToolProvider.ProviderName => "RimWorldMCP";
         private readonly Dictionary<string, ITool> _tools = new();
+        public IReadOnlyDictionary<string, ITool> AllTools => _tools;
         private readonly List<ResourceDefinition> _resources = new();
 
         /// <summary>自动扫描：支持 GetTargetRange 返回非 null 坐标的工具名称集合</summary>

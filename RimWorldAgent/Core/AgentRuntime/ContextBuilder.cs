@@ -27,7 +27,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             sb.AppendLine(await BuildWorldSummaryAsync());
             sb.AppendLine();
 
-            // Layer 4: Active Alerts (drain event queue)
+            // Layer 4: Active Alerts (from AgentOrchestrator, populated by main loop drain_game_events)
             var alerts = AgentOrchestrator.DrainEvents(config.Name);
             sb.AppendLine(string.IsNullOrEmpty(alerts) ? "## 最近事件\n（无）\n" : alerts);
             sb.AppendLine();

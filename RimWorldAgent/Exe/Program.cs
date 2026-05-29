@@ -43,12 +43,22 @@ namespace RimWorldAgent
             InternalToolRegistry.Instance.InitializeSkillTools();
 
             // Agent MCP Server (:9878) — 暴露内部 Tool 给 CCB
-            var agentHost = new SimpleMspServer.McpServiceHost(9878);
+            var agentHost = new SimpleMspServer.McpServiceHost(9878, "0.0.0.0",
+                    new SimpleMspServer.DelegateMspLog(Console.WriteLine));
             agentHost.RegisterProvider(InternalToolRegistry.Instance);
             agentHost.Start();
             Console.WriteLine("  AgentMCP: :9878 (内部 Tool + Skills)");
 
             using var mcp = new McpClient(mcpUrl);
+            mcp.OnGameEvent += evt =>
+            {
+                if (evt.Severity == "Critical" && evt.Category == "Combat")
+                    AgentOrchestrator.DispatchEvent(evt, EventRoute.Combat);
+                else if (evt.Severity != "Critical")
+                    AgentOrchestrator.DispatchEvent(evt, EventRoute.Overseer);
+            };
+            mcp.StartSse();
+
             var ctx = new ContextBuilder(mcp);
             var loopInterval = TimeSpan.FromSeconds(10);
 
@@ -63,7 +73,6 @@ namespace RimWorldAgent
                     try
                     {
                         var summary = await mcp.CallTool("get_world_summary");
-                        // 从 get_world_summary 输出中解析基本数据（简单实现，后续可改为结构化）
                         var input = ParseSummaryToInput(summary);
                         Scheduler.Tick(input);
                         AgentOrchestrator.GameDay = input.CurrentTick / 60000;

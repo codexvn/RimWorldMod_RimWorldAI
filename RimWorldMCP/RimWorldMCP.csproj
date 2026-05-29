@@ -52,7 +52,9 @@
     </Reference>
     <PackageReference Include="Aliyun.OSS.SDK" Version="2.14.*" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <Reference Include="System.ValueTuple" HintPath="$(MSBuildProjectDirectory)\System.ValueTuple.dll">
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
