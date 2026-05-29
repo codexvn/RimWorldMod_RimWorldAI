@@ -5,27 +5,13 @@
   <packageId>codexvn.rimworld.agent</packageId>
   <description>
 AI Colony Runtime — 多 Agent 自主管理殖民地。
-
-包含 Overseer（总督）、Economy（生产经理）、Combat（战斗指挥）、Medic（医疗官）四个 SubAgent，
-通过 MCP 协议连接 RimWorld MCP 服务，自主决策管理殖民地一切事务。
-
-支持两种运行模式：
-- EXE：独立进程，连接 MCP 服务器
-- MOD：游戏内加载，嵌入 RimWorld 运行
-
-依赖：需要同时订阅 RimWorld MCP Mod。
+包含 Overseer/Economy/Combat/Medic。
+支持 EXE 独立运行和 MOD 游戏内加载。
+依赖 RimWorld MCP Mod。
   </description>
-  <supportedVersions>
-    <li>1.6</li>
-  </supportedVersions>
+  <supportedVersions><li>1.6</li></supportedVersions>
   <modDependencies>
-    <li>
-      <packageId>brrainz.harmony</packageId>
-      <displayName>Harmony</displayName>
-    </li>
-    <li>
-      <packageId>codexvn.rimworld.mcp</packageId>
-      <displayName>RimWorld MCP</displayName>
-    </li>
+    <li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName></li>
+    <li><packageId>codexvn.rimworld.mcp</packageId><displayName>RimWorld MCP</displayName></li>
   </modDependencies>
 </ModMetaData>

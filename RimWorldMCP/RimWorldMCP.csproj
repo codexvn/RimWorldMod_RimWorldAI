@@ -63,6 +63,10 @@
     <Content Include="publish\cc-companion\.claude\settings.local.json" />
   </ItemGroup>
 
+  <Target Name="CleanPublish" BeforeTargets="BeforeBuild">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\publish" ContinueOnError="true" />
+  </Target>
+
   <!-- 构建后删掉 pdb -->
   <Target Name="DeletePdb" AfterTargets="Build">
     <Delete Files="$(OutputPath)$(AssemblyName).pdb" />

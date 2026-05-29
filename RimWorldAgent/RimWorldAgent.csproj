@@ -45,6 +45,10 @@
     <ProjectReference Include="..\RimWorldMCP\RimWorldMCP.csproj" />
   </ItemGroup>
 
+  <Target Name="CleanPublish" BeforeTargets="BeforeBuild">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\publish" ContinueOnError="true" />
+  </Target>
+
   <Target Name="CopyAbout" AfterTargets="Build">
     <Copy SourceFiles="$(MSBuildProjectDirectory)\About\About.xml"
           DestinationFolder="$(MSBuildProjectDirectory)\publish\About\" />
