@@ -12,12 +12,6 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <OutputPath>publish\</OutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <OutputPath>publish\</OutputPath>
-  </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="System.Net.Http" />
