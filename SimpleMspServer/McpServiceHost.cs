@@ -172,7 +172,7 @@ namespace SimpleMspServer
                 ms.Position = 0;
                 using var sr = new StreamReader(ms);
                 var raw = await sr.ReadToEndAsync();
-                Write(res, ExtractDataLine(raw), "application/json");
+                Write(res, raw, "text/event-stream");
             }
             else { res.StatusCode = 202; res.Close(); }
         }
@@ -202,7 +202,7 @@ namespace SimpleMspServer
 
         // ===== DELETE =====
 
-        private async Task HandleMcpDelete(HttpListenerContext ctx)
+        private Task HandleMcpDelete(HttpListenerContext ctx)
         {
             var sid = ctx.Request.Headers.Get("Mcp-Session-Id");
             if (!string.IsNullOrEmpty(sid) && _sessions.TryRemove(sid, out var session))
@@ -210,6 +210,7 @@ namespace SimpleMspServer
                 _ = DisposeSessionAsync(session, sid);
             }
             ctx.Response.StatusCode = 200; ctx.Response.Close();
+            return Task.CompletedTask;
         }
 
         private async Task DisposeSessionAsync(McpSession session, string sid)
@@ -276,13 +277,6 @@ namespace SimpleMspServer
             res.ContentLength64 = bytes.Length;
             res.OutputStream.Write(bytes, 0, bytes.Length);
             res.Close();
-        }
-
-        private static string ExtractDataLine(string sse)
-        {
-            foreach (var line in sse.Split('\n'))
-            { var t = line.Trim(); if (t.StartsWith("data:")) return t.Substring(5).Trim(); }
-            return sse;
         }
 
         // ===== McpSession =====
