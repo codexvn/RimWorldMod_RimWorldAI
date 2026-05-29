@@ -9,6 +9,7 @@
     <RootNamespace>RimWorldAgent</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <StartupObject>RimWorldAgent.Program</StartupObject>
+    <NoWarn>CS8601;CS8618;CS1998;CS8604</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
