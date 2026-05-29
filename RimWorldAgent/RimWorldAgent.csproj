@@ -50,4 +50,18 @@
           DestinationFolder="$(OutputPath)About\" />
   </Target>
 
+  <Target Name="CopyReadme" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md"
+          DestinationFolder="$(OutputPath)"
+          Condition="Exists('$(MSBuildProjectDirectory)\README.md')" />
+  </Target>
+
+  <Target Name="CopySkills" AfterTargets="Build">
+    <ItemGroup>
+      <SkillFiles Include="$(MSBuildProjectDirectory)\Core\Skills\*.md" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SkillFiles)"
+          DestinationFolder="$(OutputPath)Skills\" />
+  </Target>
+
 </Project>
