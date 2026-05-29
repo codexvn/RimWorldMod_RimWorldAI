@@ -14,15 +14,15 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <OutputPath>..\..\..\publish\RimworkAgent\</OutputPath>
+    <OutputPath>..\..\publish\RimworkAgent\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <OutputPath>..\..\..\publish\RimworkAgent\</OutputPath>
+    <OutputPath>..\..\publish\RimworkAgent\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="System.Net.Http" />
-    <ProjectReference Include="..\..\RimworkAgent.Core\RimworkAgent.Core.csproj" />
+    <ProjectReference Include="..\Core\RimworkAgent.Core.csproj" />
   </ItemGroup>
 
   <Target Name="DeletePdb" AfterTargets="Build">

@@ -11,10 +11,10 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <OutputPath>..\..\..\publish\RimworkAgent\</OutputPath>
+    <OutputPath>..\..\publish\RimworkAgent\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <OutputPath>..\..\..\publish\RimworkAgent\</OutputPath>
+    <OutputPath>..\..\publish\RimworkAgent\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -39,8 +39,8 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="System.Net.Http" />
-    <ProjectReference Include="..\..\..\RimWorldMCP\RimWorldMCP.csproj" />
-    <ProjectReference Include="..\..\RimworkAgent.Core\RimworkAgent.Core.csproj" />
+    <ProjectReference Include="..\..\RimWorldMCP\RimWorldMCP.csproj" />
+    <ProjectReference Include="..\Core\RimworkAgent.Core.csproj" />
   </ItemGroup>
 
 </Project>

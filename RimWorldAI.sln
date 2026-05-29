@@ -9,11 +9,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorldMCP", "RimWorldMCP\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RimworkAgent", "RimworkAgent", "{14B90DE8-EBA3-19EE-306E-DAF79F9B28DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimworkAgent.Core", "RimworkAgent\RimworkAgent.Core\RimworkAgent.Core.csproj", "{8AD56ECF-E839-450C-AFDB-B62B91994C7F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimworkAgent.Core", "RimworkAgent\Core\RimworkAgent.Core.csproj", "{8AD56ECF-E839-450C-AFDB-B62B91994C7F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimworkAgent", "RimworkAgent\Loader\Exe\RimworkAgent.csproj", "{4F09CA08-DAB2-4948-BBBD-DF60F6390EC9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimworkAgent", "RimworkAgent\Exe\RimworkAgent.csproj", "{4F09CA08-DAB2-4948-BBBD-DF60F6390EC9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimworkAgent.Mod", "RimworkAgent\Loader\Mod\RimworkAgent.Mod.csproj", "{28ACB133-7179-4FD3-AA86-28A0308651EB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimworkAgent.Mod", "RimworkAgent\Mod\RimworkAgent.Mod.csproj", "{28ACB133-7179-4FD3-AA86-28A0308651EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
