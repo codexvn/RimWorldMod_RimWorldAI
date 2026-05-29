@@ -27,3 +27,12 @@ dotnet build RimWorldAI.sln
 ```
 
 发布到 `publish/RimWorldMCP/` 和 `publish/RimWorldAgent/`。
+
+## 链接到游戏 Mod 目录
+
+以管理员权限运行：
+
+```cmd
+mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderProjects\RimWorldMCP\publish\RimWorldMCP
+mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldAgent F:\RiderProjects\RimWorldMCP\publish\RimWorldAgent
+```
