@@ -12,6 +12,13 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>..\publish\SimpleMspServer\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>..\publish\SimpleMspServer\</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <Reference Include="System.Net.Http" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />

@@ -11,10 +11,10 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <OutputPath>..\..\publish\RimWorldMCP\</OutputPath>
+    <OutputPath>..\publish\RimWorldMCP\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <OutputPath>..\..\publish\RimWorldMCP\</OutputPath>
+    <OutputPath>..\publish\RimWorldMCP\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
