@@ -63,8 +63,8 @@
           DestinationFolder="..\publish\RimWorldAgent\Skills\" />
   </Target>
   <Target Name="CopyReadme" AfterTargets="Build">
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\README.md"
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md"
           DestinationFolder="..\publish\RimWorldAgent\"
-          Condition="Exists('$(MSBuildProjectDirectory)\resource\README.md')" />
+          Condition="Exists('$(MSBuildProjectDirectory)\README.md')" />
   </Target>
 </Project>

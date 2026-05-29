@@ -81,7 +81,7 @@
           DestinationFolder="..\publish\RimWorldMCP\Languages\%(RecursiveDir)" />
   </Target>
   <Target Name="CopyReadme" AfterTargets="Build">
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\README.md"
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md"
           DestinationFolder="..\publish\RimWorldMCP\" />
   </Target>
 </Project>
