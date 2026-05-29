@@ -1,4 +1,4 @@
-# RimWorld AI
+﻿# RimWorld AI
 
 AI Colony Operating System — 多 Agent 自主管理 RimWorld 殖民地。
 
@@ -18,7 +18,7 @@ RimWorldAI/
 │   ├── Harmony/              事件拦截
 │   └── Transport/            StdioTransport
 │
-└── RimworkAgent/             ← Agent Runtime (net472)
+└── RimWorldAgent/             ← Agent Runtime (net472)
     ├── Core/                 共享库
     │   ├── AgentRuntime/     4 Agent + Scheduler + TaskBoard
     │   ├── Mcp/              MCP 客户端 + Agent MCP Server
@@ -28,7 +28,7 @@ RimWorldAI/
     ├── Loader/Mod/          MOD 启动模式
     └── cc-companion/        Node.js CCB 桥接
 
-三者互不引用：RimWorldMCP ↔ RimworkAgent 仅通过 MCP 协议通信。
+三者互不引用：RimWorldMCP ↔ RimWorldAgent 仅通过 MCP 协议通信。
 SimpleMspServer 被两者共同引用。
 ```
 
