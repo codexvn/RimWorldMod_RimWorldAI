@@ -1,11 +1,23 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using RimWorldMCP.AgentRuntime;
 using Verse;
 
 namespace RimWorldMCP.Harmony
 {
+    /// <summary>事件路由目标（原 AgentOrchestrator.EventRoute，内联至此）</summary>
+    public enum EventRoute { Overseer, Economy, Combat, Medic, All, None }
+
+    /// <summary>统一事件模型（原 AgentRuntime.ColonyEvent，内联至此）</summary>
+    public class ColonyEvent
+    {
+        public string Category { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string Summary { get; set; } = "";
+        public object? Payload { get; set; }
+        public int Tick { get; set; }
+    }
+
     /// <summary>自有警报数据（拷贝，不持游戏对象引用）</summary>
     public class AlertInfo
     {
@@ -28,6 +40,14 @@ namespace RimWorldMCP.Harmony
     {
         // 待推送通知队列
         public static readonly ConcurrentQueue<Notification> Pending = new();
+
+        // Agent 事件队列（按 Agent 名分桶）
+        private static readonly ConcurrentDictionary<string, ConcurrentQueue<ColonyEvent>> AgentQueues = new();
+        static NotificationBus()
+        {
+            foreach (var name in new[] { "overseer", "economy", "combat", "medic" })
+                AgentQueues[name] = new ConcurrentQueue<ColonyEvent>();
+        }
 
         // 自有警报镜像：类型名 → 拷贝的警报数据（不持游戏对象引用）
         private static readonly Dictionary<string, AlertInfo> ActiveAlerts = new();
@@ -68,7 +88,7 @@ namespace RimWorldMCP.Harmony
                     Summary = $"{n.DangerLabel}: {n.Label ?? n.Text ?? ""}",
                     Tick = n.Tick
                 };
-                AgentOrchestrator.DispatchEvent(evt, route);
+                DispatchToAgentQueue(evt, route);
 
                 // 推送到外部 Agent SSE 订阅者（RimworkAgent）
                 try
@@ -262,6 +282,20 @@ namespace RimWorldMCP.Harmony
                 "研究"                              => EventRoute.Overseer,
                 _                                   => EventRoute.Overseer
             };
+        }
+
+        private static void DispatchToAgentQueue(ColonyEvent evt, EventRoute route)
+        {
+            switch (route)
+            {
+                case EventRoute.All:
+                    foreach (var q in AgentQueues.Values) q.Enqueue(evt); break;
+                case EventRoute.None: break;
+                default:
+                    var name = route.ToString().ToLower();
+                    if (AgentQueues.TryGetValue(name, out var tq)) tq.Enqueue(evt);
+                    break;
+            }
         }
 
         private static string MapCategory(NotificationType type, string dangerLabel)

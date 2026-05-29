@@ -43,9 +43,6 @@ namespace RimWorldMCP.Tools
                     tm.CurTimeSpeed = TimeSpeed.Normal;
                 }
 
-                // 通知编排器 Combat 结束
-                AgentOrchestrator.EndAgent("combat");
-
                 var result = "战斗指挥官角色已退出。";
                 if (!string.IsNullOrEmpty(summary))
                     result += $"\n\n战斗总结:\n{summary}";
