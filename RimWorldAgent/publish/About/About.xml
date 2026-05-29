@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>RimWorld Agent</name>
+  <author>codexvn</author>
+  <packageId>codexvn.rimworld.agent</packageId>
+  <description>
+AI Colony Runtime — 多 Agent 自主管理殖民地。
+包含 Overseer/Economy/Combat/Medic。
+支持 EXE 独立运行和 MOD 游戏内加载。
+依赖 RimWorld MCP Mod。
+  </description>
+  <supportedVersions><li>1.6</li></supportedVersions>
+  <modDependencies>
+    <li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName></li>
+    <li><packageId>codexvn.rimworld.mcp</packageId><displayName>RimWorld MCP</displayName></li>
+  </modDependencies>
+</ModMetaData>
