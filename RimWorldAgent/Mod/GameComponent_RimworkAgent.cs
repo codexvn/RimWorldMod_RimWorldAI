@@ -132,7 +132,6 @@ namespace RimWorldAgent
                 var summary = await _mcp.CallTool("get_world_summary");
                 var input = AgentLoop.ParseSchedulerInput(summary);
                 Scheduler.Tick(input);
-                AgentOrchestrator.GameDay = input.CurrentTick / 60000;
             }
             catch (Exception ex)
             {
@@ -140,7 +139,7 @@ namespace RimWorldAgent
                 return;
             }
 
-            var currentTick = Environment.TickCount;
+            var currentTick = AgentOrchestrator.GameTick;
             foreach (var config in AgentConfigs.All)
             {
                 if (config.Name == "combat") continue;
@@ -163,6 +162,19 @@ namespace RimWorldAgent
                     AgentOrchestrator.EndAgent(config.Name);
                     Log.Message($"[agent-mod] {config.Name} 休眠");
                 }
+            }
+
+            // Combat Agent — 事件驱动（L3 Critical 事件唤醒）
+            if (_ccbWs != null && _ccbWs.IsReady
+                && AgentOrchestrator.IsSleeping("combat")
+                && AgentOrchestrator.HasPendingEvents("combat"))
+            {
+                AgentOrchestrator.BeginAgent("combat");
+                Log.Message("[agent-mod] Combat 唤醒");
+                var prompt = await _ctx.BuildAsync(AgentConfigs.Combat);
+                await AgentLoop.RunSessionAsync(AgentConfigs.Combat, prompt, _mcp, _ccbWs);
+                AgentOrchestrator.EndAgent("combat");
+                Log.Message("[agent-mod] Combat 休眠");
             }
         }
 

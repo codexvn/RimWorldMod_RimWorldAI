@@ -30,11 +30,17 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>MCP 游戏事件 → AgentOrchestrator 路由</summary>
         public static void WireEvents(McpClient mcp)
         {
+            // tick 事件 → 更新游戏 tick
+            mcp.OnGameTick += tick => AgentOrchestrator.GameTick = tick;
+
+            // 游戏事件 → 按 Route 精确路由（降级到旧逻辑兜底）
             mcp.OnGameEvent += evt =>
             {
-                if (evt.Severity == "Critical" && evt.Category == "Combat")
+                if (!string.IsNullOrEmpty(evt.Route) && Enum.TryParse<EventRoute>(evt.Route, true, out var route))
+                    AgentOrchestrator.DispatchEvent(evt, route);
+                else if (evt.Severity == "Critical")
                     AgentOrchestrator.DispatchEvent(evt, EventRoute.Combat);
-                else if (evt.Severity != "Critical")
+                else
                     AgentOrchestrator.DispatchEvent(evt, EventRoute.Overseer);
             };
         }

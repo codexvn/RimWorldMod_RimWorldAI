@@ -126,7 +126,7 @@ namespace RimWorldMCP.Tools
                             return true;
                         });
                     }
-                    catch { /* 调度失败不影响工具结果 */ }
+                    catch (Exception ex) { Log.Warning($"[ToolRegistry] 自动追踪事件调度失败: {ex.Message}"); }
 
                     return new ToolCallResult
                     {

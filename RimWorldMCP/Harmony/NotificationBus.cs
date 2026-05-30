@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -99,11 +100,12 @@ namespace RimWorldMCP.Harmony
                         evt.Category,
                         evt.Severity,
                         evt.Summary,
-                        evt.Tick
+                        evt.Tick,
+                        Route = route.ToString()
                     });
-                    SimpleMspServer.McpServiceHost.Instance?.SendEvent(sseJson);
+                    SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/notification", sseJson);
                 }
-                catch { /* SSE 推送失败不影响主流程 */ }
+                catch (Exception ex) { Log.Warning($"[NotificationBus] SSE 推送失败: {ex.Message}"); }
             }
         }
 

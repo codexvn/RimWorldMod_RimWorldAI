@@ -109,7 +109,6 @@ namespace RimWorldAgent
                         var summary = await mcp.CallTool("get_world_summary");
                         var input = AgentLoop.ParseSchedulerInput(summary);
                         Scheduler.Tick(input);
-                        AgentOrchestrator.GameDay = input.CurrentTick / 60000;
                     }
                     catch (Exception ex)
                     {
@@ -119,7 +118,7 @@ namespace RimWorldAgent
                     }
 
                     // 2. 检查每个 Agent
-                    var currentTick = Environment.TickCount;
+                    var currentTick = AgentOrchestrator.GameTick;
                     foreach (var config in AgentConfigs.All)
                     {
                         if (config.Name == "combat") continue;

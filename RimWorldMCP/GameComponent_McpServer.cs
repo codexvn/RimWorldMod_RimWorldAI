@@ -73,9 +73,9 @@ namespace RimWorldMCP
                     speed = speed.ToString(),
                     paused
                 });
-                SimpleMspServer.McpServiceHost.Instance?.SendEvent(json);
+                SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/tick", json);
             }
-            catch { /* 推送失败不影响游戏 */ }
+            catch (Exception ex) { Verse.Log.Warning($"[McpServer] tick 推送失败: {ex.Message}"); }
         }
 
         private void StartMcpSession()

@@ -43,7 +43,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             var path = FilePath(agentName);
             if (!File.Exists(path)) return new AgentMemory { Agent = agentName };
             try { var memory = JsonSerializer.Deserialize<AgentMemory>(File.ReadAllText(path)) ?? new AgentMemory(); _cache[agentName] = memory; return memory; }
-            catch { return new AgentMemory { Agent = agentName }; }
+            catch (Exception ex) { CoreLog.Warn($"[MemoryManager] 加载记忆失败 ({agentName}): {ex.Message}"); return new AgentMemory { Agent = agentName }; }
         }
 
         private static void Save(string agentName, AgentMemory memory)

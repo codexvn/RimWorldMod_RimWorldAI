@@ -42,10 +42,10 @@ namespace SimpleMspServer
 
         public void RegisterProvider(IToolProvider provider) => _providers.Add(provider);
 
-        public void SendEvent(string jsonData)
+        public void SendEvent(string method, string jsonData)
         {
             foreach (var kv in _sessions)
-                _ = kv.Value.SendNotificationAsync("game/event", jsonData);
+                _ = kv.Value.SendNotificationAsync(method, jsonData);
         }
 
         public void Start()

@@ -46,7 +46,7 @@ namespace RimWorldMCP.Tools
             if (!string.IsNullOrEmpty(search))
             {
                 try { searchRegex = new Regex(search, RegexOptions.IgnoreCase); }
-                catch { return ToolResult.Error($"无效正则: {search}"); }
+                catch (Exception ex) { return ToolResult.Error($"无效正则: {search} ({ex.Message})"); }
             }
 
             return await McpCommandQueue.DispatchAsync(() =>

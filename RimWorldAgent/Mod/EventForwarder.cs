@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RimWorld;
+using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.CcbManager;
 using Verse;
 
@@ -308,7 +309,7 @@ namespace RimWorldAgent
                 float avgMood = count > 0 ? colonists.Average(c => c.needs?.mood?.CurLevelPercentage ?? 0.5f) * 100f : 0f;
                 return new { colonistCount = count, avgMood = (int)Math.Round(avgMood), foodDays = CalcFoodDays(map, count), colonyName = Find.World?.info?.name ?? "?" };
             }
-            catch { return null; }
+            catch (Exception ex) { CoreLog.Info($"[EventForwarder] GetColonyStats 失败: {ex.Message}"); return null; }
         }
 
         private static int GetResourceCount(Map map, string defName)

@@ -196,7 +196,7 @@ namespace RimWorldAgent.Core.CcbManager
             var name = proc.ProcessName.ToLowerInvariant();
             if (name != "node" && name != "node.exe") return false;
             try { return (proc.MainModule?.FileName ?? "").IndexOf("node", StringComparison.OrdinalIgnoreCase) >= 0; }
-            catch { CoreLog.Info($"[CcbManager] 无法读取进程模块信息 PID={proc.Id}"); return false; }
+            catch (Exception ex) { CoreLog.Info($"[CcbManager] 无法读取进程模块信息 PID={proc.Id}: {ex.Message}"); return false; }
         }
 
         // ========== Windows JobObject ==========

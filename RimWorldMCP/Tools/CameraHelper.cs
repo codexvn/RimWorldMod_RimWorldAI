@@ -118,6 +118,7 @@ namespace RimWorldMCP.Tools
 
                 _ = MoveToRange(bestCluster.Value.minX, bestCluster.Value.minZ,
                                bestCluster.Value.maxX, bestCluster.Value.maxZ);
+                Messages.Message("AI 视角移动", MessageTypeDefOf.SilentInput, false);
             }
             else
             {
@@ -159,7 +160,7 @@ namespace RimWorldMCP.Tools
                 if (jd != null && JobWeightMap.TryGetValue(jd.defName, out var w)) return w;
                 return 3;
             }
-            catch { return 1; }
+            catch (Exception ex) { Log.Warning($"[CameraHelper] 读取殖民者权重失败: {ex.Message}"); return 1; }
         }
 
         /// <summary>连通分量聚类：距离 ≤ ClusterDistance 的殖民者归为一簇</summary>

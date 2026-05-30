@@ -127,7 +127,7 @@ namespace RimWorldMCP.Tools
                         sb.AppendLine($"- 电力平衡: {surplusLabel}");
                     }
                 }
-                catch (Exception) { sb.AppendLine("- 无法读取电力信息"); }
+                catch (Exception ex) { Log.Warning($"[GetResources] 读取电力信息失败: {ex.Message}"); sb.AppendLine("- 无法读取电力信息"); }
 
                 // 统计
                 sb.AppendLine();

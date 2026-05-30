@@ -260,7 +260,7 @@ namespace RimWorldAgent
                 var firstLine = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
                 return File.Exists(firstLine) ? firstLine : null;
             }
-            catch { return null; }
+            catch (Exception ex) { CoreLog.Info($"[CompanionInstaller] TryFindWithWhere 失败: {ex.Message}"); return null; }
         }
     }
 }

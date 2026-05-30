@@ -18,8 +18,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             ["combat"] = AgentState.Sleeping, ["medic"] = AgentState.Sleeping
         };
 
-        /// <summary>游戏天数计数器，由宿主每帧注入（MOD: Find.TickManager.TicksGame/60000, EXE: 来自MCP get_world_summary）</summary>
-        public static int GameDay { get; set; }
+        /// <summary>真实游戏 TicksGame，由 SSE tick 事件自动更新</summary>
+        public static int GameTick { get; set; }
+
+        /// <summary>游戏天数，从 GameTick 计算</summary>
+        public static int GameDay => GameTick / 60000;
 
         /// <summary>当前活跃角色显示名</summary>
         public static string AgentRoleDisplay
@@ -107,5 +110,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string Summary { get; set; } = "";
         public object? Payload { get; set; }
         public int Tick { get; set; }
+        public string Route { get; set; } = "";
+        public string Method { get; set; } = "";
     }
 }

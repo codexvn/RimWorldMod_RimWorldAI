@@ -24,6 +24,7 @@ namespace RimWorldAgent.Core.Mcp
         private Task<ModelContextProtocol.Client.McpClient>? _connectTask;
 
         public event Action<ColonyEvent>? OnGameEvent;
+        public event Action<int>? OnGameTick;
 
         public McpClient(string baseUrl = "http://localhost:9877")
         {
@@ -111,26 +112,48 @@ namespace RimWorldAgent.Core.Mcp
                     using var stream = await resp.Content.ReadAsStreamAsync();
                     using var reader = new StreamReader(stream);
 
+                    string lastMethod = "";
                     while (!reader.EndOfStream && !ct.IsCancellationRequested)
                     {
                         var line = await reader.ReadLineAsync();
-                        if (string.IsNullOrEmpty(line) || !line.StartsWith("data:")) continue;
+                        if (string.IsNullOrEmpty(line)) continue;
+
+                        // 跟踪 SSE event 行（method 名称）
+                        if (line.StartsWith("event:"))
+                        {
+                            lastMethod = line.Substring(6).Trim();
+                            continue;
+                        }
+                        if (!line.StartsWith("data:")) continue;
+
                         var json = line.Substring(5).Trim();
                         try
                         {
                             var doc = JsonDocument.Parse(json);
                             var root = doc.RootElement;
-                            OnGameEvent?.Invoke(new ColonyEvent
+
+                            if (lastMethod == "game/tick")
                             {
-                                Category = root.TryGetProperty("Category", out var c) ? c.GetString() ?? "" : "",
-                                Severity = root.TryGetProperty("Severity", out var s) ? s.GetString() ?? "" : "",
-                                Summary = root.TryGetProperty("Summary", out var sm) ? sm.GetString() ?? "" : "",
-                                Tick = root.TryGetProperty("Tick", out var t) && t.TryGetInt32(out var tv) ? tv : 0
-                            });
+                                var gameTick = root.TryGetProperty("tick", out var tk) && tk.TryGetInt32(out var tv) ? tv : 0;
+                                if (gameTick > 0) OnGameTick?.Invoke(gameTick);
+                            }
+                            else
+                            {
+                                // game/notification, game/deterioration 等
+                                OnGameEvent?.Invoke(new ColonyEvent
+                                {
+                                    Category = root.TryGetProperty("Category", out var c) ? c.GetString() ?? "" : "",
+                                    Severity = root.TryGetProperty("Severity", out var s) ? s.GetString() ?? "" : "",
+                                    Summary = root.TryGetProperty("Summary", out var sm) ? sm.GetString() ?? "" : "",
+                                    Tick = root.TryGetProperty("Tick", out var t) && t.TryGetInt32(out var ti) ? ti : 0,
+                                    Route = root.TryGetProperty("Route", out var r) ? r.GetString() ?? "" : "",
+                                    Method = lastMethod
+                                });
+                            }
                         }
                         catch (Exception ex)
                         {
-                            CoreLog.Warn($"[McpClient] SSE 消息解析失败: {ex.Message}");
+                            CoreLog.Warn($"[McpClient] SSE 消息解析失败 ({lastMethod}): {ex.Message}");
                         }
                     }
                 }

@@ -195,7 +195,7 @@ namespace RimWorldMCP.Tools
 
                             string prompt;
                             try { prompt = string.IsNullOrEmpty(msgKey) ? "" : msgKey.Translate(label, pawn).CapitalizeFirst(); }
-                            catch { prompt = msgKey; }
+                            catch (Exception ex) { Log.Warning($"[GetOpenDialogs] 翻译弹框文本失败: {ex.Message}"); prompt = msgKey; }
 
                             sb.AppendLine();
                             sb.AppendLine($"## 弹框 [{dialogIdx}] 命名 ({w.GetType().Name})");

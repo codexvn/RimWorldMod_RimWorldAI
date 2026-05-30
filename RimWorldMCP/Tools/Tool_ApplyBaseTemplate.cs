@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Verse;
 
 namespace RimWorldMCP.Tools
 {
@@ -45,7 +46,7 @@ namespace RimWorldMCP.Tools
             if (args.Value.TryGetProperty("options", out var jOpt) && jOpt.ValueKind == JsonValueKind.String)
             {
                 try { options = JsonSerializer.Deserialize<JsonElement>(jOpt.GetString()!); }
-                catch { /* ignore invalid JSON, use defaults */ }
+                catch (Exception ex) { Log.Warning($"[ApplyBaseTemplate] JSON 解析失败: {ex.Message}"); }
             }
 
             return Task.FromResult(templateName switch
