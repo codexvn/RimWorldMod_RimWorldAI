@@ -79,6 +79,17 @@ namespace RimWorldAgent
             listing.CheckboxLabeled("自动运行 Agent", ref Settings.AgentAutoRun,
                 "开启后加载存档时自动启动 Agent Runtime。关闭则需要手动在 EXE 模式运行。");
 
+            // Plan 阶段速度选择（按钮循环）
+            var speedLabels = new[] { "paused (暂停)", "normal (1x)", "fast (2x)", "superfast (3x)", "ultrafast (最快)" };
+            var speedValues = new[] { "paused", "normal", "fast", "superfast", "ultrafast" };
+            var speedIdx = Array.IndexOf(speedValues, Settings.PlanSpeed);
+            if (speedIdx < 0) speedIdx = 0;
+            if (listing.ButtonText($"Plan 阶段速度: {speedLabels[speedIdx]}"))
+            {
+                speedIdx = (speedIdx + 1) % speedValues.Length;
+                Settings.PlanSpeed = speedValues[speedIdx];
+            }
+
             listing.Label("Agent Loop 间隔 (ms)");
             var intervalStr = listing.TextEntry(Settings.LoopIntervalMs.ToString());
             if (int.TryParse(intervalStr, out int interval) && interval >= 1000 && interval <= 60000)

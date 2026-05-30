@@ -53,7 +53,12 @@ HTTP Request (transport 线程)
       → tool.ExecuteAsync(args)             ← dispatch 到主线程
         → 只读: 直接执行
         → 写操作: McpCommandQueue.DispatchAsync() → 主线程排队
+      → result.Text += ToolResultSuffix     ← 追加 Agent 设置的后缀
+      → DrainFormatted()                    ← 清空通知队列
+      → 包装为 ToolCallResult 返回
 ```
+
+**Tool Result Suffix**：Agent 通过 `set_tool_result_suffix` 设置一次性后缀文本，`ToolRegistry.ToolResultSuffix` 是 `volatile string` 字段。下一次工具执行后自动追加到结果末尾并立即清空，实现 Agent → AI 的实时通知注入。详见 `tool-result-suffix.md`。
 
 **设计理由**：摄像头移动到主线程（`CameraDriver` 只能在主线程用），Tool 执行也在主线程（确保线程安全），但 `GetTargetRange` 在 HTTP 线程同步执行（避免主线程阻塞影响帧率）。摄像头移动先于 Tool 执行，让玩家提前看到操作目标。
 

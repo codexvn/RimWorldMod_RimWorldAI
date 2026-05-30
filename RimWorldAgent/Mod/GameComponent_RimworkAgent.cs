@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.CcbManager;
@@ -47,7 +48,6 @@ namespace RimWorldAgent
                 ? Path.Combine(modRoot, settings!.SkillsDir)
                 : Path.GetFullPath(Path.Combine(modRoot, "Skills"));
             InternalToolRegistry.Instance.LoadSkills(skillsDir);
-            InternalToolRegistry.Instance.InitializeSkillTools();
             Log.Message($"[agent-mod] Skills 加载: {skillsDir}");
 
             // Agent MCP Server — 暴露内部 Tool 给 CCB（端口从设置读取）
@@ -92,12 +92,33 @@ namespace RimWorldAgent
             }
             else Log.Warning("[agent-mod] CCB WebSocket 连接失败，事件转发不可用");
 
+            // TODO 变更 → 推送到 Companion
+            TodoManager.OnChanged += () =>
+            {
+                if (_ccbWs?.IsReady == true)
+                {
+                    var items = TodoManager.Query(null);
+                    _ccbWs.SendEvent("todo-state", new
+                    {
+                        todoItems = items.Select(i => new
+                        {
+                            id = i.Id, description = i.Description, priority = i.Priority,
+                            status = i.Status, createdAtTick = i.CreatedAtTick
+                        }).ToArray()
+                    });
+                }
+            };
+
             _mcp = new McpClient($"http://localhost:{mcpPort}");
             AgentLoop.WireEvents(_mcp);
             _mcp.StartSse();
 
+            // 首次连接通知 Companion，触发 Agent 开始工作
+            EventForwarder.SendGameConnected();
+
             // Plan/Act 阶段：L3 危险事件暂停时不自动恢复游戏
             GamePaceController.ShouldSkipResume = () => EventForwarder.DangerPaused;
+            GamePaceController.PlanSpeed = settings?.PlanSpeed ?? "paused";
 
             _ctx = new ContextBuilder(_mcp);
             _lastTick = 0;
@@ -133,24 +154,19 @@ namespace RimWorldAgent
 
             // Scheduler 已由 SSE game/world-state 自动更新，无需 HTTP 轮询
             var currentTick = AgentOrchestrator.GameTick;
-            foreach (var config in AgentConfigs.All)
+
+            // Overseer — 定时唤醒（唯一入口，其他角色由 Overseer 委托）
+            if (AgentOrchestrator.IsSleeping("overseer"))
             {
-                if (config.Name == "combat") continue;
-                if (!AgentOrchestrator.IsSleeping(config.Name)) continue;
-
-                bool shouldWake = false;
-                if (config.IntervalGameHours > 0 && Scheduler.ShouldWake(config.Name, config.IntervalGameHours, currentTick))
-                    shouldWake = true;
-                if (config.TriggerDaily && AgentOrchestrator.IsNewDay(config.Name))
-                    shouldWake = true;
-
+                bool shouldWake = Scheduler.ShouldWake("overseer", AgentConfigs.Overseer.IntervalGameHours, currentTick)
+                    || AgentOrchestrator.IsNewDay("overseer");
                 if (shouldWake)
                 {
-                    await RunAgentWithSwitchSupport(config);
+                    await RunAgentWithSwitchSupport(AgentConfigs.Overseer);
                 }
             }
 
-            // Combat Agent — 事件驱动（L3 Critical 事件唤醒）
+            // Combat Agent — L3 Critical 事件驱动唤醒
             if (_ccbWs != null && _ccbWs.IsReady
                 && AgentOrchestrator.IsSleeping("combat")
                 && AgentOrchestrator.HasPendingEvents("combat"))
@@ -188,6 +204,10 @@ namespace RimWorldAgent
             }
         }
 
-        public override void ExposeData() { base.ExposeData(); }
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            TodoManager.ExposeData();
+        }
     }
 }

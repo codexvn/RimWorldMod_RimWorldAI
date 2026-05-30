@@ -13,10 +13,13 @@ namespace RimWorldAgent.Core.AgentRuntime
         private bool _isPaused;
         private readonly SemaphoreSlim _opLock = new(1, 1);
 
+        /// <summary>Plan 阶段游戏速度，默认 paused，可选 normal/fast/superfast/ultrafast</summary>
+        public static string PlanSpeed { get; set; } = "paused";
+
         /// <summary>宿主可设置的跳过恢复判断（Mod 模式下检查 EventForwarder.DangerPaused）</summary>
         public static Func<bool>? ShouldSkipResume { get; set; }
 
-        /// <summary>进入 Plan 阶段，暂停游戏（幂等）</summary>
+        /// <summary>进入 Plan 阶段，设置游戏速度（幂等）</summary>
         public async Task PauseForPlanning(McpClient mcp)
         {
             if (_isPaused) return;
@@ -25,8 +28,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 if (_isPaused) return;
                 _isPaused = true;
-                await CallTogglePause(mcp, "paused");
-                CoreLog.Info("[GamePace] 已暂停游戏 (Plan 阶段)");
+                await CallTogglePause(mcp, PlanSpeed);
+                CoreLog.Info($"[GamePace] Plan 阶段速度: {PlanSpeed}");
             }
             finally { _opLock.Release(); }
         }

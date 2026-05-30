@@ -43,7 +43,7 @@ namespace RimWorldAgent
                     Description = description,
                     Priority = priority,
                     Status = "pending",
-                    CreatedAtTick = Find.TickManager.TicksAbs
+                    CreatedAtTick = Find.TickManager?.TicksAbs ?? 0
                 };
                 _items.Add(item);
             }
@@ -57,6 +57,19 @@ namespace RimWorldAgent
             lock (_lock) { removed = _items.RemoveAll(i => i.Id == id) > 0; }
             if (removed) OnChanged?.Invoke();
             return removed;
+        }
+
+        public static bool UpdateStatus(string id, string newStatus)
+        {
+            bool found;
+            lock (_lock)
+            {
+                var item = _items.Find(i => i.Id == id);
+                if (item == null) found = false;
+                else { item.Status = newStatus; found = true; }
+            }
+            if (found) OnChanged?.Invoke();
+            return found;
         }
 
         public static List<TodoItem> Query(string? statusFilter)

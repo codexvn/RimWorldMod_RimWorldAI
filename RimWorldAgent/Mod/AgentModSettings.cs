@@ -26,6 +26,7 @@ namespace RimWorldAgent
         // Agent 行为
         public int LoopIntervalMs = 10000;
         public bool AgentAutoRun = true;
+        public string PlanSpeed = "paused";
         public string SkillsDir = "";
         public string SessionDir = "";
 
@@ -49,6 +50,7 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref AgentMcpPort, "agentMcpPort", 9878);
             Scribe_Values.Look(ref LoopIntervalMs, "loopIntervalMs", 10000);
             Scribe_Values.Look(ref AgentAutoRun, "agentAutoRun", true);
+            Scribe_Values.Look(ref PlanSpeed, "planSpeed", "paused");
             Scribe_Values.Look(ref SkillsDir, "skillsDir", "");
             Scribe_Values.Look(ref SessionDir, "sessionDir", "");
         }

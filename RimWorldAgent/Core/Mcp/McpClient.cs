@@ -54,7 +54,11 @@ namespace RimWorldAgent.Core.Mcp
         private async Task<ModelContextProtocol.Client.McpClient> GetClientAsync()
         {
             if (_sdkClient != null) return _sdkClient;
-            if (_connectTask != null) return await _connectTask;
+            if (_connectTask != null)
+            {
+                var client = await _connectTask;
+                if (client != null) return client;
+            }
             throw new ObjectDisposedException(nameof(McpClient));
         }
 
@@ -160,7 +164,8 @@ namespace RimWorldAgent.Core.Mcp
                                     Severity = root.TryGetProperty("Severity", out var s) ? s.GetString() ?? "" : "",
                                     Summary = root.TryGetProperty("Summary", out var sm) ? sm.GetString() ?? "" : "",
                                     Tick = root.TryGetProperty("Tick", out var t) && t.TryGetInt32(out var ti) ? ti : 0,
-                                    Method = lastMethod
+                                    Method = lastMethod,
+                                    Payload = json
                                 });
                             }
                         }

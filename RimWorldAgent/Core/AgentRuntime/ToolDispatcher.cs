@@ -26,12 +26,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 sw.Stop();
                 log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
                 await ccbWs.SendToolResult(toolId, result);
-
-                if (shouldExit && toolName == "exit_combat_role")
-                {
-                    AgentOrchestrator.EndAgent("combat");
-                    log("Combat Agent 退出");
-                }
                 return;
             }
 

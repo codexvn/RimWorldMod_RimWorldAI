@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
@@ -60,6 +62,51 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         /// <summary>当前会话的 McpClient（供内部 Tool 调用 MCP）</summary>
         public static Mcp.McpClient? SessionMcp { get; set; }
+
+        /// <summary>CcbWebSocket 引用（供 NotisAgent 直接发送通知）</summary>
+        public static CcbManager.CcbWebSocket? CcbWs { get; set; }
+
+        /// <summary>向指定 Agent 注入通知。运行中 → tool result suffix；否则 → 直接发送到 Companion。</summary>
+        public static async Task NotisAgent(string notification)
+        {
+            if (string.IsNullOrEmpty(notification)) return;
+
+            // Agent 运行中 + MCP 可用 → suffix 注入（AI 下次调用工具时看到）
+            if (SessionMcp != null && ActiveAgent != null && GetState(ActiveAgent) == AgentState.Running)
+            {
+                try
+                {
+                    var args = new Dictionary<string, JsonElement>
+                    {
+                        ["suffix"] = JsonSerializer.SerializeToElement(notification)
+                    };
+                    await SessionMcp.CallTool("set_tool_result_suffix", args);
+                    CoreLog.Info($"[NotisAgent] suffix 注入 ({notification.Length} 字符)");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Warn($"[NotisAgent] suffix 注入失败，降级为直接发送: {ex.Message}");
+                }
+            }
+
+            // Agent 休眠或 suffix 失败 → 直接发送到 Companion
+            if (CcbWs?.IsReady == true)
+            {
+                _ = CcbWs.SendEvent("rimworld.chat", new
+                {
+                    category = "Notification",
+                    text = notification,
+                    severity = "medium",
+                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+                CoreLog.Info($"[NotisAgent] 直接发送 ({notification.Length} 字符)");
+            }
+            else
+            {
+                CoreLog.Warn("[NotisAgent] CcbWs 不可用，通知丢失");
+            }
+        }
 
         public static void EnterPlanPhase()
         {
@@ -146,6 +193,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 {
                     "Combat" => EventRoute.Combat,
                     "Health" => EventRoute.Medic,
+                    "Survival" => EventRoute.Medic,
                     _ => EventRoute.Combat
                 };
 
@@ -153,6 +201,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             return category switch
             {
                 "Food" or "Medicine" or "Resources" => EventRoute.All,
+                "Survival" => EventRoute.Overseer,
                 "Economy" or "Research" or "Mood" => EventRoute.Overseer,
                 "Construction" => EventRoute.Economy,
                 _ => EventRoute.Overseer

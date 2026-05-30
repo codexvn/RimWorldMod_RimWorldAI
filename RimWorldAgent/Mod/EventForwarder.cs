@@ -51,6 +51,13 @@ namespace RimWorldAgent
         /// <summary>设置 WebSocket 客户端引用</summary>
         public static void SetCcbSocket(CcbWebSocket? ws) => _ccbWs = ws;
 
+        /// <summary>首次游戏连接时调用，触发 Agent 开始工作</summary>
+        public static void SendGameConnected()
+        {
+            if (_ccbWs == null || !_ccbWs.IsReady) return;
+            SendCCMessage("GameConnected", "游戏已连接，MCP 通信就绪。请用 get_skills 查看可用技能，用 get_game_context 获取当前状态，开始管理殖民地。");
+        }
+
         /// <summary>每游戏 Tick 调用（由 GameComponent 驱动）</summary>
         public static void Tick()
         {
@@ -345,7 +352,7 @@ namespace RimWorldAgent
             {
                 "RaidStart" => "⚠️ [紧急]", "PawnDeath" => "💀 [紧急]",
                 "DailyMorning" => "🌅", "IdleDetected" => "⏳", "NoColonists" => "💀 [覆灭]",
-                "PauseRemind" => "⏸", _ => "📢"
+                "PauseRemind" => "⏸", "GameConnected" => "🎮", _ => "📢"
             };
             var instruction = category switch
             {

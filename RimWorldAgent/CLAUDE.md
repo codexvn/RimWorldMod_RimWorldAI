@@ -74,6 +74,18 @@ AI 通过工具显式控制游戏暂停/恢复：
 - `enter_act()` — 恢复游戏，进入执行阶段
 - Agent 休眠时自动恢复游戏（`GamePaceController.EnsureResumed`）
 
+### Tool Result Suffix 双工通知
+
+Agent 通过 MCP 工具设置一次性 suffix，MCP Server 在下一次工具结果末尾自动追加并清空。AI 在工具调用结果中即时看到通知。
+
+- `set_tool_result_suffix(suffix)` — 设置一次性后缀，追加后自动清空
+
+**NotisAgent 统一入口**：`AgentOrchestrator.NotisAgent(notification)` 封装双路逻辑：
+- Agent 运行中 + SessionMcp 可用 → `set_tool_result_suffix`（AI 下次工具调用时看到）
+- Agent 休眠或 MCP 不可用 → CcbWs 直接发送到 Companion（AI 立即收到）
+
+内部工具通过 `AgentOrchestrator.SessionMcp` 转发到 MCP Server。MCP 侧用 `volatile string ToolResultSuffix` 存储，`ExecuteAsync` 中追加后立即清空。
+
 ### Agent 切换与建议
 
 - `switch_agent(role)` — 切换当前活跃 Agent，当前会话结束，目标 Agent 唤醒

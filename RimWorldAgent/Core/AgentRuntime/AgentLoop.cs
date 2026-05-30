@@ -36,6 +36,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             _statusWs = ccbWs;
             _budgetLimit = ccbWs.BudgetLimit;
+            AgentOrchestrator.CcbWs = ccbWs;
 
             // 连接后立即推送当前状态
             if (ccbWs.IsReady)
@@ -79,12 +80,16 @@ namespace RimWorldAgent.Core.AgentRuntime
             mcp.OnGameTick += tick => AgentOrchestrator.GameTick = tick;
 
             // 世界状态 → 更新 Scheduler
-            mcp.OnWorldState += input => Scheduler.Tick(input);
+            mcp.OnWorldState += input =>
+            {
+                CoreLog.Info($"[event] WorldState: colonists={input.ColonistCount} idle={input.IdleCount} enemies={input.EnemyCount} downed={input.DownedEnemyCount} food={input.FoodDays:F1}d med={input.MedicineCount}");
+                Scheduler.Tick(input);
+            };
 
             // 游戏事件 → Agent 侧智能路由（不再依赖 MCP 侧 Route 字段）
             mcp.OnGameEvent += evt =>
             {
-                CoreLog.Info($"[event] {evt.Category}/{evt.Severity}: {evt.Summary}");
+                CoreLog.Info($"[event] {evt.Method}: {evt.Payload as string ?? $"{evt.Category}/{evt.Severity}: {evt.Summary}"}");
                 var route = AgentOrchestrator.RouteEvent(evt.Category, evt.Severity);
                 AgentOrchestrator.DispatchEvent(evt, route);
             };
@@ -118,6 +123,13 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
             }
 
+            void OnExit()
+            {
+                CoreLog.Info($"[{config.Name}] 内部工具请求退出会话");
+                tcs.TrySetResult(true);
+            }
+
+            InternalToolRegistry.OnExitRequested += OnExit;
             ccbWs.OnResult += OnResult;
             ccbWs.OnToolUse += OnToolUse;
             try
@@ -129,6 +141,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             finally
             {
+                InternalToolRegistry.OnExitRequested -= OnExit;
                 ccbWs.OnResult -= OnResult;
                 ccbWs.OnToolUse -= OnToolUse;
 

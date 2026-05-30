@@ -15,6 +15,9 @@ namespace RimWorldMCP.Tools
         string SimpleMspServer.Mcp.IToolProvider.ProviderName => "RimWorldMCP";
         private readonly Dictionary<string, ITool> _tools = new();
         public IReadOnlyDictionary<string, ITool> AllTools => _tools;
+
+        /// <summary>工具结果后缀：Agent 通过 set_tool_result_suffix 设置，每次工具调用结果末尾自动追加</summary>
+        public static volatile string ToolResultSuffix = "";
         private readonly List<ResourceDefinition> _resources = new();
 
         /// <summary>自动扫描：支持 GetTargetRange 返回非 null 坐标的工具名称集合</summary>
@@ -107,17 +110,21 @@ namespace RimWorldMCP.Tools
             {
                 try
                 {
-                    // 地图加载守卫
-                    if (!(tool is INoMapRequired) && Find.CurrentMap == null)
+                    // 地图加载守卫（需要在主线程检查 Find.CurrentMap）
+                    if (!(tool is INoMapRequired))
                     {
-                        return new ToolCallResult
+                        var mapLoaded = await McpCommandQueue.DispatchAsync(() => Find.CurrentMap != null);
+                        if (!mapLoaded)
                         {
-                            Content = new List<ContentItem>
+                            return new ToolCallResult
                             {
-                                new() { Type = "text", Text = "当前没有已加载的地图，请先加载游戏存档或开始新游戏。" }
-                            },
-                            IsError = true
-                        };
+                                Content = new List<ContentItem>
+                                {
+                                    new() { Type = "text", Text = "当前没有已加载的地图，请先加载游戏存档或开始新游戏。" }
+                                },
+                                IsError = true
+                            };
+                        }
                     }
 
                     // 自动移动视角 — 工具自身返回目标区域，开关打开则移动+自动缩放
@@ -129,6 +136,14 @@ namespace RimWorldMCP.Tools
                     }
 
                     var result = await tool.ExecuteAsync(args);
+
+                    // 追加 suffix（一次性：追加后立即清空）
+                    var suffix = ToolResultSuffix;
+                    if (!string.IsNullOrEmpty(suffix))
+                    {
+                        ToolResultSuffix = "";
+                        result.Text = result.Text + "\n\n" + suffix;
+                    }
 
                     // 工具结束时补推剩余通知
                     try

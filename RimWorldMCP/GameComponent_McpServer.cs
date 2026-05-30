@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using RimWorld;
+using RimWorldMCP.Harmony;
 using RimWorldMCP.Tools;
 using Verse;
 
@@ -19,6 +21,7 @@ namespace RimWorldMCP
             _sessionId = GenerateSessionId();
             CurrentSessionId = _sessionId;
             DeteriorationTracker.Reset();
+            TrappedColonistTracker.Reset();
             StartMcpSession();
         }
 
@@ -28,6 +31,7 @@ namespace RimWorldMCP
             if (string.IsNullOrEmpty(_sessionId)) _sessionId = GenerateSessionId();
             CurrentSessionId = _sessionId;
             DeteriorationTracker.Reset();
+            TrappedColonistTracker.Reset();
             StartMcpSession();
         }
 
@@ -35,7 +39,6 @@ namespace RimWorldMCP
         {
             base.ExposeData();
             Scribe_Values.Look(ref _sessionId, "mcpSessionId", "");
-            TodoManager.ExposeData();
         }
 
         private static string GenerateSessionId() => Guid.NewGuid().ToString("N").Substring(0, 12);
@@ -58,6 +61,15 @@ namespace RimWorldMCP
                 _lastTickPush = currentTick;
                 PushTickEvent();
                 PushWorldState();
+            }
+
+            // 殖民者被困检测（每 200 tick，~3.3s @1x）
+            var map = Find.CurrentMap;
+            if (map != null)
+            {
+                var trapped = TrappedColonistTracker.CheckAndNotify(map);
+                if (trapped != null && trapped.Count > 0)
+                    PushTrappedNotification(trapped);
             }
         }
 
@@ -121,9 +133,28 @@ namespace RimWorldMCP
 
         private void StartMcpSession()
         {
-            TodoManager.Clear();
             McpServiceManager.RefreshTools();
             McpLog.Info($"[session] ID = {_sessionId}");
+        }
+
+        private static void PushTrappedNotification(List<TrappedColonistTracker.TrappedColonistInfo> trapped)
+        {
+            foreach (var info in trapped)
+            {
+                bool isCritical = info.TrapType == "Downed" && info.Detail.Contains("无人可达");
+                string dangerLabel = isCritical ? "被困-紧急" : "被困";
+
+                NotificationBus.Enqueue(new Notification
+                {
+                    Type = NotificationType.Message,
+                    DangerLabel = dangerLabel,
+                    Label = $"{info.Name} 被困 ({info.TrapType})",
+                    Text = info.Detail,
+                    Tick = info.DetectedTick
+                });
+
+                McpLog.Info($"[trapped] {info.Name}: {info.TrapType} @ ({info.PosX},{info.PosZ}) — {info.Detail}");
+            }
         }
     }
 }

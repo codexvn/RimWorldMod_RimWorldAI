@@ -23,6 +23,7 @@ namespace RimWorldAgent
 
             var mcpUrl = "http://localhost:9878";
             var modelName = "";
+            var planSpeed = "paused";
             for (int i = 0; i < args.Length; i++)
             {
                 var arg = args[i];
@@ -32,10 +33,16 @@ namespace RimWorldAgent
                     modelName = arg.Substring("--model=".Length);
                 else if (arg.StartsWith("-m="))
                     modelName = arg.Substring("-m=".Length);
+                else if (arg == "--plan-speed" && i + 1 < args.Length)
+                    planSpeed = args[++i];
+                else if (arg.StartsWith("--plan-speed="))
+                    planSpeed = arg.Substring("--plan-speed=".Length);
                 else if (!arg.StartsWith("-"))
                     mcpUrl = arg;
             }
+            GamePaceController.PlanSpeed = planSpeed;
             if (!string.IsNullOrEmpty(modelName)) Console.WriteLine($"  模型: {modelName}");
+            if (planSpeed != "paused") Console.WriteLine($"  Plan 速度: {planSpeed}");
             var sessionDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session");
             Directory.CreateDirectory(sessionDir);
             TaskBoard.SessionDir = sessionDir;
@@ -61,7 +68,6 @@ namespace RimWorldAgent
 
             var skillsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
             InternalToolRegistry.Instance.LoadSkills(skillsDir);
-            InternalToolRegistry.Instance.InitializeSkillTools();
 
             // Agent MCP Server (:9878) — 暴露内部 Tool 给 CCB
             var agentHost = new SimpleMspServer.McpServiceHost(9878, "localhost",
@@ -108,25 +114,20 @@ namespace RimWorldAgent
 
                     // 世界状态已由 SSE game/world-state 事件驱动更新（Scheduler.Tick 在 WireEvents 中）
 
-                    // 检查每个 Agent
                     var currentTick = AgentOrchestrator.GameTick;
-                    foreach (var config in AgentConfigs.All)
+
+                    // Overseer — 定时唤醒（唯一入口，其他角色由 Overseer 委托）
+                    if (AgentOrchestrator.IsSleeping("overseer"))
                     {
-                        if (config.Name == "combat") continue;
-                        if (!AgentOrchestrator.IsSleeping(config.Name)) continue;
-
-                        bool shouldWake = config.IntervalGameHours > 0
-                            && Scheduler.ShouldWake(config.Name, config.IntervalGameHours, currentTick);
-                        if (config.TriggerDaily && AgentOrchestrator.IsNewDay(config.Name))
-                            shouldWake = true;
-
+                        bool shouldWake = Scheduler.ShouldWake("overseer", AgentConfigs.Overseer.IntervalGameHours, currentTick)
+                            || AgentOrchestrator.IsNewDay("overseer");
                         if (shouldWake)
                         {
-                            await RunAgentWithSwitchSupport(config, ctx, mcp);
+                            await RunAgentWithSwitchSupport(AgentConfigs.Overseer, ctx, mcp);
                         }
                     }
 
-                    // Combat Agent — 有急迫事件时唤醒
+                    // Combat Agent — L3 Critical 事件驱动唤醒
                     if (AgentOrchestrator.IsSleeping("combat") && AgentOrchestrator.HasPendingEvents("combat"))
                     {
                         await RunAgentWithSwitchSupport(AgentConfigs.Combat, ctx, mcp);
