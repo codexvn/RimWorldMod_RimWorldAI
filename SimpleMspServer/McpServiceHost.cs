@@ -127,7 +127,7 @@ namespace SimpleMspServer
             }
             catch (Exception ex)
             {
-                _log.Error($"HTTP 处理错误: {ex.Message}");
+                _log.Error($"HTTP 处理错误: {ex.GetType().Name}: {ex.Message}");
                 try { res.StatusCode = 500; res.Close(); } catch (Exception closeEx) { _log.Info($"关闭 HTTP 响应异常: {closeEx.Message}"); }
             }
         }
@@ -138,7 +138,7 @@ namespace SimpleMspServer
         {
             var req = ctx.Request;
             var res = ctx.Response;
-            using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+            using var reader = new StreamReader(req.InputStream, Encoding.UTF8);
             var body = await reader.ReadToEndAsync();
 
             var msg = JsonSerializer.Deserialize<JsonRpcMessage>(body,

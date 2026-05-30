@@ -124,9 +124,10 @@ namespace RimWorldMCP.Tools
                         if (!DropCellFinder.IsGoodDropSpot(destCell, map, false, true))
                             return ToolResult.Error($"目标坐标 ({capDestX}, {capDestY}) 无法放置物品（被占用或不可通行）");
 
-                        job = HaulAIUtility.HaulToCellStorageJob(pawn, thing, destCell, false);
-                        if (job == null)
-                            return ToolResult.Error($"无法为 {thing.Label} 创建搬运到 ({capDestX}, {capDestY}) 的任务");
+                        job = JobMaker.MakeJob(JobDefOf.HaulToCell, thing, destCell);
+                        job.count = Math.Max(finalCount, 1);
+                        job.haulOpportunisticDuplicates = false;
+                        job.haulMode = HaulMode.ToCellNonStorage;
 
                         destInfo = $"搬运到 ({capDestX}, {capDestY})";
                     }
