@@ -72,7 +72,7 @@ namespace RimWorldAgent
                 await CompanionInstaller.InstallAsync(ccbDir);
             }
 
-            _ccb = new CcbManager(ccbDir, sessionDir, ccbPort, mcpPort, agentMcpPort, null, ccbToken);
+            _ccb = new CcbManager(ccbDir, sessionDir, ccbPort, mcpPort, agentMcpPort, null, ccbToken, settings?.CCBModelName);
             if (settings == null || settings.CCBAutoStart)
             {
                 if (_ccb.Start()) await _ccb.WaitReadyAsync(15000);

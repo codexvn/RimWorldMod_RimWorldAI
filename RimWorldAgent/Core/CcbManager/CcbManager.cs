@@ -18,12 +18,13 @@ namespace RimWorldAgent.Core.CcbManager
         private readonly string? _ccbToken;
         private readonly int _mcpPort;
         private readonly int _agentMcpPort;
+        private readonly string? _modelName;
         private bool _ready;
         private IntPtr _jobHandle = IntPtr.Zero;
 
         public bool IsReady => _ready;
 
-        public CcbManager(string companionDir, string sessionsDir, int ccbPort = 19999, int mcpPort = 9877, int agentMcpPort = 9878, string? nodeExe = null, string? ccbToken = null)
+        public CcbManager(string companionDir, string sessionsDir, int ccbPort = 19999, int mcpPort = 9877, int agentMcpPort = 9878, string? nodeExe = null, string? ccbToken = null, string? modelName = null)
         {
             _companionDir = companionDir;
             _sessionsDir = sessionsDir;
@@ -31,6 +32,7 @@ namespace RimWorldAgent.Core.CcbManager
             _mcpPort = mcpPort;
             _agentMcpPort = agentMcpPort;
             _ccbToken = ccbToken;
+            _modelName = modelName;
             _nodeExe = nodeExe ?? CompanionInstaller.FindNodeExe();
         }
 
@@ -61,6 +63,8 @@ namespace RimWorldAgent.Core.CcbManager
             var args = $"--import tsx/esm companion/companion.ts"
                 + $" --idle-timeout 30000"
                 + $" --project-path \"{_sessionsDir}\"";
+            if (!string.IsNullOrEmpty(_modelName))
+                args += $" --model-name \"{_modelName}\"";
 
             try
             {

@@ -22,7 +22,16 @@ namespace RimWorldAgent
             CoreLog.OnInfo = msg => Console.WriteLine($"[Core] {msg}");
             CoreLog.OnError = msg => Console.Error.WriteLine($"[Core] {msg}");
 
-            var mcpUrl = args.Length > 0 ? args[0] : "http://localhost:9878";
+            var mcpUrl = "http://localhost:9878";
+            var modelName = "";
+            foreach (var arg in args)
+            {
+                if (arg == "--model" || arg == "-m") { var i = Array.IndexOf(args, arg); if (i >= 0 && i + 1 < args.Length) modelName = args[i + 1]; }
+                else if (arg.StartsWith("--model=")) modelName = arg.Substring("--model=".Length);
+                else if (arg.StartsWith("-m=")) modelName = arg.Substring("-m=".Length);
+                else if (!arg.StartsWith("-")) mcpUrl = arg;
+            }
+            if (!string.IsNullOrEmpty(modelName)) Console.WriteLine($"  模型: {modelName}");
             var sessionDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session");
             Directory.CreateDirectory(sessionDir);
             TaskBoard.SessionDir = sessionDir;
@@ -41,7 +50,7 @@ namespace RimWorldAgent
                     Console.WriteLine("  CCB: npm install...");
                     await CompanionInstaller.InstallAsync(ccbDir);
                 }
-                ccb = new CcbManager(ccbDir!, sessionDir);
+                ccb = new CcbManager(ccbDir!, sessionDir, modelName: modelName);
                 if (ccb.Start()) { Console.WriteLine("  CCB: 启动中..."); await ccb.WaitReadyAsync(); Console.WriteLine("  CCB: 就绪"); }
             }
             if (ccb == null || !ccb.IsReady) Console.WriteLine("  CCB: 未启动 (Agent 将在无 CCB 模式运行)");
