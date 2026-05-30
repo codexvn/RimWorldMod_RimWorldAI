@@ -25,6 +25,7 @@ export const RuntimeState = {
   lastInitData: null as any,
   lastColonyStats: null as any,
   lastTodoItems: null as any,
+  lastAgentStatus: '' as string,
   sdkTasks: [] as Array<{id: string, subject: string, status: string}>,
   thinkingMode: 'default' as string,
   thinkingEffort: 'medium' as string,

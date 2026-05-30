@@ -140,6 +140,9 @@ export function createWSServer(
           if (RuntimeState.lastTodoItems) {
             sendJson(ws, { type: 'todo-state', todoItems: RuntimeState.lastTodoItems });
           }
+          if (RuntimeState.lastAgentStatus) {
+            sendJson(ws, { type: 'agent-status', role: RuntimeState.lastAgentStatus });
+          }
           if (RuntimeState.sdkTasks.length > 0) {
             sendJson(ws, { type: 'sdk-tasks', tasks: RuntimeState.sdkTasks });
           }

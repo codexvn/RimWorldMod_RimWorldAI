@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorldMCP", "RimWorldMCP\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorldAgent", "RimWorldAgent\RimWorldAgent.csproj", "{7DEA274D-812B-45ED-979C-60523E54B9D4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorldAgent.Tests", "RimWorldAgent.Tests\RimWorldAgent.Tests.csproj", "{DB40D74E-C15D-45F9-BD40-D3369096FC4B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{7DEA274D-812B-45ED-979C-60523E54B9D4}.Release|x64.Build.0 = Release|Any CPU
 		{7DEA274D-812B-45ED-979C-60523E54B9D4}.Release|x86.ActiveCfg = Release|Any CPU
 		{7DEA274D-812B-45ED-979C-60523E54B9D4}.Release|x86.Build.0 = Release|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Debug|x64.Build.0 = Debug|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Debug|x86.Build.0 = Debug|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Release|x64.ActiveCfg = Release|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Release|x64.Build.0 = Release|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Release|x86.ActiveCfg = Release|Any CPU
+		{DB40D74E-C15D-45F9-BD40-D3369096FC4B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

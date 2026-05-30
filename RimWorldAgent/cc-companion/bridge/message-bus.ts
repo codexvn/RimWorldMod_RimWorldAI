@@ -28,6 +28,8 @@
  * MessageBus 管的是"业务消息"——游戏事件和 AI 对话。
  */
 
+import { RuntimeState } from '../companion/config.js';
+
 // ===== 类型定义 =====
 
 /** 殖民地统计数据载荷（C# BridgeLifecycle.BuildColonyStats 产出） */
@@ -113,6 +115,7 @@ export class MessageBus {
    * 消费者：Web 页面 header agent-role 显示。
    */
   publishAgentStatus(role: string): void {
+    RuntimeState.lastAgentStatus = role;
     this.send({ type: 'agent-status', role });
   }
 

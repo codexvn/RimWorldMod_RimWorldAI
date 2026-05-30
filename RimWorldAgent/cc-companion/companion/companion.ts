@@ -204,10 +204,13 @@ async function main(): Promise<void> {
       } else if (status.status === 'disconnected') {
         console.log('[cc-companion] RimWorld 已断开');
         if (CONFIG.idleTimeout > 0) {
+          console.log(`[cc-companion] 启动 idle 计时器: ${CONFIG.idleTimeout / 1000}s 后自动退出`);
           disidleTimer = setTimeout(() => {
             console.log(`[cc-companion] 断开后 ${CONFIG.idleTimeout / 1000}s 无重连，自动退出`);
             shutdown();
           }, CONFIG.idleTimeout);
+        } else {
+          console.log('[cc-companion] idleTimeout=0，断开后不自动退出');
         }
       }
     },
@@ -255,6 +258,12 @@ async function main(): Promise<void> {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+  process.on('uncaughtException', (err) => {
+    console.error(`[cc-companion] 未捕获异常: ${err.message}\n${err.stack}`);
+  });
+  process.on('unhandledRejection', (reason: any) => {
+    console.error(`[cc-companion] 未处理的 Promise 拒绝: ${reason?.message || reason}\n${reason?.stack || ''}`);
+  });
 
   console.log('[cc-companion] 就绪，等待 RimWorldMCP 连接...');
   console.log(`[cc-companion] WebSocket: ws://${CONFIG.host}:${CONFIG.port}`);

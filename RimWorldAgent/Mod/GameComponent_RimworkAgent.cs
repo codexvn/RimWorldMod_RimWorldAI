@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.CcbManager;
+using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 using Verse;
 
@@ -42,6 +43,9 @@ namespace RimWorldAgent
                 : defaultSessionDir;
             Directory.CreateDirectory(sessionDir);
             TaskBoard.SessionDir = sessionDir;
+
+            // Tick 提供者 — MOD 模式从 RimWorld 获取游戏 tick
+            TodoStore.TickProvider = () => Find.TickManager?.TicksAbs ?? 0;
 
             // Skills — Assemblies/Skills（和 DLL 同目录）
             var skillsDir = !string.IsNullOrEmpty(settings?.SkillsDir)
@@ -93,11 +97,11 @@ namespace RimWorldAgent
             else Log.Warning("[agent-mod] CCB WebSocket 连接失败，事件转发不可用");
 
             // TODO 变更 → 推送到 Companion
-            TodoManager.OnChanged += () =>
+            TodoStore.OnChanged += () =>
             {
                 if (_ccbWs?.IsReady == true)
                 {
-                    var items = TodoManager.Query(null);
+                    var items = TodoStore.Query(null);
                     _ccbWs.SendEvent("todo-state", new
                     {
                         todoItems = items.Select(i => new
@@ -130,8 +134,17 @@ namespace RimWorldAgent
             base.GameComponentUpdate();
             if (!_initialized) return;
 
-            // CCB 崩溃重启
-            _ccb?.TickAndRestart();
+            // CCB 崩溃重启 + WS 重连
+            if (_ccb != null)
+            {
+                _ccb.TickAndRestart();
+                if (_ccb.WasRestarted)
+                {
+                    _ccb.WasRestarted = false;
+                    Log.Message("[agent-mod] CCB 进程已重启，重连 WS...");
+                    _ = _ccbWs?.ConnectAsync();
+                }
+            }
 
             // 事件转发（每帧）
             EventForwarder.Tick();

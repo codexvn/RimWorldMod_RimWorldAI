@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using RimWorldAgent.Core.Data;
 
 namespace RimWorldAgent
 {
@@ -57,7 +58,7 @@ namespace RimWorldAgent
         {
             base.PreOpen();
             ChatDisplayState.OnChanged += OnChatChanged;
-            TodoManager.OnChanged += OnTodoChanged;
+            TodoStore.OnChanged += OnTodoChanged;
             _chatUserScrolledUp = false;
             _toolUserScrolledUp = false;
             _scrollToBottom = true;
@@ -66,7 +67,7 @@ namespace RimWorldAgent
         public override void PostClose()
         {
             ChatDisplayState.OnChanged -= OnChatChanged;
-            TodoManager.OnChanged -= OnTodoChanged;
+            TodoStore.OnChanged -= OnTodoChanged;
             base.PostClose();
         }
 
@@ -543,7 +544,7 @@ namespace RimWorldAgent
 
         private void DrawTodoPanel(Rect panelRect)
         {
-            var items = TodoManager.Query(null);
+            var items = TodoStore.Query(null);
             int pendingCount = 0;
             foreach (var i in items) { if (i.Status != "done") pendingCount++; }
 
@@ -733,11 +734,11 @@ namespace RimWorldAgent
             }
 
             Rect clearTodoRect = new Rect(continueRect.x - 52f - 4f, y, 52f, actionBtnH);
-            GUI.color = TodoManager.Count > 0 ? Color.white : Color.grey;
+            GUI.color = TodoStore.Count > 0 ? Color.white : Color.grey;
             if (Widgets.ButtonText(clearTodoRect, "清TODO"))
             {
-                if (TodoManager.Count > 0)
-                    TodoManager.Clear();
+                if (TodoStore.Count > 0)
+                    TodoStore.Clear();
             }
 
             Rect clearRect = new Rect(clearTodoRect.x - 44f - 4f, y, 44f, actionBtnH);
