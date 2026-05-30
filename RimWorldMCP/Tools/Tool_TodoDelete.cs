@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_TodoDelete : ITool
+    public class Tool_TodoDelete : ITool, INoMapRequired
     {
         public string Name => "todo_delete";
         public string Description => "删除指定 ID 的待办事项。ID 可通过 todo_query 获取。";

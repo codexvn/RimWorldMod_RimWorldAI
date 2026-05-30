@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_TodoSetStatus : ITool
+    public class Tool_TodoSetStatus : ITool, INoMapRequired
     {
         public string Name => "todo_set_status";
         public string Description => "修改指定 ID 待办事项的状态。done/cancelled 会自动删除，仅 pending 保留。";

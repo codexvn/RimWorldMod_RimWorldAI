@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ListMemories : ITool
+    public class Tool_ListMemories : ITool, INoMapRequired
     {
         public string Name => "list_memories";
         public string Description => "列出所有记忆，按优先级降序排列。";

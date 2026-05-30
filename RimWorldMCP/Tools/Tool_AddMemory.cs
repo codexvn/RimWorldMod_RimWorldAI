@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_AddMemory : ITool
+    public class Tool_AddMemory : ITool, INoMapRequired
     {
         public string Name => "add_memory";
         public string Description => "添加一条记忆。优先级 1-5，数字越大越重要。返回生成的 ID。";

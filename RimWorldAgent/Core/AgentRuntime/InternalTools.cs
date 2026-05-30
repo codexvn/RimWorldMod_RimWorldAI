@@ -49,6 +49,104 @@ namespace RimWorldAgent.Core.AgentRuntime
                     return Task.FromResult((string.IsNullOrEmpty(summary) ? "战斗指挥官角色已退出。" : $"战斗指挥官已退出。\n总结: {summary}", true));
                 }
             });
+
+            Register(new InternalTool
+            {
+                Name = "switch_agent",
+                Description = "切换当前活跃 Agent 角色。当前 Agent 休眠，目标 Agent 唤醒并消费其队列中的事件。",
+                InputSchema = new Dictionary<string, object>
+                {
+                    ["type"] = "object",
+                    ["properties"] = new Dictionary<string, object>
+                    {
+                        ["role"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "目标 Agent 角色: overseer / economy / combat / medic" }
+                    },
+                    ["required"] = new[] { "role" }
+                },
+                Handler = args =>
+                {
+                    var role = args?.GetProperty("role").GetString()?.ToLower() ?? "";
+                    if (role != "overseer" && role != "economy" && role != "combat" && role != "medic")
+                        return Task.FromResult(($"未知角色: {role}。可选: overseer, economy, combat, medic", false));
+                    if (AgentOrchestrator.ActiveAgent == role)
+                        return Task.FromResult(($"当前已是 {role} 角色，无需切换。", false));
+                    AgentOrchestrator.NextAgentRequest = role;
+                    return Task.FromResult(($"正在切换到 {role}，当前会话将结束。", true));
+                }
+            });
+
+            Register(new InternalTool
+            {
+                Name = "advise_agent",
+                Description = "给其他 Agent 提供建议。切换到该 Agent 时，建议会自动附加在 Prompt 中。",
+                InputSchema = new Dictionary<string, object>
+                {
+                    ["type"] = "object",
+                    ["properties"] = new Dictionary<string, object>
+                    {
+                        ["role"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "目标 Agent 角色: overseer / economy / combat / medic" },
+                        ["advice"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "建议内容" }
+                    },
+                    ["required"] = new[] { "role", "advice" }
+                },
+                Handler = args =>
+                {
+                    var role = args?.GetProperty("role").GetString()?.ToLower() ?? "";
+                    var advice = args?.GetProperty("advice").GetString() ?? "";
+                    if (role != "overseer" && role != "economy" && role != "combat" && role != "medic")
+                        return Task.FromResult(($"未知角色: {role}。可选: overseer, economy, combat, medic", false));
+                    if (string.IsNullOrWhiteSpace(advice))
+                        return Task.FromResult(("建议内容不能为空。", false));
+                    AgentOrchestrator.AddAdvice(role, advice);
+                    return Task.FromResult(($"已给 {role} 提供建议: {advice}", false));
+                }
+            });
+
+            Register(new InternalTool
+            {
+                Name = "enter_plan",
+                Description = "进入 Plan 阶段，暂停游戏进行思考规划。",
+                InputSchema = new Dictionary<string, object>
+                {
+                    ["type"] = "object",
+                    ["properties"] = new Dictionary<string, object>
+                    {
+                        ["reason"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "规划原因（可选，日志用）" }
+                    }
+                },
+                Handler = async args =>
+                {
+                    var reason = args?.GetProperty("reason").GetString() ?? "";
+                    AgentOrchestrator.EnterPlanPhase();
+                    var pace = AgentOrchestrator.PaceController;
+                    var mcp = AgentOrchestrator.SessionMcp;
+                    if (pace != null && mcp != null) await pace.PauseForPlanning(mcp);
+                    return ($"已进入 Plan 阶段，游戏已暂停。{reason}", false);
+                }
+            });
+
+            Register(new InternalTool
+            {
+                Name = "enter_act",
+                Description = "进入 Act 阶段，恢复游戏执行操作。",
+                InputSchema = new Dictionary<string, object>
+                {
+                    ["type"] = "object",
+                    ["properties"] = new Dictionary<string, object>
+                    {
+                        ["reason"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "执行原因（可选，日志用）" }
+                    }
+                },
+                Handler = async args =>
+                {
+                    var reason = args?.GetProperty("reason").GetString() ?? "";
+                    AgentOrchestrator.EnterActPhase();
+                    var pace = AgentOrchestrator.PaceController;
+                    var mcp = AgentOrchestrator.SessionMcp;
+                    if (pace != null && mcp != null) await pace.ResumeForAction(mcp);
+                    return ($"已进入 Act 阶段，游戏已恢复。{reason}", false);
+                }
+            });
         }
 
         /// <summary>初始化 Skill 注册表，由 Loader 在启动时调用</summary>

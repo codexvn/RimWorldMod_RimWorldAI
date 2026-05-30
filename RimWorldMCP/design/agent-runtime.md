@@ -66,15 +66,15 @@ Scheduler 控制 Runtime 轮询频率，不影响 TickManager。
 
 ## 游戏速度与暂停策略
 
-AI 不干涉玩家设的游戏速度，只在危机时暂停。
+AI 通过 `enter_plan()` / `enter_act()` 显式控制游戏暂停/恢复。
 
-| Load | 调度频率 | 1x 下间隔 | 3x 下间隔 | 暂停 |
-|------|---------|----------|----------|------|
-| Peace | 12h | ~12 分钟 | ~2.4 分钟 | 不暂停 |
-| Normal | 6h | ~6 分钟 | ~1.2 分钟 | 不暂停 |
-| Busy | 2h | ~2 分钟 | ~24 秒 | 不暂停 |
-| HighPressure | 30min | ~30 秒 | ~10 秒 | 不暂停 |
-| Crisis | 实时 | 暂停 | 暂停 | 暂停 |
+| 阶段 | 游戏状态 | 触发方式 |
+|------|---------|---------|
+| Plan | 暂停 | AI 调用 `enter_plan()` |
+| Act | 恢复 (3x) | AI 调用 `enter_act()` |
+| Agent 休眠 | 恢复 | `GamePaceController.EnsureResumed` 自动 |
+
+`GamePaceController` 通过 MCP `toggle_pause` 工具控制游戏速度，`ShouldSkipResume` 委托避免与 L3 危险事件暂停冲突。
 
 ## 三层架构
 
@@ -228,16 +228,18 @@ Economy 每轮:
 
 ## 事件路由
 
-L3 → 立即唤醒；L1-L2 → 排队等 Agent 自然醒来。
+MCP 只推送事件（Category + Severity），路由决策在 Agent 侧（`AgentOrchestrator.RouteEvent()`）。
 
-| 事件 | 级别 | 路由 | 触发 |
-|------|------|------|------|
-| Raid / 虫灾 / 围攻 / 猎杀人类 | L3 | Combat | 立即 |
-| 火灾 | L3 | Combat + Economy | 立即 |
-| 食物/药品不足 | L2 | Economy + Overseer | 排队 |
-| 研究完成 | L1 | Overseer | 排队 |
-| 建造/制作完成 | L1 | Economy | 排队 |
-| 技能升级/操作被拒 | L0 | 丢弃 | - |
+| Category | Severity | 路由 |
+|----------|----------|------|
+| Combat | Critical | Combat |
+| Health | Critical | Medic |
+| 其他 | Critical | Combat (默认) |
+| Food / Medicine / Resources | Info/Warning | All |
+| Economy / Research / Mood | Info/Warning | Overseer |
+| Construction | Info/Warning | Economy |
+
+Agent 通过 `switch_agent(role)` 手动切换，通过 `advise_agent(role, advice)` 跨 Agent 传递建议。
 
 ## Tool 过滤
 
@@ -264,12 +266,13 @@ L3 → 立即唤醒；L1-L2 → 排队等 Agent 自然醒来。
 
 ## 实施路径
 
-1. Agent Runtime Foundation — Scheduler + TaskBoard + MemoryManager + AgentOrchestrator
-2. 新增 Tool — `get_world_summary` + `exit_combat_role` + Tool 过滤 + chunk_id
-3. Agent 实现 — Overseer + Economy + Combat + Medic
-4. 事件路由 + 游戏速度
-5. CCB 重构 — 删除 Agent 业务，保留桥接 + 数据显示
-6. 优化 — Prompt Cache 调优 + Token 预算联动 + Daily Report
+1. Agent Runtime Foundation — Scheduler + TaskBoard + MemoryManager + AgentOrchestrator ✅
+2. 新增 Tool — `get_world_summary` + `exit_combat_role` + Tool 过滤 + chunk_id ✅
+3. Agent 实现 — Overseer + Economy + Combat + Medic ✅
+4. 事件路由 + 游戏速度 ✅
+5. CCB 重构 — 删除 Agent 业务，保留桥接 + 数据显示 ✅
+6. 优化 — Prompt Cache 调优 + Token 预算联动 + Daily Report ✅
+7. 架构重构 — 事件路由迁移到 Agent 侧 + 世界状态 SSE 驱动 + Plan/Act 阶段 + Agent 切换/建议 ✅
 
 ## C# 改动范围
 

@@ -6,6 +6,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 {
     public enum AgentState { Sleeping, Running, WaitingExit }
     public enum EventRoute { Overseer, Economy, Combat, Medic, All, None }
+    public enum GamePhase { None, Plan, Act }
 
     public static class AgentOrchestrator
     {
@@ -15,6 +16,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>Agent 状态变化时触发，参数为当前角色显示名（如 "Overseer" 或 "休眠中"）</summary>
         public static event Action<string>? OnStatusChanged;
         public static readonly ConcurrentDictionary<string, ConcurrentQueue<ColonyEvent>> AgentEvents = new();
+        private static readonly ConcurrentDictionary<string, List<string>> _advices = new();
         private static readonly Dictionary<string, int> _agentLastDay = new();
         private static readonly Dictionary<string, AgentState> _agentStates = new()
         {
@@ -33,15 +35,49 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             get
             {
+                string role;
                 foreach (var kv in _agentStates)
-                    if (kv.Value == AgentState.Running) return AgentDisplayName(kv.Key);
+                    if (kv.Value == AgentState.Running) { role = AgentDisplayName(kv.Key); goto found; }
                 return "休眠中";
+                found:
+                var phase = CurrentPhase switch { GamePhase.Plan => " [Plan]", GamePhase.Act => " [Act]", _ => "" };
+                return role + phase;
             }
         }
 
         public static int CombatRoundCount { get; set; }
         public const int CombatMaxRounds = 10;
         public const int CombatRemindRound = 6;
+
+        /// <summary>switch_agent 请求的目标 Agent，主循环会话结束后检查并切换</summary>
+        public static string? NextAgentRequest { get; set; }
+
+        /// <summary>当前游戏阶段（Plan/Act/None）</summary>
+        public static GamePhase CurrentPhase { get; private set; }
+
+        /// <summary>当前会话的 GamePaceController 实例（由 RunSessionAsync 设置）</summary>
+        public static GamePaceController? PaceController { get; set; }
+
+        /// <summary>当前会话的 McpClient（供内部 Tool 调用 MCP）</summary>
+        public static Mcp.McpClient? SessionMcp { get; set; }
+
+        public static void EnterPlanPhase()
+        {
+            CurrentPhase = GamePhase.Plan;
+            OnStatusChanged?.Invoke(AgentRoleDisplay);
+        }
+
+        public static void EnterActPhase()
+        {
+            CurrentPhase = GamePhase.Act;
+            OnStatusChanged?.Invoke(AgentRoleDisplay);
+        }
+
+        public static void ClearPhase()
+        {
+            CurrentPhase = GamePhase.None;
+            OnStatusChanged?.Invoke(AgentRoleDisplay);
+        }
 
         static AgentOrchestrator()
         {
@@ -88,6 +124,41 @@ namespace RimWorldAgent.Core.AgentRuntime
             return items.Count > 0 ? "## 最近事件\n" + string.Join("\n", items) : "";
         }
 
+        public static void AddAdvice(string targetRole, string advice)
+        {
+            _advices.AddOrUpdate(targetRole,
+                _ => new List<string> { advice },
+                (_, list) => { lock (list) { list.Add(advice); } return list; });
+        }
+
+        public static List<string> DrainAdvices(string role)
+        {
+            if (_advices.TryRemove(role, out var list)) return list;
+            return new List<string>();
+        }
+
+        /// <summary>Agent 侧事件路由（原 NotificationBus.GetEventAgent，迁移至此）</summary>
+        public static EventRoute RouteEvent(string category, string severity)
+        {
+            // L3 Critical → 按 Category 路由
+            if (severity == "Critical")
+                return category switch
+                {
+                    "Combat" => EventRoute.Combat,
+                    "Health" => EventRoute.Medic,
+                    _ => EventRoute.Combat
+                };
+
+            // L1-L2 → 按 Category 路由
+            return category switch
+            {
+                "Food" or "Medicine" or "Resources" => EventRoute.All,
+                "Economy" or "Research" or "Mood" => EventRoute.Overseer,
+                "Construction" => EventRoute.Economy,
+                _ => EventRoute.Overseer
+            };
+        }
+
         public static void DispatchEvent(ColonyEvent evt, EventRoute route)
         {
             switch (route)
@@ -116,7 +187,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string Summary { get; set; } = "";
         public object? Payload { get; set; }
         public int Tick { get; set; }
-        public string Route { get; set; } = "";
         public string Method { get; set; } = "";
     }
 }

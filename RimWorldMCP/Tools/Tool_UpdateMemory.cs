@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_UpdateMemory : ITool
+    public class Tool_UpdateMemory : ITool, INoMapRequired
     {
         public string Name => "update_memory";
         public string Description => "更新指定 ID 记忆的优先级和/或内容。";

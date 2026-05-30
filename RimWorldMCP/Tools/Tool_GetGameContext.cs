@@ -4,7 +4,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_GetGameContext : ITool
+    public class Tool_GetGameContext : ITool, INoMapRequired
     {
         public string Name => "get_game_context";
         public string Description => "获取 RimWorld 当前游戏的完整状态上下文，包括殖民地概况、资源库存、研究进度、威胁信息、当前工作单等。应在执行任何操作前先调用此工具了解局势。";

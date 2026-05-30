@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DeleteMemory : ITool
+    public class Tool_DeleteMemory : ITool, INoMapRequired
     {
         public string Name => "delete_memory";
         public string Description => "删除指定 ID 的记忆。";

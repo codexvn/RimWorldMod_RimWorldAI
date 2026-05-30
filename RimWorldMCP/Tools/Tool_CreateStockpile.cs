@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_CreateStockpile : ITool
     {
         public string Name => "create_stockpile";
-        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型（食物/原料/武器等）和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型（食物/原料/武器等）和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 储存区必须放置在房间内（蓝图墙壁围成的房间也可以），请先使用 designate_room 建造房间。垃圾存储区(dumping)不需要房间。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -37,7 +37,7 @@ namespace RimWorldMCP.Tools
                     @enum = new[] { "low", "normal", "preferred", "important", "critical" },
                     @default = "normal"
                 },
-                skip_roof_check = new { type = "boolean", description = "跳过屋顶校验（默认 false，存储区要求有屋顶）" },
+                skip_room_check = new { type = "boolean", description = "跳过房间校验（默认 false，储存区要求在室内）" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" }
             },
             required = new[] { "pos_x", "pos_y" }
@@ -82,9 +82,9 @@ namespace RimWorldMCP.Tools
             if (!PriorityMap.TryGetValue(priorityStr, out var storagePriority))
                 return ToolResult.Error($"未知优先级: {priorityStr}。可选: low, normal, preferred, important, critical");
 
-            bool skipRoof = false;
-            if (args.Value.TryGetProperty("skip_roof_check", out var jSkipRoof) && jSkipRoof.ValueKind == JsonValueKind.True)
-                skipRoof = true;
+            bool skipRoomCheck = false;
+            if (args.Value.TryGetProperty("skip_room_check", out var jSkipRoom) && jSkipRoom.ValueKind == JsonValueKind.True)
+                skipRoomCheck = true;
             bool ignore_unreachable = false;
             if (args.Value.TryGetProperty("ignore_unreachable", out var jIgnore) && jIgnore.ValueKind == JsonValueKind.True)
                 ignore_unreachable = true;
@@ -107,29 +107,12 @@ namespace RimWorldMCP.Tools
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外");
 
-                    // 屋顶校验：存储区上方必须有屋顶（防止物品露天劣化）
-                    if (!skipRoof)
+                    // 房间校验：存储区必须在室内（包括蓝图墙壁围成的准房间）
+                    // 垃圾存储区（dumping）豁免此检查
+                    if (!skipRoomCheck && presetStr != "dumping")
                     {
-                        int unroofedCount = 0;
-                        string sampleStr = "";
-                        int totalCells = 0;
-                        foreach (var cell in area.Cells)
-                        {
-                            totalCells++;
-                            if (!cell.Roofed(map))
-                            {
-                                if (unroofedCount < 3)
-                                    sampleStr += (unroofedCount > 0 ? ", " : "") + $"({cell.x},{cell.z})";
-                                unroofedCount++;
-                            }
-                        }
-                        if (unroofedCount > 0)
-                        {
-                            if (unroofedCount < totalCells)
-                                return ToolResult.Error($"存储区必须有屋顶！{unroofedCount} 格无屋顶: {sampleStr}... 请先建造屋顶或传 skip_roof_check=true");
-                            else
-                                return ToolResult.Error($"指定范围完全没有屋顶。室外存储会导致物品劣化。请先建造屋顶或传 skip_roof_check=true");
-                        }
+                        if (!IsAreaInRoom(area, map))
+                            return ToolResult.Error("存储区必须在室内！请先建造房间或房间蓝图，或传 skip_room_check=true 跳过此检查");
                     }
 
                     // 创建存储区
@@ -239,6 +222,21 @@ namespace RimWorldMCP.Tools
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
                 return (posX, posY, endX, endY);
             return (posX, posY, posX, posY);
+        }
+
+        /// <summary>
+        /// 检测指定区域是否在室内。
+        /// 蓝图墙壁会触发 Region 脏化，因此 cell.GetRoom() 对蓝图围成的区域也能正确返回房间。
+        /// </summary>
+        public static bool IsAreaInRoom(CellRect area, Map map)
+        {
+            foreach (var cell in area.Cells)
+            {
+                var room = cell.GetRoom(map);
+                if (room == null || room.TouchesMapEdge)
+                    return false;
+            }
+            return true;
         }
     }
 }

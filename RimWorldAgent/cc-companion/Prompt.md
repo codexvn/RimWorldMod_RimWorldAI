@@ -6,6 +6,19 @@
 - 所有游戏操作通过 MCP 工具完成，工具列表由系统自动注入。
 - **建造多房间基地前必须先调 `list_base_templates` 查看模板，再用 `apply_base_template` 获取精确坐标。严禁自行计算房间坐标。**
 
+## Plan/Act 工作流程
+1. 收到事件或任务时，先调用 `enter_plan()` 暂停游戏
+2. 在 Plan 阶段分析情况、制定计划（可调用 `advise_agent` 给其他 Agent 建议）
+3. 计划制定完成后，调用 `enter_act()` 恢复游戏
+4. 在 Act 阶段执行具体操作（调用游戏 Tool）
+5. 执行完成后可以再次 `enter_plan()` 进行下一轮规划
+6. 紧急情况（如战斗）可以跳过 Plan 阶段直接执行
+
+## Agent 切换
+- `switch_agent(role)` — 切换到指定 Agent 角色，当前会话结束，目标 Agent 唤醒
+- `advise_agent(role, advice)` — 给其他 Agent 提供建议，切换到该 Agent 时自动附加在 Prompt 中
+- 可用角色：overseer（总督）、economy（生产经理）、combat（战斗指挥官）、medic（医疗官）
+
 ## 角色
 - 实时监控殖民地，响应游戏推送事件
 - 主动管理：分配工作、装备、征召、手术
@@ -126,6 +139,9 @@
 | get_skills / active_skill | 查看可用领域技能并按需激活获取详细指南                                                   |
 | create_growing_zone / set_grower_plant | 种植区创建与植物类型设置                                                            |
 | haul_item / drop_carried | 搬运物品到指定位置/放下手中物品                                                        |
+| enter_plan / enter_act | Plan/Act 阶段切换，暂停/恢复游戏                                                      |
+| switch_agent | 切换当前活跃 Agent 角色                                                              |
+| advise_agent | 给其他 Agent 提供建议，切换时自动附加在 Prompt 中                                          |
 
 ## 战斗速查
 收到袭击 → 全员征召 → 检查武器 → 部署站位 → 集火 → 救治。详细流程用 `active_skill combat-preparation`。

@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using RimWorldAgent.Core.Mcp;
+
+namespace RimWorldAgent.Core.AgentRuntime
+{
+    /// <summary>游戏暂停/恢复控制器 — Plan/Act 阶段切换时控制游戏速度</summary>
+    public class GamePaceController : IDisposable
+    {
+        private bool _isPaused;
+        private readonly SemaphoreSlim _opLock = new(1, 1);
+
+        /// <summary>宿主可设置的跳过恢复判断（Mod 模式下检查 EventForwarder.DangerPaused）</summary>
+        public static Func<bool>? ShouldSkipResume { get; set; }
+
+        /// <summary>进入 Plan 阶段，暂停游戏（幂等）</summary>
+        public async Task PauseForPlanning(McpClient mcp)
+        {
+            if (_isPaused) return;
+            await _opLock.WaitAsync();
+            try
+            {
+                if (_isPaused) return;
+                _isPaused = true;
+                await CallTogglePause(mcp, "paused");
+                CoreLog.Info("[GamePace] 已暂停游戏 (Plan 阶段)");
+            }
+            finally { _opLock.Release(); }
+        }
+
+        /// <summary>进入 Act 阶段，恢复游戏（幂等）</summary>
+        public async Task ResumeForAction(McpClient mcp)
+        {
+            if (!_isPaused) return;
+            await _opLock.WaitAsync();
+            try
+            {
+                if (!_isPaused) return;
+                _isPaused = false;
+                await CallTogglePause(mcp, "superfast");
+                CoreLog.Info("[GamePace] 已恢复游戏 (Act 阶段)");
+            }
+            finally { _opLock.Release(); }
+        }
+
+        /// <summary>确保游戏已恢复（finally 中调用，幂等）</summary>
+        public async Task EnsureResumed(McpClient mcp)
+        {
+            if (!_isPaused) return;
+            if (ShouldSkipResume != null && ShouldSkipResume())
+            {
+                CoreLog.Info("[GamePace] 跳过恢复（ShouldSkipResume=true）");
+                return;
+            }
+            await _opLock.WaitAsync();
+            try
+            {
+                if (!_isPaused) return;
+                _isPaused = false;
+                await CallTogglePause(mcp, "superfast");
+                CoreLog.Info("[GamePace] 已恢复游戏 (EnsureResumed)");
+            }
+            finally { _opLock.Release(); }
+        }
+
+        private static async Task CallTogglePause(McpClient mcp, string speed)
+        {
+            try
+            {
+                var speedElement = JsonSerializer.SerializeToElement(speed);
+                var args = new Dictionary<string, JsonElement> { ["speed"] = speedElement };
+                await mcp.CallTool("toggle_pause", args);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error($"[GamePace] toggle_pause({speed}) 失败: {ex.Message}");
+            }
+        }
+
+        public void Dispose()
+        {
+            _opLock.Dispose();
+        }
+    }
+}

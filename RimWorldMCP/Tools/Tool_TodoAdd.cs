@@ -4,7 +4,7 @@ using RimWorldMCP.Helpers;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_TodoAdd : ITool
+    public class Tool_TodoAdd : ITool, INoMapRequired
     {
         public string Name => "todo_add";
         public string Description => "添加一条待办事项到 TODO 列表。优先级 1-5，数字越大越紧急。";

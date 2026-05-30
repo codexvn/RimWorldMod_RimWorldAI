@@ -6,7 +6,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SubmitFeedback : ITool
+    public class Tool_SubmitFeedback : ITool, INoMapRequired
     {
         public string Name => "submit_feedback";
         public string Description => "提交反馈、问题报告或功能需求。内容将写入 mod 目录下的 feedback.md 文件，供开发者查阅。";

@@ -160,7 +160,6 @@ namespace RimWorldAgent.Core.Mcp
                                     Severity = root.TryGetProperty("Severity", out var s) ? s.GetString() ?? "" : "",
                                     Summary = root.TryGetProperty("Summary", out var sm) ? sm.GetString() ?? "" : "",
                                     Tick = root.TryGetProperty("Tick", out var t) && t.TryGetInt32(out var ti) ? ti : 0,
-                                    Route = root.TryGetProperty("Route", out var r) ? r.GetString() ?? "" : "",
                                     Method = lastMethod
                                 });
                             }

@@ -107,6 +107,19 @@ namespace RimWorldMCP.Tools
             {
                 try
                 {
+                    // 地图加载守卫
+                    if (!(tool is INoMapRequired) && Find.CurrentMap == null)
+                    {
+                        return new ToolCallResult
+                        {
+                            Content = new List<ContentItem>
+                            {
+                                new() { Type = "text", Text = "当前没有已加载的地图，请先加载游戏存档或开始新游戏。" }
+                            },
+                            IsError = true
+                        };
+                    }
+
                     // 自动移动视角 — 工具自身返回目标区域，开关打开则移动+自动缩放
                     if (RimWorldMCPMod.Instance?.Settings?.AutoMoveCamera == true)
                     {

@@ -2,7 +2,7 @@
 
 MCP (Model Context Protocol) 服务器，将 RimWorld 游戏状态和操作暴露为 LLM 可调用的 Tool。作为 RimWorld mod DLL 内嵌运行。
 
-- MCP Server: `../RimWorldMCP/`（游戏 Mod DLL，99+ Tool）
+- MCP Server: `../RimWorldMCP/`（游戏 Mod DLL，100+ Tool）
 - Agent Runtime: `../RimWorldAgent/`（独立 EXE/MOD，通过 MCP 协议通信）
 - MCP Shared: `../SimpleMspServer/`（JSON-RPC + Transport）
 
@@ -14,7 +14,7 @@ RimWorldMCP/
 ├── resource/                  ← MOD 元数据（构建时复制到根 publish）
 │   ├── About/About.xml
 │   └── Languages/
-├── Tools/                     ← 99 个游戏 Tool
+├── Tools/                     ← 100 个游戏 Tool
 ├── Mcp/                       ← MCP Server (JSON-RPC dispatch)
 ├── Harmony/                   ← 事件拦截 (NotificationBus)
 ├── Bridge/                    ← 空 stub (原 CC 桥接已迁至 Agent)
@@ -144,9 +144,9 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 ## Tool 清单（含 I18N 中文名 + 可达性检测）
 
-中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 99 个工具。
+中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 100 个工具。
 
-### 通用查询 (4)
+### 通用查询 (5)
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `get_game_context` | 游戏全局状态快照 | `Find.CurrentMap`, `Find.TickManager`, `Find.ResearchManager` |
@@ -155,6 +155,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `toggle_pause` | 切换游戏暂停状态，恢复时设为最大速度 | `Find.TickManager.CurTimeSpeed` (入队) |
 | `advance_tick` | 让游戏运行指定 tick 数后暂停返回状态，用于观察结果避免过度思考 | `Find.TickManager` (入队) |
 | `get_mcp_latency` | 探查 Agent 与游戏之间的 MCP 延迟 | `McpCommandQueue.DispatchAsync` 排队计时 |
+| `check_map_loaded` | 检查游戏和地图加载状态 | `Current.Game`, `Find.CurrentMap` |
 
 ### 网格查询 (6)
 | Tool | 说明 | 参数 |

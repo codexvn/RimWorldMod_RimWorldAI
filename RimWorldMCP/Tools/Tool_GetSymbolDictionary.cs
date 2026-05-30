@@ -7,7 +7,7 @@ using RimWorldMCP.MapRendering;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_GetSymbolDictionary : ITool
+    public class Tool_GetSymbolDictionary : ITool, INoMapRequired
     {
         public string Name => "get_symbol_dictionary";
         public string Description => "获取 Def→显示符号映射字典（正向/反向/按字符过滤）";

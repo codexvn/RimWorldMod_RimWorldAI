@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ListQuests : ITool
+    public class Tool_ListQuests : ITool, INoMapRequired
     {
         public string Name => "list_quests";
         public string Description => "列出当前所有任务。可按状态过滤：available（可接受）、ongoing（进行中）、all（全部）。分页返回。";

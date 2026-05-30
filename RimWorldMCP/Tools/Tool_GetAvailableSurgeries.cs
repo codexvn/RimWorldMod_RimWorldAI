@@ -11,7 +11,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_GetAvailableSurgeries : ITool
+    public class Tool_GetAvailableSurgeries : ITool, INoMapRequired
     {
         public string Name => "get_available_surgeries";
         public string Description => "列出指定殖民者当前可用的所有手术，包含兼容的身体部位、产物、致死率和技能要求。先查此工具再调 schedule_operation。";

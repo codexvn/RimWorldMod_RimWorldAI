@@ -124,10 +124,12 @@ export function createResponseProcessor(
   let processing = false;
   let initData: any = null;
   let currentModel = '';
+  let modelOutputStarted = false;
 
   async function process(): Promise<void> {
     if (processing) return; // SDK AsyncIterator 持续消费 inputStream，不需二次启动
     console.log('[cc-companion] processResponses 开始');
+    modelOutputStarted = false;
     processing = true;
     try {
       for await (const message of queryIterator) {
@@ -157,18 +159,12 @@ export function createResponseProcessor(
         if (msgType === 'assistant' || msgType === 'user' || msgType === 'stream_event') {
           onMessage?.(message);
           const content = message.message?.content;
-          const parentId = (message as any).parent_tool_use_id;
-          const agentTag = parentId
-            ? ` [${(message as any).agent_type || 'sub'}:${parentId.slice(0, 8)}]` : '';
-          const prefix = msgType === 'user' ? 'user' : 'assistant';
           if (Array.isArray(content)) {
             for (const block of content) {
               if (block.type === 'text') {
-                const text = block.text?.substring(0, 200) || '';
-                console.log(`[${prefix}${agentTag}] ${text}${block.text?.length > 200 ? '...' : ''}`);
+                if (!modelOutputStarted) { modelOutputStarted = true; console.log('[模型] 开始输出'); }
               } else if (block.type === 'tool_use') {
-                const inputSummary = block.input ? JSON.stringify(block.input).substring(0, 300) : '(无参数)';
-                console.log(`[tool_use${agentTag}] ${block.name} | ${inputSummary}`);
+                console.log(`[tool] 调用: ${block.name}`);
                 // 追踪 SDK 任务：TaskCreate / TaskUpdate → RuntimeState.sdkTasks
                 trackSdkTask(block.name, block.input);
               }
@@ -180,6 +176,11 @@ export function createResponseProcessor(
           if (currentModel) (message as any).model = currentModel;
           const usage = message.usage;
           const durationMs = message.duration_ms;
+          if (modelOutputStarted) {
+            const sec = durationMs ? (durationMs / 1000).toFixed(1) : '?';
+            console.log(`[模型] 输出完成 用时 ${sec}s`);
+            modelOutputStarted = false;
+          }
           if (usage) {
             const inputTokens = usage.input_tokens ?? 0;
             const outputTokens = usage.output_tokens ?? 0;

@@ -666,7 +666,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
       <span class="header-title">RimWorld Bridge Agent</span>
       <span class="header-spacer"></span>
       <span class="header-colony" id="colony-name">--</span>
-      <span class="header-agent" id="agent-role">休眠中</span>
 	      <button id="info-btn" title="SDK 信息">i</button>
     </div>
     <div class="header-meta" id="header-meta">
@@ -714,6 +713,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
   <!-- Compose -->
   <div class="compose">
+    <span class="header-agent" id="agent-role">休眠中</span>
     <span class="prompt">&gt;</span>
     <textarea id="chat-input" placeholder="输入消息..." rows="1"></textarea>
     <button id="send-btn" disabled>Send</button>

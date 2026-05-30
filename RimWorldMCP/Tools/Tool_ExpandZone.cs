@@ -23,7 +23,8 @@ namespace RimWorldMCP.Tools
                 pos_x = new { type = "integer", description = "扩展范围左上角 X" },
                 pos_y = new { type = "integer", description = "扩展范围左上角 Y" },
                 end_x = new { type = "integer", description = "扩展范围右下角 X（不传则仅扩展单个格子）" },
-                end_y = new { type = "integer", description = "扩展范围右下角 Y（不传则仅扩展单个格子）" }
+                end_y = new { type = "integer", description = "扩展范围右下角 Y（不传则仅扩展单个格子）" },
+                skip_room_check = new { type = "boolean", description = "跳过房间校验（默认 false，储存区扩展要求目标范围在室内）" }
             },
             required = new[] { "zone_pos_x", "zone_pos_y", "pos_x", "pos_y" }
         });
@@ -46,6 +47,10 @@ namespace RimWorldMCP.Tools
                 endX = ex;
             if (args.Value.TryGetProperty("end_y", out var jey) && jey.TryGetInt32(out var ey))
                 endY = ey;
+
+            bool skipRoomCheck = false;
+            if (args.Value.TryGetProperty("skip_room_check", out var jSkipRoom) && jSkipRoom.ValueKind == JsonValueKind.True)
+                skipRoomCheck = true;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -71,6 +76,10 @@ namespace RimWorldMCP.Tools
 
                 int added = 0, skipped = 0;
                 var errors = new List<string>();
+
+                // 储存区房间校验：先收集所有待扩展格子，整体检测是否在房间内
+                bool needRoomCheck = !skipRoomCheck && zone is Zone_Stockpile;
+                var candidateCells = new List<IntVec3>();
 
                 for (int x = minX; x <= maxX; x++)
                 {
@@ -99,26 +108,32 @@ namespace RimWorldMCP.Tools
                             continue;
                         }
 
-                        // 种植区特殊检查：不能有屋顶
-                        if (zone is Zone_Growing && cell.Roofed(map))
-                        {
-                            skipped++;
-                            if (errors.Count < 3)
-                                errors.Add($"({x},{z}) 有屋顶，不能加入种植区");
-                            continue;
-                        }
+                        candidateCells.Add(cell);
+                    }
+                }
 
-                        try
-                        {
-                            zone.AddCell(cell);
-                            added++;
-                        }
-                        catch (Exception ex)
-                        {
-                            skipped++;
-                            if (errors.Count < 3)
-                                errors.Add($"({x},{z}) {ex.Message}");
-                        }
+                // 储存区房间检测：候选格子整体必须在房间内
+                if (needRoomCheck && candidateCells.Count > 0)
+                {
+                    var candidateArea = CellRect.FromLimits(minX, minZ, maxX, maxZ);
+                    if (!Tool_CreateStockpile.IsAreaInRoom(candidateArea, map))
+                    {
+                        return ToolResult.Success($"扩展范围不在房间内，不能加入储存区。请先建造房间或房间蓝图。");
+                    }
+                }
+
+                foreach (var cell in candidateCells)
+                {
+                    try
+                    {
+                        zone.AddCell(cell);
+                        added++;
+                    }
+                    catch (Exception ex)
+                    {
+                        skipped++;
+                        if (errors.Count < 3)
+                            errors.Add($"({cell.x},{cell.z}) {ex.Message}");
                     }
                 }
 
@@ -152,5 +167,6 @@ namespace RimWorldMCP.Tools
             int maxZ = Math.Max(zoneY, Math.Max(startY, endY));
             return (minX, minZ, maxX, maxZ);
         }
+
     }
 }

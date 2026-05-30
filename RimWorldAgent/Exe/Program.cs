@@ -106,21 +106,9 @@ namespace RimWorldAgent
                     // CCB 崩溃/空闲退出后自动重启
                     ccb?.TickAndRestart();
 
-                    // 1. 获取世界状态 → 更新 Scheduler
-                    try
-                    {
-                        var summary = await mcp.CallTool("get_world_summary");
-                        var input = AgentLoop.ParseSchedulerInput(summary);
-                        Scheduler.Tick(input);
-                    }
-                    catch (Exception ex)
-                    {
-                        CoreLog.Error($"MCP get_world_summary 失败: {ex.Message}");
-                        await Task.Delay(5000, _cts.Token);
-                        continue;
-                    }
+                    // 世界状态已由 SSE game/world-state 事件驱动更新（Scheduler.Tick 在 WireEvents 中）
 
-                    // 2. 检查每个 Agent
+                    // 检查每个 Agent
                     var currentTick = AgentOrchestrator.GameTick;
                     foreach (var config in AgentConfigs.All)
                     {
@@ -134,30 +122,14 @@ namespace RimWorldAgent
 
                         if (shouldWake)
                         {
-                            AgentOrchestrator.BeginAgent(config.Name);
-                            Console.WriteLine($"=== {config.Name} 唤醒 (Load={Scheduler.LoadScore}, {Scheduler.Mode}) ===");
-
-                            var prompt = await ctx.BuildAsync(config);
-                            Console.WriteLine($"[Prompt] {prompt.Length} 字符");
-
-                            // 通过 CCB WebSocket 发送给 Claude
-                            await RunAgentViaCcb(config, prompt, mcp);
-
-                            AgentOrchestrator.EndAgent(config.Name);
-                            Console.WriteLine($"=== {config.Name} 休眠 ===");
+                            await RunAgentWithSwitchSupport(config, ctx, mcp);
                         }
                     }
 
-                    // 3. Combat Agent — 有急迫事件时唤醒
+                    // Combat Agent — 有急迫事件时唤醒
                     if (AgentOrchestrator.IsSleeping("combat") && AgentOrchestrator.HasPendingEvents("combat"))
                     {
-                        AgentOrchestrator.BeginAgent("combat");
-                        Console.WriteLine("=== Combat 唤醒 ===");
-                        var cc = AgentConfigs.Combat;
-                        var cp = await ctx.BuildAsync(cc);
-                        await RunAgentViaCcb(cc, cp, mcp);
-                        AgentOrchestrator.EndAgent("combat");
-                        Console.WriteLine("=== Combat 休眠 ===");
+                        await RunAgentWithSwitchSupport(AgentConfigs.Combat, ctx, mcp);
                     }
 
                     await Task.Delay(loopInterval, _cts.Token);
@@ -172,12 +144,6 @@ namespace RimWorldAgent
         {
             using var ccbWs = new CcbWebSocket();
 
-            ccbWs.OnAssistantText += text =>
-            {
-                if (!string.IsNullOrEmpty(text))
-                    Console.WriteLine($"  [{config.Name}] {text.Substring(0, Math.Min(120, text.Length))}...");
-            };
-
             if (!await ccbWs.ConnectAsync()) { CoreLog.Error($"[{config.Name}] CCB 连接失败"); return; }
 
             AgentLoop.WireCcbStatus(ccbWs);
@@ -186,6 +152,34 @@ namespace RimWorldAgent
                 await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.AgentRoleDisplay });
 
             await AgentLoop.RunSessionAsync(config, prompt, mcp, ccbWs);
+        }
+
+        /// <summary>运行 Agent 会话，结束后检查 switch_agent 请求并自动切换</summary>
+        private static async Task RunAgentWithSwitchSupport(AgentConfig config, ContextBuilder ctx, McpClient mcp)
+        {
+            AgentOrchestrator.NextAgentRequest = null;
+            AgentOrchestrator.BeginAgent(config.Name);
+            Console.WriteLine($"=== {config.Name} 唤醒 (Load={Scheduler.LoadScore}, {Scheduler.Mode}) ===");
+
+            var prompt = await ctx.BuildAsync(config);
+            Console.WriteLine($"[Prompt] {prompt.Length} 字符");
+            await RunAgentViaCcb(config, prompt, mcp);
+
+            AgentOrchestrator.EndAgent(config.Name);
+            Console.WriteLine($"=== {config.Name} 休眠 ===");
+
+            // 检查 switch_agent 请求
+            var nextAgent = AgentOrchestrator.NextAgentRequest;
+            AgentOrchestrator.NextAgentRequest = null;
+            if (!string.IsNullOrEmpty(nextAgent) && AgentOrchestrator.IsSleeping(nextAgent))
+            {
+                var nextConfig = AgentConfigs.Get(nextAgent);
+                if (nextConfig != null)
+                {
+                    Console.WriteLine($"=== switch_agent → {nextAgent} ===");
+                    await RunAgentWithSwitchSupport(nextConfig, ctx, mcp);
+                }
+            }
         }
 
         private static string? FindCcbDir()

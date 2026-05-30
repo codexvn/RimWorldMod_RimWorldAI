@@ -6,6 +6,7 @@
   <RimWorldMCP_Tool_check_colony>殖民地检查</RimWorldMCP_Tool_check_colony>
   <RimWorldMCP_Tool_toggle_pause>切换暂停</RimWorldMCP_Tool_toggle_pause>
   <RimWorldMCP_Tool_advance_tick>推进时间</RimWorldMCP_Tool_advance_tick>
+  <RimWorldMCP_Tool_check_map_loaded>地图加载状态</RimWorldMCP_Tool_check_map_loaded>
 
   <!-- 网格查询 -->
   <RimWorldMCP_Tool_get_tile_detail>坐标详情</RimWorldMCP_Tool_get_tile_detail>

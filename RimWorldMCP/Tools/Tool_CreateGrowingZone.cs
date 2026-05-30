@@ -23,7 +23,6 @@ namespace RimWorldMCP.Tools
                 pos_y = new { type = "integer", description = "左上角 Y 坐标（映射到网格垂直轴 Z）" },
                 end_x = new { type = "integer", description = "右下角 X 坐标（可选，与 end_y 配对划定矩形范围）" },
                 end_y = new { type = "integer", description = "右下角 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
-                skip_roof_check = new { type = "boolean", description = "跳过屋顶校验（默认 false，种植区要求无屋顶以获取光照）" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" },
                 plant_defName = new
                 {
@@ -48,9 +47,6 @@ namespace RimWorldMCP.Tools
             bool isRange = args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out endX)
                         && args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out endY);
 
-            bool skipRoof = false;
-            if (args.Value.TryGetProperty("skip_roof_check", out var jSkipRoof) && jSkipRoof.ValueKind == JsonValueKind.True)
-                skipRoof = true;
             bool ignore_unreachable = false;
             if (args.Value.TryGetProperty("ignore_unreachable", out var jIgnore) && jIgnore.ValueKind == JsonValueKind.True)
                 ignore_unreachable = true;
@@ -94,22 +90,6 @@ namespace RimWorldMCP.Tools
 
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外");
-
-                    // 屋顶校验：种植区上方必须无屋顶（植物需要光照）
-                    if (!skipRoof)
-                    {
-                        var roofed = area.Cells.Where(c => c.Roofed(map)).ToList();
-                        if (roofed.Count > 0)
-                        {
-                            var sample = roofed.Take(3).Select(c => $"({c.x},{c.z})").ToList();
-                            string sampleStr = string.Join(", ", sample);
-                            int roofTotal = area.Width * area.Height;
-                            if (roofed.Count < roofTotal)
-                                return ToolResult.Error($"种植区不能有屋顶！{roofed.Count} 格有屋顶: {sampleStr}... 植物需要露天光照。移除屋顶或传 skip_roof_check=true");
-                            else
-                                return ToolResult.Error($"指定范围全部有屋顶，植物无法生长。请选择露天区域或传 skip_roof_check=true");
-                        }
-                    }
 
                     // 肥力检查 (参照 Designator_ZoneAdd_Growing.CanDesignateCell)
                     float minFertility = ModsConfig.BiotechActive ? 0.5f : ThingDefOf.Plant_Potato.plant.fertilityMin;

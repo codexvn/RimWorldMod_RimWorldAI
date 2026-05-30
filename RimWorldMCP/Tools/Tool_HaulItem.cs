@@ -91,15 +91,15 @@ namespace RimWorldMCP.Tools
 
                     // 验证：可达
                     if (!pawn.CanReach(thing, PathEndMode.ClosestTouch, Danger.Deadly))
-                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法到达 {thing.Label}");
+                        return ToolResult.Error($"{pawn.LabelShort} 无法到达 {thing.Label}");
 
                     // 验证：搬运能力
                     if (!HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, true))
                     {
                         var carried = pawn.carryTracker?.CarriedThing;
                         if (carried != null && carried != thing)
-                            return ToolResult.Error($"{pawn.Name.ToStringShort} 已经在搬运 {carried.Label}，无法同时搬运多件物品");
-                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法搬运 {thing.Label}");
+                            return ToolResult.Error($"{pawn.LabelShort} 已经在搬运 {carried.Label}，无法同时搬运多件物品");
+                        return ToolResult.Error($"{pawn.LabelShort} 无法搬运 {thing.Label}");
                     }
 
                     // 确定数量
@@ -145,14 +145,15 @@ namespace RimWorldMCP.Tools
                         job.count = Math.Max(finalCount, 1);
 
                     if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
-                        return ToolResult.Error($"{pawn.Name.ToStringShort} 无法开始搬运（物品可能已被占用或当前任务无法中断）。");
+                        return ToolResult.Error($"{pawn.LabelShort} 无法开始搬运（物品可能已被占用或当前任务无法中断）。");
 
                     string queueLabel = capQueue ? "（已加入队列）" : "";
-                    return ToolResult.Success($"{pawn.Name.ToStringShort} 开始搬运: {thing.Label} ({thing.def.defName}) x{finalCount} → {destInfo}{queueLabel}");
+                    return ToolResult.Success($"{pawn.LabelShort} 开始搬运: {thing.Label} ({thing.def.defName}) x{finalCount} → {destInfo}{queueLabel}");
                 }
                 catch (Exception ex)
                 {
-                    return ToolResult.Error($"搬运失败: {ex.Message}");
+                    Log.Error($"[haul_item] NRE: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+                    return ToolResult.Error($"搬运失败: {ex.GetType().Name}: {ex.Message}");
                 }
             });
         }

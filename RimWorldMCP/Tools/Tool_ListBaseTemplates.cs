@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ListBaseTemplates : ITool
+    public class Tool_ListBaseTemplates : ITool, INoMapRequired
     {
         public string Name => "list_base_templates";
         public string Description => "列出所有可用的基地模板，供 AI 选择合适的模板来规划殖民地布局。返回每个模板的名称、描述、参数和适用场景。";

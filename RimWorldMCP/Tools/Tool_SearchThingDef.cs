@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SearchThingDef : ITool
+    public class Tool_SearchThingDef : ITool, INoMapRequired
     {
         public string Name => "search_thing_def";
         public string Description => "Wiki 式搜索所有 ThingDef，按 label/defName/描述模糊匹配，支持类别和类型标记过滤。";

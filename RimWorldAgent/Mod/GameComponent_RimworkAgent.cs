@@ -96,6 +96,9 @@ namespace RimWorldAgent
             AgentLoop.WireEvents(_mcp);
             _mcp.StartSse();
 
+            // Plan/Act 阶段：L3 危险事件暂停时不自动恢复游戏
+            GamePaceController.ShouldSkipResume = () => EventForwarder.DangerPaused;
+
             _ctx = new ContextBuilder(_mcp);
             _lastTick = 0;
             Log.Message("[agent-mod] Agent Runtime 初始化完成");
@@ -143,14 +146,7 @@ namespace RimWorldAgent
 
                 if (shouldWake)
                 {
-                    AgentOrchestrator.BeginAgent(config.Name);
-                    Log.Message($"[agent-mod] 唤醒 {config.Name} (Load={Scheduler.LoadScore})");
-
-                    var prompt = await _ctx.BuildAsync(config);
-                    await AgentLoop.RunSessionAsync(config, prompt, _mcp, _ccbWs!);
-
-                    AgentOrchestrator.EndAgent(config.Name);
-                    Log.Message($"[agent-mod] {config.Name} 休眠");
+                    await RunAgentWithSwitchSupport(config);
                 }
             }
 
@@ -159,12 +155,36 @@ namespace RimWorldAgent
                 && AgentOrchestrator.IsSleeping("combat")
                 && AgentOrchestrator.HasPendingEvents("combat"))
             {
-                AgentOrchestrator.BeginAgent("combat");
-                Log.Message("[agent-mod] Combat 唤醒");
-                var prompt = await _ctx.BuildAsync(AgentConfigs.Combat);
-                await AgentLoop.RunSessionAsync(AgentConfigs.Combat, prompt, _mcp, _ccbWs);
-                AgentOrchestrator.EndAgent("combat");
-                Log.Message("[agent-mod] Combat 休眠");
+                await RunAgentWithSwitchSupport(AgentConfigs.Combat);
+            }
+        }
+
+        /// <summary>运行 Agent 会话，结束后检查 switch_agent 请求并自动切换</summary>
+        private async Task RunAgentWithSwitchSupport(AgentConfig config)
+        {
+            if (_mcp == null || _ctx == null || _ccbWs == null) return;
+
+            AgentOrchestrator.NextAgentRequest = null;
+            AgentOrchestrator.BeginAgent(config.Name);
+            Log.Message($"[agent-mod] 唤醒 {config.Name} (Load={Scheduler.LoadScore})");
+
+            var prompt = await _ctx.BuildAsync(config);
+            await AgentLoop.RunSessionAsync(config, prompt, _mcp, _ccbWs);
+
+            AgentOrchestrator.EndAgent(config.Name);
+            Log.Message($"[agent-mod] {config.Name} 休眠");
+
+            // 检查 switch_agent 请求
+            var nextAgent = AgentOrchestrator.NextAgentRequest;
+            AgentOrchestrator.NextAgentRequest = null;
+            if (!string.IsNullOrEmpty(nextAgent) && AgentOrchestrator.IsSleeping(nextAgent))
+            {
+                var nextConfig = AgentConfigs.Get(nextAgent);
+                if (nextConfig != null)
+                {
+                    Log.Message($"[agent-mod] switch_agent → {nextAgent}");
+                    await RunAgentWithSwitchSupport(nextConfig);
+                }
             }
         }
 

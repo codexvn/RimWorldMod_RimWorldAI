@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ListResearchProjects : ITool
+    public class Tool_ListResearchProjects : ITool, INoMapRequired
     {
         public string Name => "list_research_projects";
         public string Description => "列出所有研究项目，可按状态过滤（available 可研究, completed 已完成, all 全部）和关键词搜索。";

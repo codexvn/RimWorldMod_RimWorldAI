@@ -11,7 +11,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ListRecipes : ITool
+    public class Tool_ListRecipes : ITool, INoMapRequired
     {
         public string Name => "list_recipes";
         public string Description => "列出当前可用的制造配方（已研究解锁的）。搜索用正则，如 .*仿生.*（含仿生）、^Install（安装类）、.*（全部）。可筛选仅手术配方。";

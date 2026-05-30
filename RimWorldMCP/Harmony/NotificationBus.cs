@@ -6,7 +6,7 @@ using Verse;
 
 namespace RimWorldMCP.Harmony
 {
-    /// <summary>事件路由目标（原 AgentOrchestrator.EventRoute，内联至此）</summary>
+    /// <summary>事件路由目标</summary>
     public enum EventRoute { Overseer, Economy, Combat, Medic, All, None }
 
     /// <summary>统一事件模型（原 AgentRuntime.ColonyEvent，内联至此）</summary>
@@ -42,14 +42,6 @@ namespace RimWorldMCP.Harmony
         // 待推送通知队列
         public static readonly ConcurrentQueue<Notification> Pending = new();
 
-        // Agent 事件队列（按 Agent 名分桶）
-        private static readonly ConcurrentDictionary<string, ConcurrentQueue<ColonyEvent>> AgentQueues = new();
-        static NotificationBus()
-        {
-            foreach (var name in new[] { "overseer", "economy", "combat", "medic" })
-                AgentQueues[name] = new ConcurrentQueue<ColonyEvent>();
-        }
-
         // 自有警报镜像：类型名 → 拷贝的警报数据（不持游戏对象引用）
         private static readonly Dictionary<string, AlertInfo> ActiveAlerts = new();
 
@@ -73,40 +65,36 @@ namespace RimWorldMCP.Harmony
             if (!HighDangerPending && GetEventLevel(n.Type, n.DangerLabel) == EventLevel.Critical)
                 HighDangerPending = true;
 
-            // 路由到 Agent 事件队列
-            var route = GetEventAgent(n.Type, n.DangerLabel, n.Label);
-            if (route != EventRoute.None)
-            {
-                var evt = new ColonyEvent
-                {
-                    Category = MapCategory(n.Type, n.DangerLabel),
-                    Severity = GetEventLevel(n.Type, n.DangerLabel) switch
-                    {
-                        EventLevel.Critical => "Critical",
-                        EventLevel.Warning => "Warning",
-                        _ => "Info"
-                    },
-                    Summary = $"{n.DangerLabel}: {n.Label ?? n.Text ?? ""}",
-                    Tick = n.Tick
-                };
-                DispatchToAgentQueue(evt, route);
+            // 推送到 Agent 侧（不含路由，由 Agent 侧 RouteEvent 决策）
+            var level = GetEventLevel(n.Type, n.DangerLabel);
+            if (level == EventLevel.Silent) return;
 
-                // 推送到外部 Agent SSE 订阅者
-                try
+            var evt = new ColonyEvent
+            {
+                Category = MapCategory(n.Type, n.DangerLabel),
+                Severity = level switch
                 {
-                    var sseJson = System.Text.Json.JsonSerializer.Serialize(new
-                    {
-                        type = "event",
-                        evt.Category,
-                        evt.Severity,
-                        evt.Summary,
-                        evt.Tick,
-                        Route = route.ToString()
-                    });
-                    SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/notification", sseJson);
-                }
-                catch (Exception ex) { Log.Warning($"[NotificationBus] SSE 推送失败: {ex.Message}"); }
+                    EventLevel.Critical => "Critical",
+                    EventLevel.Warning => "Warning",
+                    _ => "Info"
+                },
+                Summary = $"{n.DangerLabel}: {n.Label ?? n.Text ?? ""}",
+                Tick = n.Tick
+            };
+
+            try
+            {
+                var sseJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    type = "event",
+                    evt.Category,
+                    evt.Severity,
+                    evt.Summary,
+                    evt.Tick
+                });
+                SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/notification", sseJson);
             }
+            catch (Exception ex) { Log.Warning($"[NotificationBus] SSE 推送失败: {ex.Message}"); }
         }
 
         /// <summary>事件等级判定 — 统一入口</summary>
@@ -253,51 +241,6 @@ namespace RimWorldMCP.Harmony
                 }
             }
             return sb.ToString().TrimEnd();
-        }
-
-        /// <summary>事件→Agent 路由，决定事件分发给哪个 Agent。</summary>
-        public static EventRoute GetEventAgent(NotificationType type, string dangerLabel, string? label)
-        {
-            var level = GetEventLevel(type, dangerLabel);
-            if (level == EventLevel.Silent) return EventRoute.None;
-
-            // L3 Critical → 立即唤醒的路由
-            if (level == EventLevel.Critical)
-            {
-                return dangerLabel switch
-                {
-                    "大威胁" or "小威胁" or "Boss" or "死亡" => EventRoute.Combat,
-                    "健康事件" => EventRoute.Medic,
-                    "角色死亡" => EventRoute.Combat,
-                    _ => EventRoute.Combat // 默认 L3 走 Combat
-                };
-            }
-
-            // L1-L2 排队路由
-            return dangerLabel switch
-            {
-                "食物" or "药品" or "资源"         => EventRoute.All,
-                "正面" or "事件" or "来人" or "成长" or "任务" => EventRoute.Overseer,
-                "仪式失败" or "仪式成功"            => EventRoute.Overseer,
-                "完成" or "状态解除"                => EventRoute.Economy,
-                "建造" or "制作" or "蓝图"          => EventRoute.Economy,
-                "研究"                              => EventRoute.Overseer,
-                _                                   => EventRoute.Overseer
-            };
-        }
-
-        private static void DispatchToAgentQueue(ColonyEvent evt, EventRoute route)
-        {
-            switch (route)
-            {
-                case EventRoute.All:
-                    foreach (var q in AgentQueues.Values) q.Enqueue(evt); break;
-                case EventRoute.None: break;
-                default:
-                    var name = route.ToString().ToLower();
-                    if (AgentQueues.TryGetValue(name, out var tq)) tq.Enqueue(evt);
-                    break;
-            }
         }
 
         private static string MapCategory(NotificationType type, string dangerLabel)

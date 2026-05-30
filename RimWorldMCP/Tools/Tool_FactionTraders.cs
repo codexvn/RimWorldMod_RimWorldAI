@@ -9,7 +9,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_FactionTraders : ITool
+    public class Tool_FactionTraders : ITool, INoMapRequired
     {
         public string Name => "list_faction_traders";
         public string Description => "列出所有可虚空贸易的派系，包括好感度、可用商船类型、价格修正。派系级贸易不需要激活定居点。";

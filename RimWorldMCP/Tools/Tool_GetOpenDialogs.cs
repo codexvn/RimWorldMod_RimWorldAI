@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_GetOpenDialogs : ITool
+    public class Tool_GetOpenDialogs : ITool, INoMapRequired
     {
         public string Name => "get_open_dialogs";
         public string Description => "列出当前游戏内打开的弹框/对话框/右键菜单的所有选项。AI 可据此用 select_dialog_option 选择。";

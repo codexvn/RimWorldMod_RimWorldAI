@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
@@ -15,11 +16,15 @@ namespace RimWorldAgent.Core.AgentRuntime
             string toolId, string toolName, JsonElement? input,
             Action<string> log)
         {
+            var sw = Stopwatch.StartNew();
+
             // 内部 Tool → 直接本地处理
             if (InternalToolRegistry.Instance.IsInternal(toolName))
             {
+                log($"工具调用: {toolName}");
                 var (result, shouldExit) = await InternalToolRegistry.Instance.ExecuteInternalAsync(toolName, input);
-                log($"[internal] {toolName}: {result}");
+                sw.Stop();
+                log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
                 await ccbWs.SendToolResult(toolId, result);
 
                 if (shouldExit && toolName == "exit_combat_role")
@@ -33,14 +38,19 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 外部 Tool → 转发 MCP
             try
             {
+                log($"工具调用: {toolName}");
                 var args = input != null
                     ? JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(input.Value.GetRawText())
                     : null;
                 var result = await mcp.CallTool(toolName, args);
+                sw.Stop();
+                log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
                 await ccbWs.SendToolResult(toolId, result);
             }
             catch (Exception ex)
             {
+                sw.Stop();
+                log($"工具失败: {toolName} 用时 {sw.ElapsedMilliseconds}ms — {ex.Message}");
                 await ccbWs.SendToolResult(toolId, $"Error: {ex.Message}", true);
             }
         }

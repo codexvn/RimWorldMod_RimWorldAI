@@ -19,6 +19,9 @@ namespace RimWorldMCP.Tools
         bool IsAvailable { get; }
     }
 
+    /// <summary>标记接口：实现此接口的工具在没有加载地图时也能执行</summary>
+    public interface INoMapRequired { }
+
     public class ToolResult
     {
         public string Text { get; set; } = "";

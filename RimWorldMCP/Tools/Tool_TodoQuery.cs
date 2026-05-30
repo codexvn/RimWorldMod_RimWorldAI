@@ -6,7 +6,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_TodoQuery : ITool
+    public class Tool_TodoQuery : ITool, INoMapRequired
     {
         public string Name => "todo_query";
         public string Description => "查询所有或指定状态的待办事项。默认返回全部。filter 可选 pending/done/cancelled。";

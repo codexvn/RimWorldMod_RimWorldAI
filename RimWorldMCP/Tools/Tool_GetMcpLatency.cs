@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_GetMcpLatency : ITool
+    public class Tool_GetMcpLatency : ITool, INoMapRequired
     {
         public string Name => "get_mcp_latency";
         public string Description => "探查 Agent 与游戏之间的 MCP 延迟：HTTP 往返时间 + 主线程命令队列深度。每次调用返回即时测量值。";

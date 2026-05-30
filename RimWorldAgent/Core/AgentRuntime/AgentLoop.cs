@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
 using RimWorldAgent.Core.Mcp;
+using RimWorldAgent;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
@@ -28,11 +29,13 @@ namespace RimWorldAgent.Core.AgentRuntime
         }
 
         private static CcbWebSocket? _statusWs;
+        private static long _budgetLimit;
 
         /// <summary>CCB WebSocket → Agent 状态推送到 Web 页面（幂等，仅保留最新连接）</summary>
         public static void WireCcbStatus(CcbWebSocket ccbWs)
         {
             _statusWs = ccbWs;
+            _budgetLimit = ccbWs.BudgetLimit;
         }
 
         static AgentLoop()
@@ -41,6 +44,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 if (_statusWs?.IsReady == true)
                     _ = _statusWs.SendEvent("agent.status", new { text = role });
+            };
+
+            TokenUsageTracker.OnUsageRecorded += () =>
+            {
+                if (_statusWs?.IsReady == true)
+                    _ = _statusWs.SendEvent("budget-update", new { used = TokenUsageTracker.TotalAllTokens, limit = _budgetLimit, action = "Block" });
             };
         }
 
@@ -53,21 +62,21 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 世界状态 → 更新 Scheduler
             mcp.OnWorldState += input => Scheduler.Tick(input);
 
-            // 游戏事件 → 按 Route 精确路由（降级到旧逻辑兜底）
+            // 游戏事件 → Agent 侧智能路由（不再依赖 MCP 侧 Route 字段）
             mcp.OnGameEvent += evt =>
             {
-                if (!string.IsNullOrEmpty(evt.Route) && Enum.TryParse<EventRoute>(evt.Route, true, out var route))
-                    AgentOrchestrator.DispatchEvent(evt, route);
-                else if (evt.Severity == "Critical")
-                    AgentOrchestrator.DispatchEvent(evt, EventRoute.Combat);
-                else
-                    AgentOrchestrator.DispatchEvent(evt, EventRoute.Overseer);
+                var route = AgentOrchestrator.RouteEvent(evt.Category, evt.Severity);
+                AgentOrchestrator.DispatchEvent(evt, route);
             };
         }
 
         /// <summary>执行一次 Agent 回合：发送 prompt → Tool Loop → 写 Memory</summary>
         public static async Task RunSessionAsync(AgentConfig config, string prompt, McpClient mcp, CcbWebSocket ccbWs)
         {
+            var paceController = new GamePaceController();
+            AgentOrchestrator.PaceController = paceController;
+            AgentOrchestrator.SessionMcp = mcp;
+
             var tcs = new TaskCompletionSource<bool>();
 
             void OnResult(string subtype, string? _)
@@ -102,6 +111,13 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 ccbWs.OnResult -= OnResult;
                 ccbWs.OnToolUse -= OnToolUse;
+
+                // 确保游戏恢复 + 清除阶段状态
+                await paceController.EnsureResumed(mcp);
+                AgentOrchestrator.ClearPhase();
+                AgentOrchestrator.PaceController = null;
+                AgentOrchestrator.SessionMcp = null;
+                paceController.Dispose();
             }
 
             try

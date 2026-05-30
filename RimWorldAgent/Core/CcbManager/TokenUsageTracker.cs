@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using RimWorldAgent.Core.AgentRuntime;
 
 namespace RimWorldAgent
 {
@@ -10,6 +12,9 @@ namespace RimWorldAgent
     /// <summary>Token 消耗追踪器 — 按存档 + 按模型追踪，持久化到存档，同步写入全局汇总</summary>
     public static class TokenUsageTracker
     {
+        /// <summary>Record() 完成后触发，通知外部（如 CCB 推送预算更新）</summary>
+        public static event Action? OnUsageRecorded;
+
         // 合计字段（兼容旧代码 + 存档持久化）
         public static long TotalInputTokens;
         public static long TotalOutputTokens;
@@ -67,11 +72,11 @@ namespace RimWorldAgent
             RefreshBudgetDisplay();
         }
 
-        /// <summary>Record() 后立即刷新预算状态（companion 推送由 CcbWebSocket 负责）</summary>
+        /// <summary>Record() 后触发 OnUsageRecorded 事件，由 AgentLoop 推送到 CCB</summary>
         private static void RefreshBudgetDisplay()
         {
-            // Token 追踪数据通过 CcbWebSocket.SendEvent("budget-update", ...) 推送
-            // 由调用方（CcbWebSocket.ReceiveLoop）负责
+            try { OnUsageRecorded?.Invoke(); }
+            catch (Exception ex) { CoreLog.Warn($"[TokenUsage] 推送预算更新失败: {ex.Message}"); }
         }
 
         /// <summary>兼容旧的无模型名调用</summary>

@@ -105,7 +105,9 @@ namespace RimWorldAgent.Core.CcbManager
                     if (!string.IsNullOrEmpty(e.Data))
                     {
                         if (e.Data.Contains("就绪")) _ready = true;
-                        CoreLog.Info($"[ccb] {e.Data}");
+                        // 只打印关键行（就绪/错误/失败/退出），静默普通 stdout
+                        if (e.Data.Contains("就绪") || e.Data.Contains("错误") || e.Data.Contains("失败") || e.Data.Contains("退出"))
+                            CoreLog.Info($"[ccb] {e.Data}");
                     }
                 };
                 _process.ErrorDataReceived += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) CoreLog.Error($"[ccb] {e.Data}"); };

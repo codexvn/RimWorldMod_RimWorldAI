@@ -9,7 +9,7 @@ using RimWorld.Planet;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_RestartGame : ITool
+    public class Tool_RestartGame : ITool, INoMapRequired
     {
         public string Name => "restart_game";
 
