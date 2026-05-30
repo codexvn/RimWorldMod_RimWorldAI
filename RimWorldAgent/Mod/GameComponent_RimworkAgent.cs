@@ -87,6 +87,7 @@ namespace RimWorldAgent
             if (await _ccbWs.ConnectAsync())
             {
                 EventForwarder.SetCcbSocket(_ccbWs);
+                AgentLoop.WireCcbStatus(_ccbWs);
                 Log.Message("[agent-mod] CCB WebSocket 已连接");
             }
             else Log.Warning("[agent-mod] CCB WebSocket 连接失败，事件转发不可用");

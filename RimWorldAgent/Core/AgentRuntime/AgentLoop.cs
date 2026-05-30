@@ -27,6 +27,23 @@ namespace RimWorldAgent.Core.AgentRuntime
             return input;
         }
 
+        private static CcbWebSocket? _statusWs;
+
+        /// <summary>CCB WebSocket → Agent 状态推送到 Web 页面（幂等，仅保留最新连接）</summary>
+        public static void WireCcbStatus(CcbWebSocket ccbWs)
+        {
+            _statusWs = ccbWs;
+        }
+
+        static AgentLoop()
+        {
+            AgentOrchestrator.OnStatusChanged += role =>
+            {
+                if (_statusWs?.IsReady == true)
+                    _ = _statusWs.SendEvent("agent.status", new { text = role });
+            };
+        }
+
         /// <summary>MCP 游戏事件 → AgentOrchestrator 路由</summary>
         public static void WireEvents(McpClient mcp)
         {

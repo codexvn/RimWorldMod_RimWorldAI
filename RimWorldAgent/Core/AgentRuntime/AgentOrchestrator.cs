@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace RimWorldAgent.Core.AgentRuntime
@@ -10,6 +11,9 @@ namespace RimWorldAgent.Core.AgentRuntime
     {
         public static string? ActiveAgent { get; private set; }
         public static bool IsCombatActive { get; set; }
+
+        /// <summary>Agent 状态变化时触发，参数为当前角色显示名（如 "Overseer" 或 "休眠中"）</summary>
+        public static event Action<string>? OnStatusChanged;
         public static readonly ConcurrentDictionary<string, ConcurrentQueue<ColonyEvent>> AgentEvents = new();
         private static readonly Dictionary<string, int> _agentLastDay = new();
         private static readonly Dictionary<string, AgentState> _agentStates = new()
@@ -62,6 +66,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             ActiveAgent = agentName;
             _agentStates[agentName] = AgentState.Running;
             if (agentName == "combat") { IsCombatActive = true; CombatRoundCount = 0; }
+            OnStatusChanged?.Invoke(AgentRoleDisplay);
         }
 
         public static void EndAgent(string agentName)
@@ -69,6 +74,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             _agentStates[agentName] = AgentState.Sleeping;
             if (agentName == "combat") { IsCombatActive = false; CombatRoundCount = 0; }
             if (ActiveAgent == agentName) ActiveAgent = null;
+            OnStatusChanged?.Invoke(AgentRoleDisplay);
         }
 
         public static bool HasPendingEvents(string agentName)

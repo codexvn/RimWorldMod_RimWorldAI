@@ -177,6 +177,11 @@ namespace RimWorldAgent
 
             if (!await ccbWs.ConnectAsync()) { CoreLog.Error($"[{config.Name}] CCB 连接失败"); return; }
 
+            AgentLoop.WireCcbStatus(ccbWs);
+            // 连接后立即推送当前角色状态
+            if (ccbWs.IsReady)
+                await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.AgentRoleDisplay });
+
             await AgentLoop.RunSessionAsync(config, prompt, mcp, ccbWs);
         }
 
