@@ -52,6 +52,12 @@
     <RemoveDir Directories="..\publish\RimWorldAgent" ContinueOnError="true" />
   </Target>
 
+  <!-- netstandard 2.1 facade（Unity Mono 缺失） -->
+  <Target Name="CopyNetStandard" AfterTargets="CoreCompile">
+    <Copy SourceFiles="C:\Program Files\dotnet\shared\Microsoft.NETCore.App\6.0.36\netstandard.dll"
+          DestinationFolder="$(OutputPath)" />
+  </Target>
+
   <!-- 构建完成后：复制 DLL + 依赖 + 资源到 publish -->
   <Target Name="PublishAgent" AfterTargets="Build">
     <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies" />
