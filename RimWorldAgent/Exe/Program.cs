@@ -71,14 +71,33 @@ namespace RimWorldAgent
             Console.WriteLine("  AgentMCP: :9878 (内部 Tool + Skills)");
 
             using var mcp = new McpClient(mcpUrl);
-            AgentLoop.WireEvents(mcp);
-            mcp.StartSse();
 
             var ctx = new ContextBuilder(mcp);
             var loopInterval = TimeSpan.FromSeconds(10);
 
-            Console.WriteLine("Agent Main Loop 启动 (Ctrl+C 退出)");
+            Console.WriteLine("等待游戏启动...");
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; _cts.Cancel(); };
+
+            // 等待 MCP 连接成功（游戏已启动）再开始 SSE 和 Agent 循环
+            while (!_cts.IsCancellationRequested)
+            {
+                try
+                {
+                    await mcp.CallTool("get_world_summary");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Info($"等待游戏启动: {ex.Message}，3s 后重试...");
+                    await Task.Delay(3000, _cts.Token);
+                }
+            }
+            if (_cts.IsCancellationRequested) return;
+
+            // 游戏已启动，开始 SSE 事件监听 + Agent 主循环
+            AgentLoop.WireEvents(mcp);
+            mcp.StartSse();
+            Console.WriteLine("Agent Main Loop 启动 (Ctrl+C 退出)");
 
             try
             {
