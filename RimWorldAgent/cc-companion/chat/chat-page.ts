@@ -308,7 +308,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   #messages {
     flex: 1; overflow-y: auto; padding: 14px 20px;
     display: flex; flex-direction: column; gap: 10px;
-    scroll-behavior: smooth;
   }
 
   /* Base message */
@@ -1700,16 +1699,14 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   // ===== Auto-scroll =====
   var userScrolledUp = false;
   var scrollRaf = 0;
-  var autoScrolling = false;
   var scrollEventTimer = 0;
-
+  var SNAP_THRESHOLD = 50;   // 距底部 < 50px 视为已到底，恢复磁吸
+  var BREAK_THRESHOLD = 100;  // 距底部 > 100px 才断磁，避免快速消息误触
 
   function scrollNow() {
     cancelAnimationFrame(scrollRaf);
-    autoScrolling = true;
     messagesEl.scrollTop = messagesEl.scrollHeight;
     scrollRaf = 0;
-    requestAnimationFrame(function() { autoScrolling = false; });
   }
 
   function scrollDeferred() {
@@ -1721,28 +1718,24 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     });
   }
 
-  function checkScroll() {
-    if (userScrolledUp) {
-      var diff2 = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
-      if (diff2 < 6) {
-        userScrolledUp = false;
-        newMsgPill.style.display = 'none';
-      }
-      return;
-    }
-  }
-
   messagesEl.addEventListener('scroll', function() {
-    if (userScrolledUp || autoScrolling) return;
     clearTimeout(scrollEventTimer);
     scrollEventTimer = setTimeout(function() {
-      if (autoScrolling) return;
       var diff = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
-      if (diff > 50) {
-        userScrolledUp = true;
-        newMsgPill.style.display = 'block';
+      if (userScrolledUp) {
+        // 已断磁：检查是否滚回底部，自动恢复磁吸
+        if (diff < SNAP_THRESHOLD) {
+          userScrolledUp = false;
+          newMsgPill.style.display = 'none';
+        }
+      } else {
+        // 磁吸中：检查是否用户上滚超过阈值，断磁
+        if (diff > BREAK_THRESHOLD) {
+          userScrolledUp = true;
+          newMsgPill.style.display = 'block';
+        }
       }
-    }, 150);
+    }, 100);
   }, { passive: true });
   function scrollToBottom() {
     userScrolledUp = false;
