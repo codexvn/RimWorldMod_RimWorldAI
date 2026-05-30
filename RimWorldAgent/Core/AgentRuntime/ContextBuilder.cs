@@ -36,10 +36,20 @@ namespace RimWorldAgent.Core.AgentRuntime
             sb.AppendLine(TaskBoard.ToMarkdown());
             sb.AppendLine();
 
+            // Layer 5.5: Advice from other Agents
+            var advices = AgentOrchestrator.DrainAdvices(config.Name);
+            if (advices.Count > 0)
+            {
+                sb.AppendLine("## 来自其他 Agent 的建议");
+                foreach (var a in advices) sb.AppendLine($"- {a}");
+                sb.AppendLine();
+            }
+
             // Layer 6: Runtime info
             sb.AppendLine("## 运行信息");
             sb.AppendLine($"- Load: {Scheduler.LoadScore} ({Scheduler.Mode})");
             sb.AppendLine($"- Day: {AgentOrchestrator.GameDay}");
+            sb.AppendLine($"- 阶段: {AgentOrchestrator.CurrentPhase}");
             sb.AppendLine($"- 可见工具: {config.ToolCategories.Count} 类");
 
             return sb.ToString().TrimEnd();
