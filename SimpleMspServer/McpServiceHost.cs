@@ -32,7 +32,7 @@ namespace SimpleMspServer
         public bool IsRunning => _listener != null;
         public static McpServiceHost? Instance { get; private set; }
 
-        public McpServiceHost(int port = 9877, string host = "0.0.0.0", IMspLog? log = null)
+        public McpServiceHost(int port = 9877, string host = "localhost", IMspLog? log = null)
         {
             _port = port;
             _host = host;

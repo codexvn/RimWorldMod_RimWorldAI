@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rimworld": {
+      "type": "http",
+      "url": "http://localhost:9877/mcp"
+    },
+    "agent": {
+      "type": "http",
+      "url": "http://localhost:9878/mcp"
+    }
+  }
+}

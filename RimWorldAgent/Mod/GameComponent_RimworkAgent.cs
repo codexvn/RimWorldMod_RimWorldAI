@@ -44,37 +44,32 @@ namespace RimWorldAgent
             Directory.CreateDirectory(sessionDir);
             TaskBoard.SessionDir = sessionDir;
 
-            // Skills 加载
-            var defaultSkillsDir = Path.Combine(modRoot, "..", "..", "..", "resource", "Skills");
+            // Skills — Assemblies/Skills（和 DLL 同目录）
             var skillsDir = !string.IsNullOrEmpty(settings?.SkillsDir)
                 ? Path.Combine(modRoot, settings!.SkillsDir)
-                : defaultSkillsDir;
+                : Path.GetFullPath(Path.Combine(modRoot, "Skills"));
             InternalToolRegistry.Instance.LoadSkills(skillsDir);
             InternalToolRegistry.Instance.InitializeSkillTools();
             Log.Message($"[agent-mod] Skills 加载: {skillsDir}");
 
             // Agent MCP Server — 暴露内部 Tool 给 CCB（端口从设置读取）
             var agentMcpPort = settings?.AgentMcpPort ?? 9878;
-            _agentHost = new SimpleMspServer.McpServiceHost(agentMcpPort, "0.0.0.0",
-                    new SimpleMspServer.DelegateMspLog(Verse.Log.Message));
+            _agentHost = new SimpleMspServer.McpServiceHost(agentMcpPort, log: new SimpleMspServer.DelegateMspLog(Verse.Log.Message));
             _agentHost.RegisterProvider(InternalToolRegistry.Instance);
             _agentHost.Start();
             Log.Message($"[agent-mod] AgentMcpServer :{agentMcpPort} 启动");
 
-            // CCB 子进程 — 优先 publish 打包版本，回退源码目录
+            // CCB 子进程 — Assemblies/cc-companion（和 DLL 同目录）
             var ccbPort = settings?.CCBPort ?? 19999;
             var mcpPort = settings?.McpPort ?? 9877;
             var ccbToken = settings?.CCBAuthToken;
-            var ccbDir1 = Path.GetFullPath(Path.Combine(modRoot, "..", "..", "cc-companion"));
-            var ccbDir2 = Path.GetFullPath(Path.Combine(modRoot, "..", "..", "..", "..", "cc-companion"));
-            var ccbDir = Directory.Exists(ccbDir1) ? ccbDir1 :
-                         Directory.Exists(ccbDir2) ? ccbDir2 : ccbDir1;
+            var ccbDir = Path.GetFullPath(Path.Combine(modRoot, "cc-companion"));
 
-            // 自动安装
+            // 自动安装 Claude Code 依赖（npm install）
             if ((settings == null || settings.CCBAutoInstall) && !CompanionInstaller.IsInstalled(ccbDir))
             {
-                Log.Message($"[agent-mod] cc-companion 未安装，开始 npm install: {ccbDir}");
-                CompanionInstaller.Install(ccbDir);
+                Log.Message($"[agent-mod] Claude Code 依赖未安装，npm install...");
+                await CompanionInstaller.InstallAsync(ccbDir);
             }
 
             _ccb = new CcbManager(ccbDir, sessionDir, ccbPort, mcpPort, agentMcpPort, null, ccbToken);

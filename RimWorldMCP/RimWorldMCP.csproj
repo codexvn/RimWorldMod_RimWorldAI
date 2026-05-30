@@ -58,12 +58,12 @@
     <None Include="CLAUDE.md" />
   </ItemGroup>
 
-  <!-- 构建前清空 publish（Build 触发） -->
-  <Target Name="CleanPublishBeforeBuild" BeforeTargets="CoreCompile">
-    <RemoveDir Directories="..\publish\RimWorldMCP" ContinueOnError="true" />
+  <!-- Clean / Rebuild：清理 bin + publish -->
+  <Target Name="CleanExtras" AfterTargets="Clean">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\bin;..\publish\RimWorldMCP" ContinueOnError="true" />
   </Target>
-  <!-- Clean 时清空 publish（Clean 触发） -->
-  <Target Name="CleanPublishOnClean" AfterTargets="CoreClean">
+  <!-- Build 前清空 publish -->
+  <Target Name="CleanPublish" BeforeTargets="CoreCompile">
     <RemoveDir Directories="..\publish\RimWorldMCP" ContinueOnError="true" />
   </Target>
 

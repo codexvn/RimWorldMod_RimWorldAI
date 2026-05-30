@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,10 +17,12 @@ namespace RimWorldAgent
 
         public static async Task Main(string[] args)
         {
+            // 设置控制台输出编码为 UTF-8
+            Console.OutputEncoding = Encoding.UTF8;
             CoreLog.OnInfo = msg => Console.WriteLine($"[Core] {msg}");
             CoreLog.OnError = msg => Console.Error.WriteLine($"[Core] {msg}");
 
-            var mcpUrl = args.Length > 0 ? args[0] : "http://localhost:9877";
+            var mcpUrl = args.Length > 0 ? args[0] : "http://localhost:9878";
             var sessionDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session");
             Directory.CreateDirectory(sessionDir);
             TaskBoard.SessionDir = sessionDir;
@@ -33,17 +36,22 @@ namespace RimWorldAgent
             CcbManager? ccb = null;
             if (!string.IsNullOrEmpty(ccbDir))
             {
+                if (!CompanionInstaller.IsInstalled(ccbDir))
+                {
+                    Console.WriteLine("  CCB: npm install...");
+                    await CompanionInstaller.InstallAsync(ccbDir);
+                }
                 ccb = new CcbManager(ccbDir!, sessionDir);
                 if (ccb.Start()) { Console.WriteLine("  CCB: 启动中..."); await ccb.WaitReadyAsync(); Console.WriteLine("  CCB: 就绪"); }
             }
             if (ccb == null || !ccb.IsReady) Console.WriteLine("  CCB: 未启动 (Agent 将在无 CCB 模式运行)");
 
-            var skillsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "resource", "Skills");
+            var skillsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
             InternalToolRegistry.Instance.LoadSkills(skillsDir);
             InternalToolRegistry.Instance.InitializeSkillTools();
 
             // Agent MCP Server (:9878) — 暴露内部 Tool 给 CCB
-            var agentHost = new SimpleMspServer.McpServiceHost(9878, "0.0.0.0",
+            var agentHost = new SimpleMspServer.McpServiceHost(9878, "localhost",
                     new SimpleMspServer.DelegateMspLog(Console.WriteLine));
             agentHost.RegisterProvider(InternalToolRegistry.Instance);
             agentHost.Start();
@@ -199,17 +207,11 @@ namespace RimWorldAgent
         private static string? FindCcbDir()
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var candidates = new[]
-            {
-                // 优先本地（Agent 自带）
-                Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "cc-companion")),
-                Path.GetFullPath(Path.Combine(baseDir, "..", "..", "cc-companion")),
-                // 回退 RimWorldMCP
-                Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "RimWorldMCP", "cc-companion")),
-            };
-            foreach (var c in candidates)
-                if (Directory.Exists(c) && File.Exists(Path.Combine(c, "package.json")))
-                    return c;
+            // 优先 publish 打包版 (1.6/cc-companion), 回退源码目录
+            var pub = Path.GetFullPath(Path.Combine(baseDir, "cc-companion"));
+            var src = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "cc-companion"));
+            if (Directory.Exists(pub) && File.Exists(Path.Combine(pub, "package.json"))) return pub;
+            if (Directory.Exists(src) && File.Exists(Path.Combine(src, "package.json"))) return src;
             return null;
         }
 

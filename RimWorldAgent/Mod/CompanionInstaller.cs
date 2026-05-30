@@ -24,13 +24,17 @@ namespace RimWorldAgent
             return Directory.Exists(Path.Combine(companionDir!, "node_modules"));
         }
 
+        /// <summary>异步安装（CCB 启动前 await，确保 node_modules 就绪）</summary>
+        public static Task<bool> InstallAsync(string companionDir) => DoInstallAsync(companionDir);
+
+        /// <summary>同步安装（设置 UI 调用，fire-and-forget）</summary>
         public static void Install(string companionDir)
         {
             if (_installing) return;
-            _ = InstallAsync(companionDir);
+            _ = DoInstallAsync(companionDir);
         }
 
-        public static async Task<bool> InstallAsync(string companionDir)
+        private static async Task<bool> DoInstallAsync(string companionDir)
         {
             if (string.IsNullOrEmpty(companionDir) || !Directory.Exists(companionDir))
             { _status = "找不到 cc-companion 目录"; return false; }

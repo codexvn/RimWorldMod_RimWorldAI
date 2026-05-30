@@ -47,10 +47,15 @@ namespace RimWorldAgent.Core.CcbManager
 
             Directory.CreateDirectory(_sessionsDir);
 
-            var mcpJson = "{\"mcpServers\":{"
-                + $"\"rimworld\":{{\"type\":\"http\",\"url\":\"http://localhost:{_mcpPort}/mcp\"}},"
-                + $"\"agent\":{{\"type\":\"http\",\"url\":\"http://localhost:{_agentMcpPort}/mcp\"}}"
-                + "}}";
+            var mcpConfig = new
+            {
+                mcpServers = new
+                {
+                    rimworld = new { type = "http", url = $"http://localhost:{_mcpPort}/mcp" },
+                    agent = new { type = "http", url = $"http://localhost:{_agentMcpPort}/mcp" }
+                }
+            };
+            var mcpJson = System.Text.Json.JsonSerializer.Serialize(mcpConfig, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(Path.Combine(_sessionsDir, ".mcp.json"), mcpJson);
 
             var args = $"--import tsx/esm companion/companion.ts"
