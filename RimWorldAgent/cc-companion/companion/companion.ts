@@ -60,35 +60,18 @@ async function main(): Promise<void> {
 
   let lastInitSnapshot = '';
   const onInit = (msg: any) => {
-    const parts: string[] = [];
-    parts.push('模型=' + (msg.model || '?'));
-    parts.push('版本=' + (msg.claude_code_version || '?'));
-    parts.push('Key=' + (msg.apiKeySource || '?'));
-    parts.push('权限=' + (msg.permissionMode || '?'));
-    parts.push('会话=' + (msg.session_id || '?'));
-    if (msg.tools?.length) parts.push('工具=' + msg.tools.length);
-    if (msg.mcp_servers?.length) {
-      var mcpParts = msg.mcp_servers.map(function(s: any) { return s.name + '(' + s.status + ')'; });
-      parts.push('MCP=[' + mcpParts.join(',') + ']');
-    } else {
-      parts.push('MCP=(无)');
-    }
-    const snapshot = parts.join(' | ');
+    const model = msg.model || '?';
+    const sessionId = msg.session_id || '?';
+    const mcpStatus = msg.mcp_servers?.length
+      ? msg.mcp_servers.map((s: any) => `${s.name}(${s.status})`).join(',')
+      : '无';
+    const snapshot = `${model}|${sessionId}|${mcpStatus}`;
 
     if (!lastInitSnapshot) {
       lastInitSnapshot = snapshot;
-      console.log('[cc-companion] === SDK Init (首次) ===');
-      console.log('[cc-companion] ' + snapshot);
-      if (msg.mcp_servers) {
-        for (var mi = 0; mi < msg.mcp_servers.length; mi++) {
-          var s = msg.mcp_servers[mi];
-          console.log('[cc-companion]   MCP[' + s.name + ']: ' + s.status + (s.status !== 'connected' ? ' ⚠' : ''));
-        }
-      }
+      console.log(`[cc-companion] 模型=${model} 会话=${sessionId} MCP=[${mcpStatus}]`);
     } else if (snapshot !== lastInitSnapshot) {
-      console.log('[cc-companion] === SDK Init (变更) ===');
-      console.log('[cc-companion] 旧: ' + lastInitSnapshot);
-      console.log('[cc-companion] 新: ' + snapshot);
+      console.log(`[cc-companion] Init 变更: 模型=${model} 会话=${sessionId}`);
       lastInitSnapshot = snapshot;
     }
 
@@ -160,7 +143,6 @@ async function main(): Promise<void> {
 
       // Game Bus：回显用户发言到所有 UI 客户端（不经 SDK，零延迟）
       if (text) {
-        console.log(`[user] ${text}`);
         bus.publishUserMessage(text);
       }
 
@@ -186,11 +168,11 @@ async function main(): Promise<void> {
           RuntimeState.tokenBudgetLimit,
           RuntimeState.tokenBudgetUsed,
           RuntimeState.tokenBudgetAction,
+          (payload.cacheRead as number) || 0,
+          (payload.totalInput as number) || 0,
         );
         return;
       }
-
-      console.log(`[event] ${wsMessage.event || 'unknown'}: ${text.substring(0, 100)}`);
 
       // Token 预算检查（Companion 侧辅助 enforcement）
       if (RuntimeState.tokenBudgetLimit > 0 && RuntimeState.tokenBudgetUsed >= RuntimeState.tokenBudgetLimit) {

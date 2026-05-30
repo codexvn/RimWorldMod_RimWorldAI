@@ -41,7 +41,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             if (ccbWs.IsReady)
             {
                 _ = ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.AgentRoleDisplay });
-                _ = ccbWs.SendEvent("budget-update", new { used = TokenUsageTracker.TotalAllTokens, limit = _budgetLimit, action = "Block" });
+                PushBudgetUpdate(ccbWs);
             }
         }
 
@@ -56,8 +56,20 @@ namespace RimWorldAgent.Core.AgentRuntime
             TokenUsageTracker.OnUsageRecorded += () =>
             {
                 if (_statusWs?.IsReady == true)
-                    _ = _statusWs.SendEvent("budget-update", new { used = TokenUsageTracker.TotalAllTokens, limit = _budgetLimit, action = "Block" });
+                    PushBudgetUpdate(_statusWs);
             };
+        }
+
+        private static void PushBudgetUpdate(CcbWebSocket ws)
+        {
+            _ = ws.SendEvent("budget-update", new
+            {
+                used = TokenUsageTracker.TotalAllTokens,
+                limit = _budgetLimit,
+                action = "Block",
+                cacheRead = TokenUsageTracker.TotalCacheReadTokens,
+                totalInput = TokenUsageTracker.TotalInputTokens,
+            });
         }
 
         /// <summary>MCP 游戏事件 → AgentOrchestrator 路由</summary>
@@ -72,6 +84,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 游戏事件 → Agent 侧智能路由（不再依赖 MCP 侧 Route 字段）
             mcp.OnGameEvent += evt =>
             {
+                CoreLog.Info($"[event] {evt.Category}/{evt.Severity}: {evt.Summary}");
                 var route = AgentOrchestrator.RouteEvent(evt.Category, evt.Severity);
                 AgentOrchestrator.DispatchEvent(evt, route);
             };

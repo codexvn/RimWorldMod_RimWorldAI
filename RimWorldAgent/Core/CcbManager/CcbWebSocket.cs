@@ -22,7 +22,7 @@ namespace RimWorldAgent.Core.CcbManager
         private TaskCompletionSource<bool>? _helloOk;
         private DateTime _lastPong = DateTime.MinValue;
         private const int PingIntervalMs = 30000;
-        private const int PongTimeoutMs = 20000;
+        private const int PongTimeoutMs = 45000;
         private DateTime _lastPing = DateTime.MinValue;
         private System.Threading.Timer? _heartbeatTimer;
 
@@ -348,7 +348,7 @@ namespace RimWorldAgent.Core.CcbManager
 
         private async Task SendPing()
         {
-            try { await SendJson(new { type = "keepalive" }); _lastPing = DateTime.UtcNow; }
+            try { await SendJson(new { type = "keepalive" }); _lastPing = DateTime.UtcNow; _lastPong = DateTime.UtcNow; }
             catch (Exception ex) { CoreLog.Error($"[CcbWS] keepalive 失败: {ex.Message}"); }
         }
 

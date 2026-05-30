@@ -179,6 +179,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
   }
   .hdr-budget .budget-bar.warning { background: var(--amber); }
   .hdr-budget .budget-bar.danger { background: var(--red); }
+  .hdr-budget .cache-rate { color: var(--muted); margin-left: 2px; }
   .think-dd {
     position: relative; margin-left: auto; font-size: 11px;
   }
@@ -1034,15 +1035,22 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     if (!hdrBudget) return;
     var limit = data.limit || 0;
     var used = data.used || 0;
+    var cacheRead = data.cacheRead || 0;
+    var totalInput = data.totalInput || 0;
     var fmt = function(v) { return v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : String(v); };
+    var cacheHtml = '';
+    if (totalInput > 0) {
+      var cachePct = Math.round(cacheRead / totalInput * 100);
+      cacheHtml = ' <span class="cache-rate">缓存 ' + fmt(cacheRead) + '(' + cachePct + '%)</span>';
+    }
     if (limit <= 0) {
-      hdrBudget.innerHTML = 'Token ' + (used > 0 ? fmt(used) : '--');
+      hdrBudget.innerHTML = 'Token ' + (used > 0 ? fmt(used) : '--') + cacheHtml;
       return;
     }
     var pct = used / limit * 100;
     var barCls = pct >= 95 ? ' danger' : pct >= 80 ? ' warning' : '';
     hdrBudget.innerHTML = 'Token ' + fmt(used) + '/' + fmt(limit) +
-      ' <span class="budget-bar' + barCls + '"></span>';
+      ' <span class="budget-bar' + barCls + '"></span>' + cacheHtml;
   }
 
   function updateToolCount() {

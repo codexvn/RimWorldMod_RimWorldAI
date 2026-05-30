@@ -88,8 +88,8 @@ export class MessageBus {
    * 触发时机：C# hello 握手时附带初始预算；后续每次 SDK result 有 usage 时也更新。
    * 消费者：Web 页面 header budget 条（绿/黄/红进度）。
    */
-  publishBudgetStatus(limit: number, used: number, action: string): void {
-    this.send({ type: 'budget-status', limit, used, action });
+  publishBudgetStatus(limit: number, used: number, action: string, cacheRead?: number, totalInput?: number): void {
+    this.send({ type: 'budget-status', limit, used, action, cacheRead: cacheRead || 0, totalInput: totalInput || 0 });
   }
 
   /**
