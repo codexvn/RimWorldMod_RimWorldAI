@@ -29,7 +29,8 @@ namespace RimWorldMCP.Helpers
             // Dialog_NodeTreeWithFactionInfo 等可能在 SubSuper 层
             foreach (var w in stack.Windows)
                 if ((w.layer == WindowLayer.Dialog || w.layer == WindowLayer.SubSuper || w.layer == WindowLayer.Super)
-                    && w is not FloatMenu && w.GetType().Name != "Dialog_AiChat")
+                    && w is not FloatMenu && w.GetType().Name != "Dialog_AiChat"
+                    && w.GetType().Name != "ImmediateWindow")
                     result.Add(w);
 
             return result;
