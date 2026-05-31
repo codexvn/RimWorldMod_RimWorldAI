@@ -41,9 +41,6 @@ namespace RimWorldAgent
             var sessionDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session");
             Directory.CreateDirectory(sessionDir);
 
-            TodoStore.TickProvider = () => AgentOrchestrator.GameTick;
-            MemoryStore.Instance = new LocalFileMemoryStore(Path.Combine(sessionDir, "RimWorldMCP_Memory.json"));
-            TodoStore.Instance = new LocalFileTodoStore(Path.Combine(sessionDir, "RimWorldMCP_Todos.json"));
             TokenStore.Instance = new LocalFileTokenStore(Path.Combine(sessionDir, "RimWorldMCP_Token.json"));
 
             var ccbDir = FindCcbDir();
@@ -60,7 +57,8 @@ namespace RimWorldAgent
 
             var engine = new AgentEngine(cfg,
                 logInfo: msg => Console.WriteLine($"[Core] {msg}"),
-                logError: msg => Console.Error.WriteLine($"[Core] {msg}"));
+                logError: msg => Console.Error.WriteLine($"[Core] {msg}"),
+                logDebug: msg => Console.WriteLine($"[Core] {msg}"));
 
             Console.WriteLine($"RimWorldAgent 启动");
             Console.WriteLine($"  MCP: {mcpUrl}");

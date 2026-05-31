@@ -7,8 +7,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(projectPath: string): string {
   const promptPath = join(process.cwd(), 'Prompt.md');
   console.log(`[cc-companion] 加载 Prompt: ${promptPath}`);
-  return readFileSync(promptPath, 'utf8');
+  let content = readFileSync(promptPath, 'utf8');
+  content = content.replace(/\{projectPath\}/g, projectPath);
+  return content;
 }

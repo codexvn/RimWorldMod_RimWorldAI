@@ -226,12 +226,12 @@ namespace RimWorldAgent
             sb.AppendLine("游戏已暂停，你现在处于 PLAN 模式。请按以下步骤执行：");
             sb.AppendLine();
             sb.AppendLine("1. **全面检查**: get_game_context + get_colonists + check_colony 获取最新状态");
-            sb.AppendLine("2. **总结经验**: 回顾昨日事件，用 add_memory 记录关键经验教训");
+            sb.AppendLine("2. **总结经验**: 回顾昨日事件，读取 CLAUDE.md 的\"## 记忆\"章节了解历史经验，用 Write/Edit 工具更新");
             sb.AppendLine("3. **评估现状**: 资源缺口、威胁等级、殖民者心情/健康、研究进度、装备水平");
-            sb.AppendLine("4. **制定计划**: 用 todo_add 逐条添加今日待办，优先解决警报问题");
-            sb.AppendLine("5. **进入执行**: 调用 enter_act() 恢复游戏，逐一执行 TODO");
+            sb.AppendLine("4. **制定计划**: 按优先级列出今日待办计划，优先解决警报问题。使用 TaskCreate 创建任务。");
+            sb.AppendLine("5. **进入执行**: 调用 enter_act() 恢复游戏，执行计划");
             sb.AppendLine();
-            sb.AppendLine("**PLAN 模式下不能执行任何游戏操作**（建造/装备/征召/advance_tick），只能查询和管理 TODO。");
+            sb.AppendLine("**PLAN 模式下不能执行任何游戏操作**（建造/装备/征召/advance_tick），只能查询和制定计划。");
 
             return sb.ToString().TrimEnd();
         }

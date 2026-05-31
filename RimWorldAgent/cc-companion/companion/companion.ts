@@ -153,14 +153,6 @@ async function main(): Promise<void> {
         RuntimeState.lastColonyStats = colonyStats;
       }
 
-      // Game Bus：玩家 TODO → Web 右侧 TODO 面板
-      const todoItems = payload.todoItems as Array<Record<string, unknown>> | undefined;
-      if (todoItems) {
-        bus.publishTodoState(todoItems);
-        RuntimeState.lastTodoItems = todoItems;
-      }
-      if (wsMessage.event === 'todo-state') return;
-
       // C# Token 预算更新 → 刷新 companion 侧缓存并广播
       if (wsMessage.event === 'budget-update') {
         RuntimeState.tokenBudgetUsed = (payload.used as number) || 0;

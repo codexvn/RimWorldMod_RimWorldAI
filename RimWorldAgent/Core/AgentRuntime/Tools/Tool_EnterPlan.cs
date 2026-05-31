@@ -13,22 +13,20 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             type = "object",
             properties = new
             {
+                speed = new { type = "string", description = "Plan 阶段游戏速度: paused, normal, fast, superfast, ultrafast（默认 paused）" },
                 reason = new { type = "string", description = "规划原因（可选，日志用）" }
             }
         });
 
         public async Task<(string result, bool exit)> ExecuteAsync(JsonElement? args)
         {
+            var speed = "paused";
+            if (args?.TryGetProperty("speed", out var speedEl) == true)
+                speed = speedEl.GetString() ?? "paused";
             var reason = args?.TryGetProperty("reason", out var reasonEl) == true ? reasonEl.GetString() ?? "" : "";
             AgentOrchestrator.EnterPlanPhase();
-            var pace = AgentOrchestrator.PaceController;
-            var mcp = AgentOrchestrator.SessionMcp;
-            if (pace == null || mcp == null)
-                return ($"进入 Plan 阶段失败: {(pace == null ? "GamePaceController" : "McpClient")} 不可用，Agent 会话可能已结束", false);
-
-            await pace.PauseForPlanning(mcp);
-            var planSpeed = GamePaceController.PlanSpeed;
-            return ($"已进入 Plan 阶段，游戏速度: {planSpeed}。{reason}", false);
+            await AgentOrchestrator.PaceController!.PauseForPlanning(AgentOrchestrator.SessionMcp!, speed);
+            return ($"已进入 Plan 阶段，游戏速度: {speed}。{reason}", false);
         }
     }
 }

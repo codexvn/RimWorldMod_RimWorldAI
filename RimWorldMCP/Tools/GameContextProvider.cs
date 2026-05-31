@@ -28,7 +28,8 @@ namespace RimWorldMCP
                     for (int i = 0; i < ws.Count; i++)
                     {
                         var w = ws[i];
-                        if (w.forcePause) reasons.Add($"窗口\"{w.GetType().Name}\"锁定");
+                        if (w.forcePause && w.GetType().Name != "ImmediateWindow")
+                            reasons.Add($"窗口\"{w.GetType().Name}\"锁定");
                     }
                 }
                 if (LongEventHandler.ForcePause) reasons.Add("长事件处理中");

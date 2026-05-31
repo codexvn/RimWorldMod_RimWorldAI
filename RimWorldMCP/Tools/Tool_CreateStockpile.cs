@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_CreateStockpile : ITool
     {
         public string Name => "create_stockpile";
-        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型（食物/原料/武器等）和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 储存区必须放置在房间内（蓝图墙壁围成的房间也可以），请先使用 designate_room 建造房间。垃圾存储区(dumping)不需要房间。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 资源类存储区需要室内，corpse_dump/dumping 不需要。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -27,7 +27,7 @@ namespace RimWorldMCP.Tools
                 {
                     type = "string",
                     description = "存储预设类型",
-                    @enum = new[] { "default", "dumping", "corpse", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
+                    @enum = new[] { "default", "dumping", "corpse", "corpse_dump", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
                     @default = "default"
                 },
                 priority = new
@@ -48,6 +48,7 @@ namespace RimWorldMCP.Tools
             { "default", StorageSettingsPreset.DefaultStockpile },
             { "dumping", StorageSettingsPreset.DumpingStockpile },
             { "corpse", StorageSettingsPreset.CorpseStockpile },
+            { "corpse_dump", StorageSettingsPreset.CorpseStockpile },
         };
 
         private static readonly Dictionary<string, StoragePriority> PriorityMap = new()
@@ -109,7 +110,7 @@ namespace RimWorldMCP.Tools
 
                     // 房间校验：存储区必须在室内（包括蓝图墙壁围成的准房间）
                     // 垃圾存储区（dumping）豁免此检查
-                    if (!skipRoomCheck && presetStr != "dumping")
+                    if (!skipRoomCheck && presetStr != "dumping" && presetStr != "corpse_dump")
                     {
                         if (!IsAreaInRoom(area, map))
                             return ToolResult.Error("存储区必须在室内！请先建造房间或房间蓝图，或传 skip_room_check=true 跳过此检查");

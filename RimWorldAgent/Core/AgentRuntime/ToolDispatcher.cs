@@ -11,13 +11,15 @@ namespace RimWorldAgent.Core.AgentRuntime
     /// <summary>Tool 调度：内部 Tool → 本地处理，外部 Tool → 转发 MCP。</summary>
     public static class ToolDispatcher
     {
-        private static int _toolCallCount;
-        private const int TodoRemindInterval = 5;
-
         public static int ActPauseRemindThreshold = 5;
         private static int _actPauseCheckCount;
 
+        public static int NotifCheckThreshold = 5;
+        private static int _notifReceivedCount;
+
         public static void ResetActPauseCount() => _actPauseCheckCount = 0;
+        public static void ResetNotifCount() => _notifReceivedCount = 0;
+        public static void MarkNotifReceived() => _notifReceivedCount++;
 
         public static async Task HandleAsync(
             CcbWebSocket ccbWs, McpClient mcp,
@@ -25,6 +27,10 @@ namespace RimWorldAgent.Core.AgentRuntime
             Action<string> log)
         {
             var sw = Stopwatch.StartNew();
+
+            // 通知工具被调用时重置计数
+            if (toolName is "get_notifications" or "dismiss_notification")
+                _notifReceivedCount = 0;
 
             // 内部 Tool → 直接本地处理
             if (InternalToolRegistry.Instance.IsInternal(toolName))
@@ -37,6 +43,14 @@ namespace RimWorldAgent.Core.AgentRuntime
                     log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
                     var suffix = BuildModeSuffix();
                     await ccbWs.SendToolResult(toolId, result + suffix);
+
+                    // 同步推送当前 agent 角色和阶段
+                    try
+                    {
+                        if (ccbWs.IsReady)
+                            await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
+                    }
+                    catch (Exception ex) { log($"推送状态失败: {ex.Message}"); }
                 }
                 catch (Exception ex)
                 {
@@ -59,6 +73,14 @@ namespace RimWorldAgent.Core.AgentRuntime
                 log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
                 var suffix = BuildModeSuffix();
                 await ccbWs.SendToolResult(toolId, result + suffix);
+
+                // 同步推送当前 agent 角色和阶段
+                try
+                {
+                    if (ccbWs.IsReady)
+                        await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
+                }
+                catch (Exception ex) { log($"推送状态失败: {ex.Message}"); }
             }
             catch (Exception ex)
             {
@@ -74,16 +96,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 GamePhase.Plan => "PLAN",
                 GamePhase.Act => "ACT",
-                _ => "就绪"
+                _ => AgentOrchestrator.IsRunning ? "ACT（未设定 enter_act）" : "就绪"
             };
-
-            _toolCallCount++;
-
-            var todoRemind = "";
-            if (_toolCallCount % TodoRemindInterval == 0)
-            {
-                todoRemind = "\n\n<system-reminder>\n请检查 TODO 列表：用 todo_query 查看当前任务，完成的用 todo_set_status 标记为 done，新任务用 todo_add 添加。不再需要的用 todo_delete 删除。\n</system-reminder>";
-            }
 
             // ACT 阶段暂停过久提醒
             var actPauseRemind = "";
@@ -98,7 +112,14 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             else { _actPauseCheckCount = 0; }
 
-            return $"\n\n---\n当前模式: {phase}{todoRemind}{actPauseRemind}";
+            // 通知堆积提醒
+            var notifRemind = "";
+            if (_notifReceivedCount > NotifCheckThreshold)
+            {
+                notifRemind = "\n\n<system-reminder>\n你有未处理的通知，请用 get_notifications 查看并处理。用 dismiss_notification 关闭不需要的通知。\n</system-reminder>";
+            }
+
+            return $"\n\n---\n当前模式: {phase}{actPauseRemind}{notifRemind}";
         }
     }
 }

@@ -25,12 +25,7 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
                 speed = speedEl.GetString() ?? "superfast";
 
             AgentOrchestrator.EnterActPhase();
-            var pace = AgentOrchestrator.PaceController;
-            var mcp = AgentOrchestrator.SessionMcp;
-            if (pace == null || mcp == null)
-                return ($"进入 Act 阶段失败: {(pace == null ? "GamePaceController" : "McpClient")} 不可用，Agent 会话可能已结束", false);
-
-            await pace.ResumeForAction(mcp, speed);
+            await AgentOrchestrator.PaceController!.ResumeForAction(AgentOrchestrator.SessionMcp!, speed);
             return ($"已进入 Act 阶段，游戏速度: {speed}。", false);
         }
     }

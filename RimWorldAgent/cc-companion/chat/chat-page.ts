@@ -233,32 +233,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     border-radius: 3px; font-family: var(--mono); font-size: 10px;
   }
 
-  /* ===== TODO Panel (rightbar) ===== */
-  #todo-panel-header {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 10px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 11px; font-weight: 600;
-    position: sticky; top: 0; z-index: 1;
-  }
-  #todo-panel-header .todo-count { color: var(--cyan); }
-  #todo-list { padding: 4px 0; }
-  .todo-item {
-    display: flex; align-items: center; gap: 4px;
-    padding: 3px 10px;
-    border-bottom: 1px solid var(--border);
-  }
-  .todo-item:last-child { border-bottom: none; }
-  .todo-item .todo-prio { flex-shrink: 0; width: 18px; font-size: 10px; font-weight: 700; }
-  .todo-item .todo-prio.p-high { color: var(--red); }
-  .todo-item .todo-prio.p-mid { color: var(--amber); }
-  .todo-item .todo-prio.p-low { color: var(--muted); }
-  .todo-item .todo-desc { flex: 1; color: var(--text); word-break: break-all; overflow-wrap: break-word; }
-  .todo-item.done .todo-desc { color: var(--muted); text-decoration: line-through; }
-  .todo-item .todo-id { font-size: 10px; color: var(--muted); flex-shrink: 0; }
-
   /* SDKTasks */
   #sdk-tasks-header {
     display: flex; align-items: center; gap: 6px;
@@ -737,11 +711,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
   <!-- Rightbar -->
   <div id="rightbar">
-    <div id="todo-panel-header">
-      <span>&#9744; TODO</span>
-      <span class="todo-count" id="todo-count">0</span>
-    </div>
-    <div id="todo-list"></div>
     <div id="sdk-tasks-header">
       <span>&#9776; AI 计划</span>
       <span class="task-count" id="task-count">0</span>
@@ -863,9 +832,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
       sdkTaskListEl.appendChild(div);
     }
   }
-
-  const todoListEl = document.getElementById('todo-list');
-  const todoCountEl = document.getElementById('todo-count');
 
   // Info panel
   const infoOverlay = document.getElementById('info-overlay');
@@ -1068,45 +1034,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     if (metaTools) metaTools.textContent = toolCount;
   }
 
-  // ===== TODO Panel =====
-  function updateTodoPanel(items) {
-    var pendingCount = 0;
-    todoListEl.innerHTML = '';
-    if (!items || items.length === 0) {
-      todoCountEl.textContent = '0';
-      return;
-    }
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      var isDone = item.status === 'done';
-      if (!isDone) pendingCount++;
-
-      var div = document.createElement('div');
-      var extraCls = isDone ? ' done' : '';
-      div.className = 'todo-item' + extraCls;
-
-      var prio = document.createElement('span');
-      var pLevel = item.priority >= 4 ? 'p-high' : item.priority >= 2 ? 'p-mid' : 'p-low';
-      prio.className = 'todo-prio ' + pLevel;
-      prio.textContent = 'P' + (item.priority || 3);
-      div.appendChild(prio);
-
-      var desc = document.createElement('span');
-      desc.className = 'todo-desc';
-      desc.textContent = item.description || '';
-      desc.title = (item.createdAtStr ? item.createdAtStr + ' — ' : '') + (item.description || '');
-      div.appendChild(desc);
-
-      var idSpan = document.createElement('span');
-      idSpan.className = 'todo-id';
-      idSpan.textContent = '#' + (item.id || '');
-      div.appendChild(idSpan);
-
-      todoListEl.appendChild(div);
-    }
-    todoCountEl.textContent = pendingCount;
-  }
-
   // ===== Message handling =====
   function handleMessage(msg) {
     // 历史加载期间缓冲 WS 消息，防止乱序
@@ -1137,10 +1064,6 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
       case 'budget-status':
         updateBudgetStatus(msg);
-        break;
-
-      case 'todo-state':
-        updateTodoPanel(msg.todoItems || []);
         break;
 
       case 'sdk-tasks':

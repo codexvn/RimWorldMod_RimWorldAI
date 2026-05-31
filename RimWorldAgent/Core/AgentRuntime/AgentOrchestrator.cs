@@ -56,6 +56,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             IsRunning = true;
             ToolDispatcher.ResetActPauseCount();
+            ToolDispatcher.ResetNotifCount();
             OnStatusChanged?.Invoke(StatusText);
         }
 

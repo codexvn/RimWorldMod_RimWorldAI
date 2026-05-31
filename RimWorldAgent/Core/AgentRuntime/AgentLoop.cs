@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
-using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 
 namespace RimWorldAgent.Core.AgentRuntime
@@ -89,14 +88,20 @@ namespace RimWorldAgent.Core.AgentRuntime
                 var summary = $"[{evt.Severity}/{evt.Category}] {evt.Summary}";
                 AgentOrchestrator.RequestInterrupt(summary);
                 _ = AgentOrchestrator.NotisAgent(summary);
+                ToolDispatcher.MarkNotifReceived();
             };
         }
 
         /// <summary>执行一次 Agent 会话：发送 prompt → Tool Loop → 写 Memory</summary>
         public static async Task RunSessionAsync(string prompt, McpClient mcp, CcbWebSocket ccbWs)
         {
-            var paceController = new GamePaceController();
-            AgentOrchestrator.PaceController = paceController;
+            // 复用已在外部暂停的 PaceController（每日 PLAN 等），无则创建
+            var paceController = AgentOrchestrator.PaceController;
+            if (paceController == null)
+            {
+                paceController = new GamePaceController();
+                AgentOrchestrator.PaceController = paceController;
+            }
             AgentOrchestrator.SessionMcp = mcp;
 
             var tcs = new TaskCompletionSource<bool>();
@@ -111,7 +116,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     tcs.TrySetResult(true);
                     return;
                 }
-                CoreLog.Info($"[commander] 回合结束: {subtype} (pendingTools={Volatile.Read(ref pendingTools)})");
+                CoreLog.Debug($"[commander] 回合结束: {subtype} (pendingTools={Volatile.Read(ref pendingTools)})");
                 if (Volatile.Read(ref pendingTools) == 0)
                     tcs.TrySetResult(true);
                 else
@@ -124,7 +129,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 try
                 {
                     await ToolDispatcher.HandleAsync(ccbWs, mcp, toolId, toolName, input,
-                        msg => CoreLog.Info($"[commander] {msg}"));
+                        msg => CoreLog.Debug($"[commander] {msg}"));
                 }
                 catch (Exception ex)
                 {
@@ -139,7 +144,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             void OnExit()
             {
-                CoreLog.Info("[commander] 内部工具请求退出会话");
+                CoreLog.Debug("[commander] 内部工具请求退出会话");
                 tcs.TrySetResult(true);
             }
 
@@ -172,20 +177,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 AgentOrchestrator.PaceController = null;
                 AgentOrchestrator.SessionMcp = null;
                 paceController.Dispose();
-            }
-
-            try
-            {
-                MemoryManager.Append("commander", new MemoryEntry
-                {
-                    Day = AgentOrchestrator.GameDay,
-                    Insight = $"Load={Scheduler.LoadScore}({Scheduler.Mode})",
-                    Type = "session"
-                });
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Warn($"[commander] 记忆写入失败: {ex.Message}");
             }
         }
 

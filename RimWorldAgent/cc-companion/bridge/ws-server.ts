@@ -137,9 +137,6 @@ export function createWSServer(
           if (RuntimeState.lastColonyStats) {
             sendJson(ws, { type: 'colony-stats', ...RuntimeState.lastColonyStats });
           }
-          if (RuntimeState.lastTodoItems) {
-            sendJson(ws, { type: 'todo-state', todoItems: RuntimeState.lastTodoItems });
-          }
           if (RuntimeState.lastAgentStatus) {
             sendJson(ws, { type: 'agent-status', role: RuntimeState.lastAgentStatus });
           }

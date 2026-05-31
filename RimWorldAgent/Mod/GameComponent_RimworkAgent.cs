@@ -1,7 +1,6 @@
 using System.IO;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.AgentRuntime;
-using RimWorldAgent.Core.Data;
 using Verse;
 
 namespace RimWorldAgent
@@ -29,8 +28,6 @@ namespace RimWorldAgent
             var sessionDir = !string.IsNullOrEmpty(settings?.SessionDir)
                 ? Path.Combine(modRoot, settings!.SessionDir)
                 : defaultSessionDir;
-
-            TodoStore.TickProvider = () => Find.TickManager?.TicksAbs ?? 0;
 
             var skillsDir = !string.IsNullOrEmpty(settings?.SkillsDir)
                 ? Path.Combine(modRoot, settings!.SkillsDir)
@@ -60,7 +57,8 @@ namespace RimWorldAgent
 
             _engine = new AgentEngine(cfg,
                 logInfo: msg => Log.Message($"[agent-core] {msg}"),
-                logError: msg => Log.Error($"[agent-core] {msg}"));
+                logError: msg => Log.Error($"[agent-core] {msg}"),
+                logDebug: msg => Log.Message($"[agent-core] {msg}"));
 
             await _engine.InitAsync();
 
@@ -101,7 +99,6 @@ namespace RimWorldAgent
         public override void ExposeData()
         {
             base.ExposeData();
-            TodoManager.ExposeData();
         }
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Ccb = RimWorldAgent.Core.CcbManager.CcbManager;
 using RimWorldAgent.Core.CcbManager;
@@ -37,6 +36,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         private readonly AgentEngineConfig _cfg;
         private readonly Action<string> _logInfo;
         private readonly Action<string> _logError;
+        private readonly Action<string> _logDebug;
         private Ccb? _ccb;
         private CcbWebSocket? _ccbWs;
         private McpClient? _mcp;
@@ -48,11 +48,12 @@ namespace RimWorldAgent.Core.AgentRuntime
         public CcbWebSocket? CcbWs => _ccbWs;
         public bool IsReady => _initialized && _mcp != null;
 
-        public AgentEngine(AgentEngineConfig cfg, Action<string>? logInfo = null, Action<string>? logError = null)
+        public AgentEngine(AgentEngineConfig cfg, Action<string>? logInfo = null, Action<string>? logError = null, Action<string>? logDebug = null)
         {
             _cfg = cfg;
             _logInfo = logInfo ?? (msg => { });
             _logError = logError ?? (msg => { });
+            _logDebug = logDebug ?? (msg => { });
         }
 
         /// <summary>完整启动流程：Skills → AgentMCP → npm install → CCB spawn → WS → MCP → SSE</summary>
@@ -63,15 +64,13 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             CoreLog.OnInfo = _logInfo;
             CoreLog.OnError = _logError;
+            CoreLog.OnDebug = _logDebug;
 
             // Session 目录
             Directory.CreateDirectory(_cfg.SessionDir);
             SessionStore.SessionDir = _cfg.SessionDir;
 
-            // Data 层 — 本地文件持久化
-            TodoStore.TickProvider = () => AgentOrchestrator.GameTick;
-            MemoryStore.Instance = new InMemoryMemoryStore();
-            TodoStore.Instance = new InMemoryTodoStore();
+            // Data 层 — Token 持久化
             TokenStore.Instance = new LocalFileTokenStore();
 
             // Skills
@@ -148,23 +147,6 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             GamePaceController.PlanSpeed = _cfg.PlanSpeed;
             _ctx = new ContextBuilder(_mcp);
-
-            // TODO 变更 → 推送到 Companion
-            TodoStore.OnChanged += () =>
-            {
-                if (_ccbWs?.IsReady == true)
-                {
-                    var items = TodoStore.Query(null);
-                    _ = _ccbWs.SendEvent("todo-state", new
-                    {
-                        todoItems = items.Select(i => new
-                        {
-                            id = i.Id, description = i.Description, priority = i.Priority,
-                            status = i.Status, createdAtTick = i.CreatedAtTick
-                        }).ToArray()
-                    });
-                }
-            };
 
             return ccbReady;
         }
@@ -247,7 +229,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 AgentOrchestrator.EnterPlanPhase();
                 if (AgentOrchestrator.PaceController == null)
                     AgentOrchestrator.PaceController = new GamePaceController();
-                await AgentOrchestrator.PaceController.PauseForPlanning(_mcp);
+                await AgentOrchestrator.PaceController.PauseForPlanning(_mcp, GamePaceController.PlanSpeed);
                 await RunAgent(isPlan: true);
                 return;
             }

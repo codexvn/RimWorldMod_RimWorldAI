@@ -20,7 +20,8 @@ namespace RimWorldMCP.Tools
             {
                 recipe_defName = new { type = "string", description = "配方的 defName，必须先用 list_recipes 确认配方存在。" },
                 count = new { type = "integer", description = "制造数量，默认 1", @default = 1 },
-                repeat_mode = new { type = "string", description = "重复模式", @enum = new[] { "RepeatCount", "Forever", "TargetCount" } }
+                repeat_mode = new { type = "string", description = "重复模式", @enum = new[] { "RepeatCount", "Forever", "TargetCount" } },
+                workbench_id = new { type = "integer", description = "目标工作台 ID (thingIDNumber)，不传则自动选择兼容的最佳工作台" }
             },
             required = new[] { "recipe_defName" }
         });
@@ -65,13 +66,26 @@ namespace RimWorldMCP.Tools
                     if (workTables.Count == 0)
                         return ToolResult.Error("当前殖民地没有任何工作台。");
 
-                    // 使用第一个可用的工作台
-                    var targetTable = workTables[0];
+                    // 选择工作台：AI 指定 ID 或自动匹配兼容的
+                    Building_WorkTable? targetTable = null;
+                    if (args.Value.TryGetProperty("workbench_id", out var wbIdEl) && wbIdEl.TryGetInt32(out var wbId))
+                    {
+                        targetTable = workTables.FirstOrDefault(t => t.thingIDNumber == wbId);
+                        if (targetTable == null)
+                            return ToolResult.Error($"找不到 ID 为 {wbId} 的工作台。可用工作台: {string.Join(", ", workTables.Select(t => $"{t.def?.label}(ID:{t.thingIDNumber})"))}");
+                    }
+                    else
+                    {
+                        // 自动选择兼容工作台，跳过单据已满的
+                        var compatible = workTables.Where(t => recipe.AvailableOnNow(t, null) && t.billStack.Count < 15).ToList();
+                        targetTable = compatible.Count > 0 ? compatible[0] : workTables[0];
+                    }
+
                     var tableLabel = targetTable.def?.label ?? targetTable.def?.defName ?? "工作台";
 
                     // 检查配方与工作台兼容性
                     if (!recipe.AvailableOnNow(targetTable, null))
-                        return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 无法在 {tableLabel} 上执行。");
+                        return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 无法在 {tableLabel} 上执行。可用工作台: {string.Join(", ", workTables.Where(t => recipe.AvailableOnNow(t, null)).Select(t => t.def?.label))}");
 
                     // 检查工作台单据数量上限
                     if (targetTable.billStack.Count >= 15)
@@ -116,10 +130,12 @@ namespace RimWorldMCP.Tools
                         _ => $"重复 {count} 次"
                     };
 
+                    var pos = targetTable.Position;
                     var sb = new StringBuilder();
-                    sb.AppendLine($"已在 {tableLabel} 创建制造单据:");
+                    sb.AppendLine($"已在 {tableLabel} (ID:{targetTable.thingIDNumber}) 创建制造单据:");
                     sb.AppendLine($"- 配方: {billLabel} ({recipeDefName})");
                     sb.AppendLine($"- 模式: {repeatText}");
+                    sb.AppendLine($"- 位置: ({pos.x}, {pos.z})");
 
                     return ToolResult.Success(sb.ToString());
                 }

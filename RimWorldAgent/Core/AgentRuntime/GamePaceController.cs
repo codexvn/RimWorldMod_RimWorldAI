@@ -22,16 +22,16 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static Func<bool>? ShouldSkipResume { get; set; }
 
         /// <summary>进入 Plan 阶段，设置游戏速度（幂等）</summary>
-        public async Task PauseForPlanning(McpClient mcp)
+        public async Task PauseForPlanning(McpClient mcp, string speed = "paused")
         {
             if (_isPaused) return;
             await _opLock.WaitAsync();
             try
             {
                 if (_isPaused) return;
-                await CallTogglePause(mcp, PlanSpeed);
+                await CallTogglePause(mcp, speed);
                 _isPaused = true;
-                CoreLog.Info($"[GamePace] Plan 阶段速度: {PlanSpeed}");
+                CoreLog.Info($"[GamePace] Plan 阶段速度: {speed}");
             }
             finally { _opLock.Release(); }
         }

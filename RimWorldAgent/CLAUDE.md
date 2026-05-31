@@ -19,7 +19,7 @@ RimWorldAgent/
 │   └── Skills/*.md (13个)
 ├── Core/                      ← 共享逻辑
 │   ├── AgentRuntime/          Scheduler / AgentOrchestrator / AgentConfig / ContextBuilder / InternalTools / ToolDispatcher
-│   ├── Data/                  ★ 数据抽象层 — ITodoStore / ITokenStore / IMemoryStore + InMemory/LocalFile 实现
+│   ├── Data/                  ★ 数据抽象层 — ITokenStore + InMemory/LocalFile 实现
 │   ├── Mcp/                   MCP 客户端 + Agent MCP Server (:9878)
 │   └── CcbManager/            CCB 子进程管理 + CcbWebSocket + TokenUsageTracker
 ├── Exe/                       ← EXE Loader
@@ -30,7 +30,6 @@ RimWorldAgent/
 │       ├── Dialog_AiChat.cs       聊天窗 (Ctrl+Shift+C)
 │       ├── MapComponent_McpUI.cs  右下角按钮
 │       ├── ChatStateTypes.cs      本地类型
-│       └── TodoManager.cs         本地 TODO 管理
 ├── cc-companion/              ← CCB 桥接 (Node.js, npm start)
 └── publish/                   ← 构建输出 (git ignored)
 ```
@@ -94,10 +93,6 @@ Agent 通过 MCP 工具设置一次性 suffix，MCP Server 在下一次工具结
 |------|------|------|
 | `get_skills` | 列出可用领域技能 | `InternalToolRegistry` → `SkillRegistry` |
 | `active_skill` | 激活获取 Skill 内容 | `InternalToolRegistry` → `SkillRegistry` |
-| `todo_add` | 添加待办任务 | `InternalToolRegistry` → `TodoStore` |
-| `todo_delete` | 删除待办任务 | `InternalToolRegistry` → `TodoStore` |
-| `todo_query` | 查询待办任务 | `InternalToolRegistry` → `TodoStore` |
-| `todo_set_status` | 设置任务状态 | `InternalToolRegistry` → `TodoStore` |
 | `enter_plan` / `enter_act` | Plan/Act 阶段切换 | `InternalToolRegistry` → `GamePaceController` |
 | `set_tool_result_suffix` | 设置一次性工具结果后缀 | `InternalToolRegistry` → MCP Server |
 
@@ -124,7 +119,7 @@ dotnet build RimWorldAgent/RimWorldAgent.csproj  # 单独 Agent
 - 引用 SimpleMspServer（MCP 协议共享库）
 - 游戏数据通过 MCP HTTP 获取
 - 游戏操作通过 MCP Tool 调用
-- 数据持久化通过 Core.Data/ 抽象层（Token/Memory/Todo），InMemory 和 LocalFile 两种实现
+- 数据持久化通过 Core.Data/ 抽象层（Token），InMemory 和 LocalFile 两种实现
 
 ### 异常处理规范
 
@@ -176,7 +171,6 @@ Companion 通过 `cc-companion/bridge/message-bus.ts` 集中管理所有 WebSock
                     │                                      │
   C# (RimWorld) ──→│  onEvent  ──→ Game Bus ──→ Web 页面   │
                     │    │           colony-stats          │
-                    │    │           todo-state            │
                     │    │           budget-status         │
                     │    │           user (回显)            │
                     │    │           error                 │
@@ -198,7 +192,7 @@ Companion 通过 `cc-companion/bridge/message-bus.ts` 集中管理所有 WebSock
 
 | Bus | 数据来源 | 消息类型 | 消费者 |
 |-----|---------|---------|--------|
-| **Game Bus** | C# 游戏事件 → Companion onEvent | `colony-stats`, `todo-state`, `budget-status`, `user`(回显), `error`, `model-info` | Web 页面, 游戏内 UI |
+| **Game Bus** | C# 游戏事件 → Companion onEvent | `colony-stats`, `budget-status`, `user`(回显), `error`, `model-info` | Web 页面, 游戏内 UI |
 | **Agent Bus** | SDK query() → processResponses | `assistant`, `user`, `stream_event`, `result`, `system/init`, `aborted` | Web 页面, C# CCClient |
 
 **关键设计**：

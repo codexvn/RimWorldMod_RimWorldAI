@@ -34,10 +34,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             Register(new Tool_EnterPlan());
             Register(new Tool_EnterAct());
-            Register(new Tool_TodoAdd());
-            Register(new Tool_TodoDelete());
-            Register(new Tool_TodoQuery());
-            Register(new Tool_TodoSetStatus());
             Register(new Tool_GetSkills());
             Register(new Tool_ActiveSkill());
             Register(new Tool_SetToolResultSuffix());
@@ -59,7 +55,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             if (_tools.TryGetValue(name, out var tool))
             {
-                CoreLog.Info($"[TOOL_CALL] InternalTool {name} args={FormatArgsForLog(args)}");
+                CoreLog.Debug($"[TOOL_CALL] InternalTool {name} args={FormatArgsForLog(args)}");
                 var (result, exit) = await tool.ExecuteAsync(args);
                 if (exit) OnExitRequested?.Invoke();
                 return (result, exit);

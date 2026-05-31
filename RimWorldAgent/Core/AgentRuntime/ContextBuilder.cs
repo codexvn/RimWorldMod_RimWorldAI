@@ -29,11 +29,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             sb.AppendLine(AgentConfigs.Default.SystemPrompt.Trim());
             sb.AppendLine();
 
-            // Layer 2: Memory (cached)
-            var memory = MemoryManager.GetMemoryText("commander");
-            if (!string.IsNullOrEmpty(memory)) { sb.AppendLine(memory); sb.AppendLine(); }
-
-            // Layer 3: World Summary (via MCP get_world_summary)
+            // Layer 2: World Summary (via MCP get_world_summary)
             sb.AppendLine(await BuildWorldSummaryAsync());
             sb.AppendLine();
 
@@ -45,7 +41,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             // Layer 7: 当前模式指引
             var phaseHint = AgentOrchestrator.CurrentPhase switch
             {
-                GamePhase.Plan => "## 当前模式: PLAN\n游戏已暂停。你现在可以：查询状态、管理 TODO、查看知识。\n**不能执行任何游戏操作**（建造/装备/征召/advance_tick/生产单据等）。\n计划完成后调用 enter_act() 进入 ACT 模式执行。",
+                GamePhase.Plan => "## 当前模式: PLAN\n游戏已暂停。你现在可以：查询状态、制定计划、查看知识。\n**不能执行任何游戏操作**（建造/装备/征召/advance_tick/生产单据等）。\n计划完成后调用 enter_act() 进入 ACT 模式执行。",
                 GamePhase.Act => "## 当前模式: ACT\n游戏运行中。你现在可以执行所有操作。\n完成后如需重新规划调用 enter_plan()。",
                 _ => null
             };

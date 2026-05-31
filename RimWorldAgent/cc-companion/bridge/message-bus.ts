@@ -7,7 +7,7 @@
  *
  *   Game Bus（游戏事件流）
  *     C# → WS → Companion onEvent → 直接 broadcast（不经 SDK）
- *     内容：殖民地统计、TODO、预算状态、用户发言回显、错误通知
+ *     内容：殖民地统计、预算状态、用户发言回显、错误通知
  *     消费者：Web 聊天页面、游戏内 UI（C# 侧自有数据源，不走 WS 回传）
  *
  *   Agent Bus（AI 对话流）
@@ -71,17 +71,6 @@ export class MessageBus {
    */
   publishColonyStats(stats: ColonyStatsPayload): void {
     this.send({ type: 'colony-stats', ...stats });
-  }
-
-  /**
-   * 广播 TODO 列表。
-   *
-   * 触发时机：C# 推送 todo-state 事件（新增/完成/删除 TODO 时）。
-   * 消费者：Web 页面右侧栏 TODO 卡片。
-   * 注意：纯 UI 消息，不入队到 SDK（不消耗 Token）。
-   */
-  publishTodoState(items: Array<Record<string, unknown>>): void {
-    this.send({ type: 'todo-state', todoItems: items });
   }
 
   /**

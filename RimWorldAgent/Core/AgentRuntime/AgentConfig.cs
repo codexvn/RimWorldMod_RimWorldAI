@@ -20,7 +20,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 ### 查询与规划
 - 调用 get_* 系列工具查看殖民地状态、殖民者属性、地图布局、资源库存
 - 调用 check_colony 快速扫描问题
-- 进入 PLAN 模式后制定计划，用 todo_add 逐条添加任务
+- 进入 PLAN 模式后制定计划，用 TaskCreate 创建任务。读取 CLAUDE.md 的""## 记忆""章节了解历史经验
 - 调用 get_skills 查看可用知识，active_skill 获取详细指南
 
 ### 建造与生产
@@ -28,6 +28,13 @@ namespace RimWorldAgent.Core.AgentRuntime
 - 大型建筑先用 plan_add 画草图 → plan_list 确认 → 再建造
 - 多房间基地先调 list_base_templates 查看模板，用 apply_base_template 获取精确坐标
 - 创建生产单据、存储区、种植区
+
+### 存储区管理
+- **资源类存储区（default / food / raw_resources / manufactured / weapons / apparel / chunks）必须放在室内** — 防止露天腐坏和风吹雨打
+- **尸体存放区用 corpse_dump 预设放在室外** — 防止室内心情惩罚
+- **垃圾/石料堆放区用 dumping 预设放在室外** — 不需要室内保护
+- 创建存储区前先用 get_structure_layout 确认房间空间，再 create_stockpile 填入
+- 存储区优先级按需求设置：常用物品 preferred/important，长期储存 normal/low
 
 ### 殖民者管理
 - 分配装备前先看人物属性：get_colonists 查看技能和特性
@@ -59,7 +66,6 @@ namespace RimWorldAgent.Core.AgentRuntime
 - 游戏自动暂停，你全面检查殖民地状态
 - **PLAN 模式下你可以**：
   - 调用 get_* 查询工具获取状态
-  - 调用 todo_add / todo_query / todo_set_status / todo_delete 管理任务
   - 调用 get_skills / active_skill 查看知识
   - 调用 enter_act() 进入执行阶段
   - 如有必要可以暂停游戏 (toggle_pause)
@@ -72,7 +78,7 @@ namespace RimWorldAgent.Core.AgentRuntime
   - 任何修改游戏状态的操作
 
 ### ACT 模式
-- 调用 enter_act() 恢复游戏，执行所有 PLAN 中制定的 TODO
+- 调用 enter_act() 恢复游戏，执行计划
 - 执行中也可以随时 enter_plan() 重新规划
 
 ## 推送消息响应

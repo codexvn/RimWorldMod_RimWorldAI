@@ -106,7 +106,7 @@ namespace RimWorldMCP.Tools
                             for (int i = 0; i < ws.Count; i++)
                             {
                                 var w = ws[i];
-                                if (w.forcePause)
+                                if (w.forcePause && w.GetType().Name != "ImmediateWindow")
                                 {
                                     var windowName = w.GetType().Name;
                                     reasons.Add($"  - 窗口: {windowName}（已锁定暂停）");
