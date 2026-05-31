@@ -1,11 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    /// <summary>Tool 调度：状态推送 + 模式提醒后缀。</summary>
+    /// <summary>Tool 调度：状态推送 + 模式提醒后缀 + 任务追踪。</summary>
     public static class ToolDispatcher
     {
         public static int ActPauseRemindThreshold = 5;
@@ -15,14 +17,54 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         public static int NotifCheckThreshold = 5;
         private static int _notifReceivedCount;
+        private static int _taskCheckCount;
+
+        // ===== SDK 任务追踪 =====
+
+        public class TaskItem
+        {
+            public string Id { get; set; } = "";
+            public string Subject { get; set; } = "";
+            public string Status { get; set; } = "pending";
+        }
 
         public static void ResetActPauseCount() => _actPauseCheckCount = 0;
         public static void ResetNotifCount() => _notifReceivedCount = 0;
         public static void MarkNotifReceived() => _notifReceivedCount++;
 
+        public static readonly List<TaskItem> Tasks = new();
+        public static int PendingTaskCount => Tasks.FindAll(t => t.Status != "completed").Count;
+
+        public static void ResetTaskCount()
+        {
+            Tasks.Clear();
+        }
+
+        public static void TrackToolUse(string toolName, JsonElement? input)
+        {
+            if (input == null) return;
+            try
+            {
+                if (toolName.EndsWith("TaskCreate"))
+                {
+                    var subj = input.Value.TryGetProperty("subject", out var s) ? s.GetString() ?? "?" : "?";
+                    var id = (Tasks.Count + 1).ToString();
+                    Tasks.Add(new TaskItem { Id = id, Subject = subj, Status = "pending" });
+                }
+                else if (toolName.EndsWith("TaskUpdate"))
+                {
+                    var tid = input.Value.TryGetProperty("taskId", out var ti) ? ti.ToString() : "";
+                    var st = input.Value.TryGetProperty("status", out var ts) ? ts.GetString() ?? "" : "";
+                    foreach (var t in Tasks)
+                        if (t.Id == tid) { t.Status = st; break; }
+                }
+            }
+            catch { /* ignore parse errors */ }
+        }
+
         public static async Task HandleAsync(
             CcbWebSocket ccbWs,
-            string toolId, string toolName)
+            string toolId, string toolName, JsonElement? input)
         {
             if (!AgentOrchestrator.IsRunning)
             {
@@ -32,6 +74,9 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             if (toolName is "get_notifications" or "dismiss_notification")
                 _notifReceivedCount = 0;
+
+            // 追踪 SDK 任务状态
+            TrackToolUse(toolName, input);
 
             try
             {
@@ -88,6 +133,28 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             else { _planCheckCount = 0; }
 
+            // 未完成任务提醒（每 10 次工具调用检查一次）
+            var taskRemind = "";
+            var pending = PendingTaskCount;
+            if (pending > 0)
+            {
+                _taskCheckCount++;
+                if (_taskCheckCount > 10)
+                {
+                    _taskCheckCount = 0;
+                    var lines = new List<string>();
+                    foreach (var t in Tasks)
+                    {
+                        if (t.Status != "completed")
+                            lines.Add($"  [{t.Status}] {t.Subject}");
+                        if (lines.Count >= 5) break;
+                    }
+                    var list = string.Join("\n", lines);
+                    taskRemind = $"\n\n<system-reminder>\n当前 {PendingTaskCount}/{Tasks.Count} 个任务未完成：\n{list}\n完成的任务请用 TaskUpdate 更新状态。\n</system-reminder>";
+                }
+            }
+            else { _taskCheckCount = 0; }
+
             // 通知堆积提醒
             var notifRemind = "";
             if (_notifReceivedCount > NotifCheckThreshold)
@@ -95,7 +162,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 notifRemind = "\n\n<system-reminder>\n你有未处理的通知，请用 get_notifications 查看并处理。用 dismiss_notification 关闭不需要的通知。\n</system-reminder>";
             }
 
-            return $"\n\n---\n当前模式: {phase}{planPauseRemind}{actPauseRemind}{notifRemind}";
+            return $"\n\n---\n当前模式: {phase}{taskRemind}{planPauseRemind}{actPauseRemind}{notifRemind}";
         }
     }
 }

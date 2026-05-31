@@ -139,7 +139,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 Interlocked.Increment(ref pendingTools);
                 try
                 {
-                    await ToolDispatcher.HandleAsync(ccbWs, toolId, toolName);
+                    await ToolDispatcher.HandleAsync(ccbWs, toolId, toolName, input);
                 }
                 catch (Exception ex)
                 {
