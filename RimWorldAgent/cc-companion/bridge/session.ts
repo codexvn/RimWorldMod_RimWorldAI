@@ -80,7 +80,7 @@ export function createSession(sdk: any, config: CompanionConfig, abortController
     abortController,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
-    disallowedTools: ['Bash', 'NotebookEdit', 'WebFetch', 'EnterWorktree', 'ExitWorktree', 'CronCreate', 'CronDelete', 'CronList', 'ScheduleWakeup', 'AskUserQuestion', 'EnterPlanMode', 'ExitPlanMode', 'Skill'],
+    disallowedTools: ['Bash', 'Write', 'Edit', 'NotebookEdit', 'WebFetch', 'EnterWorktree', 'ExitWorktree', 'CronCreate', 'CronDelete', 'CronList', 'ScheduleWakeup', 'AskUserQuestion', 'EnterPlanMode', 'ExitPlanMode', 'Skill'],
     autoCompactEnabled: true,
     includePartialMessages: true,
     settingSources: config.settingSources,
@@ -125,13 +125,17 @@ function trackSdkTask(name: string, input: any): void {
   if (name === 'TaskCreate') {
     const subject = input.subject || input.activeForm || '?';
     const id = String(RuntimeState.sdkTasks.length + 1);
+    console.log(`[CCGUI_DEBUG] trackSdkTask 服务端 TaskCreate id=${id} subject="${subject}" input=${JSON.stringify(input)}`);
     RuntimeState.sdkTasks.push({ id, subject, status: 'pending' });
+    console.log(`[CCGUI_DEBUG] trackSdkTask 服务端 当前任务列表: ${JSON.stringify(RuntimeState.sdkTasks)}`);
   } else if (name === 'TaskUpdate') {
     const tid = String(input.taskId || '');
     const st = input.status || '';
+    console.log(`[CCGUI_DEBUG] trackSdkTask 服务端 TaskUpdate taskId=${tid} status=${st} input=${JSON.stringify(input)}`);
     for (const t of RuntimeState.sdkTasks) {
-      if (String(t.id) === tid) { t.status = st; break; }
+      if (String(t.id) === tid) { t.status = st; console.log(`[CCGUI_DEBUG] trackSdkTask 服务端 匹配成功 id=${tid} -> ${st}`); break; }
     }
+    console.log(`[CCGUI_DEBUG] trackSdkTask 服务端 更新后任务列表: ${JSON.stringify(RuntimeState.sdkTasks)}`);
   }
 }
 
@@ -210,7 +214,7 @@ export function createResponseProcessor(
             const cacheRead = usage.cache_read_input_tokens ?? 0;
             const cacheCreate = usage.cache_creation_input_tokens ?? 0;
             const totalTokens = inputTokens + outputTokens;
-            const totalInput = inputTokens;
+            const totalInput = inputTokens + cacheRead;
             const cacheHitRate = totalInput > 0 ? (cacheRead / totalInput * 100).toFixed(0) : '0';
             const durationSec = durationMs ? (durationMs / 1000).toFixed(1) : '?';
             const fmt = (v: number) => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : String(v);

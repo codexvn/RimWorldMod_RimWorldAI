@@ -107,6 +107,7 @@ namespace RimWorldAgent.Core.Mcp
         {
             try
             {
+                CoreLog.Info($"[CCGUI_DEBUG] HandleNotification: method={notif.Method}");
                 switch (notif.Method)
                 {
                     case "game/tick":
@@ -200,6 +201,7 @@ namespace RimWorldAgent.Core.Mcp
                         {
                             if (msg is JsonRpcNotification notif)
                             {
+                                CoreLog.Info($"[CCGUI_DEBUG] InterceptingTransport 收到通知: {notif.Method}");
                                 onNotification(notif);
                             }
                             await writer.WriteAsync(msg, ct);

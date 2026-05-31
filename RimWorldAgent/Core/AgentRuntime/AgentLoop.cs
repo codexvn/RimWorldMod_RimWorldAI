@@ -103,6 +103,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                 AgentOrchestrator.PaceController = paceController;
             }
             AgentOrchestrator.SessionMcp = mcp;
+            // 会话默认 ACT 阶段（首次进入时未调用 enter_act 也显示 ACT）
+            if (AgentOrchestrator.CurrentPhase == GamePhase.None)
+                AgentOrchestrator.EnterActPhase();
 
             var tcs = new TaskCompletionSource<bool>();
             var pendingTools = 0;
@@ -136,8 +139,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 Interlocked.Increment(ref pendingTools);
                 try
                 {
-                    await ToolDispatcher.HandleAsync(ccbWs, mcp, toolId, toolName, input,
-                        msg => CoreLog.Debug($"[commander] {msg}"));
+                    await ToolDispatcher.HandleAsync(ccbWs, toolId, toolName);
                 }
                 catch (Exception ex)
                 {

@@ -178,21 +178,9 @@ namespace RimWorldMCP.Tools
                     // 追加游戏速度
                     try
                     {
-                        var tm = Find.TickManager;
-                        if (tm != null)
-                        {
-                            var label = tm.CurTimeSpeed switch
-                            {
-                                TimeSpeed.Paused => "已暂停",
-                                TimeSpeed.Normal => "1 倍速",
-                                TimeSpeed.Fast => "2 倍速",
-                                TimeSpeed.Superfast => "3 倍速",
-                                TimeSpeed.Ultrafast => "最快",
-                                _ => ""
-                            };
-                            if (!string.IsNullOrEmpty(label))
-                                result.Text = result.Text + $"\n\n[游戏速度: {label}]";
-                        }
+                        var label = Tool_GetGameSpeed.GetSpeedLabel();
+                        if (!string.IsNullOrEmpty(label))
+                            result.Text = result.Text + $"\n\n[游戏速度: {label}]";
                     }
                     catch (Exception ex) { Log.Warning($"[ToolRegistry] 获取游戏速度失败: {ex.Message}"); }
 

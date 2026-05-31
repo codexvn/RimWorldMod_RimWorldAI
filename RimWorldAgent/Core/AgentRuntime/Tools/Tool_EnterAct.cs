@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -24,8 +25,16 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             if (args?.TryGetProperty("speed", out var speedEl) == true)
                 speed = speedEl.GetString() ?? "superfast";
 
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            while (AgentOrchestrator.PaceController == null || AgentOrchestrator.SessionMcp == null)
+            {
+                if (DateTime.UtcNow > deadline)
+                    return ("无法进入 Act 阶段：会话状态未就绪，请稍后重试。", false);
+                await Task.Delay(100);
+            }
+
             AgentOrchestrator.EnterActPhase();
-            await AgentOrchestrator.PaceController!.ResumeForAction(AgentOrchestrator.SessionMcp!, speed);
+            await AgentOrchestrator.PaceController.ResumeForAction(AgentOrchestrator.SessionMcp, speed);
             return ($"已进入 Act 阶段，游戏速度: {speed}。", false);
         }
     }

@@ -50,7 +50,8 @@ namespace RimWorldMCP.Tools
                 return null;
             _lastScanTick = tick;
 
-            var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
+            // 拷贝快照，防止同帧内其他 Harmony Patch 修改殖民者列表导致枚举异常
+            var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned.ToList();
             var newDetections = new List<TrappedColonistInfo>();
             var currentKeys = new HashSet<string>();
 

@@ -801,16 +801,20 @@ export function getChatPageHtml(config: ChatPageConfig): string {
 
   function trackSdkTask(name, input) {
     if (!input) return;
+    console.log('[CCGUI_DEBUG] trackSdkTask 前端 调用 name=' + name + ' input=' + JSON.stringify(input));
     if (name === 'TaskCreate') {
       var subj = input.subject || input.activeForm || '?';
       sdkTasks.push({ id: sdkTasks.length + 1, subject: subj, status: 'pending' });
+      console.log('[CCGUI_DEBUG] trackSdkTask 前端 TaskCreate id=' + sdkTasks.length + ' subject=' + subj);
     } else if (name === 'TaskUpdate') {
       var tid = input.taskId;
       var st = input.status;
+      console.log('[CCGUI_DEBUG] trackSdkTask 前端 TaskUpdate taskId=' + tid + ' status=' + st);
       for (var i = 0; i < sdkTasks.length; i++) {
-        if (String(sdkTasks[i].id) === String(tid)) { sdkTasks[i].status = st; break; }
+        if (String(sdkTasks[i].id) === String(tid)) { sdkTasks[i].status = st; console.log('[CCGUI_DEBUG] trackSdkTask 前端 匹配成功 id=' + tid + ' -> ' + st); break; }
       }
     }
+    console.log('[CCGUI_DEBUG] trackSdkTask 前端 当前任务列表=' + JSON.stringify(sdkTasks));
     renderSdkTasks();
   }
 
@@ -819,6 +823,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     for (var i = 0; i < sdkTasks.length; i++) {
       if (sdkTasks[i].status !== 'completed') pending++;
     }
+    console.log('[CCGUI_DEBUG] renderSdkTasks 任务数=' + sdkTasks.length + ' 进行中=' + pending + ' 列表=' + JSON.stringify(sdkTasks));
     taskCountEl.textContent = pending;
     sdkTaskListEl.innerHTML = '';
     for (var i = 0; i < sdkTasks.length; i++) {
@@ -1016,8 +1021,8 @@ export function getChatPageHtml(config: ChatPageConfig): string {
     var totalInput = data.totalInput || 0;
     var fmt = function(v) { return v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : String(v); };
     var cacheHtml = '';
-    if (totalInput > 0) {
-      var cachePct = Math.round(cacheRead / totalInput * 100);
+    if (totalInput + cacheRead > 0) {
+      var cachePct = Math.round(cacheRead / (totalInput + cacheRead) * 100);
       cacheHtml = ' <span class="cache-rate">缓存 ' + fmt(cacheRead) + '(' + cachePct + '%)</span>';
     }
     if (limit <= 0) {
@@ -1067,6 +1072,7 @@ export function getChatPageHtml(config: ChatPageConfig): string {
         break;
 
       case 'sdk-tasks':
+        console.log('[CCGUI_DEBUG] 收到 sdk-tasks 消息 tasks=' + JSON.stringify(msg.tasks));
         if (msg.tasks && msg.tasks.length) {
           sdkTasks = msg.tasks;
           renderSdkTasks();

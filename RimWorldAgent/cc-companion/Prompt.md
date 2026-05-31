@@ -167,12 +167,13 @@
 | create_growing_zone / set_grower_plant | 种植区创建与植物类型设置 |
 | haul_item / drop_carried | 搬运物品到指定位置/放下手中物品 |
 | enter_plan / enter_act | Agent 内部工具：Plan/Act 阶段切换，暂停/恢复游戏 |
+| read_memory / update_memory | Agent 内部工具：读取/更新殖民地记忆文件 |
 
 ## 推送消息响应
 - `弹框提示` — 立即调 get_open_dialogs 查看选项并做出选择
 - `每早汇报` — 游戏已自动暂停。按以下流程执行：
   1. **全面检查**: 调用 get_game_context + get_colonists + check_colony 获取最新状态
-  2. **总结经验**: 回顾昨日事件，读取 CLAUDE.md 的"## 记忆"章节了解历史经验。用 Write/Edit 工具将新经验更新到 CLAUDE.md
+  2. **总结经验**: 回顾昨日事件，用 read_memory 读取记忆。用 update_memory 写入新经验
   3. **评估现状**: 资源缺口、威胁等级、殖民者心情/健康、研究进度、装备水平
   4. **制定计划**: 按优先级列出今日待办，用 TaskCreate 创建任务（优先解决警报问题，再安排建设/生产）。完成的用 TaskUpdate 更新状态。
   5. **恢复游戏**: 调用 toggle_pause 恢复游戏运行

@@ -91,7 +91,7 @@ namespace RimWorldAgent
             var sb = new StringBuilder();
             long totalTokens = TotalInputTokens + TotalOutputTokens;
             double avgDurationSec = TotalDurationMs / (double)TotalRequests / 1000.0;
-            long totalInputWithCache = TotalInputTokens;
+            long totalInputWithCache = TotalInputTokens + TotalCacheReadTokens;
             double cacheHitRate = totalInputWithCache > 0
                 ? (double)TotalCacheReadTokens / totalInputWithCache * 100.0
                 : 0.0;
@@ -127,7 +127,7 @@ namespace RimWorldAgent
                                   v >= 1_000 ? $"{v / 1_000f:F0}K" : v.ToString();
 
             long totalTokens = TotalInputTokens + TotalOutputTokens;
-            long totalInputWithCache = TotalInputTokens;
+            long totalInputWithCache = TotalInputTokens + TotalCacheReadTokens;
             double cacheHitRate = totalInputWithCache > 0
                 ? (double)TotalCacheReadTokens / totalInputWithCache * 100.0
                 : 0.0;

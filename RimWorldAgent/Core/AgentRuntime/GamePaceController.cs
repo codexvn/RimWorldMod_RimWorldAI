@@ -10,15 +10,7 @@ namespace RimWorldAgent.Core.AgentRuntime
     /// <summary>游戏暂停/恢复控制器 — Plan/Act 阶段切换时控制游戏速度</summary>
     public class GamePaceController : IDisposable
     {
-        private volatile bool _isPaused;
         private readonly SemaphoreSlim _opLock = new(1, 1);
-
-        /// <summary>游戏真实暂停状态。Agent 端通过 enter_plan/enter_act 设置，外部 toggle_pause 调用结果也会同步。</summary>
-        public bool IsPaused
-        {
-            get => _isPaused;
-            set => _isPaused = value;
-        }
 
         /// <summary>Plan 阶段游戏速度，默认 paused，可选 normal/fast/superfast/ultrafast</summary>
         public static string PlanSpeed { get; set; } = "paused";
@@ -26,40 +18,33 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>宿主可设置的跳过恢复判断</summary>
         public static Func<bool>? ShouldSkipResume { get; set; }
 
-        /// <summary>进入 Plan 阶段，设置游戏速度（幂等）</summary>
+        /// <summary>进入 Plan 阶段，设置游戏速度（toggle_pause 幂等）</summary>
         public async Task PauseForPlanning(McpClient mcp, string speed = "paused")
         {
-            if (_isPaused) return;
             await _opLock.WaitAsync();
             try
             {
-                if (_isPaused) return;
                 await CallTogglePause(mcp, speed);
-                _isPaused = true;
                 CoreLog.Info($"[GamePace] Plan 阶段速度: {speed}");
             }
             finally { _opLock.Release(); }
         }
 
-        /// <summary>进入 Act 阶段，恢复游戏（幂等）</summary>
+        /// <summary>进入 Act 阶段，恢复游戏（toggle_pause 幂等）</summary>
         public async Task ResumeForAction(McpClient mcp, string speed = "superfast")
         {
-            if (!_isPaused) return;
             await _opLock.WaitAsync();
             try
             {
-                if (!_isPaused) return;
                 await CallTogglePause(mcp, speed);
-                _isPaused = false;
                 CoreLog.Info($"[GamePace] 已恢复游戏 (Act 阶段, 速度: {speed})");
             }
             finally { _opLock.Release(); }
         }
 
-        /// <summary>确保游戏已恢复（finally 中调用，幂等）</summary>
+        /// <summary>确保游戏已恢复（finally 中调用）</summary>
         public async Task EnsureResumed(McpClient mcp)
         {
-            if (!_isPaused) return;
             if (ShouldSkipResume != null && ShouldSkipResume())
             {
                 CoreLog.Info("[GamePace] 跳过恢复（ShouldSkipResume=true）");
@@ -68,9 +53,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             await _opLock.WaitAsync();
             try
             {
-                if (!_isPaused) return;
                 await CallTogglePause(mcp, "superfast");
-                _isPaused = false;
                 CoreLog.Info("[GamePace] 已恢复游戏 (EnsureResumed)");
             }
             finally { _opLock.Release(); }

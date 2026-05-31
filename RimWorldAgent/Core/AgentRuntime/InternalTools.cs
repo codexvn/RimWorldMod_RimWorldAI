@@ -37,6 +37,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             Register(new Tool_GetSkills());
             Register(new Tool_ActiveSkill());
             Register(new Tool_SetToolResultSuffix());
+            Register(new Tool_ReadMemory());
+            Register(new Tool_UpdateMemory());
             CoreLog.Info($"[InternalToolRegistry] 注册 {_tools.Count} 个内部工具");
         }
 
@@ -84,7 +86,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 var (text, _) = await ExecuteInternalAsync(name, args);
                 return new ToolCallResult
                 {
-                    Content = new List<ContentItem> { new ContentItem { Type = "text", Text = text } }
+                    Content = new List<ContentItem> { new ContentItem { Type = "text", Text = text + await ToolDispatcher.BuildModeSuffixAsync() } }
                 };
             }
             catch (Exception ex)

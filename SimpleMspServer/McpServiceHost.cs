@@ -45,6 +45,7 @@ namespace SimpleMspServer
         public void SendEvent(string method, string jsonData)
         {
             var count = _sessions.Count;
+            Console.Error.WriteLine($"[CCGUI_DEBUG] SendEvent: method={method}, sessions={count}, jsonLen={jsonData.Length}");
             foreach (var kv in _sessions)
                 _ = kv.Value.SendNotificationAsync(method, jsonData);
         }
@@ -297,9 +298,11 @@ namespace SimpleMspServer
             {
                 try
                 {
+                    Console.Error.WriteLine($"[CCGUI_DEBUG] McpSession.SendNotificationAsync: method={method}, sid={SessionId}");
                     var notification = new JsonRpcNotification
                     { Method = method, Params = System.Text.Json.Nodes.JsonNode.Parse(jsonParams) };
                     await Transport.SendMessageAsync(notification, _cts.Token);
+                    Console.Error.WriteLine($"[CCGUI_DEBUG] McpSession.SendNotificationAsync done: method={method}");
                 }
                 catch (OperationCanceledException) { Console.Error.WriteLine("[McpSession] 发送通知已取消"); }
                 catch (Exception ex) { Console.Error.WriteLine($"[McpSession] 发送通知失败: {ex.Message}"); }

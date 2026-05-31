@@ -1,17 +1,15 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
-using RimWorldAgent.Core.Mcp;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    /// <summary>Tool 调度：内部 Tool → 本地处理，外部 Tool → 转发 MCP。</summary>
+    /// <summary>Tool 调度：状态推送 + 模式提醒后缀。</summary>
     public static class ToolDispatcher
     {
         public static int ActPauseRemindThreshold = 5;
+        public static int PlanRemindThreshold = 20;
         private static int _actPauseCheckCount;
         private static int _planCheckCount;
 
@@ -23,104 +21,52 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static void MarkNotifReceived() => _notifReceivedCount++;
 
         public static async Task HandleAsync(
-            CcbWebSocket ccbWs, McpClient mcp,
-            string toolId, string toolName, JsonElement? input,
-            Action<string> log)
+            CcbWebSocket ccbWs,
+            string toolId, string toolName)
         {
-            var sw = Stopwatch.StartNew();
-
-            // 会话已结束，拒绝工具调用（abort 是异步的，SDK 可能还发出飞行中的调用）
             if (!AgentOrchestrator.IsRunning)
             {
                 await ccbWs.SendToolResult(toolId, "Error: Agent 会话已结束，请重新唤醒。", true);
                 return;
             }
 
-            // 通知工具被调用时重置计数
             if (toolName is "get_notifications" or "dismiss_notification")
                 _notifReceivedCount = 0;
 
-            // 内部 Tool → 直接本地处理
-            if (InternalToolRegistry.Instance.IsInternal(toolName))
-            {
-                try
-                {
-                    log($"工具调用: {toolName}");
-                    var (result, shouldExit) = await InternalToolRegistry.Instance.ExecuteInternalAsync(toolName, input);
-                    sw.Stop();
-                    log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
-                    var suffix = BuildModeSuffix();
-                    await ccbWs.SendToolResult(toolId, result + suffix);
-
-                    // 同步推送当前 agent 角色和阶段
-                    try
-                    {
-                        if (ccbWs.IsReady)
-                            await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
-                    }
-                    catch (Exception ex) { log($"推送状态失败: {ex.Message}"); }
-                }
-                catch (Exception ex)
-                {
-                    sw.Stop();
-                    log($"工具失败: {toolName} 用时 {sw.ElapsedMilliseconds}ms — {ex.GetType().Name}: {ex.Message}");
-                    await ccbWs.SendToolResult(toolId, $"Error: {ex.Message}{BuildModeSuffix()}", true);
-                }
-                return;
-            }
-
-            // 外部 Tool → 转发 MCP
             try
             {
-                log($"工具调用: {toolName}");
-                var args = input != null
-                    ? JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(input.Value.GetRawText())
-                    : null;
-                var result = await mcp.CallTool(toolName, args);
-                sw.Stop();
-                log($"工具完成: {toolName} 用时 {sw.ElapsedMilliseconds}ms");
-
-                // toggle_pause 的结果同步到 PaceController，保持 Agent 端状态一致
-                if (toolName == "toggle_pause" && AgentOrchestrator.PaceController != null)
-                {
-                    var nowPaused = result != null
-                        && result.IndexOf("已暂停", StringComparison.Ordinal) >= 0
-                        && result.IndexOf("运行中", StringComparison.Ordinal) < 0;
-                    AgentOrchestrator.PaceController.IsPaused = nowPaused;
-                }
-
-                var suffix = BuildModeSuffix();
-                await ccbWs.SendToolResult(toolId, result + suffix);
-
-                // 同步推送当前 agent 角色和阶段
-                try
-                {
-                    if (ccbWs.IsReady)
-                        await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
-                }
-                catch (Exception ex) { log($"推送状态失败: {ex.Message}"); }
+                if (ccbWs.IsReady)
+                    await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
             }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                log($"工具失败: {toolName} 用时 {sw.ElapsedMilliseconds}ms — {ex.Message}");
-                await ccbWs.SendToolResult(toolId, $"Error: {ex.Message}{BuildModeSuffix()}", true);
-            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { CoreLog.Info($"[ToolDispatcher] 推送状态失败: {ex.Message}"); }
         }
 
-        private static string BuildModeSuffix()
+        /// <summary>生成工具结果后缀，每次通过 MCP 获取真实游戏暂停状态。</summary>
+        public static async Task<string> BuildModeSuffixAsync()
         {
             var phase = AgentOrchestrator.CurrentPhase switch
             {
                 GamePhase.Plan => "PLAN",
                 GamePhase.Act => "ACT",
-                _ => AgentOrchestrator.IsRunning ? "ACT（未设定 enter_act）" : "就绪"
+                _ => AgentOrchestrator.IsRunning ? "ACT" : "就绪"
             };
 
-            // ACT 阶段暂停过久提醒
+            // 通过 MCP 获取真实暂停状态
+            var isGamePaused = false;
+            if (AgentOrchestrator.SessionMcp != null)
+            {
+                try
+                {
+                    var speed = await AgentOrchestrator.SessionMcp.CallTool("get_game_speed");
+                    isGamePaused = speed != null && speed.IndexOf("已暂停", StringComparison.Ordinal) >= 0;
+                }
+                catch (Exception ex) { CoreLog.Info($"[ToolDispatcher] 查询游戏速度失败: {ex.Message}"); }
+            }
+
+            // ACT 阶段 + 游戏暂停提醒
             var actPauseRemind = "";
-            if (AgentOrchestrator.CurrentPhase == GamePhase.Act
-                && AgentOrchestrator.PaceController?.IsPaused == true)
+            if (AgentOrchestrator.CurrentPhase == GamePhase.Act && isGamePaused)
             {
                 _actPauseCheckCount++;
                 if (_actPauseCheckCount > ActPauseRemindThreshold)
@@ -135,7 +81,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             if (AgentOrchestrator.CurrentPhase == GamePhase.Plan)
             {
                 _planCheckCount++;
-                if (_planCheckCount > ActPauseRemindThreshold)
+                if (_planCheckCount > PlanRemindThreshold)
                 {
                     planPauseRemind = "\n\n<system-reminder>\n你已在 PLAN 阶段停留较久。制定计划后请调用 enter_act() 恢复游戏执行操作，不要让游戏长时间冻结。\n</system-reminder>";
                 }

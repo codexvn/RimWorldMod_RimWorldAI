@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Verse;
 using Verse.Profile;
 using RimWorld;
-using RimWorld.Planet;
 
 namespace RimWorldMCP.Tools
 {
@@ -14,7 +13,8 @@ namespace RimWorldMCP.Tools
         public string Name => "restart_game";
 
         public string Description => "使用开发者快速测试功能重新开始游戏（全新 Crashlanded 开局，Cassandra Classic / Rough 难度，随机世界+地块）。"
-            + "当前游戏的所有进度将丢失。需要 i_know_danger 确认。可选地图大小参数。";
+            + "当前游戏的所有进度将丢失。需要 i_know_danger 确认。可选地图大小参数。"
+            + "此工具会阻塞直到新游戏完全加载完毕。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
@@ -58,33 +58,53 @@ namespace RimWorldMCP.Tools
                     + "此操作将销毁当前游戏的所有殖民地、殖民者、建筑和物品，"
                     + "并使用 Dev Quick Test 创建全新的 Crashlanded 开局游戏！");
 
-            // 调度到主线程执行
-            return await McpCommandQueue.DispatchAsync(() =>
+            // 调度重启到主线程，完成后阻塞等待游戏完全加载
+            var restartOk = await McpCommandQueue.DispatchAsync(() =>
             {
                 if (Current.Game == null)
-                    return ToolResult.Error("当前没有游戏实例，无法重新开始。");
+                    return "ERR:当前没有游戏实例，无法重新开始。";
 
-                // 延后到帧末执行实际重启（让 MCP 响应先发出去）
-                McpCommandQueue.ScheduleDeferred(() =>
+                try { PerformGameRestart(mapSize); }
+                catch (Exception ex) { return $"ERR:{ex.Message}"; }
+                return "OK";
+            });
+
+            if (restartOk is string s && s.StartsWith("ERR:"))
+                return ToolResult.Error(s.Substring(4));
+
+            // 阻塞等待新游戏完全加载（最多 120 秒）
+            var deadline = DateTime.UtcNow.AddSeconds(120);
+            while (DateTime.UtcNow < deadline)
+            {
+                var state = await McpCommandQueue.DispatchAsync(() =>
                 {
-                    try { PerformGameRestart(mapSize); }
-                    catch (Exception ex) { McpLog.Error($"重新开始游戏失败: {ex}"); }
+                    if (Current.Game == null) return "menu";
+                    var map = Find.CurrentMap;
+                    if (map == null) return "world";
+                    var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
+                    if (colonists == null || colonists.Count == 0) return "loading";
+                    return $"ready:{colonists.Count}:{map.Size.x}x{map.Size.z}";
                 });
 
-                var sb = new StringBuilder();
-                sb.AppendLine("游戏正在重新开始（Dev Quick Test）...");
-                sb.AppendLine();
-                sb.AppendLine("【新游戏配置】");
-                sb.AppendLine("- 剧本: Crashlanded（坠毁三人组）");
-                sb.AppendLine("- AI 叙事者: Cassandra Classic / Rough（卡桑德拉经典 / 普通）");
-                sb.AppendLine($"- 地图大小: {mapSize}x{mapSize}");
-                sb.AppendLine("- 世界: 随机种子，30% 覆盖率");
-                sb.AppendLine("- 起始地块: 随机");
-                sb.AppendLine();
-                sb.AppendLine("注意: MCP 服务将在新游戏启动后自动恢复，届时可重新连接。");
+                if (state.StartsWith("ready:"))
+                {
+                    var parts = state.Split(':');
+                    var sb = new StringBuilder();
+                    sb.AppendLine("游戏已重新开始！");
+                    sb.AppendLine();
+                    sb.AppendLine("【新游戏信息】");
+                    sb.AppendLine($"- 殖民者: {parts[1]} 人");
+                    sb.AppendLine($"- 地图大小: {parts[2]}");
+                    sb.AppendLine($"- 剧本: Crashlanded（坠毁三人组）");
+                    sb.AppendLine($"- AI 叙事者: Cassandra Classic / Rough");
+                    sb.AppendLine($"- 地图边长: {mapSize}");
+                    return ToolResult.Success(sb.ToString());
+                }
 
-                return ToolResult.Success(sb.ToString());
-            });
+                await Task.Delay(500);
+            }
+
+            return ToolResult.Error("游戏重启超时 (120s)：新游戏加载未完成，请用 check_map_loaded 检查当前状态。");
         }
 
         private static void PerformGameRestart(int mapSize)
@@ -106,9 +126,6 @@ namespace RimWorldMCP.Tools
                 Find.GameInitData.mapSize = mapSize;
 
             // 5. 初始化新游戏
-            // 此调用会触发新 GameComponent_McpServer.StartedNewGame()
-            // → StartMcpService() → StopMcpService() 清理旧 transport
-            // → 启动新 transport + 新桥接器
             Find.GameInitData.PrepForMapGen();
             Find.Scenario.PreMapGenerate();
             Current.Game.InitNewGame();

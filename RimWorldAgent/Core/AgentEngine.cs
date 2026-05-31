@@ -84,7 +84,29 @@ namespace RimWorldAgent.Core.AgentRuntime
             _agentHost.Start();
             _logInfo($"[AgentEngine] AgentMCP :{_cfg.AgentMcpPort}");
 
-            // CCB 子进程 + WS（可选）
+            // MCP 客户端 — 必须在 CCB 之前连接，确保游戏工具列表可用
+            _mcp = new McpClient(_cfg.McpUrl);
+
+            // 等待 MCP 服务就绪（EXE 模式下 Agent 可能先于游戏启动）
+            if (_cfg.WaitForGame)
+            {
+                _logInfo("[AgentEngine] 等待游戏 MCP 服务就绪...");
+                while (true)
+                {
+                    try { await _mcp.CallTool("check_map_loaded"); break; }
+                    catch (Exception ex) { _logInfo($"[AgentEngine] 游戏尚未就绪: {ex.Message}，3s 后重试..."); await Task.Delay(3000); }
+                }
+                _logInfo("[AgentEngine] 游戏 MCP 已连接");
+            }
+
+            // 游戏事件订阅 + 游戏工具代理 → Agent MCP（必须在 CCB 之前完成）
+            AgentLoop.WireEvents(_mcp);
+            var proxy = new ProxyToolProvider(_mcp);
+            await proxy.RefreshToolsAsync();
+            _agentHost.RegisterProvider(proxy);
+            _logInfo($"[AgentEngine] 游戏工具代理已注册");
+
+            // CCB 子进程 + WS — 在所有 MCP 服务就绪后启动
             var ccbReady = false;
             if (!string.IsNullOrEmpty(_cfg.CcbDir) && Directory.Exists(_cfg.CcbDir))
             {
@@ -126,24 +148,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
 
             if (!ccbReady) _logInfo("[AgentEngine] CCB: 未就绪 (事件转发不可用)");
-
-            // MCP 客户端
-            _mcp = new McpClient(_cfg.McpUrl);
-
-            // 可选：等待游戏就绪（EXE 模式需要等待 RimWorldMCP Mod 启动）
-            if (_cfg.WaitForGame)
-            {
-                _logInfo("[AgentEngine] 等待游戏启动...");
-                while (true)
-                {
-                    try { await _mcp.CallTool("get_world_summary"); break; }
-                    catch (Exception ex) { _logInfo($"[AgentEngine] 等待游戏启动: {ex.Message}，3s 后重试..."); await Task.Delay(3000); }
-                }
-                _logInfo("[AgentEngine] 游戏已连接");
-            }
-
-            // 游戏事件订阅（通过 MCP notification 通道拦截，随 SDK 连接自动启动）
-            AgentLoop.WireEvents(_mcp);
 
             GamePaceController.PlanSpeed = _cfg.PlanSpeed;
             _ctx = new ContextBuilder(_mcp);
