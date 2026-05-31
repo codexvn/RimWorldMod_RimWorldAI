@@ -166,6 +166,9 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             finally
             {
+                // 通知 Companion 停止当前 SDK 查询，避免会话结束后 SDK 继续消耗 Token
+                _ = ccbWs.SendAbort();
+
                 ccbWs.OnAborted -= OnAborted;
                 InternalToolRegistry.OnExitRequested -= OnExit;
                 ccbWs.OnResult -= OnResult;

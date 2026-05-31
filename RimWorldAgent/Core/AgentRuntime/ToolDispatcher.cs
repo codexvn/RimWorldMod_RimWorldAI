@@ -28,6 +28,13 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             var sw = Stopwatch.StartNew();
 
+            // 会话已结束，拒绝工具调用（abort 是异步的，SDK 可能还发出飞行中的调用）
+            if (!AgentOrchestrator.IsRunning)
+            {
+                await ccbWs.SendToolResult(toolId, "Error: Agent 会话已结束，请重新唤醒。", true);
+                return;
+            }
+
             // 通知工具被调用时重置计数
             if (toolName is "get_notifications" or "dismiss_notification")
                 _notifReceivedCount = 0;
