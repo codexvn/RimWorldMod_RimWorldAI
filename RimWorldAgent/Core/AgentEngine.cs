@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Ccb = RimWorldAgent.Core.CcbManager.CcbManager;
 using RimWorldAgent.Core.CcbManager;
@@ -26,6 +28,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string PlanSpeed { get; set; } = "paused";
         public bool WaitForGame { get; set; } = false;
         public long TokenBudgetLimit { get; set; }
+        public string ThinkingMode { get; set; } = "default";
         public string ThinkingEffort { get; set; } = "medium";
         public int MaxThinkingTokens { get; set; }
     }
@@ -34,6 +37,8 @@ namespace RimWorldAgent.Core.AgentRuntime
     public class AgentEngine : IDisposable
     {
         private readonly AgentEngineConfig _cfg;
+        private readonly IDbStore _dbStore;
+        private readonly IGameStateProvider _gameState;
         private readonly Action<string> _logInfo;
         private readonly Action<string> _logError;
         private readonly Action<string> _logDebug;
@@ -43,14 +48,20 @@ namespace RimWorldAgent.Core.AgentRuntime
         private ContextBuilder? _ctx;
         private bool _initialized;
         private int _lastDialogCheckTick;
+        private int _lastStatusCheckTick;
+        private int _pauseStartMs;
+        private int _lastPauseRemindMs;
         private SimpleMspServer.McpServiceHost? _agentHost;
 
         public CcbWebSocket? CcbWs => _ccbWs;
         public bool IsReady => _initialized && _mcp != null;
 
-        public AgentEngine(AgentEngineConfig cfg, Action<string>? logInfo = null, Action<string>? logError = null, Action<string>? logDebug = null)
+        public AgentEngine(AgentEngineConfig cfg, IDbStore dbStore, IGameStateProvider gameState,
+            Action<string>? logInfo = null, Action<string>? logError = null, Action<string>? logDebug = null)
         {
             _cfg = cfg;
+            _dbStore = dbStore;
+            _gameState = gameState;
             _logInfo = logInfo ?? (msg => { });
             _logError = logError ?? (msg => { });
             _logDebug = logDebug ?? (msg => { });
@@ -70,8 +81,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             Directory.CreateDirectory(_cfg.ProjectPath);
             SessionStore.ProjectPath = _cfg.ProjectPath;
 
-            // Data 层 — Token 持久化
-            TokenStore.Instance = new LocalFileTokenStore();
+            // Data 层 — 注入 IDbStore
+            TokenUsageTracker.Db = _dbStore;
 
             // Skills
             var skillsDir = _cfg.SkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
@@ -129,6 +140,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _ccbWs = new CcbWebSocket(_cfg.CcbWsUrl, _cfg.CcbToken ?? "")
                     {
                         BudgetLimit = _cfg.TokenBudgetLimit,
+                        ThinkingMode = _cfg.ThinkingMode,
                         ThinkingEffort = _cfg.ThinkingEffort,
                         MaxThinkingTokens = _cfg.MaxThinkingTokens
                     };
@@ -171,6 +183,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _ccbWs = new CcbWebSocket(_cfg.CcbWsUrl, _cfg.CcbToken ?? "")
                     {
                         BudgetLimit = _cfg.TokenBudgetLimit,
+                        ThinkingMode = _cfg.ThinkingMode,
                         ThinkingEffort = _cfg.ThinkingEffort,
                         MaxThinkingTokens = _cfg.MaxThinkingTokens
                     };
@@ -192,12 +205,13 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
         }
 
-        /// <summary>单 Agent 调度循环</summary>
         public async Task TickAsync()
         {
             if (_mcp == null || _ctx == null || _ccbWs == null || !_ccbWs.IsReady) return;
 
-            var currentTick = AgentOrchestrator.GameTick;
+            await _gameState.SyncGameStatusAsync();
+            var currentTick = _gameState.GameTick;
+            AgentOrchestrator.GameTick = currentTick;
 
             // 定时弹框扫描（每 2500 tick ≈ 60s 游戏时间）
             if (currentTick - _lastDialogCheckTick >= 2500)
@@ -215,6 +229,31 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex) { _logInfo($"[AgentEngine] 弹框检测失败: {ex.Message}"); }
             }
 
+            // 定期状态检测（每 120 tick ≈ 2s，仅 Agent 空闲时）
+            if (!AgentOrchestrator.IsRunning && currentTick - _lastStatusCheckTick >= 120)
+            {
+                _lastStatusCheckTick = currentTick;
+
+                // 暂停过久提醒
+                if (_gameState.IsPaused)
+                {
+                    int nowMs = Environment.TickCount;
+                    if (_pauseStartMs == 0) _pauseStartMs = nowMs;
+                    int elapsed = unchecked(nowMs - _pauseStartMs);
+                    if (_lastPauseRemindMs == 0 && elapsed >= 30000)
+                    {
+                        _lastPauseRemindMs = nowMs;
+                        await _ccbWs!.SendEvent("rimworld.chat", new { category = "PauseRemind", text = $"游戏已暂停 {elapsed / 1000} 秒，请检查是否需要继续。", severity = "low" });
+                    }
+                    else if (_lastPauseRemindMs > 0 && unchecked(nowMs - _lastPauseRemindMs) >= 60000)
+                    {
+                        _lastPauseRemindMs = nowMs;
+                        await _ccbWs!.SendEvent("rimworld.chat", new { category = "PauseRemind", text = $"游戏仍在暂停中 (共 {elapsed / 1000} 秒)。", severity = "low" });
+                    }
+                }
+                else { _pauseStartMs = 0; _lastPauseRemindMs = 0; }
+            }
+
             // 优先级 1: 中断请求 + Agent 运行中 → 等待 AgentLoop 中 SendAbort 处理
             if (AgentOrchestrator.InterruptRequested && AgentOrchestrator.IsRunning)
                 return;
@@ -228,19 +267,20 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
 
             // 优先级 3: 每日 PLAN 模式
-            if (!AgentOrchestrator.IsRunning && AgentOrchestrator.ShouldMorningReport())
+            if (!AgentOrchestrator.IsRunning && _gameState.ShouldMorningReport())
             {
                 AgentOrchestrator.EnterPlanPhase();
                 if (AgentOrchestrator.PaceController == null)
                     AgentOrchestrator.PaceController = new GamePaceController();
                 await AgentOrchestrator.PaceController.PauseForPlanning(_mcp, GamePaceController.PlanSpeed);
+                _gameState.MarkMorningReportSent();
                 await RunAgent(isPlan: true);
                 return;
             }
 
             // 优先级 4: 定期 ACT 检查
             if (!AgentOrchestrator.IsRunning
-                && Scheduler.ShouldWake(AgentConfigs.Default.IntervalGameHours, currentTick))
+                && _gameState.ShouldWake(AgentConfigs.Default.IntervalGameHours))
             {
                 await RunAgent(isPlan: false);
                 return;
@@ -251,7 +291,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             GamePaceController.ShouldSkipResume = null;
             AgentOrchestrator.BeginSession();
-            _logInfo($"[AgentEngine] 唤醒 commander (Load={Scheduler.LoadScore}, Plan={isPlan}, Interrupted={isInterrupted})");
+            _logInfo($"[AgentEngine] 唤醒 commander (Day={_gameState.GameDay}, Plan={isPlan}, Interrupted={isInterrupted})");
 
             await _ccbWs!.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
 

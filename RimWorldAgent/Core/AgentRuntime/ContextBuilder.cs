@@ -31,7 +31,6 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             // Layer 6: Runtime info
             sb.AppendLine("## 运行信息");
-            sb.AppendLine($"- Load: {Scheduler.LoadScore} ({Scheduler.Mode})");
             sb.AppendLine($"- Day: {AgentOrchestrator.GameDay}");
 
             // Layer 7: 当前模式指引

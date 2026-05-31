@@ -24,7 +24,6 @@ namespace RimWorldAgent.Core.Mcp
 
         public event Action<ColonyEvent>? OnGameEvent;
         public event Action<int>? OnGameTick;
-        public event Action<SchedulerInput>? OnWorldState;
 
         public McpClient(string baseUrl = "http://localhost:9877")
         {
@@ -107,25 +106,11 @@ namespace RimWorldAgent.Core.Mcp
         {
             try
             {
-                CoreLog.Info($"[CCGUI_DEBUG] HandleNotification: method={notif.Method}");
                 switch (notif.Method)
                 {
                     case "game/tick":
                         var tick = notif.Params?["tick"]?.GetValue<int>() ?? 0;
                         if (tick > 0) OnGameTick?.Invoke(tick);
-                        break;
-
-                    case "game/world-state":
-                        OnWorldState?.Invoke(new SchedulerInput
-                        {
-                            ColonistCount = notif.Params?["colonists"]?.GetValue<int>() ?? 0,
-                            IdleCount = notif.Params?["idle"]?.GetValue<int>() ?? 0,
-                            EnemyCount = notif.Params?["enemies"]?.GetValue<int>() ?? 0,
-                            DownedEnemyCount = notif.Params?["downed"]?.GetValue<int>() ?? 0,
-                            FoodDays = notif.Params?["foodDays"]?.GetValue<float>() ?? 0f,
-                            MedicineCount = notif.Params?["medicine"]?.GetValue<int>() ?? 0,
-                            CurrentTick = AgentOrchestrator.GameTick
-                        });
                         break;
 
                     default:
@@ -201,7 +186,6 @@ namespace RimWorldAgent.Core.Mcp
                         {
                             if (msg is JsonRpcNotification notif)
                             {
-                                CoreLog.Info($"[CCGUI_DEBUG] InterceptingTransport 收到通知: {notif.Method}");
                                 onNotification(notif);
                             }
                             await writer.WriteAsync(msg, ct);

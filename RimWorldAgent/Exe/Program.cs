@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.Data;
+using RimWorldAgent.Core.Mcp;
 
 namespace RimWorldAgent
 {
@@ -41,7 +42,10 @@ namespace RimWorldAgent
             var projectPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session"));
             Directory.CreateDirectory(projectPath);
 
-            TokenStore.Instance = new LocalFileTokenStore(Path.Combine(projectPath, "RimWorldMCP_Token.json"));
+            var dbStore = new JsonDbStore(Path.Combine(projectPath, "RimWorldMCP_Token.json"));
+
+            var mcpClient = new McpClient(mcpUrl);
+            var gameState = new RemoteGameStateProvider(mcpClient);
 
             var ccbDir = FindCcbDir();
 
@@ -55,7 +59,7 @@ namespace RimWorldAgent
                 WaitForGame = true,
             };
 
-            var engine = new AgentEngine(cfg,
+            var engine = new AgentEngine(cfg, dbStore, gameState,
                 logInfo: msg => Console.WriteLine($"[Core] {msg}"),
                 logError: msg => Console.Error.WriteLine($"[Core] {msg}"),
                 logDebug: msg => Console.WriteLine($"[Core] {msg}"));

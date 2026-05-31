@@ -60,7 +60,6 @@ namespace RimWorldMCP
             {
                 _lastTickPush = currentTick;
                 PushTickEvent();
-                PushWorldState();
             }
 
             // 殖民者被困检测（每 200 tick，~3.3s @1x）
@@ -78,57 +77,10 @@ namespace RimWorldMCP
             try
             {
                 var tick = Find.TickManager?.TicksGame ?? 0;
-                var speed = Find.TickManager?.CurTimeSpeed ?? Verse.TimeSpeed.Normal;
-                var paused = Find.TickManager?.Paused ?? false;
-                var json = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "tick",
-                    tick,
-                    speed = speed.ToString(),
-                    paused
-                });
+                var json = System.Text.Json.JsonSerializer.Serialize(new { type = "tick", tick });
                 SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/tick", json);
             }
             catch (Exception ex) { Verse.Log.Warning($"[McpServer] tick 推送失败: {ex.Message}"); }
-        }
-
-        private static void PushWorldState()
-        {
-            try
-            {
-                var map = Find.CurrentMap;
-                if (map == null) return;
-
-                int colonists = 0, idle = 0, enemies = 0, downed = 0;
-                float foodDays = 0f;
-                int medicine = 0;
-
-                var colonistList = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                colonists = colonistList.Count;
-                foreach (var c in colonistList)
-                    if (c.mindState?.IsIdle == true) idle++;
-
-                foreach (var p in map.mapPawns.AllPawnsSpawned)
-                {
-                    if (p.Faction == null || !p.Faction.HostileTo(Faction.OfPlayer)) continue;
-                    if (p.Downed) downed++; else enemies++;
-                }
-
-                var res = map.resourceCounter;
-                foreach (var kv in res.AllCountedAmounts)
-                {
-                    if (kv.Key.IsNutritionGivingIngestible && kv.Key.ingestible?.HumanEdible == true)
-                        foodDays += kv.Value * kv.Key.ingestible.CachedNutrition / (colonists * 1.6f);
-                    if (kv.Key.IsMedicine) medicine += kv.Value;
-                }
-
-                var json = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "world-state", colonists, idle, enemies, downed, foodDays, medicine
-                });
-                SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/world-state", json);
-            }
-            catch (Exception ex) { Verse.Log.Warning($"[McpServer] world-state 推送失败: {ex.Message}"); }
         }
 
         private void StartMcpSession()

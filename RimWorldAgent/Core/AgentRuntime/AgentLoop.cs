@@ -10,24 +10,6 @@ namespace RimWorldAgent.Core.AgentRuntime
     /// <summary>EXE / MOD 共享的 Agent 主循环逻辑</summary>
     public static class AgentLoop
     {
-        /// <summary>从 get_world_summary Markdown 文本解析 SchedulerInput</summary>
-        public static SchedulerInput ParseSchedulerInput(string text)
-        {
-            var input = new SchedulerInput { CurrentTick = Environment.TickCount };
-            if (string.IsNullOrEmpty(text)) return input;
-
-            foreach (var line in text.Split('\n'))
-            {
-                var t = line.Trim();
-                if (t.Contains("殖民者") && t.Contains("|")) input.ColonistCount = ParseInt(t);
-                else if (t.Contains("空闲")) input.IdleCount = ParseInt(t);
-                else if (t.Contains("食物") && t.Contains("天")) input.FoodDays = ParseFloat(t);
-                else if (t.Contains("敌人")) input.EnemyCount = ParseInt(t);
-                else if (t.Contains("药品")) input.MedicineCount = ParseInt(t);
-            }
-            return input;
-        }
-
         private static CcbWebSocket? _statusWs;
         private static long _budgetLimit;
 
@@ -77,9 +59,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             // tick 事件 → 更新游戏 tick
             mcp.OnGameTick += tick => AgentOrchestrator.GameTick = tick;
-
-            // 世界状态 → 更新 Scheduler
-            mcp.OnWorldState += input => Scheduler.Tick(input);
 
             // 游戏事件 → 所有事件触发中断 + 双工通知
             mcp.OnGameEvent += evt =>
@@ -204,18 +183,5 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
         }
 
-        private static int ParseInt(string s)
-        {
-            foreach (var p in s.Split('|'))
-                if (int.TryParse(p.Trim(), out var v)) return v;
-            return 0;
-        }
-
-        private static float ParseFloat(string s)
-        {
-            foreach (var p in s.Split('|'))
-                if (float.TryParse(p.Trim(), out var v)) return v;
-            return 0f;
-        }
     }
 }

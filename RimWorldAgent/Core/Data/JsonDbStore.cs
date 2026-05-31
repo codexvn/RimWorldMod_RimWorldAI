@@ -8,8 +8,8 @@ using RimWorldAgent.Core.AgentRuntime;
 
 namespace RimWorldAgent.Core.Data
 {
-    /// <summary>本地 JSON 文件持久化的 Token 存储。EXE 模式或需要跨进程持久化时使用。</summary>
-    public class LocalFileTokenStore : ITokenStore
+    /// <summary>JSON 文件持久化的 Token 存储。EXE 模式使用。</summary>
+    public class JsonDbStore : IDbStore
     {
         private readonly object _lock = new();
         private readonly string _filePath;
@@ -28,20 +28,20 @@ namespace RimWorldAgent.Core.Data
         public int TotalToolFailure;
         public long TotalDurationMs;
 
-        long ITokenStore.TotalInputTokens => Interlocked.Read(ref TotalInputTokens);
-        long ITokenStore.TotalOutputTokens => Interlocked.Read(ref TotalOutputTokens);
-        long ITokenStore.TotalCacheReadTokens => Interlocked.Read(ref TotalCacheReadTokens);
-        long ITokenStore.TotalCacheCreateTokens => Interlocked.Read(ref TotalCacheCreateTokens);
-        long ITokenStore.TotalAllTokens => Interlocked.Read(ref TotalInputTokens)
+        long IDbStore.TotalInputTokens => Interlocked.Read(ref TotalInputTokens);
+        long IDbStore.TotalOutputTokens => Interlocked.Read(ref TotalOutputTokens);
+        long IDbStore.TotalCacheReadTokens => Interlocked.Read(ref TotalCacheReadTokens);
+        long IDbStore.TotalCacheCreateTokens => Interlocked.Read(ref TotalCacheCreateTokens);
+        long IDbStore.TotalAllTokens => Interlocked.Read(ref TotalInputTokens)
             + Interlocked.Read(ref TotalOutputTokens)
             + Interlocked.Read(ref TotalCacheReadTokens)
             + Interlocked.Read(ref TotalCacheCreateTokens);
-        int ITokenStore.TotalRequests => TotalRequests;
-        int ITokenStore.TotalToolSuccess => TotalToolSuccess;
-        int ITokenStore.TotalToolFailure => TotalToolFailure;
-        long ITokenStore.TotalDurationMs => Interlocked.Read(ref TotalDurationMs);
+        int IDbStore.TotalRequests => TotalRequests;
+        int IDbStore.TotalToolSuccess => TotalToolSuccess;
+        int IDbStore.TotalToolFailure => TotalToolFailure;
+        long IDbStore.TotalDurationMs => Interlocked.Read(ref TotalDurationMs);
 
-        public LocalFileTokenStore(string? filePath = null)
+        public JsonDbStore(string? filePath = null)
         {
             _filePath = filePath ?? GetDefaultPath("RimWorldMCP_Tokens.json");
             Load();
@@ -81,10 +81,8 @@ namespace RimWorldAgent.Core.Data
 
         public void RecordToolResult(bool isError)
         {
-            if (isError)
-                Interlocked.Increment(ref TotalToolFailure);
-            else
-                Interlocked.Increment(ref TotalToolSuccess);
+            if (isError) Interlocked.Increment(ref TotalToolFailure);
+            else Interlocked.Increment(ref TotalToolSuccess);
             Save();
         }
 
@@ -119,6 +117,8 @@ namespace RimWorldAgent.Core.Data
             Save();
         }
 
+        // ===== 持久化 =====
+
         private void Load()
         {
             try
@@ -144,7 +144,7 @@ namespace RimWorldAgent.Core.Data
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[LocalFileToken] 加载失败: {ex.Message}");
+                Console.Error.WriteLine($"[JsonDbStore] 加载失败: {ex.Message}");
             }
         }
 
@@ -170,16 +170,15 @@ namespace RimWorldAgent.Core.Data
                         CurrentModel = CurrentModel,
                         PerModel = _perModel
                     };
-                    var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                    File.WriteAllText(_filePath, JsonSerializer.Serialize(data, new JsonSerializerOptions
                     {
                         WriteIndented = true,
                         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                    });
-                    File.WriteAllText(_filePath, json);
+                    }));
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"[LocalFileToken] 保存失败: {ex.Message}");
+                    Console.Error.WriteLine($"[JsonDbStore] 保存失败: {ex.Message}");
                 }
             }
         }
@@ -204,5 +203,11 @@ namespace RimWorldAgent.Core.Data
             if (!string.IsNullOrEmpty(dir)) return Path.Combine(dir, fileName);
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RimWorldMCP", fileName);
         }
+
+        string IDbStore.GetCompactDisplay(long budgetLimit)
+            => TokenUsageTracker.GetCompactDisplay(budgetLimit);
+
+        string IDbStore.GetSummary(long budgetLimit)
+            => TokenUsageTracker.GetSummary();
     }
 }

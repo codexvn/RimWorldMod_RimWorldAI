@@ -8,7 +8,6 @@
     <AssemblyName>RimWorldAgent</AssemblyName>
     <RootNamespace>RimWorldAgent</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <StartupObject>RimWorldAgent.Program</StartupObject>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
@@ -56,12 +55,19 @@
   <!-- 构建完成后：复制 DLL + 依赖 + 资源到 publish -->
   <Target Name="PublishAgent" AfterTargets="Build">
     <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies" />
+    <!-- 依赖 DLL（不含游戏运行时） -->
     <ItemGroup>
-      <PublishFiles Include="$(OutputPath)*.dll;$(OutputPath)*.exe" Exclude="$(OutputPath)Assembly-CSharp.dll;$(OutputPath)UnityEngine*.dll;$(OutputPath)System.Net.Http.dll" />
+      <AgentDeps Include="$(OutputPath)*.dll" Exclude="$(OutputPath)Assembly-CSharp.dll;$(OutputPath)UnityEngine*.dll;$(OutputPath)System.Net.Http.dll" />
     </ItemGroup>
-    <Copy SourceFiles="@(PublishFiles)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies" />
+    <Copy SourceFiles="@(AgentDeps)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies" />
+    <!-- EXE → DLL（RimWorld 只扫描 *.dll） -->
+    <Copy SourceFiles="$(OutputPath)RimWorldAgent.exe" DestinationFiles="..\publish\RimWorldAgent\1.6\Assemblies\RimWorldAgent.dll" Condition="Exists('$(OutputPath)RimWorldAgent.exe')" />
+    <!-- 独立 EXE（改名避免与 dll 重名） -->
+    <Copy SourceFiles="$(OutputPath)RimWorldAgent.exe" DestinationFiles="..\publish\RimWorldAgent\1.6\Assemblies\RimWorldAgent_Standalone.exe" Condition="Exists('$(OutputPath)RimWorldAgent.exe')" />
     <!-- MOD 元数据 -->
     <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\About\About.xml" DestinationFolder="..\publish\RimWorldAgent\About" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\About\Preview.png" DestinationFolder="..\publish\RimWorldAgent\About" Condition="Exists('$(MSBuildProjectDirectory)\resource\About\Preview.png')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\About\PublishedFileId.txt" DestinationFolder="..\publish\RimWorldAgent\About" Condition="Exists('$(MSBuildProjectDirectory)\resource\About\PublishedFileId.txt')" />
     <ItemGroup>
       <SkillMdFiles Include="$(MSBuildProjectDirectory)\resource\Skills\*.md" />
     </ItemGroup>

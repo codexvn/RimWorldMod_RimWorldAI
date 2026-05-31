@@ -3,13 +3,14 @@ using System.Collections.Generic;
 
 namespace RimWorldAgent.Core.Data
 {
-    public interface ITokenStore
+    /// <summary>Token 记录 + 持久化 + 模型用量查询</summary>
+    public interface IDbStore
     {
-        void Record(string model, long inputTokens, long outputTokens,
-            long cacheReadTokens, long cacheCreateTokens, long durationMs);
+        string CurrentModel { get; set; }
+
+        void Record(string model, long inputTokens, long outputTokens, long cacheRead, long cacheCreate, long durationMs);
         void RecordToolResult(bool isError);
 
-        string CurrentModel { get; set; }
         long TotalInputTokens { get; }
         long TotalOutputTokens { get; }
         long TotalCacheReadTokens { get; }
@@ -22,6 +23,10 @@ namespace RimWorldAgent.Core.Data
 
         Dictionary<string, TokenModelUsage> GetModelUsages();
         void Clear();
+
         event Action? OnRecorded;
+
+        string GetCompactDisplay(long budgetLimit);
+        string GetSummary(long budgetLimit);
     }
 }

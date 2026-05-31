@@ -37,6 +37,8 @@ namespace RimWorldAgent.Core.CcbManager
 
         /// <summary>Token 预算上限（0 = 无限制）</summary>
         public long BudgetLimit { get; set; }
+        /// <summary>思考模式：default / disabled / adaptive / fixed</summary>
+        public string ThinkingMode { get; set; } = "default";
         /// <summary>思考力度：low / medium / high</summary>
         public string ThinkingEffort { get; set; } = "medium";
         /// <summary>最大思考 Token 数（0 = 默认）</summary>
@@ -183,7 +185,7 @@ namespace RimWorldAgent.Core.CcbManager
                 },
                 thinking = new
                 {
-                    mode = "default",
+                    mode = ThinkingMode,
                     effort = ThinkingEffort,
                     tokens = MaxThinkingTokens
                 }
