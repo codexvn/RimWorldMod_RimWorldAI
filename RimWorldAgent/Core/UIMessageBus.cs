@@ -41,11 +41,11 @@ namespace RimWorldAgent.Core
         /// <summary>UiMessage 本地回调 (供 ChatDisplayState)</summary>
         public static event Action<string>? OnDisplayMessage;
 
-        /// <summary>系统事件 → 直接广播</summary>
-        public static void PushGameEvent(UiMessage msg)
+        /// <summary>推送单个 UiMessage — 序列化 + WS 广播 + 本地回调</summary>
+        public static void PushUiMessage(UiMessage msg)
         {
             var json = msg.ToJson();
-            CoreLog.Info($"[CCGUI_DEBUG] UIMessageBus.PushGameEvent _clients={_clients.Count} preview={json.Substring(0, Math.Min(json.Length, 120))}");
+            CoreLog.Info($"[CCGUI_DEBUG] UIMessageBus.PushUiMessage _clients={_clients.Count} preview={json.Substring(0, Math.Min(json.Length, 120))}");
             foreach (var kv in _clients)
             {
                 try { kv.Value.Send(json); }

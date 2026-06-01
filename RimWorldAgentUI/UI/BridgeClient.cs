@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RimWorldAgent
 {
-    /// <summary>基于 System.Net.WebSockets 的 BridgeBus WS 客户端，和 WebUI(index.html) 完全一致。</summary>
+    /// <summary>基于 System.Net.WebSockets 的 UIMessageBus WS 客户端，和 WebUI(index.html) 完全一致。</summary>
     public class BridgeClient : IDisposable
     {
         private const int RECONNECT_INTERVAL = 1000;

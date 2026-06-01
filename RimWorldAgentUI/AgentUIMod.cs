@@ -21,8 +21,8 @@ namespace RimWorldAgent
             var listing = new Listing_Standard();
             listing.Begin(inRect);
 
-            listing.Label("<b>连接</b>", tooltip: "RimWorld Agent 核心服务的 BridgeBus 地址");
-            listing.Label("BridgeBus WS 地址");
+            listing.Label("<b>连接</b>", tooltip: "RimWorld Agent 核心服务的 UIMessageBus 地址");
+            listing.Label("UIMessageBus WS 地址");
             Settings.BridgeWsUrl = listing.TextEntry(Settings.BridgeWsUrl);
             listing.Label("  默认 ws://127.0.0.1:19999");
 

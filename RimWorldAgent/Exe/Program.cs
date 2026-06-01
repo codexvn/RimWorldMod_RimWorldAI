@@ -75,14 +75,14 @@ namespace RimWorldAgent
 
             await engine.InitAsync();
 
-            // 启动 BridgeBus（Web UI 和游戏内 Dialog 的 WS 通信总线）
+            // 启动 UIMessageBus（Web UI 和游戏内 Dialog 的 WS 通信总线）
             var bridgePort = 19999;
-            BridgeBus.Start(bridgePort);
-            Console.WriteLine($"[Core] BridgeBus: ws://0.0.0.0:{bridgePort}");
+            UIMessageBus.Start(bridgePort);
+            Console.WriteLine($"[Core] UIMessageBus: ws://0.0.0.0:{bridgePort}");
 
-            // CCB ↔ BridgeBus 双向中继（SDK↔UiMessage 转换在 AgentCore）
+            // CCB ↔ UIMessageBus 双向中继（SDK↔UiMessage 转换在 AgentCore）
             if (engine.CcbWs != null)
-                AgentLoop.WireBridgeBus(engine.CcbWs);
+                AgentLoop.WireUIMessageBus(engine.CcbWs);
 
             Console.WriteLine("Agent Main Loop 启动 (Ctrl+C 退出)");
 
@@ -98,7 +98,7 @@ namespace RimWorldAgent
             catch (OperationCanceledException) { }
 
             Console.WriteLine("RimWorldAgent 退出");
-            BridgeBus.Stop();
+            UIMessageBus.Stop();
             engine.Dispose();
         }
 

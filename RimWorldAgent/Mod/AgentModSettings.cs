@@ -30,7 +30,7 @@ namespace RimWorldAgent
         // CC Companion 依赖
         public bool CcbAutoInstall = true;
 
-        // BridgeBus（Web 前端 WS 服务）
+        // UIMessageBus（Web 前端 WS 服务）
         public string BridgeHost = "127.0.0.1";
         public int BridgePort = 19999;
 

@@ -10,7 +10,7 @@ namespace RimWorldAgent
 {
     /// <summary>
     /// 内嵌 HTTP 静态文件服务 — 提供 WebUI (index.html)。
-    /// 浏览器打开 http://localhost:19997 连接 BridgeBus WS。
+    /// 浏览器打开 http://localhost:19997 连接 UIMessageBus WS。
     /// </summary>
     public class WebUIHttpServer : IDisposable
     {
@@ -23,7 +23,7 @@ namespace RimWorldAgent
         public int Port => _port;
         public bool IsRunning => _listener != null;
 
-        /// <param name="bridgePort">BridgeBus WS 端口，用于 index.html 模板替换</param>
+        /// <param name="bridgePort">UIMessageBus WS 端口，用于 index.html 模板替换</param>
         /// <param name="webRoot">index.html 所在目录</param>
         public WebUIHttpServer(int port = 19997, int bridgePort = 19999, string? webRoot = null)
         {

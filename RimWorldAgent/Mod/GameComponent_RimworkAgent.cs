@@ -84,16 +84,16 @@ namespace RimWorldAgent
             await _engine.InitAsync();
             _dbStore = dbStore;
 
-            // 启动 BridgeBus（Web 前端 WS 服务器，默认端口 19999）
+            // 启动 UIMessageBus（Web 前端 WS 服务器，默认端口 19999）
             if (settings?.BridgeHost != "disabled")
             {
                 var bridgePort = settings?.BridgePort ?? 19999;
-                BridgeBus.Start(bridgePort);
+                UIMessageBus.Start(bridgePort);
             }
 
-            // UI 总线：SDK 消息 → BridgeBus 广播 + 客户端消息 → CCB
+            // UI 总线：SDK 消息 → UIMessageBus 广播 + 客户端消息 → CCB
             if (_engine.CcbWs != null)
-                AgentLoop.WireBridgeBus(_engine.CcbWs);
+                AgentLoop.WireUIMessageBus(_engine.CcbWs);
 
             _lastTick = 0;
             Log.Message("[agent-mod] Agent Runtime 初始化完成");
@@ -106,7 +106,7 @@ namespace RimWorldAgent
             if (!_initialized || _engine == null) return;
 
             _engine.Tick();
-            BridgeBus.IsReady = _engine.CcbWs?.IsReady ?? false;
+            UIMessageBus.IsReady = _engine.CcbWs?.IsReady ?? false;
 
             if (Find.CurrentMap == null) return;
 
@@ -128,11 +128,11 @@ namespace RimWorldAgent
             _dbStore?.ScribeExpose();
         }
 
-        /// <summary>CcbWebSocket → BridgeBus 中继：SDK 消息 → 所有客户端，客户端消息 → CCB</summary>
+        /// <summary>CcbWebSocket → UIMessageBus 中继：SDK 消息 → 所有客户端，客户端消息 → CCB</summary>
         private void ShutdownEngine()
         {
             CoreLog.Info("[agent-mod] 返回主菜单，开始关闭 Agent 和 CCB...");
-            BridgeBus.Stop();
+            UIMessageBus.Stop();
             try
             {
                 _engine?.Dispose();

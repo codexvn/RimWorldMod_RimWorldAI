@@ -38,7 +38,7 @@ namespace RimWorldAgent
         public int CachedThinkingLen;
     }
 
-    /// <summary>由 BridgeBus UiMessage 协议驱动，和 WebUI 共享同一数据源</summary>
+    /// <summary>由 UIMessageBus UiMessage 协议驱动，和 WebUI 共享同一数据源</summary>
     public static class ChatDisplayState
     {
         public static event Action? OnChanged;
@@ -315,7 +315,7 @@ namespace RimWorldAgent
             OnChanged?.Invoke();
         }
 
-        // ===== BridgeBus UiMessage JSON 解析（由 BridgeClient.OnMessage → 直接调用） =====
+        // ===== UIMessageBus UiMessage JSON 解析（由 BridgeClient.OnMessage → 直接调用） =====
 
         public static void ProcessMessage(string uiJson)
         {

@@ -5,7 +5,7 @@
 /// </summary>
 public static class ChatChannel
 {
-    /// <summary>BridgeBus 转发的用户消息</summary>
+    /// <summary>UIMessageBus 转发的用户消息</summary>
     public const string Bus = "bus";
     /// <summary>AgentLoop 系统 prompt（RunSessionAsync）</summary>
     public const string System = "system";
