@@ -128,33 +128,109 @@ SyncGameStatusAsync() → 刷新 tick + paused
 └─ 优先 4: 定期 ACT (ShouldWake) → RunAgent
 ```
 
-### 消息协议
+### 协议 (Protocol)
 
-#### CcbWebSocket ↔ Companion (WS :19998)
+项目有 4 个消息层，每层有独立的消息格式。
+
+---
+
+#### 层 1：CcbWebSocket ↔ Companion (WS :19998)
+
+仅 4 种消息，C# `SendChat`/`SendAbort` 直发顶层 type，不经过包装。
+
+| 方向 | type | 字段 | 说明 |
+|------|------|------|------|
+| C# → | `chat` | `text` (string), `session` ("bus"\|"system"), `thinking` ({mode,effort,tokens?}) | 用户消息或系统 prompt |
+| C# → | `abort` | (无) | 中断当前 SDK 会话 |
+| ← C# | `hello-ok` | (无) | 握手确认 |
+| ← C# | `assistant` | `message.content[]` (text/tool_use/thinking), `usage`, `model`, `stop_reason` | 完整 AI 回复 |
+| ← C# | `stream_event` | `event` (content_block_start/delta), `index` | 流式增量（text_delta/thinking_delta） |
+| ← C# | `result` | `subtype` (success/error_*), `stop_reason`, `duration_ms`, `usage`, `num_turns` | 会话结束 |
+| ← C# | `system` | `subtype` (init/compact_boundary/status/...), 各子类型字段 | 系统消息 |
+| ← C# | `user` | `message.content[]`, `parent_tool_use_id`, `isSynthetic` | SDK 回显的用户消息 |
+| ← C# | `aborted` | (无) | 中断确认 |
+
+C# 侧：`CcbWebSocket.ReceiveLoop` → `SdkMessage.FromJson` → `OnSdkMessage` 事件 → `SdkMessageParser` → `UiMessage`。
+
+---
+
+#### 层 2：UIMessageBus (WS :19999)
+
+##### Agent → UI（推送）
+
+所有消息继承 `UiMessage` 基类，`ToJson()` 序列化后 WS 广播。
+
+| type | C# 类 | 字段 | 说明 |
+|------|-------|------|------|
+| `text_delta` | `UiTextDelta` | `text` | 流式文本增量（空串=新 block 开始） |
+| `thinking_delta` | `UiThinkingDelta` | `thinking` | 流式思考增量（空串=新 block 开始） |
+| `text_block` | `UiTextBlock` | `text` | 完整文本块 |
+| `tool_call` | `UiToolCall` | `id`, `name`, `input` | 工具调用请求 |
+| `tool_result` | `UiToolResult` | `id`, `isError`, `durationMs` | 工具执行结果 |
+| `result` | `UiResult` | `subtype`, `stop_reason` | 会话结束 |
+| `aborted` | `UiAborted` | (无) | 中断确认 |
+| `system_init` | `UiSystemInit` | `model`, `session_id` | SDK 初始化信息 |
+| `error` | `UiError` | `error` | 错误消息 |
+| `user` | `UiUser` | `text` | 用户消息回显 |
+| `system` | `UiSystem` | `text` | 系统消息（暂停提醒等） |
+| `budget_status` | `UiBudgetStatus` | `used`, `limit`, `action`, `cacheRead`, `totalInput`, `cacheCreate` | Token 预算状态 |
+
+##### UI → Agent（客户端消息）
+
+| type | 字段 | 说明 |
+|------|------|------|
+| `chat` | `text`, `thinking?` ({mode,effort,tokens?}) | 用户发送消息 |
+| `abort` | (无) | 中断请求 |
+
+C# 侧：`UIMessageBus.OnMessage` → `OnChat`/`OnAbort` 事件 → `AgentLoop.WireUIMessageBus`。
+
+---
+
+#### 层 3：SdkMessage（C# 内部类型）
+
+`SdkMessage` 是 C# 内部类型化消息模型，对齐 `@anthropic-ai/claude-agent-sdk` `coreSchemas.ts`。
+
+`FromJson(rawJson)` 工厂：Parse JSON → type dispatch → 子类构造 → `ValidateFields` 检测多余字段。
 
 ```
-C# → companion:  {"type":"chat", "text":"...", "session":"bus", "thinking":{mode,effort,tokens}}
-                 {"type":"abort"}
-companion → C#:  {"type":"hello-ok"}
-                 SDK 消息 (assistant / stream_event / result / system / user / aborted)
+SdkMessage (abstract)
+├── SdkAssistantMessage  { Content[], Usage, Model, StopReason, Error }
+├── SdkStreamEventMessage { ParentToolUseId, Index, Event }
+├── SdkResultMessage      { Subtype, IsError, NumTurns, DurationMs, Usage, Result, TotalCostUsd }
+├── SdkSystemMessage      { Subtype, Model, SessionId, ClaudeCodeVersion, Tools[], Skills[], McpServers[] }
+├── SdkUserMessage        { Content[], ParentToolUseId, IsSynthetic, Priority }
+├── SdkAbortedMessage     { }
+├── SdkHelloOkMessage     { }
+└── SdkUnknownMessage     { Type, Root }  ← 未知类型日志告警
 ```
 
-仅 4 种消息。不经过 `type=event` 包装，C# `SendChat`/`SendAbort` 直发顶层 type。
+---
 
-#### UIMessageBus (WS :19999)
+#### 层 4：MCP（Agent ↔ 游戏）
+
+| 方向 | 协议 | 说明 |
+|------|------|------|
+| Agent → 游戏 | HTTP POST `/mcp` | JSON-RPC `tools/call` 调用游戏工具 |
+| 游戏 → Agent | SSE `GET /sse` | `game/tick` 推送 + `game/notification` 事件 |
+| SDK → Agent | HTTP POST `:9878/mcp` | SDK `tools/call` → Agent MCP → ProxyToolProvider → 游戏 MCP |
+
+SDK 工具调用不经过 companion。
+
+---
+
+#### 完整流转示例（用户发消息 → AI 回复）
 
 ```
-Agent → UI:       UiMessage JSON (text_delta / text_block / tool_call / result / aborted / system_init / error / user / budget_status)
-UI → Agent:       {"type":"chat", "text":"...", "thinking":{mode,effort,tokens}}
-                  {"type":"abort"}
+1. UI WS → UIMessageBus  {"type":"chat","text":"你好","thinking":{"mode":"default","effort":"medium"}}
+2. UIMessageBus → AgentLoop.OnChat
+3. AgentLoop → CcbWS.SendAbort()  →  companion  {"type":"abort"}
+4. AgentLoop → CcbWS.SendChat()   →  companion  {"type":"chat","text":"你好","session":"bus","thinking":{...}}
+5. companion → SDK: inputStream.enqueue({type:'user',message:{role:'user',content:'你好'}})
+6. SDK → companion: {type:'stream_event',event:{type:'content_block_start',content_block:{type:'text'}}}
+7. companion → C#: busBroadcast(JSON) → CcbWS.ReceiveLoop → ProcessMessage
+8. ProcessMessage → SdkMessage.FromJson → OnSdkMessage → SdkMessageParser → UiMessage
+9. UIMessageBus.PushUiMessages → WS :19999 广播 → WebUI + Dialog 渲染
 ```
-
-#### 工具调用通路
-
-```
-SDK → mcp__agent__* → Agent MCP (:9878) → ProxyToolProvider → 游戏 MCP (:9877) → 返回结果 → SDK
-```
-**工具调用不经过 companion**，SDK 直接调 MCP 端点。
 
 ### 数据流
 
