@@ -39,9 +39,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                 ConversationStore?.RecordUserMessage(text);
                 CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat 调用 SendAbort...");
                 await ws.SendAbort();
-                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendAbort done, PushUiMessage...");
-                UIMessageBus.PushUiMessage(UiMessage.User(text));
-                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat PushUiMessage done, 调用 SendChat...");
+                // 用户消息由 SDK echo (SdkMessageParser → UiUser) 落盘并推送，此处不本地推送
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendAbort done, 调用 SendChat...");
                 await ws.SendChat(ChatChannel.Bus, text, thinking);
                 CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendChat done");
             };
@@ -198,8 +197,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 AgentOrchestrator.RequestInterrupt(summary);
                 _ = AgentOrchestrator.NotisAgent(summary);
                 ToolDispatcher.MarkNotifReceived();
-                // 推送通知到 UI 供用户查看
-                UIMessageBus.PushUiMessage(UiMessage.System(summary));
             };
         }
 

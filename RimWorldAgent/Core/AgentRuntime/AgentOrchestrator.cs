@@ -89,7 +89,10 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static void RequestInterrupt(string summary)
         {
             InterruptRequested = true;
-            InterruptSummary = summary;
+            // 多次中断累积摘要（而非覆盖），确保 SDK 收到完整上下文
+            InterruptSummary = string.IsNullOrEmpty(InterruptSummary)
+                ? summary
+                : InterruptSummary + "\n" + summary;
             CoreLog.Info($"[AgentOrchestrator] 中断请求: {summary}");
             if (CcbWs?.IsReady == true)
                 _ = CcbWs.SendAbort();

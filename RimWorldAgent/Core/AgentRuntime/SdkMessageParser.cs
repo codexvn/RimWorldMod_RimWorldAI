@@ -35,9 +35,16 @@ namespace RimWorldAgent.Core.AgentRuntime
                         result.Add(UiMessage.Aborted());
                         break;
                     case SdkUserMessage um:
+                        // SDK echo 的用户消息 — 作为 Canonical 来源落盘并推送
+                        // 非 synthetic 消息（用户真实输入）与 local push 互斥，避免重复
                         foreach (var block in um.Content)
                         {
-                            if (block is SdkToolResultBlock tr)
+                            if (block is SdkTextBlock tb)
+                            {
+                                // SDK echo 的用户文本 → canonical 推送
+                                result.Add(UiMessage.User(tb.Text));
+                            }
+                            else if (block is SdkToolResultBlock tr)
                             {
                                 result.Add(UiMessage.ToolResult(tr.ToolUseId ?? "", tr.IsError, 0, tr.Content));
                                 UIMessageBus.RaiseToolResultRecorded(tr.ToolUseId ?? "", tr.IsError, tr.Content);
