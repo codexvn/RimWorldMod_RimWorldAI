@@ -11,8 +11,8 @@ namespace RimWorldAgent.Core.AgentRuntime
     public static class ToolDispatcher
     {
         public static int ActPauseRemindThreshold = 5;
-        public static int PlanRemindThreshold = 20;
-        public static int ActTurnRemindThreshold = 20;
+        public static int PlanRemindThreshold = 10;
+        public static int ActTurnRemindThreshold = 10;
         private static int _actPauseCheckCount;
         private static int _planCheckCount;
         private static int _actTurnCount;
@@ -20,6 +20,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static int NotifCheckThreshold = 5;
         private static int _notifReceivedCount;
         private static int _taskCheckCount;
+        /// <summary>距上次 TaskCreate/TaskUpdate 的轮次，超阈值提示</summary>
+        private static int _roundsSinceLastTask;
+        public static int TaskRemindRounds = 15;
 
         // ===== SDK 任务追踪 =====
 
@@ -58,6 +61,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 
                 if (toolName.EndsWith("TaskCreate"))
                 {
+                    _roundsSinceLastTask = 0;
                     var subj = input.TryGetProperty("subject", out var s) ? s.GetString() ?? "?" : "?";
                     lock (_tasks)
                     {
@@ -67,6 +71,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
                 else if (toolName.EndsWith("TaskUpdate"))
                 {
+                    _roundsSinceLastTask = 0;
                     var tid = input.TryGetProperty("taskId", out var ti) ? ti.GetString() ?? "" : "";
                     var st = input.TryGetProperty("status", out var ts) ? ts.GetString() ?? "" : "";
                     if (st == "completed" || st == "deleted")
@@ -127,7 +132,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 _actPauseCheckCount++;
                 if (_actPauseCheckCount > ActPauseRemindThreshold)
                 {
-                    actPauseRemind = "\n\n<system-reminder>\n游戏仍处于暂停状态！你在 ACT 阶段，如需推进工作进度请调用 enter_act(speed=\"暂停/正常/高速/极速\") 恢复游戏。\n</system-reminder>";
+                    actPauseRemind = "\n\n<system-reminder>\n游戏仍处于暂停状态！你在 ACT 阶段，只有恢复游戏速度后才能执行实际操作。请调用 enter_act(speed=\"superfast\") 恢复游戏。\n</system-reminder>";
                 }
             }
             else { _actPauseCheckCount = 0; }
@@ -180,6 +185,15 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             else { _taskCheckCount = 0; }
 
+            // 久未使用 task 工具提醒（不判断 task 数量，只看轮次）
+            var taskToolRemind = "";
+            _roundsSinceLastTask++;
+            if (_roundsSinceLastTask > TaskRemindRounds)
+            {
+                _roundsSinceLastTask = 0;
+                taskToolRemind = $"\n\n<system-reminder>\n你已连续 {TaskRemindRounds}+ 轮工具调用未使用 TaskCreate / TaskUpdate。建议调用 TaskCreate 制定任务计划、跟踪执行进度。完成后用 TaskUpdate(status=\"completed\") 标记。\n</system-reminder>";
+            }
+
             // 通知堆积提醒
             var notifRemind = "";
             if (_notifReceivedCount > NotifCheckThreshold)
@@ -187,7 +201,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 notifRemind = "\n\n<system-reminder>\n你有未处理的通知，请用 get_notifications 查看并处理。用 dismiss_notification 关闭不需要的通知。\n</system-reminder>";
             }
 
-            return $"\n\n---\n当前模式: {phase}{taskRemind}{planPauseRemind}{actPauseRemind}{actTurnRemind}{notifRemind}";
+            return $"\n\n---\n当前模式: {phase}{taskRemind}{taskToolRemind}{planPauseRemind}{actPauseRemind}{actTurnRemind}{notifRemind}";
         }
     }
 }
