@@ -62,7 +62,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
                 else if (toolName.EndsWith("TaskUpdate"))
                 {
-                    var tid = input.Value.TryGetProperty("taskId", out var ti) ? ti.ToString() : "";
+                    var tid = input.Value.TryGetProperty("taskId", out var ti) ? ti.GetString() ?? "" : "";
                     var st = input.Value.TryGetProperty("status", out var ts) ? ts.GetString() ?? "" : "";
                     if (st == "completed" || st == "deleted")
                     {
