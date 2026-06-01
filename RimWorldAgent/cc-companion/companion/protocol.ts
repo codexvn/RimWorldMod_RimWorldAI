@@ -1,3 +1,9 @@
+/** 聊天频道常量，C# ChatChannel 对齐 */
+export const ChatChannel = {
+  Bus: 'bus',         // BridgeBus 转发的用户消息
+  System: 'system',   // AgentLoop 系统 prompt
+} as const;
+
 /** C# → companion WS 消息类型 */
 
 export interface HelloMessage {

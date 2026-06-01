@@ -16,10 +16,10 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>CCB ↔ BridgeBus 双向中继：SDK↔UiMessage 转换在 AgentCore 完成</summary>
         public static void WireBridgeBus(CcbWebSocket ws)
         {
-            // SDK 原始消息 → UiMessage → BridgeBus 广播
-            ws.OnRawSdkMessage += rawJson =>
+            // SDK 消息 → UiMessage → BridgeBus 广播
+            ws.OnSdkMessage += msg =>
             {
-                var messages = SdkMessageParser.ParseToUiMessages(rawJson);
+                var messages = SdkMessageParser.ParseToUiMessages(msg);
                 if (messages.Count > 0) BridgeBus.PushUiMessages(messages);
             };
 
@@ -32,7 +32,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     return;
                 }
                 BridgeBus.PushGameEvent(UiMessage.User(text));
-                await ws.SendChat("bus", text, thinking);
+                await ws.SendChat(ChatChannel.Bus, text, thinking);
             };
 
             // 客户端 abort → CCB
@@ -170,7 +170,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             ccbWs.OnAborted += OnAborted;
             try
             {
-                await ccbWs.SendChat("system", prompt);
+                await ccbWs.SendChat(ChatChannel.System, prompt);
                 // 活动感知超时：每次 tool_use / result 重置计时器，避免长对话被误杀
                 while (!tcs.Task.IsCompleted)
                 {

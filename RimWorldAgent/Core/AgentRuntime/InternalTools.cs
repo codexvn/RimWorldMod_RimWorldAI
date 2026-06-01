@@ -9,15 +9,6 @@ using SimpleMspServer.Mcp;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    /// <summary>内部 Tool 数据类（保留用于动态注册场景）。</summary>
-    public class InternalTool
-    {
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public Dictionary<string, object> InputSchema { get; set; } = new Dictionary<string, object>();
-        public Func<JsonElement?, Task<(string result, bool exit)>>? Handler { get; set; }
-    }
-
     public class InternalToolRegistry : IToolProvider
     {
         public static InternalToolRegistry Instance { get; } = new InternalToolRegistry();

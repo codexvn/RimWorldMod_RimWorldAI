@@ -72,3 +72,8 @@ C# (RimWorld)                       companion (Node.js)
 | companion | ~1800行 (ws-server, message-bus, chat-page, chat-http, companion 大半) | ~80行 (stdin/stdout dispatch) |
 | C# | ~500行 (CcbWebSocket, Hook_GameDispose, JobObject, 进程扫描) | ~120行 (CompanionStdio, Fleck server) |
 | **净减少** | ~2100行 | |
+
+# BUG：
+1. dialog中用户发的消息会出现一个系统消息和一个用户消息
+2. 前台发送消息不会打断sdk dialog发送消息会打断sdk
+3.
