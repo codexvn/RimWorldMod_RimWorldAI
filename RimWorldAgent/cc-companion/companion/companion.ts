@@ -39,14 +39,15 @@ async function main() {
   let session = createSession(sdk, abortController);
   let { inputStream, queryIterator } = session;
 
-  function startNewSession() {
+  function startNewSession(reuseStream?: boolean) {
     abortController = new AbortController();
-    session = createSession(sdk, abortController);
-    inputStream = session.inputStream;
+    session = createSession(sdk, abortController, reuseStream ? inputStream : undefined);
+    // 复用 stream 时 inputStream 不变；新建时替换
+    if (!reuseStream) inputStream = session.inputStream;
     queryIterator = session.queryIterator;
     const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => busBroadcast(JSON.stringify(msg))));
     proc.process();
-    log('新会话已创建');
+    log(`新会话已创建${reuseStream ? ' (复用 IO)' : ''}`);
   }
 
   function applyThinking(cfg?: ThinkingConfig) {
@@ -56,7 +57,7 @@ async function main() {
     if (cfg.effort) Thinking.effort = cfg.effort;
     if (cfg.tokens != null) Thinking.maxTokens = cfg.tokens;
     log(`思考模式: ${Thinking.mode}${cfg.effort ? ' effort=' + cfg.effort : ''}`);
-    startNewSession();
+    startNewSession(true);  // 复用 inputStream
   }
 
   // ===== WS Server（先于 SDK 启动，避免竞态）=====
@@ -113,7 +114,7 @@ async function main() {
         case 'abort':
           log('收到 abort');
           abortController.abort();
-          startNewSession();
+          startNewSession(true);  // 复用 inputStream，不丢失已入队消息
           break;
       }
     });

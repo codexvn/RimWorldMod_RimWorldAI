@@ -1606,8 +1606,8 @@
     clearTimeout(scrollEventTimer);
     scrollEventTimer = setTimeout(function() {
       var diff = messagesEl.scrollHeight - messagesEl.clientHeight - messagesEl.scrollTop;
-      // 向上滚动到顶部 → 加载更早历史
-      if (messagesEl.scrollTop < 80) { loadOlder(); }
+      // 向上滚动到顶部 → 加载更早历史（防抖+宽阈值）
+      if (messagesEl.scrollTop < 200 && !loadingOlder && hasMoreOlder && oldestId) { loadOlder(); }
       if (userScrolledUp) {
         // 已断磁：检查是否滚回底部，自动恢复磁吸
         if (diff < SNAP_THRESHOLD) {

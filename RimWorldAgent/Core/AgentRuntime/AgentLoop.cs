@@ -119,11 +119,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 ConversationStore?.RecordToolCall(toolId, name, input);
             };
-            UIMessageBus.OnToolResultRecorded += (toolId, isError, content) =>
-            {
-                ConversationStore?.RecordToolResult(toolId, isError, 0, content);
-            };
-
+            // tool_result 录制已移至 OnToolUse（有准确耗时），此处仅保留事件供 UI 推送
         }
 
         static AgentLoop()
@@ -248,6 +244,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             async void OnToolUse(string toolId, string toolName, JsonElement? input)
             {
                 NoteActivity();
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var isError = false;
                 Interlocked.Increment(ref pendingTools);
                 try
                 {
@@ -255,14 +253,19 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
                 catch (Exception ex)
                 {
+                    isError = true;
                     CoreLog.Error($"[commander] Tool 执行异常: {ex.Message}");
                 }
                 finally
                 {
+                    sw.Stop();
                     var remaining = Interlocked.Decrement(ref pendingTools);
                     if (remaining == 0 && resultReceived)
                         tcs.TrySetResult(true);
                 }
+                // 工具耗时落盘
+                ConversationStore?.RecordToolResult(toolId, isError, sw.Elapsed.TotalMilliseconds, "");
+                CoreLog.Info($"[CCGUI_DEBUG] Tool {toolName} 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms isError={isError}");
             }
 
             void OnExit()

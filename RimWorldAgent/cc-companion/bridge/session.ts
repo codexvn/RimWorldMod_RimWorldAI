@@ -39,8 +39,8 @@ export class AsyncStream<T = any> {
 
 // ========== SDK 会话 ==========
 
-export function createSession(sdk: any, abortController?: AbortController) {
-  const inputStream = new AsyncStream<any>();
+export function createSession(sdk: any, abortController?: AbortController, reuseStream?: AsyncStream<any>) {
+  const inputStream = reuseStream || new AsyncStream<any>();
 
   const claudeMdExcludes: string[] = [];
   const addExclude = (p: string) => {
