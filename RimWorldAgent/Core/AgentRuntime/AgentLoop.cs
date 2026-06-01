@@ -218,7 +218,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             var tcs = new TaskCompletionSource<bool>();
             var pendingTools = 0;
             var resultReceived = false;
-            var normalExit = false;
             var lastActivityTicks = DateTime.UtcNow.Ticks;
             const long inactivityTimeoutTicks = 120000 * TimeSpan.TicksPerMillisecond;
 
@@ -236,7 +235,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
                 CoreLog.Debug($"[commander] 回合结束: {subtype} (pendingTools={pending})");
                 if (subtype == "success" && pending == 0)
-                { normalExit = true; tcs.TrySetResult(true); }
+                    tcs.TrySetResult(true);
                 else if (subtype == "success")
                     Volatile.Write(ref resultReceived, true);
             }
@@ -296,9 +295,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             finally
             {
-                if (!normalExit)
-                    _ = ccbWs.SendAbort();
-
                 ccbWs.OnAborted -= OnAborted;
                 InternalToolRegistry.OnExitRequested -= OnExit;
                 ccbWs.OnResult -= OnResult;

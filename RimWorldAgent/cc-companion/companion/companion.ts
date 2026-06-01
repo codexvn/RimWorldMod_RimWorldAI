@@ -112,8 +112,7 @@ async function main() {
         }
         case 'abort':
           log('收到 abort');
-          inputStream.done();
-          queryIterator.return?.();
+          abortController.abort();
           startNewSession();
           break;
       }
