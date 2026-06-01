@@ -1717,8 +1717,6 @@
     var thinking = { mode: currentMode, effort: currentEffort };
     if (currentMode === 'fixed') thinking.tokens = currentTokens;
     ws.send(JSON.stringify({ type: 'chat', text: text, thinking: thinking }));
-    makeUserPanel(text);  // 本地渲染，不依赖服务端 echo
-    scrollDeferred();
     inputEl.value = '';
     adjustHeight();
     showReading();
