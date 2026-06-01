@@ -11,8 +11,8 @@ namespace RimWorldAgent.Core.AgentRuntime
     public static class AgentOrchestrator
     {
         /// <summary>中断通知模板 — 送入 SDK 的 prompt 格式</summary>
-        public const string InterruptPromptPrefix = "## 紧急通知";
-        public const string InterruptPromptSuffix = "请立即处理以上事项。如有必要可以暂停游戏 (toggle_pause)。";
+        public const string InterruptPromptPrefix = "## 事件通知";
+        public const string InterruptPromptSuffix = "以上是游戏内发生的新事件，请关注并根据当前优先级自行决定处理时机。如需暂停游戏可使用 toggle_pause。现在继续: ";
 
         /// <summary>真实游戏 TicksGame，由 SSE tick 事件自动更新</summary>
         public static int GameTick { get; set; }

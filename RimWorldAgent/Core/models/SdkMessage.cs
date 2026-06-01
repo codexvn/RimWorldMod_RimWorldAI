@@ -78,7 +78,7 @@ namespace RimWorldAgent.Core.CcbManager
             foreach (var prop in root.EnumerateObject())
                 if (!known.Contains(prop.Name)) extra.Add(prop.Name);
             if (extra.Count > 0)
-                CoreLog.Warn($"[SdkMessage] 未知字段 [{string.Join(", ", extra)}] in {rawJson.Substring(0, Math.Min(rawJson.Length, 120))}");
+                CoreLog.Warn($"[SdkMessage] 未知字段 [{string.Join(", ", extra)}] in {rawJson}");
         }
 
         protected static string? Str(JsonElement el, string key)
