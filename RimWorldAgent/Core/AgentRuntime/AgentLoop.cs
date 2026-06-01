@@ -4,75 +4,55 @@ using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
 using RimWorldAgent.Core.Mcp;
+using RimWorldAgent.Core.models;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
     /// <summary>EXE / MOD 共享的 Agent 主循环逻辑</summary>
     public static class AgentLoop
     {
-        private static CcbWebSocket? _statusWs;
         public static long BudgetLimit { get; set; }
 
-        /// <summary>CCB ↔ BridgeBus 双向中继：SDK↔UiMessage 转换在 AgentCore 完成</summary>
-        public static void WireBridgeBus(CcbWebSocket ws)
+        /// <summary>CCB ↔ UIMessageBus 双向中继：SDK↔UiMessage 转换在 AgentCore 完成</summary>
+        public static void WireUIMessageBus(CcbWebSocket ws)
         {
-            // SDK 消息 → UiMessage → BridgeBus 广播
+            // SDK 消息 → UiMessage → UIMessageBus 广播
             ws.OnSdkMessage += msg =>
             {
                 var messages = SdkMessageParser.ParseToUiMessages(msg);
-                if (messages.Count > 0) BridgeBus.PushUiMessages(messages);
+                if (messages.Count > 0) UIMessageBus.PushUiMessages(messages);
             };
 
             // 客户端 chat → 中断当前会话 + 预算检查 + 回显 + CCB
-            BridgeBus.OnChat += async (text, thinking) =>
+            UIMessageBus.OnChat += async (text, thinking) =>
             {
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat 触发 text=\"{text.Substring(0, Math.Min(text.Length, 60))}\"");
                 if (BudgetLimit > 0 && TokenUsageTracker.TotalAllTokens >= BudgetLimit)
                 {
-                    BridgeBus.PushGameEvent(UiMessage.Error($"Token 预算已用尽 ({TokenUsageTracker.TotalAllTokens}/{BudgetLimit})"));
+                    UIMessageBus.PushUiMessage(UiMessage.Error($"Token 预算已用尽 ({TokenUsageTracker.TotalAllTokens}/{BudgetLimit})"));
                     return;
                 }
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat 调用 SendAbort...");
                 await ws.SendAbort();
-                BridgeBus.PushGameEvent(UiMessage.User(text));
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendAbort done, PushUiMessage...");
+                UIMessageBus.PushUiMessage(UiMessage.User(text));
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat PushUiMessage done, 调用 SendChat...");
                 await ws.SendChat(ChatChannel.Bus, text, thinking);
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendChat done");
             };
 
             // 客户端 abort → CCB
-            BridgeBus.OnAbort += async () => await ws.SendAbort();
-        }
-
-        /// <summary>CCB WebSocket → Agent 状态推送到 Web 页面（幂等，仅保留最新连接）</summary>
-        public static void WireCcbStatus(CcbWebSocket ccbWs)
-        {
-            _statusWs = ccbWs;
-            AgentOrchestrator.CcbWs = ccbWs;
-
-            if (ccbWs.IsReady)
-            {
-                _ = ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
-                PushBudgetUpdate(ccbWs);
-            }
+            UIMessageBus.OnAbort += async () => await ws.SendAbort();
         }
 
         static AgentLoop()
         {
-            AgentOrchestrator.OnStatusChanged += status =>
-            {
-                if (_statusWs?.IsReady == true)
-                    _ = _statusWs.SendEvent("agent.status", new { text = status });
-            };
-
             TokenUsageTracker.OnUsageRecorded += () =>
             {
-                if (_statusWs?.IsReady == true)
-                    PushBudgetUpdate(_statusWs);
+                UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
+                    TokenUsageTracker.TotalAllTokens, BudgetLimit, "Block",
+                    TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens, TokenUsageTracker.TotalCacheCreateTokens));
             };
-        }
-
-        private static void PushBudgetUpdate(CcbWebSocket ws)
-        {
-            BridgeBus.PushGameEvent(UiMessage.BudgetStatus(
-                TokenUsageTracker.TotalAllTokens, BudgetLimit, "Block",
-                TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens, TokenUsageTracker.TotalCacheCreateTokens));
         }
 
         /// <summary>MCP 游戏事件 → 所有通知都触发中断</summary>

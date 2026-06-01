@@ -21,28 +21,24 @@ RimWorldAgent/
 │   ├── AgentRuntime/
 │   │   ├── AgentLoop.cs / AgentOrchestrator.cs / ToolDispatcher.cs
 │   │   ├── IGameStateProvider.cs  ★ 游戏状态抽象接口（tick/paused/早报/wake）
-│   │   ├── RemoteGameStateProvider.cs  EXE 模式 — MCP 推送 tick + get_game_speed 查询暂停
-│   │   ├── GamePaceController.cs       Plan/Act 阶段暂停恢复（toggle_pause 幂等，无缓存）
-│   │   ├── ProxyToolProvider.cs       ★ IToolProvider，将游戏 MCP 工具代理到 Agent MCP
-│   │   ├── InternalTools.cs           ★ 内部工具注册 + Skill 加载
-│   │   └── Tools/                     enter_plan / enter_act / get_skills / active_skill / set_tool_result_suffix / read_memory / update_memory
-│   ├── Data/                  ★ 数据抽象层 — IDbStore + JsonDbStore (EXE) / ScribeDbStore (MOD)
-│   ├── Mcp/                   MCP 客户端 + Agent MCP Server (:9878)
-│   └── CcbManager/            CCB 子进程管理 + CcbWebSocket + TokenUsageTracker
-├── Exe/                       ← EXE Loader
-│   └── Program.cs             入口：JsonDbStore + RemoteGameStateProvider → AgentEngine 构造注入
-├── Mod/                       ← MOD Loader (RimWorld 加载)
-│   ├── GameComponent_RimworkAgent.cs   GameComponent 生命周期 + CCClient 注入 + WS 事件 → ChatDisplayState
+│   │   ├── SdkMessageParser.cs    ★ SDK → UiMessage 转换
+│   │   ├── InternalToolRegistry.cs ★ 内部工具注册 + Skill 加载（IToolProvider）
+│   │   └── Tools/                 7 个内部工具 + ProxyToolProvider
+│   ├── models/                  ★ 类型定义 — SdkMessage / UiMessage / ChatChannel
+│   ├── Data/                    ★ 数据抽象层 — IDbStore + JsonDbStore (EXE) / ScribeDbStore (MOD)
+│   ├── Mcp/                     MCP 客户端 + Agent MCP Server (:9878)
+│   ├── CcbManager/              CCB 子进程管理 + CcbWebSocket + TokenUsageTracker
+│   └── UIMessageBus.cs          ★ UI 总线 — Fleck WS :19999
+├── Exe/                         ← EXE Loader
+│   └── Program.cs               入口：JsonDbStore + RemoteGameStateProvider → AgentEngine 构造注入
+├── Mod/                         ← MOD Loader (RimWorld 加载)
+│   ├── GameComponent_RimworkAgent.cs   GameComponent 生命周期 + Agent 初始化 + UIMessageBus 启动
 │   ├── CompanionInstaller.cs           npm install 管理 + Node.js 查找
 │   ├── ScribeDbStore.cs                Token 数据 Scribe 持久化
 │   ├── DirectGameStateProvider.cs      MOD 模式 — 直接从 Find.TickManager 读取 tick/paused
-│   ├── AgentModSettings.cs / RimWorldAgentMod.cs   Mod 设置 UI
-│   └── UI/
-│       ├── Dialog_AiChat.cs            聊天窗 (Ctrl+Shift+C) — 双栏：对话(55%)+任务(45%)
-│       ├── MapComponent_McpUI.cs       右下角按钮
-│       ├── ChatStateTypes.cs           ★ 聊天状态 + EnqueueUiEvent/DrainEvents 事件队列 + CCClient 桥接
-├── cc-companion/              ← CCB 桥接 (Node.js, npm start)
-└── publish/                   ← 构建输出 (git ignored)
+│   └── AgentModSettings.cs / RimWorldAgentMod.cs   Mod 设置 UI
+├── cc-companion/                ← CCB 桥接 (Node.js, npm start)
+└── publish/                     ← 构建输出 (git ignored)
 ```
 
 ## 架构
@@ -132,25 +128,53 @@ SyncGameStatusAsync() → 刷新 tick + paused
 └─ 优先 4: 定期 ACT (ShouldWake) → RunAgent
 ```
 
+### 消息协议
+
+#### CcbWebSocket ↔ Companion (WS :19998)
+
+```
+C# → companion:  {"type":"chat", "text":"...", "session":"bus", "thinking":{mode,effort,tokens}}
+                 {"type":"abort"}
+companion → C#:  {"type":"hello-ok"}
+                 SDK 消息 (assistant / stream_event / result / system / user / aborted)
+```
+
+仅 4 种消息。不经过 `type=event` 包装，C# `SendChat`/`SendAbort` 直发顶层 type。
+
+#### UIMessageBus (WS :19999)
+
+```
+Agent → UI:       UiMessage JSON (text_delta / text_block / tool_call / result / aborted / system_init / error / user / budget_status)
+UI → Agent:       {"type":"chat", "text":"...", "thinking":{mode,effort,tokens}}
+                  {"type":"abort"}
+```
+
+#### 工具调用通路
+
+```
+SDK → mcp__agent__* → Agent MCP (:9878) → ProxyToolProvider → 游戏 MCP (:9877) → 返回结果 → SDK
+```
+**工具调用不经过 companion**，SDK 直接调 MCP 端点。
+
 ### 数据流
 
 ```
                     CC Companion (Node.js :19998)
                          │
-            chat/abort  │  SDK 流式消息 (type=event)
+            chat/abort  │  SDK 消息 (assistant/stream_event/result/...)
                          │
                   CcbWebSocket (C#)
                     │           │
           SdkMessage.FromJson  SendChat/Abort
                     │           │
               ┌─────┴───────────┴─────┐
-              │  AgentLoop.WireBridgeBus  │
+              │  AgentLoop.WireUIMessageBus  │
               │                         │
-    SdkMessageParser              BridgeBus.OnChat/Abort
+    SdkMessageParser              UIMessageBus.OnChat/Abort
     (SdkMessage → UiMessage)           │
-              │               PushGameEvent(User)
+              │               PushUiMessage(User)
               ▼                         │
-       BridgeBus.PushUiMessages ───────┘
+       UIMessageBus.PushUiMessages ───────┘
               │
       UiMessage WS :19999 广播
          │                │
@@ -162,13 +186,14 @@ SyncGameStatusAsync() → 刷新 tick + paused
 
 | 层 | 文件 | 职责 |
 |----|------|------|
-| **CcbWebSocket** | `Core/CcbManager/CcbWebSocket.cs` | SDK WS 客户端，原始 JSON 接收 + SdkMessage.FromJson + OnSdkMessage 事件 |
-| **SdkMessage** | `Core/CcbManager/SdkMessage.cs` | 类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` coreSchemas.ts 对齐。抽象基类 + 8 子类型（Assistant/StreamEvent/Result/System/User/Aborted/HelloOk/Unknown），工厂 FromJson 完成 companion type=event 解包 + 未知字段校验警告 |
-| **AgentLoop.WireBridgeBus** | `Core/AgentRuntime/AgentLoop.cs` | SDK↔UiMessage 双向中继 + 预算检查 + 用户消息回显 |
-| **SdkMessageParser** | `Core/AgentRuntime/SdkMessageParser.cs` | 接收类型化 SdkMessage 子类，switch 分发到具体转换逻辑 |
-| **BridgeBus** | `Core/BridgeBus.cs` | 纯 UiMessage WS 广播 + 客户端消息接收（不引用 SDK 类型） |
+| **CcbWebSocket** | `Core/CcbManager/CcbWebSocket.cs` | SDK WS 客户端，SendChat/Abort 直发顶层 type，Receive → SdkMessage.FromJson → OnSdkMessage |
+| **SdkMessage** | `Core/models/SdkMessage.cs` | 类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` coreSchemas.ts 对齐。抽象基类 + 8 子类型，FromJson 工厂 + ValidateFields 校验 |
+| **SdkMessageParser** | `Core/AgentRuntime/SdkMessageParser.cs` | SdkMessage → UiMessage 转换（typed switch） |
+| **AgentLoop** | `Core/AgentRuntime/AgentLoop.cs` | WireUIMessageBus — SDK↔UiMessage 双向中继 + 预算检查 + 用户消息回显。RunSessionAsync — 会话生命周期 |
+| **UIMessageBus** | `Core/UIMessageBus.cs` | 纯 UiMessage WS 广播 + 客户端消息接收（不引用 SDK 类型）。单条 PushUiMessage / 批量 PushUiMessages |
+| **ChatChannel** | `Core/models/ChatChannel.cs` | 聊天频道常量 Bus/System（C# 与 TS companion protocol.ts 对齐） |
 
-UI 模组 `RimWorldAgentUI` 通过 WebSocket 连接 BridgeBus，不引用 Agent 项目。
+UI 模组 `RimWorldAgentUI` 通过 WebSocket 连接 UIMessageBus，不引用 Agent 项目。
 
 ### SdkMessage 类型层次
 
@@ -264,4 +289,4 @@ publish/RimWorldAgent/1.6/Assemblies/
 
 **EXE**: `dotnet run --project RimWorldAgent/RimWorldAgent.csproj`
 **MOD**: 加载存档自动启动，Ctrl+Shift+C 聊天窗
-**Web 面板**: `http://127.0.0.1:19998/`
+**Web 面板**: `http://127.0.0.1:19997`

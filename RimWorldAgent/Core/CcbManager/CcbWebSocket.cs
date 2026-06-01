@@ -9,18 +9,7 @@ using RimWorldAgent.Core.AgentRuntime;
 
 namespace RimWorldAgent.Core.CcbManager
 {
-    /// <summary>
-    /// 聊天频道常量。C# 与 TS companion protocol.ts ChatMessage.session 对齐。
-    /// </summary>
-    public static class ChatChannel
-    {
-        /// <summary>BridgeBus 转发的用户消息</summary>
-        public const string Bus = "bus";
-        /// <summary>AgentLoop 系统 prompt（RunSessionAsync）</summary>
-        public const string System = "system";
-    }
-
-/// <summary>CC Companion WebSocket 客户端 — 心跳/重连/Token提取/hello/abort</summary>
+    /// <summary>CC Companion WebSocket 客户端 — 心跳/重连/Token提取/hello/abort</summary>
 public class CcbWebSocket : IDisposable
 {
     private ClientWebSocket? _ws;
@@ -43,7 +32,6 @@ public class CcbWebSocket : IDisposable
     private const int MaxReconnectDelayMs = 60000;
 
     private readonly SemaphoreSlim _sendLock = new(1, 1);
-    private readonly SemaphoreSlim _eventLock = new(1, 1);
 
     /// <summary>思考模式：default / disabled / adaptive / fixed</summary>
     public string ThinkingMode { get; set; } = "default";
@@ -55,7 +43,6 @@ public class CcbWebSocket : IDisposable
     public CcbClientState State => _state;
     public bool IsConnected => _state >= CcbClientState.Connected;
     public bool IsReady => _state == CcbClientState.Ready;
-    public bool IsSendingMessage { get; private set; }
 
     /// <summary>收到 Claude 文本回复时触发</summary>
     public event Action<string>? OnAssistantText;
@@ -141,69 +128,24 @@ public class CcbWebSocket : IDisposable
 
     /// <summary>发送聊天消息（用户 prompt），附带 session 标识和思考配置。
     /// thinking 参数提供每消息覆盖，null 时使用全局设置。</summary>
-    public async Task SendChat(string session, string text, BridgeBus.ChatThinking? thinking = null)
+    public async Task SendChat(string session, string text, UIMessageBus.ChatThinking? thinking = null)
     {
         var mode = thinking?.Mode ?? ThinkingMode;
         var effort = thinking?.Effort ?? ThinkingEffort;
         var tokens = thinking?.Tokens ?? MaxThinkingTokens;
         if (string.IsNullOrEmpty(mode)) mode = "default";
         if (string.IsNullOrEmpty(effort)) effort = "medium";
-        // tokens=0 表示不限制
 
         CoreLog.Info($"[CCGUI_DEBUG] CcbWS.SendChat session={session} mode={mode} effort={effort} tokens={tokens}");
-        await SendEvent("chat", new
-        {
-            text,
-            session,
-            thinking = new
-            {
-                mode,
-                effort,
-                tokens
-            }
-        });
-        CoreLog.Info($"[CCGUI_DEBUG] CcbWS.SendChat SendEvent done");
-    }
-
-    /// <summary>发送工具执行结果回 Claude</summary>
-    public async Task SendToolResult(string toolUseId, string content, bool isError = false)
-    {
-        await SendEvent("tool_result", new
-        {
-            tool_use_id = toolUseId,
-            content = new[] { new { type = "text", text = content } },
-            is_error = isError
-        });
-    }
-
-    /// <summary>发送游戏事件到 CC Companion</summary>
-    public async Task SendEvent(string eventName, object payload)
-    {
-        if (!IsReady) { CoreLog.Info($"[CCGUI_DEBUG] CcbWS.SendEvent 跳过(event={eventName}) IsReady={IsReady}"); return; }
-        CoreLog.Info($"[CCGUI_DEBUG] CcbWS.SendEvent event={eventName}");
-        await _eventLock.WaitAsync();
-        try
-        {
-            IsSendingMessage = true;
-            await SendJson(new { type = "event", @event = eventName, payload });
-        }
-        finally
-        {
-            IsSendingMessage = false;
-            _eventLock.Release();
-        }
+        await SendJson(new { type = "chat", text, session, thinking = new { mode, effort, tokens } });
+        CoreLog.Info($"[CCGUI_DEBUG] CcbWS.SendChat done");
     }
 
     /// <summary>发送中断请求，中止当前 AI 回复</summary>
     public async Task SendAbort()
     {
-        await _eventLock.WaitAsync();
-        try
-        {
-            await SendJson(new { type = "abort" });
-            CoreLog.Info("[CcbWS] 已发送中断请求");
-        }
-        finally { _eventLock.Release(); }
+        await SendJson(new { type = "abort" });
+        CoreLog.Info("[CcbWS] 已发送中断请求");
     }
 
     // ========== 内部 ==========

@@ -92,13 +92,10 @@ namespace RimWorldAgent.Core.AgentRuntime
             InterruptSummary = summary;
             CoreLog.Info($"[AgentOrchestrator] 中断请求: {summary}");
             if (CcbWs?.IsReady == true)
-            {
                 _ = CcbWs.SendAbort();
-                _ = CcbWs.SendEvent("agent.interrupt", new { text = summary });
-            }
         }
 
-        /// <summary>向 Agent 注入通知。优先 suffix 注入（AI 工具结果中看到），失败则直接发送到 Companion。</summary>
+        /// <summary>向 Agent 注入通知。优先 suffix 注入（AI 工具结果中看到），否则推送 UI 提示。</summary>
         public static async Task NotisAgent(string notification)
         {
             if (string.IsNullOrEmpty(notification)) return;
@@ -121,21 +118,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
             }
 
-            if (CcbWs?.IsReady == true)
-            {
-                _ = CcbWs.SendEvent("rimworld.chat", new
-                {
-                    category = "Notification",
-                    text = notification,
-                    severity = "medium",
-                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-                });
-                CoreLog.Info($"[NotisAgent] 直接发送 ({notification.Length} 字符)");
-            }
-            else
-            {
-                CoreLog.Warn($"[NotisAgent] CcbWs 不可用，通知丢弃 ({notification.Length} 字符)");
-            }
+            // 降级：推送到 UI（已无 companion 通道，通知走 suffix 注入主路径）
         }
     }
 

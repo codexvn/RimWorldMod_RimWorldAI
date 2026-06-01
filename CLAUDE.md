@@ -21,7 +21,8 @@ RimWorldAI/
 │   ├── Core/
 │   │   ├── AgentRuntime/     AgentLoop + AgentOrchestrator + ContextBuilder + ToolDispatcher
 │   │   ├── CcbManager/       CCB 子进程 + CcbWebSocket
-│   │   ├── BridgeBus.cs      ★ UI 总线 — Fleck WS :19998，SDK消息广播 + 客户端消息 → CCB
+│   │   ├── UIMessageBus.cs   ★ UI 总线 — Fleck WS :19999，UiMessage 广播 + 客户端消息 → CCB
+│   │   ├── models/           SdkMessage / UiMessage / ChatChannel 类型定义     
 │   │   ├── Mcp/              MCP 客户端 + Agent MCP Server :9878
 │   │   └── Data/             ★ IDbStore 抽象 — JsonDbStore (EXE) / ScribeDbStore (MOD)
 │   ├── Mod/                  GameComponent + UI + Harmony Hooks
@@ -40,19 +41,19 @@ SimpleMspServer 被两者共同引用。Agent → companion 通过 WS :19999。
 ```
                     CC Companion (Node.js :19998)
                          │
-            chat/abort  │  SDK 流式消息 (type=event)
+            chat/abort  │  SDK 消息 (assistant/stream_event/result/...)
                          │
-                  CcbWebSocket (C#)
+                  CcbWebSocket (C#)     ← 纯 {type:"chat"/"abort"} 直发
                     │           │
           SdkMessage.FromJson  SendChat/Abort
                     │           │
-              AgentLoop.WireBridgeBus
+              AgentLoop.WireUIMessageBus
               │                       │
-    SdkMessageParser            BridgeBus.OnChat/Abort
+    SdkMessageParser            UIMessageBus.OnChat/Abort
     (SdkMessage → UiMessage)         │
-              │               PushGameEvent(User)
+              │               PushUiMessage(User)
               ▼                       │
-       BridgeBus.PushUiMessages ─────┘
+       UIMessageBus.PushUiMessages ───┘
               │
       UiMessage WS :19999 广播
          │                │
@@ -67,17 +68,19 @@ SimpleMspServer 被两者共同引用。Agent → companion 通过 WS :19999。
 | `:9877` | MCP Server（游戏 Tool） | SSE / HTTP | RimWorldMCP |
 | `:9878` | Agent MCP Server（内部 + 代理全部游戏 Tool） | HTTP | RimWorldAgent |
 | `:19998` | CC Companion（SDK 桥接） | WebSocket | RimWorldAgent |
-| `:19999` | BridgeBus（UI 总线） | WebSocket | RimWorldAgent (Mod) |
+| `:19999` | UIMessageBus（UI 总线） | WebSocket | RimWorldAgent |
 | `:19997` | WebUI HTTP | HTTP | RimWorldAgentUI |
 
 **关键设计**：
-- **CC Companion** 是纯 SDK 桥接——收 chat/abort，吐 SDK 流式消息
+- **CC Companion** 是纯 SDK 桥接——收 `chat`/`abort` 两种消息，吐 SDK 流式消息
+- **CcbWebSocket ↔ companion 协议**：仅 4 种消息（C#→comp: `chat`/`abort`；comp→C#: `hello-ok`/SDK 消息）
 - **SdkMessage**：类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` 协议对齐（Assistant/StreamEvent/Result/System/User/Aborted 子类），`FromJson` 工厂完成 type=event 解包 + 未知字段校验
 - **SdkMessageParser**：SdkMessage → UiMessage 转换，不碰 JSON
 - **ProxyToolProvider**：游戏 MCP 工具全部代理到 Agent MCP，SDK 只连 `agent` 端点
-- **BridgeBus**：只负责 UiMessage WS 广播 + 客户端消息接收，不感知 SDK 格式
-- **RimWorldAgentUI**：独立模组，通过 WS 连接 BridgeBus，自带 HTTP 服务提供 WebUI
+- **UIMessageBus**：只负责 UiMessage WS 广播 + 客户端消息接收，不感知 SDK 格式
+- **RimWorldAgentUI**：独立模组，通过 WS 连接 UIMessageBus，自带 HTTP 服务提供 WebUI
 - **IDbStore + IGameStateProvider**：EXE/MOD 双模抽象，构造注入解耦
+- **工具调用通路**：SDK → `mcp__agent__*` → Agent MCP → Proxy → 游戏 MCP → 返回结果 → SDK。不经过 companion
 
 ## 构建
 

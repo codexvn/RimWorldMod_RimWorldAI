@@ -7,6 +7,7 @@ using Ccb = RimWorldAgent.Core.CcbManager.CcbManager;
 using RimWorldAgent.Core.CcbManager;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
+using RimWorldAgent.Core.models;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
@@ -166,7 +167,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _logInfo($"[AgentEngine] WS ConnectAsync = {wsOk}");
                     if (wsOk)
                     {
-                        AgentLoop.WireCcbStatus(_ccbWs);
+                        AgentOrchestrator.CcbWs = _ccbWs;
                         _logInfo("[AgentEngine] CCB WS: 已连接");
                         ccbReady = true;
                     }
@@ -212,7 +213,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     };
                     _ = _ccbWs.ConnectAsync().ContinueWith(t =>
                     {
-                        if (t.Result) AgentLoop.WireCcbStatus(_ccbWs!);
+                        if (t.Result) AgentOrchestrator.CcbWs = _ccbWs!;
                         else { _ccbWs?.Dispose(); _ccbWs = null; }
                     });
                 }
@@ -223,7 +224,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 _ = _ccbWs.ConnectAsync().ContinueWith(t =>
                 {
-                    if (t.Result) AgentLoop.WireCcbStatus(_ccbWs!);
+                    if (t.Result) AgentOrchestrator.CcbWs =(_ccbWs!);
                 });
             }
         }
@@ -266,12 +267,12 @@ namespace RimWorldAgent.Core.AgentRuntime
                     if (_lastPauseRemindMs == 0 && elapsed >= 30000)
                     {
                         _lastPauseRemindMs = nowMs;
-                        await _ccbWs!.SendEvent("rimworld.chat", new { category = "PauseRemind", text = $"游戏已暂停 {elapsed / 1000} 秒，请检查是否需要继续。", severity = "low" });
+                        UIMessageBus.PushUiMessage(UiMessage.System($"游戏已暂停 {elapsed / 1000} 秒，请检查是否需要继续。"));
                     }
                     else if (_lastPauseRemindMs > 0 && unchecked(nowMs - _lastPauseRemindMs) >= 60000)
                     {
                         _lastPauseRemindMs = nowMs;
-                        await _ccbWs!.SendEvent("rimworld.chat", new { category = "PauseRemind", text = $"游戏仍在暂停中 (共 {elapsed / 1000} 秒)。", severity = "low" });
+                        UIMessageBus.PushUiMessage(UiMessage.System($"游戏仍在暂停中 (共 {elapsed / 1000} 秒)。"));
                     }
                 }
                 else { _pauseStartMs = 0; _lastPauseRemindMs = 0; }
@@ -315,8 +316,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             GamePaceController.ShouldSkipResume = null;
             AgentOrchestrator.BeginSession();
             _logInfo($"[AgentEngine] 唤醒 commander (Day={_gameState.GameDay}, Plan={isPlan}, Interrupted={isInterrupted})");
-
-            await _ccbWs!.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
 
             var prompt = await _ctx!.BuildAsync(isInterrupted: isInterrupted);
             await AgentLoop.RunSessionAsync(prompt, _mcp!, _ccbWs);

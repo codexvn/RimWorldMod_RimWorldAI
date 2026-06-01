@@ -1,10 +1,12 @@
 #!/usr/bin/env tsx
 /**
- * Claude Code SDK 桥接 — 纯 WS，无 HTTP/无 Game Bus/无预算
+ * Claude Code SDK 桥接 — 纯 WS，只认 4 种消息
  *
  * WebSocket 协议：
- *   C# → companion: chat (text + thinking) / abort
- *   companion → C#: SDK 消息 (assistant/stream_event/result/system)
+ *   C# → companion:  {"type":"chat", "text":"...", "session":"bus|system", "thinking":{mode,effort,tokens?}}
+ *                    {"type":"abort"}
+ *   companion → C#:  {"type":"hello-ok"}
+ *                    SDK 消息 (type: assistant / stream_event / result / system / user / aborted)
  */
 
 import { writeFileSync, unlinkSync } from 'fs';

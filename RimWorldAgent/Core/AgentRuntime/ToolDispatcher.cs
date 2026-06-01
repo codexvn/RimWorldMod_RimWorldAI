@@ -91,13 +91,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 追踪 SDK 任务状态
             TrackToolUse(toolName, input);
 
-            try
-            {
-                if (ccbWs.IsReady)
-                    await ccbWs.SendEvent("agent.status", new { text = AgentOrchestrator.StatusText });
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex) { CoreLog.Info($"[ToolDispatcher] 推送状态失败: {ex.Message}"); }
         }
 
         /// <summary>生成工具结果后缀，每次通过 MCP 获取真实游戏暂停状态。</summary>
