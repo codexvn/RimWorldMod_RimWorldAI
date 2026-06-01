@@ -1722,11 +1722,9 @@
   function sendMessage() {
     const text = inputEl.value.trim();
     if (!text || !connected) return;
-    ws.send(JSON.stringify({
-      type: 'event', event: 'chat',
-      payload: { text: text },
-      thinking: { mode: currentMode, effort: currentEffort, tokens: currentTokens },
-    }));
+    var thinking = { mode: currentMode, effort: currentEffort };
+    if (currentMode === 'fixed') thinking.tokens = currentTokens;
+    ws.send(JSON.stringify({ type: 'chat', text: text, thinking: thinking }));
     inputEl.value = '';
     adjustHeight();
     showReading();

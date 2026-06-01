@@ -26,8 +26,10 @@ namespace RimWorldAgent.Core
         /// <summary>SDK 原始消息 → 转换为 UiMessage → WS 广播 + 本地回调</summary>
         public static void PushSdkMessage(string rawJson)
         {
+            CoreLog.Info($"[CCGUI_DEBUG] BridgeBus.PushSdkMessage 入站 len={rawJson.Length} _clients={_clients.Count} OnDisplayMessage={(OnDisplayMessage != null ? OnDisplayMessage.GetInvocationList().Length : 0)}");
             // 解析 → 一组 UiMessage
             var messages = ParseSdkToUiMessages(rawJson);
+            CoreLog.Info($"[CCGUI_DEBUG] BridgeBus.PushSdkMessage 解析出 {messages.Count} 条 UiMessage");
             if (messages.Count == 0) return;
 
             foreach (var msg in messages)
@@ -49,6 +51,7 @@ namespace RimWorldAgent.Core
         /// <summary>Game/System 事件 → 直接广播 (已是 UiMessage 格式)</summary>
         public static void PushGameEvent(string uiJson)
         {
+            CoreLog.Info($"[CCGUI_DEBUG] BridgeBus.PushGameEvent _clients={_clients.Count} preview={uiJson.Substring(0, Math.Min(uiJson.Length, 120))}");
             foreach (var kv in _clients)
             {
                 try { kv.Value.Send(uiJson); }
@@ -59,10 +62,17 @@ namespace RimWorldAgent.Core
 
         // ===== 下游：Web UI / Dialog → CCB =====
 
-        public static event Action<string>? OnChat;
+        public class ChatThinking
+        {
+            public string Mode = "default";
+            public string Effort = "medium";
+            public int Tokens;
+        }
+
+        public static event Action<string, ChatThinking?>? OnChat;
         public static event Action? OnAbort;
 
-        public static void RaiseChat(string text) => OnChat?.Invoke(text);
+        public static void RaiseChat(string text, ChatThinking? thinking = null) => OnChat?.Invoke(text, thinking);
         public static void RaiseAbort() => OnAbort?.Invoke();
 
         // ===== SDK → UiMessage 转换 =====
@@ -184,6 +194,17 @@ namespace RimWorldAgent.Core
         private static long TryGetLong(JsonElement el, string key)
             => el.TryGetProperty(key, out var v) && v.TryGetInt64(out var n) ? n : 0;
 
+        private static ChatThinking? ParseThinking(JsonElement root)
+        {
+            if (!root.TryGetProperty("thinking", out var th)) return null;
+            return new ChatThinking
+            {
+                Mode = th.TryGetProperty("mode", out var m) ? m.GetString() ?? "default" : "default",
+                Effort = th.TryGetProperty("effort", out var e) ? e.GetString() ?? "medium" : "medium",
+                Tokens = th.TryGetProperty("tokens", out var t) && t.TryGetInt32(out var n) ? n : 0,
+            };
+        }
+
         // ===== 生命周期 =====
 
         public static void Start(int port = 19999)
@@ -205,20 +226,33 @@ namespace RimWorldAgent.Core
                 };
                 socket.OnMessage = msg =>
                 {
+                    CoreLog.Info($"[CCGUI_DEBUG] BridgeBus 收到客户端消息 len={msg.Length} preview={msg.Substring(0, Math.Min(msg.Length, 200))}");
                     try
                     {
                         using var doc = JsonDocument.Parse(msg);
                         var root = doc.RootElement;
                         var type = root.TryGetProperty("type", out var t) ? t.GetString() : "";
+                        CoreLog.Info($"[CCGUI_DEBUG] BridgeBus 解析客户端消息 type={type}");
                         switch (type)
                         {
                             case "chat":
                                 var text = root.TryGetProperty("text", out var txt) ? txt.GetString() ?? "" : "";
+                                CoreLog.Info($"[CCGUI_DEBUG] BridgeBus chat text=\"{text}\" OnChat订阅者={(OnChat != null ? OnChat.GetInvocationList().Length : 0)}");
                                 if (!string.IsNullOrEmpty(text))
-                                    OnChat?.Invoke(text);
+                                {
+                                    var think = ParseThinking(root);
+                                    CoreLog.Info($"[CCGUI_DEBUG] BridgeBus chat thinking mode={think?.Mode} effort={think?.Effort} tokens={think?.Tokens}");
+                                    OnChat?.Invoke(text, think);
+                                }
+                                else
+                                    CoreLog.Info($"[CCGUI_DEBUG] BridgeBus chat text 为空，跳过");
                                 break;
                             case "abort":
+                                CoreLog.Info($"[CCGUI_DEBUG] BridgeBus abort OnAbort订阅者={(OnAbort != null ? OnAbort.GetInvocationList().Length : 0)}");
                                 OnAbort?.Invoke();
+                                break;
+                            default:
+                                CoreLog.Info($"[CCGUI_DEBUG] BridgeBus 未知客户端消息类型: {type}");
                                 break;
                         }
                     }

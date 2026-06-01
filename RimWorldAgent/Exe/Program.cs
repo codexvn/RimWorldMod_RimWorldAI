@@ -84,10 +84,10 @@ namespace RimWorldAgent
             if (engine.CcbWs != null)
             {
                 engine.CcbWs.OnRawSdkMessage += json => BridgeBus.PushSdkMessage(json);
-                BridgeBus.OnChat += async text =>
+                BridgeBus.OnChat += async (text, thinking) =>
                 {
                     BridgeBus.PushGameEvent(UiMessage.User(text));
-                    await engine.CcbWs.SendChat("bus", text);
+                    await engine.CcbWs.SendChat("bus", text, thinking);
                 };
                 BridgeBus.OnAbort += async () => await engine.CcbWs.SendAbort();
             }

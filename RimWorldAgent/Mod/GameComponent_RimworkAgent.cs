@@ -135,7 +135,7 @@ namespace RimWorldAgent
             ws.OnRawSdkMessage += json => BridgeBus.PushSdkMessage(json);
 
             // 客户端 chat/abort → CCB（Web UI 和游戏内 Dialog 都走 BridgeBus）
-            BridgeBus.OnChat += async text =>
+            BridgeBus.OnChat += async (text, thinking) =>
             {
                 var limit = RimWorldAgentMod.Instance?.Settings?.TokenBudgetLimit ?? 0;
                 if (limit > 0 && TokenUsageTracker.TotalAllTokens >= limit)
@@ -145,7 +145,7 @@ namespace RimWorldAgent
                 }
                 // 回显用户消息到所有客户端
                 BridgeBus.PushGameEvent(UiMessage.User(text));
-                await ws.SendChat("bus", text);
+                await ws.SendChat("bus", text, thinking);
             };
             BridgeBus.OnAbort += async () => await ws.SendAbort();
             BridgeBus.IsReady = ws.IsReady;

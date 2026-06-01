@@ -128,18 +128,26 @@ public class CcbWebSocket : IDisposable
 
     // ========== 消息发送 ==========
 
-    /// <summary>发送聊天消息（用户 prompt），附带 session 标识和思考配置</summary>
-    public async Task SendChat(string session, string text)
+    /// <summary>发送聊天消息（用户 prompt），附带 session 标识和思考配置。
+    /// thinking 参数提供每消息覆盖，null 时使用全局设置。</summary>
+    public async Task SendChat(string session, string text, BridgeBus.ChatThinking? thinking = null)
     {
+        var mode = thinking?.Mode ?? ThinkingMode;
+        var effort = thinking?.Effort ?? ThinkingEffort;
+        var tokens = thinking?.Tokens ?? MaxThinkingTokens;
+        if (string.IsNullOrEmpty(mode)) mode = "default";
+        if (string.IsNullOrEmpty(effort)) effort = "medium";
+        // tokens=0 表示不限制
+
         await SendEvent("chat", new
         {
             text,
             session,
             thinking = new
             {
-                mode = ThinkingMode,
-                effort = ThinkingEffort,
-                tokens = MaxThinkingTokens
+                mode,
+                effort,
+                tokens
             }
         });
     }
