@@ -387,6 +387,25 @@ Companion abort 采用**消息缓冲**：abort 触发 `buffering=true`，`startN
 
 ### 工具耗时
 
+`AgentLoop.OnToolUse` Stopwatch 计时 → `_toolDurations[toolId] = elapsedMs` 暂存。
+SDK echo tool_result → `OnToolResultRecorded` → `TryRemove(toolId)` 读耗时 → `RecordToolResult(isError, dur, content)` 合并落盘。
+
+### 冷启动
+
+新游戏/新连接：`HasEverSent=false` → `get_game_speed` 检测就绪 → `EnterPlanPhase` + `PauseForPlanning` 强制暂停 → `RunAgent(isPlan: true)`。
+AI 先分析殖民地状态、制定计划，再自行调用 `enter_act()`。
+
+### 提醒（BuildModeSuffixAsync 后缀注入）
+
+| 类型 | 计数 | 阈值 | 文案 |
+|------|------|------|------|
+| ACT 暂停 | `_actPauseCheckCount` | 5 | 游戏仍暂停，调用 enter_act(speed) 恢复 |
+| ACT 执行过久 | `_actTurnCount` | 10 | 建议 enter_plan() 审视进度 |
+| PLAN 停留过久 | `_planCheckCount` | 10 | 建议制定计划后 enter_act() |
+| 任务未完成 | `_taskCheckCount` | 10 | 列出未完成任务，提示 TaskUpdate |
+| 未使用 task 工具 | `_roundsSinceLastTask` | 15 | 提示 TaskCreate/TaskUpdate |
+| 通知堆积 | `_notifReceivedCount` | 5 | 提示 get_notifications |
+
 ### 线程安全
 
 CcbWebSocket.ReceiveLoop 后台线程 → `ChatDisplayState.EnqueueUiEvent` 入队 → `Dialog_AiChat.DoWindowContents` 首行 `DrainEvents()` UI 线程消费。
