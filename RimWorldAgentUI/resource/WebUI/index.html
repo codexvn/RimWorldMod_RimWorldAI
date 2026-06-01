@@ -1104,6 +1104,7 @@
         break;
 
       case 'user':
+        console.log('[CCGUI_DEBUG] WebUI user echo text=' + msg.text?.substring(0, 60));
         hideReading(); setAbort(false);
         addMessage(false, msg.text, '');
         break;

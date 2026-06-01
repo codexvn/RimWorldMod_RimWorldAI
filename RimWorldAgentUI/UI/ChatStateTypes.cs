@@ -397,7 +397,11 @@ namespace RimWorldAgent
                     case "user":
                     {
                         var txt = root.TryGetProperty("text", out var ut) ? ut.GetString() ?? "" : "";
-                        if (!string.IsNullOrEmpty(txt)) OnUserMessage(txt);
+                        if (!string.IsNullOrEmpty(txt))
+                        {
+                            Verse.Log.Message($"[CCGUI_DEBUG] ChatDisplayState user echo text=\"{txt.Substring(0, Math.Min(txt.Length, 60))}\"");
+                            OnUserMessage(txt);
+                        }
                         break;
                     }
                     case "budget_status":

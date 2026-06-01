@@ -126,6 +126,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             // SDK echo 的用户消息 → 入库存档
             UIMessageBus.OnUserEchoRecorded += text =>
             {
+                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnUserEchoRecorded text=\"{text.Substring(0, Math.Min(text.Length, 60))}\"");
                 ConversationStore?.RecordUserMessage(text);
             };
         }

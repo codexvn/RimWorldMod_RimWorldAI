@@ -41,6 +41,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                         {
                             if (block is SdkTextBlock tb)
                             {
+                                CoreLog.Info($"[CCGUI_DEBUG] SdkMessageParser user echo text=\"{tb.Text.Substring(0, Math.Min(tb.Text.Length, 60))}\"");
                                 // SDK echo 的用户文本 → canonical 推送 + 落盘
                                 result.Add(UiMessage.User(tb.Text));
                                 UIMessageBus.RaiseUserEchoRecorded(tb.Text);
