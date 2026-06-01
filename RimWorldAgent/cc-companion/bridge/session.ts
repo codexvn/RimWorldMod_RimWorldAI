@@ -39,8 +39,8 @@ export class AsyncStream<T = any> {
 
 // ========== SDK 会话 ==========
 
-export function createSession(sdk: any, abortController?: AbortController, reuseStream?: AsyncStream<any>) {
-  const inputStream = reuseStream || new AsyncStream<any>();
+export function createSession(sdk: any, abortController?: AbortController) {
+  const inputStream = new AsyncStream<any>();
 
   const claudeMdExcludes: string[] = [];
   const addExclude = (p: string) => {
@@ -107,8 +107,11 @@ export function createResponseProcessor(
       }
     } catch (err: any) {
       // AbortError 是正常中断，不打印错误
-      if (err?.name === 'AbortError' || err?.message?.includes('aborted')) return;
-      console.error(`SDK 处理错误: ${err.message}`);
+      if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+        console.log(`[bridge] [CCGUI_DEBUG] process AbortError: name=${err?.name} msg=${err?.message}`);
+        return;
+      }
+      console.error(`SDK 处理错误: ${err.message} name=${err?.name} stack=${err?.stack}`);
     }
     processing = false;
   }

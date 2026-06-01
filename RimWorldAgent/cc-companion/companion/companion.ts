@@ -38,16 +38,28 @@ async function main() {
   let abortController = new AbortController();
   let session = createSession(sdk, abortController);
   let { inputStream, queryIterator } = session;
+  // abort→重建期间的缓冲队列
+  let buffering = false;
+  let pendingMessages: any[] = [];
+  // stream 是否已 abort（防 chat 写入已关闭 stream）
+  let streamAborted = false;
 
-  function startNewSession(reuseStream?: boolean) {
+  function startNewSession() {
     abortController = new AbortController();
-    session = createSession(sdk, abortController, reuseStream ? inputStream : undefined);
-    // 复用 stream 时 inputStream 不变；新建时替换
-    if (!reuseStream) inputStream = session.inputStream;
+    session = createSession(sdk, abortController);
+    inputStream = session.inputStream;
     queryIterator = session.queryIterator;
+    streamAborted = false;
+    // 回放缓冲消息到新 stream
+    if (pendingMessages.length > 0) {
+      log(`[CCGUI_DEBUG] 回放缓冲消息 count=${pendingMessages.length}`);
+      for (const m of pendingMessages) inputStream.enqueue(m);
+      pendingMessages = [];
+    }
+    buffering = false;
     const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => busBroadcast(JSON.stringify(msg))));
     proc.process();
-    log(`新会话已创建${reuseStream ? ' (复用 IO)' : ''}`);
+    log('新会话已创建');
   }
 
   function applyThinking(cfg?: ThinkingConfig) {
@@ -57,7 +69,7 @@ async function main() {
     if (cfg.effort) Thinking.effort = cfg.effort;
     if (cfg.tokens != null) Thinking.maxTokens = cfg.tokens;
     log(`思考模式: ${Thinking.mode}${cfg.effort ? ' effort=' + cfg.effort : ''}`);
-    startNewSession(true);  // 复用 inputStream
+    startNewSession();
   }
 
   // ===== WS Server（先于 SDK 启动，避免竞态）=====
@@ -107,14 +119,23 @@ async function main() {
       switch (msg.type) {
         case 'chat': {
           applyThinking(msg.thinking);
-          log(`chat session=${msg.session} len=${msg.text.length}`);
-          inputStream.enqueue({ type: 'user', message: { role: 'user', content: msg.text } });
+          log(`[CCGUI_DEBUG] chat session=${msg.session} len=${msg.text.length} buffering=${buffering} streamAborted=${streamAborted}`);
+          const userMsg = { type: 'user', message: { role: 'user', content: msg.text } };
+          if (buffering) {
+            log(`[CCGUI_DEBUG] chat 缓冲中...`);
+            pendingMessages.push(userMsg);
+          } else {
+            inputStream.enqueue(userMsg);
+          }
           break;
         }
         case 'abort':
-          log('收到 abort');
+          log('[CCGUI_DEBUG] 收到 abort, buffering=true');
+          buffering = true;
+          streamAborted = true;  // 旧 stream 不可写
           abortController.abort();
-          startNewSession(true);  // 复用 inputStream，不丢失已入队消息
+          log('[CCGUI_DEBUG] abortController.abort() done, startNewSession...');
+          startNewSession();
           break;
       }
     });
