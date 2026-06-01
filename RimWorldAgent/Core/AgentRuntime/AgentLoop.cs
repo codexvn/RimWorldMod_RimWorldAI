@@ -39,10 +39,11 @@ namespace RimWorldAgent.Core.AgentRuntime
                     UIMessageBus.PushUiMessage(UiMessage.Error($"Token 预算已用尽 ({TokenUsageTracker.TotalAllTokens}/{BudgetLimit})"));
                     return;
                 }
-                // 用户消息由 SDK echo (SdkMessageParser → RecordUserMessage) 落盘，此处仅转发
+                // 用户消息本地录制 + 推送（C# 统一处理，SDK 不回传 user echo）
+                ConversationStore?.RecordUserMessage(text);
                 CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat 调用 SendAbort...");
                 await ws.SendAbort();
-                // 用户消息由 SDK echo (SdkMessageParser → UiUser) 落盘并推送，此处不本地推送
+                UIMessageBus.PushUiMessage(UiMessage.User(text));
                 CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendAbort done, 调用 SendChat...");
                 await ws.SendChat(ChatChannel.Bus, text, thinking);
                 CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat SendChat done");
@@ -123,12 +124,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 ConversationStore?.RecordToolResult(toolId, isError, 0, content);
             };
 
-            // SDK echo 的用户消息 → 入库存档
-            UIMessageBus.OnUserEchoRecorded += text =>
-            {
-                CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnUserEchoRecorded text=\"{text.Substring(0, Math.Min(text.Length, 60))}\"");
-                ConversationStore?.RecordUserMessage(text);
-            };
         }
 
         static AgentLoop()
@@ -291,6 +286,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 await ccbWs.SendChat(ChatChannel.System, prompt);
                 HasEverSent = true;
                 ConversationStore?.RecordSystemMessage("[System Prompt] " + prompt);
+                UIMessageBus.PushUiMessage(UiMessage.System("[System Prompt] " + prompt));
                 // 活动感知超时：每次 tool_use / result 重置计时器，避免长对话被误杀
                 while (!tcs.Task.IsCompleted)
                 {

@@ -82,9 +82,6 @@ namespace RimWorldAgent.Core
         /// <summary>SDK 工具结果，(toolId, isError, content)</summary>
         public static event Action<string, bool, string>? OnToolResultRecorded;
 
-        /// <summary>SDK echo 的用户消息已收到，(text)</summary>
-        public static event Action<string>? OnUserEchoRecorded;
-
         /// <summary>新客户端连接，(socket)</summary>
         public static event Action<IWebSocketConnection>? OnClientConnected;
 
@@ -96,8 +93,6 @@ namespace RimWorldAgent.Core
             => OnToolCallRecorded?.Invoke(toolId, name, input);
         public static void RaiseToolResultRecorded(string toolId, bool isError, string content)
             => OnToolResultRecorded?.Invoke(toolId, isError, content);
-        public static void RaiseUserEchoRecorded(string text)
-            => OnUserEchoRecorded?.Invoke(text);
 
         // ===== 生命周期 =====
 
@@ -173,7 +168,6 @@ namespace RimWorldAgent.Core
             OnHistoryBefore = null;
             OnToolCallRecorded = null;
             OnToolResultRecorded = null;
-            OnUserEchoRecorded = null;
             OnClientConnected = null;
             if (_server == null) return;
             foreach (var kv in _clients) { try { kv.Value.Close(); } catch { } }
