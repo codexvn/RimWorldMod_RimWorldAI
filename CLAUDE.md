@@ -44,12 +44,12 @@ SimpleMspServer 被两者共同引用。Agent → companion 通过 WS :19999。
                          │
                   CcbWebSocket (C#)
                     │           │
-          OnRawSdkMessage    SendChat/Abort
+          SdkMessage.FromJson  SendChat/Abort
                     │           │
               AgentLoop.WireBridgeBus
               │                       │
     SdkMessageParser            BridgeBus.OnChat/Abort
-    (SDK → UiMessage)                │
+    (SdkMessage → UiMessage)         │
               │               PushGameEvent(User)
               ▼                       │
        BridgeBus.PushUiMessages ─────┘
@@ -72,8 +72,10 @@ SimpleMspServer 被两者共同引用。Agent → companion 通过 WS :19999。
 
 **关键设计**：
 - **CC Companion** 是纯 SDK 桥接——收 chat/abort，吐 SDK 流式消息
+- **SdkMessage**：类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` 协议对齐（Assistant/StreamEvent/Result/System/User/Aborted 子类），`FromJson` 工厂完成 type=event 解包 + 未知字段校验
+- **SdkMessageParser**：SdkMessage → UiMessage 转换，不碰 JSON
 - **ProxyToolProvider**：游戏 MCP 工具全部代理到 Agent MCP，SDK 只连 `agent` 端点
-- **BridgeBus**：Agent Mod 启动，SDK 消息广播给所有 WS 客户端
+- **BridgeBus**：只负责 UiMessage WS 广播 + 客户端消息接收，不感知 SDK 格式
 - **RimWorldAgentUI**：独立模组，通过 WS 连接 BridgeBus，自带 HTTP 服务提供 WebUI
 - **IDbStore + IGameStateProvider**：EXE/MOD 双模抽象，构造注入解耦
 

@@ -59,8 +59,8 @@ public class CcbWebSocket : IDisposable
     public event Action? OnAborted;
     /// <summary>收到系统通知（中断摘要）</summary>
     public event Action<string>? OnSystemNotification;
-    /// <summary>SDK 原始消息（JSON string）</summary>
-    public event Action<string>? OnRawSdkMessage;
+    /// <summary>SDK 消息（已解析），供 AgentCore 消费</summary>
+    public event Action<SdkMessage>? OnSdkMessage;
 
     public CcbWebSocket(string url = "ws://localhost:19998", string token = "")
     {
@@ -251,136 +251,73 @@ public class CcbWebSocket : IDisposable
 
     private void ProcessMessage(string json)
     {
-        OnRawSdkMessage?.Invoke(json);
-
         try
         {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("type", out var t)) return;
-            var type = t.GetString();
-            CoreLog.Info($"[CCGUI_DEBUG] ProcessMessage type={type}");
+            var msg = SdkMessage.FromJson(json);
+            CoreLog.Info($"[CCGUI_DEBUG] ProcessMessage type={msg.Type}");
+            OnSdkMessage?.Invoke(msg);
 
-            switch (type)
+            // 内部事件分发（用类型化 SdkMessage）
+            switch (msg)
             {
-                case "event":
-                    // companion bridge type=event 包装，由 SdkMessageParser 统一解包
-                    CoreLog.Info($"[CCGUI_DEBUG] ProcessMessage type=event (由 SdkMessageParser 解包)");
-                    break;
-                case "hello-ok":
+                case SdkHelloOkMessage _:
                     CoreLog.Info("[CCGUI_DEBUG] 收到 hello-ok, 设置 _helloOk");
                     _helloOk?.TrySetResult(true);
                     break;
 
-                case "assistant":
-                    // usage 提取已迁至 BridgeBus.ParseAssistant（统一 UiMessage 数据源）
-                    ParseAssistantMessage(root, skipTextAndThinking: true);
-                    break;
-                case "user":
-                    // 用户消息已在本地 OnUserMessage 显示，SDK echo 只提取 tool_result 计数
-                    CountToolResults(root);
+                case SdkAssistantMessage am:
+                    foreach (var b in am.Content)
+                        if (b is SdkToolUseBlock tu)
+                            OnToolUse?.Invoke(tu.Id, tu.Name, default);
                     break;
 
-                case "stream_event":
-                    ParseStreamEvent(root);
+                case SdkUserMessage _:
                     break;
 
-                case "result":
-                    var subtype = root.TryGetProperty("subtype", out var st) ? st.GetString() : null;
-                    var stopReason = root.TryGetProperty("stop_reason", out var sr) ? sr.GetString() : null;
-                    OnResult?.Invoke(subtype ?? "unknown", stopReason);
+                case SdkStreamEventMessage sem:
+                    OnAssistantTextOrThinking(sem);
                     break;
 
-                case "aborted":
+                case SdkResultMessage rm:
+                    OnResult?.Invoke(rm.Subtype, rm.StopReason);
+                    break;
+
+                case SdkAbortedMessage _:
                     OnAborted?.Invoke();
                     break;
 
-                case "system-notification":
-                    if (root.TryGetProperty("text", out var sysNoti))
-                        OnSystemNotification?.Invoke(sysNoti.GetString() ?? "");
+                case SdkSystemMessage sm:
+                    if (sm.Subtype == "init")
+                        TokenUsageTracker.CurrentModel = sm.Model ?? "";
                     break;
 
-                case "system":
-                    if (root.TryGetProperty("subtype", out var sub) && sub.GetString() == "init"
-                                                                    && root.TryGetProperty("model", out var modelEl))
-                        TokenUsageTracker.CurrentModel = modelEl.GetString() ?? "";
-                    break;
-
-                case "error":
-                    var err = root.TryGetProperty("error", out var e) ? e.GetString() : "unknown";
-                    CoreLog.Error($"[CcbWS] 服务器错误: {err}");
-                    break;
-
-                case "pong":
-                    _lastPong = DateTime.UtcNow;
+                case SdkUnknownMessage unk:
+                    if (unk.Type == "system-notification")
+                        OnSystemNotification?.Invoke(unk.Root.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "");
                     break;
             }
         }
         catch (Exception ex) { CoreLog.Warn($"[CcbWS] 消息解析失败: {json.Substring(0, Math.Min(200, json.Length))} — {ex.Message}"); }
     }
 
-    private void ParseAssistantMessage(JsonElement root, bool skipTextAndThinking = false)
+    private void OnAssistantTextOrThinking(SdkStreamEventMessage msg)
     {
-        if (!root.TryGetProperty("message", out var msg)) return;
-        if (!msg.TryGetProperty("content", out var content)) return;
-
-        if (content.ValueKind == JsonValueKind.Array)
+        var evt = msg.Event;
+        if (evt == null) return;
+        if (evt.EventType == "content_block_start")
         {
-            foreach (var block in content.EnumerateArray())
-            {
-                if (!block.TryGetProperty("type", out var bt)) continue;
-                var blockType = bt.GetString();
-                if (blockType == "text")
-                {
-                    if (!skipTextAndThinking)
-                        OnAssistantText?.Invoke(block.GetProperty("text").GetString() ?? "");
-                }
-                else if (blockType == "thinking")
-                {
-                    if (!skipTextAndThinking)
-                        OnAssistantThinking?.Invoke(block.GetProperty("thinking").GetString() ?? "");
-                }
-                else if (blockType == "tool_use")
-                {
-                    var toolId = block.GetProperty("id").GetString() ?? "";
-                    var toolName = block.GetProperty("name").GetString() ?? "";
-                    var toolInput = block.TryGetProperty("input", out var input) ? input : (JsonElement?)null;
-                    OnToolUse?.Invoke(toolId, toolName, toolInput);
-                }
-            }
+            if (evt.BlockType == "thinking")
+                OnAssistantThinking?.Invoke("");
+            else if (evt.BlockType == "text")
+                OnAssistantText?.Invoke("");
         }
-    }
-
-    private void ParseStreamEvent(JsonElement root)
-    {
-        if (!root.TryGetProperty("event", out var evt)) return;
-        if (!evt.TryGetProperty("type", out var et)) return;
-        var eventType = et.GetString();
-
-        if (eventType == "content_block_start")
+        else if (evt.EventType == "content_block_delta")
         {
-            // block 类型切换时发空串信号，ChatStateTypes 据此重置 _deltaAccum
-            if (evt.TryGetProperty("content_block", out var cb) && cb.TryGetProperty("type", out var cbt))
-            {
-                var blockType = cbt.GetString();
-                if (blockType == "thinking")
-                    OnAssistantThinking?.Invoke("");
-                else if (blockType == "text")
-                    OnAssistantText?.Invoke("");
-            }
+            if (evt.Text != null)
+                OnAssistantText?.Invoke(evt.Text);
+            else if (evt.Thinking != null)
+                OnAssistantThinking?.Invoke(evt.Thinking);
         }
-        else if (eventType == "content_block_delta" && evt.TryGetProperty("delta", out var delta)
-                                                    && delta.TryGetProperty("type", out var dt))
-        {
-            var deltaType = dt.GetString();
-            if (deltaType == "text_delta" && delta.TryGetProperty("text", out var txt))
-                OnAssistantText?.Invoke(txt.GetString() ?? "");
-            else if (deltaType == "thinking_delta" && delta.TryGetProperty("thinking", out var th))
-                OnAssistantThinking?.Invoke(th.GetString() ?? "");
-        }
-        // content_block_start 的 tool_use 仅通知 name/id，不做执行
-        // 实际执行由 ParseAssistantMessage 中完整的 assistant 消息驱动
-        // 否则 streaming 模式下同一 tool 会执行两次
     }
 
     // ========== 心跳 ==========
@@ -429,17 +366,6 @@ public class CcbWebSocket : IDisposable
             }
         }
         finally { _reconnecting = false; }
-    }
-
-    // ========== Token 提取（旧 CCClient 逻辑） ==========
-
-    private static void CountToolResults(JsonElement root)
-    {
-        var message = root.TryGetProperty("message", out var msg) ? msg : root;
-        if (!message.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array) return;
-        foreach (var block in content.EnumerateArray())
-            if (block.TryGetProperty("type", out var bt) && bt.GetString() == "tool_result")
-                TokenUsageTracker.RecordToolResult(block.TryGetProperty("is_error", out var ie) && ie.GetBoolean());
     }
 
     public void Dispose() => Disconnect();

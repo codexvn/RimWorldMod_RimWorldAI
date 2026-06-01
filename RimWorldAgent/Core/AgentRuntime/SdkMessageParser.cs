@@ -1,72 +1,43 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using RimWorldAgent.Core.CcbManager;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
     /// <summary>
-    /// SDK 原始 JSON → UiMessage 转换。
-    /// 放在 AgentCore 层，BridgeBus 不感知 SDK 消息格式。
+    /// SdkMessage → UiMessage 转换。
+    /// 接收类型化的 SdkMessage 子类，不再碰 JSON。
     /// </summary>
     public static class SdkMessageParser
     {
-        public static List<string> ParseToUiMessages(string rawJson)
+        public static List<string> ParseToUiMessages(SdkMessage msg)
         {
             var result = new List<string>();
             try
             {
-                using var doc = JsonDocument.Parse(rawJson);
-                var root = doc.RootElement;
-                if (!root.TryGetProperty("type", out var typeProp)) return result;
-                var type = typeProp.GetString();
-
-                switch (type)
+                switch (msg)
                 {
-                    case "event":
-                    {
-                        // companion bridge 用 type=event 包装
-                        if (root.TryGetProperty("event", out var inner) && root.TryGetProperty("payload", out var payload))
-                        {
-                            var innerType = inner.GetString();
-                            CoreLog.Info($"[CCGUI_DEBUG] SdkMessageParser unwrap type=event inner={innerType}");
-                            switch (innerType)
-                            {
-                                case "stream_event": ParseStreamEventPayload(payload, result); break;
-                                case "assistant": ParseAssistantPayload(payload, result); break;
-                                case "result": ParseResultPayload(payload, result); break;
-                                case "aborted": result.Add(UiMessage.Aborted()); break;
-                                case "system": ParseSystemPayload(payload, result); break;
-                            }
-                        }
+                    case SdkAssistantMessage am:
+                        ParseAssistant(am, result);
                         break;
-                    }
-                    case "assistant":
-                        ParseAssistant(doc, result);
+                    case SdkStreamEventMessage se:
+                        ParseStreamEvent(se, result);
                         break;
-                    case "stream_event":
-                        ParseStreamEvent(doc, result);
+                    case SdkResultMessage rm:
+                        result.Add(UiMessage.Result(rm.Subtype, rm.StopReason));
                         break;
-                    case "result":
-                    {
-                        var subtype = root.TryGetProperty("subtype", out var st) ? st.GetString() : "";
-                        var sr = root.TryGetProperty("stop_reason", out var stop) ? stop.GetString() : null;
-                        result.Add(UiMessage.Result(subtype ?? "", sr));
+                    case SdkSystemMessage sm:
+                        if (sm.Subtype == "init")
+                            result.Add(UiMessage.SystemInit(sm.Model, sm.SessionId));
                         break;
-                    }
-                    case "system":
-                    {
-                        var sub = root.TryGetProperty("subtype", out var s) ? s.GetString() : "";
-                        if (sub == "init")
-                        {
-                            var model = root.TryGetProperty("model", out var m) ? m.GetString() : null;
-                            var sid = root.TryGetProperty("session_id", out var sidE) ? sidE.GetString() : null;
-                            result.Add(UiMessage.SystemInit(model, sid));
-                        }
-                        break;
-                    }
-                    case "aborted":
+                    case SdkAbortedMessage _:
                         result.Add(UiMessage.Aborted());
+                        break;
+                    case SdkUserMessage um:
+                        // user 消息不作 UiMessage 转换，UI 通过其他信道获取
+                        break;
+                    default:
+                        CoreLog.Info($"[SdkMessageParser] 未处理的类型: {msg.Type}");
                         break;
                 }
             }
@@ -74,123 +45,42 @@ namespace RimWorldAgent.Core.AgentRuntime
             return result;
         }
 
-        // ===== 原始 SDK 格式（type=assistant/stream_event/...） =====
-
-        private static void ParseAssistant(JsonDocument doc, List<string> outList)
+        private static void ParseAssistant(SdkAssistantMessage msg, List<string> outList)
         {
-            var root = doc.RootElement;
-            ExtractUsage(doc);
-            ParseContentBlocks(root, outList);
-        }
+            // Token 用量
+            if (msg.Usage != null)
+                TokenUsageTracker.Record(msg.Usage.InputTokens, msg.Usage.OutputTokens,
+                    msg.Usage.CacheReadInputTokens ?? 0, msg.Usage.CacheCreationInputTokens ?? 0, 0);
 
-        private static void ParseStreamEvent(JsonDocument doc, List<string> outList)
-        {
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("event", out var evt)) return;
-            ParseStreamEventBlocks(evt, outList);
-        }
-
-        // ===== type=event payload 解包（companion bridge 包装格式） =====
-
-        private static void ParseAssistantPayload(JsonElement payload, List<string> outList)
-        {
-            ExtractUsageFromRoot(payload);
-            ParseContentBlocks(payload, outList);
-        }
-
-        private static void ParseStreamEventPayload(JsonElement payload, List<string> outList)
-        {
-            if (!payload.TryGetProperty("event", out var evt)) return;
-            ParseStreamEventBlocks(evt, outList);
-        }
-
-        private static void ParseResultPayload(JsonElement payload, List<string> outList)
-        {
-            var subtype = payload.TryGetProperty("subtype", out var st) ? st.GetString() : "";
-            var sr = payload.TryGetProperty("stop_reason", out var stop) ? stop.GetString() : null;
-            outList.Add(UiMessage.Result(subtype ?? "", sr));
-        }
-
-        private static void ParseSystemPayload(JsonElement payload, List<string> outList)
-        {
-            var sub = payload.TryGetProperty("subtype", out var s) ? s.GetString() : "";
-            if (sub == "init")
+            foreach (var block in msg.Content)
             {
-                var model = payload.TryGetProperty("model", out var m) ? m.GetString() : null;
-                var sid = payload.TryGetProperty("session_id", out var sidE) ? sidE.GetString() : null;
-                outList.Add(UiMessage.SystemInit(model, sid));
+                if (block is SdkTextBlock tb)
+                    outList.Add(UiMessage.TextBlock(tb.Text));
+                else if (block is SdkToolUseBlock tu)
+                    outList.Add(UiMessage.ToolCall(tu.Id, tu.Name, tu.Input));
             }
         }
 
-        // ===== 共享解析逻辑 =====
-
-        private static void ParseContentBlocks(JsonElement root, List<string> outList)
+        private static void ParseStreamEvent(SdkStreamEventMessage msg, List<string> outList)
         {
-            if (!root.TryGetProperty("message", out var msg)) return;
-            if (!msg.TryGetProperty("content", out var content)) return;
-            foreach (var block in content.EnumerateArray())
+            var evt = msg.Event;
+            if (evt == null) return;
+
+            switch (evt.EventType)
             {
-                var bt = block.GetProperty("type").GetString();
-                if (bt == "text")
-                {
-                    var text = block.GetProperty("text").GetString() ?? "";
-                    outList.Add(UiMessage.TextBlock(text));
-                }
-                else if (bt == "tool_use")
-                {
-                    var id = block.GetProperty("id").GetString() ?? "";
-                    var name = block.GetProperty("name").GetString() ?? "";
-                    var input = block.TryGetProperty("input", out var inp) ? inp.GetRawText() : "{}";
-                    outList.Add(UiMessage.ToolCall(id, name, input));
-                }
+                case "content_block_start":
+                    if (evt.BlockType == "text")
+                        outList.Add(UiMessage.TextDelta(""));
+                    else if (evt.BlockType == "thinking")
+                        outList.Add(UiMessage.ThinkingDelta(""));
+                    break;
+                case "content_block_delta":
+                    if (evt.Text != null)
+                        outList.Add(UiMessage.TextDelta(evt.Text));
+                    else if (evt.Thinking != null)
+                        outList.Add(UiMessage.ThinkingDelta(evt.Thinking));
+                    break;
             }
         }
-
-        private static void ParseStreamEventBlocks(JsonElement evt, List<string> outList)
-        {
-            var et = evt.GetProperty("type").GetString();
-            if (et == "content_block_start")
-            {
-                var cb = evt.GetProperty("content_block");
-                var cbt = cb.GetProperty("type").GetString();
-                if (cbt == "text")
-                    outList.Add(UiMessage.TextDelta(""));
-                else if (cbt == "thinking")
-                    outList.Add(UiMessage.ThinkingDelta(""));
-            }
-            else if (et == "content_block_delta")
-            {
-                var delta = evt.GetProperty("delta");
-                var dt = delta.GetProperty("type").GetString();
-                if (dt == "text_delta")
-                    outList.Add(UiMessage.TextDelta(delta.GetProperty("text").GetString() ?? ""));
-                else if (dt == "thinking_delta")
-                    outList.Add(UiMessage.ThinkingDelta(delta.GetProperty("thinking").GetString() ?? ""));
-            }
-        }
-
-        // ===== Token 用量提取 =====
-
-        private static void ExtractUsage(JsonDocument doc)
-            => ExtractUsageFromRoot(doc.RootElement);
-
-        private static void ExtractUsageFromRoot(JsonElement root)
-        {
-            try
-            {
-                if (!root.TryGetProperty("message", out var msg)) return;
-                if (!msg.TryGetProperty("usage", out var usage)) return;
-                var inp = TryGetLong(usage, "input_tokens");
-                var outp = TryGetLong(usage, "output_tokens");
-                var cr = TryGetLong(usage, "cache_read_input_tokens");
-                var cc = TryGetLong(usage, "cache_creation_input_tokens");
-                if (inp > 0 || outp > 0)
-                    TokenUsageTracker.Record(inp, outp, cr, cc, 0);
-            }
-            catch (Exception ex) { CoreLog.Warn($"[SdkMessageParser] Usage 提取失败: {ex.Message}"); }
-        }
-
-        private static long TryGetLong(JsonElement el, string key)
-            => el.TryGetProperty(key, out var v) && v.TryGetInt64(out var n) ? n : 0;
     }
 }

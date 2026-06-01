@@ -141,13 +141,13 @@ SyncGameStatusAsync() → 刷新 tick + paused
                          │
                   CcbWebSocket (C#)
                     │           │
-          OnRawSdkMessage    SendChat/Abort
+          SdkMessage.FromJson  SendChat/Abort
                     │           │
               ┌─────┴───────────┴─────┐
               │  AgentLoop.WireBridgeBus  │
               │                         │
     SdkMessageParser              BridgeBus.OnChat/Abort
-    (SDK → UiMessage)                  │
+    (SdkMessage → UiMessage)           │
               │               PushGameEvent(User)
               ▼                         │
        BridgeBus.PushUiMessages ───────┘
@@ -160,14 +160,31 @@ SyncGameStatusAsync() → 刷新 tick + paused
  (BridgeClient WS)      (BridgeClient WS)
 ```
 
-| 层 | 职责 |
-|----|------|
-| **CcbWebSocket** | SDK WS 客户端，OnRawSdkMessage + SendChat/Abort |
-| **AgentLoop.WireBridgeBus** | SDK↔UiMessage 双向转换 + 预算检查 |
-| **SdkMessageParser** | SDK JSON → UiMessage 列表（含 type=event 解包）|
-| **BridgeBus** | 纯 UiMessage WS 广播 + 客户端消息接收 |
+| 层 | 文件 | 职责 |
+|----|------|------|
+| **CcbWebSocket** | `Core/CcbManager/CcbWebSocket.cs` | SDK WS 客户端，原始 JSON 接收 + SdkMessage.FromJson + OnSdkMessage 事件 |
+| **SdkMessage** | `Core/CcbManager/SdkMessage.cs` | 类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` coreSchemas.ts 对齐。抽象基类 + 8 子类型（Assistant/StreamEvent/Result/System/User/Aborted/HelloOk/Unknown），工厂 FromJson 完成 companion type=event 解包 + 未知字段校验警告 |
+| **AgentLoop.WireBridgeBus** | `Core/AgentRuntime/AgentLoop.cs` | SDK↔UiMessage 双向中继 + 预算检查 + 用户消息回显 |
+| **SdkMessageParser** | `Core/AgentRuntime/SdkMessageParser.cs` | 接收类型化 SdkMessage 子类，switch 分发到具体转换逻辑 |
+| **BridgeBus** | `Core/BridgeBus.cs` | 纯 UiMessage WS 广播 + 客户端消息接收（不引用 SDK 类型） |
 
 UI 模组 `RimWorldAgentUI` 通过 WebSocket 连接 BridgeBus，不引用 Agent 项目。
+
+### SdkMessage 类型层次
+
+```
+SdkMessage (abstract)
+├── SdkAssistantMessage   { Content[], Usage, Model, StopReason }
+├── SdkStreamEventMessage  { ParentToolUseId, Index, Event }
+├── SdkResultMessage       { Subtype, IsError, NumTurns, DurationMs, Usage }
+├── SdkSystemMessage       { Subtype, Model, SessionId, Tools[], Skills[], McpServers[] }
+├── SdkUserMessage         { Content[], ParentToolUseId, IsSynthetic }
+├── SdkAbortedMessage      { }
+├── SdkHelloOkMessage      { }
+└── SdkUnknownMessage      { Type, Root }  ← 未知类型不可识别时报错日志
+```
+
+所有子类字段与 TS 协议 `coreSchemas.ts` 一致，FromJson 构造时 `ValidateFields` 检测多余未知字段。
 
 ### Plan/Act 阶段
 
