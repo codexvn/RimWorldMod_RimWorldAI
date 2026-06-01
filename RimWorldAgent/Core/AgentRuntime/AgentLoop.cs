@@ -20,6 +20,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>启动后是否已发送过消息（冷启检测：false 时触发首次问候）</summary>
         public static bool HasEverSent { get; set; }
 
+        /// <summary>工具耗时暂存（toolId → ms），OnToolUse 写，OnToolResultRecorded 读+清理</summary>
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, double> _toolDurations = new();
+
         /// <summary>CCB ↔ UIMessageBus 双向中继：SDK↔UiMessage 转换在 AgentCore 完成</summary>
         public static void WireUIMessageBus(CcbWebSocket ws)
         {
@@ -119,7 +122,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 ConversationStore?.RecordToolCall(toolId, name, input);
             };
-            // tool_result 录制已移至 OnToolUse（有准确耗时），此处仅保留事件供 UI 推送
+            // tool_result 录制 — 合并 OnToolUse 耗时 + SDK echo 输出
+            UIMessageBus.OnToolResultRecorded += (toolId, isError, content) =>
+            {
+                var dur = _toolDurations.TryRemove(toolId, out var d) ? d : 0;
+                ConversationStore?.RecordToolResult(toolId, isError, dur, content);
+            };
         }
 
         static AgentLoop()
@@ -263,9 +271,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                     if (remaining == 0 && resultReceived)
                         tcs.TrySetResult(true);
                 }
-                // 工具耗时落盘
-                ConversationStore?.RecordToolResult(toolId, isError, sw.Elapsed.TotalMilliseconds, "");
-                CoreLog.Info($"[CCGUI_DEBUG] Tool {toolName} 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms isError={isError}");
+                // 暂存耗时，等待 SDK echo (tool_result content) 后合并落盘
+                _toolDurations[toolId] = sw.Elapsed.TotalMilliseconds;
+                CoreLog.Info($"[commander] Tool 完成: {toolName} 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms isError={isError}");
             }
 
             void OnExit()
