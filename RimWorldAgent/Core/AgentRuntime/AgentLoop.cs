@@ -36,7 +36,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     UIMessageBus.PushUiMessage(UiMessage.Error($"Token 预算已用尽 ({TokenUsageTracker.TotalAllTokens}/{BudgetLimit})"));
                     return;
                 }
-                ConversationStore?.RecordUserMessage(text);
+                // 用户消息由 SDK echo (SdkMessageParser → RecordUserMessage) 落盘，此处仅转发
                 CoreLog.Info($"[CCGUI_DEBUG] AgentLoop.OnChat 调用 SendAbort...");
                 await ws.SendAbort();
                 // 用户消息由 SDK echo (SdkMessageParser → UiUser) 落盘并推送，此处不本地推送
@@ -118,6 +118,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             UIMessageBus.OnToolResultRecorded += (toolId, isError, content) =>
             {
                 ConversationStore?.RecordToolResult(toolId, isError, 0, content);
+            };
+
+            // SDK echo 的用户消息 → 入库存档
+            UIMessageBus.OnUserEchoRecorded += text =>
+            {
+                ConversationStore?.RecordUserMessage(text);
             };
         }
 

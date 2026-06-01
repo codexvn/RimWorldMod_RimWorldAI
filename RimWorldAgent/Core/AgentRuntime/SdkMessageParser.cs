@@ -41,8 +41,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                         {
                             if (block is SdkTextBlock tb)
                             {
-                                // SDK echo 的用户文本 → canonical 推送
+                                // SDK echo 的用户文本 → canonical 推送 + 落盘
                                 result.Add(UiMessage.User(tb.Text));
+                                UIMessageBus.RaiseUserEchoRecorded(tb.Text);
                             }
                             else if (block is SdkToolResultBlock tr)
                             {
