@@ -20,9 +20,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>启动后是否已发送过消息（冷启检测：false 时触发首次问候）</summary>
         public static bool HasEverSent { get; set; }
 
-        /// <summary>中断后继续回调 — AgentEngine 注入，abort 确认后立即触发新会话</summary>
-        public static Func<Task>? OnContinueAfterInterrupt { get; set; }
-
         /// <summary>工具耗时暂存（toolId → ms），OnToolUse 写，OnToolResultRecorded 读+清理</summary>
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, double> _toolDurations = new();
 
@@ -330,13 +327,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 AgentOrchestrator.PaceController = null;
                 AgentOrchestrator.SessionMcp = null;
                 paceController.Dispose();
-            }
-
-            // 中断后立即继续：abort 确认 + session 已清理 → 直接启动新会话
-            if (AgentOrchestrator.InterruptRequested && OnContinueAfterInterrupt != null)
-            {
-                CoreLog.Info("[AgentLoop] 中断后立即继续新会话");
-                await OnContinueAfterInterrupt();
             }
         }
 
