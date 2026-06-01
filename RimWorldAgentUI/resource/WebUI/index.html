@@ -1008,153 +1008,103 @@
     if (loadingHistory) { pendingWs.push(msg); return; }
     // 中断后丢弃中间消息直到 result
     if (discarding && msg.type !== 'result' && msg.type !== 'aborted') return;
-    // assistant 消息按 uuid 去重
-    if (msg.type === 'assistant' && msg.uuid) {
-      if (seenUuids[msg.uuid]) return;
-      seenUuids[msg.uuid] = true;
-    }
     switch (msg.type) {
       case 'agent-status':
         updateAgentRole(msg.role);
         break;
 
-      case 'budget-status':
+      case 'budget_status':
         updateBudgetStatus(msg);
         break;
 
       case 'sdk-tasks':
         console.log('[CCGUI_DEBUG] 收到 sdk-tasks 消息 tasks=' + JSON.stringify(msg.tasks));
-        if (msg.tasks && msg.tasks.length) {
-          sdkTasks = msg.tasks;
-          renderSdkTasks();
-        }
+        if (msg.tasks && msg.tasks.length) { sdkTasks = msg.tasks; renderSdkTasks(); }
         break;
 
-      case 'assistant':
-      case 'user': {
-        const isAssistant = msg.type === 'assistant';
-        const content = msg.message?.content;
-        if (!content) return;
-        if (isAssistant) { hideReading(); setAbort(true); }
-        var saType = msg.agent_type || (msg.parent_tool_use_id ? 'sub:' + msg.parent_tool_use_id.slice(0, 8) : '');
-        addMessage(isAssistant, content, saType);
+      case 'system_init':
+        updateSdkInfo(msg);
         break;
-      }
 
-      case 'model-info': {
-        var mel = document.getElementById('info-model');
-        if (mel) mel.textContent = msg.model || '?';
+      case 'error':
+        makeUserPanel('⚠ ' + (msg.error || ''));
         break;
-      }
 
-      case 'system': {
-        if (msg.subtype === 'init') updateSdkInfo(msg);
+      case 'user':
+        hideReading(); setAbort(false);
+        addMessage(false, msg.text, '');
         break;
-      }
 
-      case 'stream_event': {
+      case 'text_block':
+        hideReading(); setAbort(true);
+        addMessage(true, msg.text, '');
+        break;
+
+      case 'text_delta':
         setAbort(true);
-        var evt = msg.event || {};
-        var evtType = evt.type;
-        // content_block_start
-        if (evtType === 'content_block_start') {
-          var block = evt.content_block || {};
-          var idx = evt.index;
-          if (block.type === 'thinking') {
-            streamedIndices[idx] = true;
-            var panel = createThinkingPanel('', idx);
-            if (currentStreamAgent) {
-              panel.remove();
-              getSubAgentGroup(currentStreamAgent).body.appendChild(panel);
-            }
-            thinkingPanels[idx] = panel;
-            currentThinkingIdx = idx;
-          } else if (block.type === 'text') {
-            hasStreamedText = true;
-            // thinking done, finalize previous thinking panel
-            if (currentThinkingIdx >= 0) {
-              finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]);
-              currentThinkingIdx = -1;
-            }
-            hideReading();
-          } else if (block.type === 'tool_use') {
-            if (currentThinkingIdx >= 0) {
-              finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]);
-              currentThinkingIdx = -1;
-            }
-            toolCount++;
-            updateToolCount();
-            toolStartTimes[block.id] = Date.now();
-            var tup3 = makeToolUsePanel(block.name, block.input, block.id);
-            if (currentStreamAgent) {
-              var sg = getSubAgentGroup(currentStreamAgent);
-              tup3.remove(); sg.body.appendChild(tup3);
-            }
-            lastAgentBody = null;
+        if (!msg.text) { // content_block_start{text}
+          if (currentThinkingIdx >= 0) { finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]); currentThinkingIdx = -1; }
+          hideReading(); hasStreamedText = true; lastAgentBody = null;
+        } else {
+          if (currentThinkingIdx >= 0) { finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]); currentThinkingIdx = -1; }
+          hideReading(); hasStreamedText = true;
+          var sg2 = currentStreamAgent ? subAgentGroups[currentStreamAgent.toLowerCase()] : null;
+          var activeBody = sg2 ? sg2.lastBody : lastAgentBody;
+          if (activeBody) {
+            activeBody.textContent += msg.text;
+            scrollDeferred();
+          } else {
+            var subLabel = currentStreamAgent || null;
+            var p = makeAgentPanel(msg.text, subLabel);
+            if (sg2) { p.remove(); sg2.body.appendChild(p); }
+            var newBody = p.querySelector('.msg-body');
+            if (sg2) sg2.lastBody = newBody; else lastAgentBody = newBody;
           }
         }
-        // content_block_delta
-        else if (evtType === 'content_block_delta') {
-          var delta = evt.delta || {};
-          var dIdx = evt.index;
-          if (delta.type === 'thinking_delta') {
-            appendThinkingDelta(thinkingPanels[dIdx], delta.thinking || '');
-          } else if (delta.type === 'text_delta') {
-            // text delta: show in agent panel (streaming)
-            if (currentThinkingIdx >= 0) {
-              finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]);
-              currentThinkingIdx = -1;
-            }
-            hideReading();
-            hasStreamedText = true;
-            var textContent = delta.text || '';
-            var sg2 = currentStreamAgent ? subAgentGroups[currentStreamAgent.toLowerCase()] : null;
-            var activeBody = sg2 ? sg2.lastBody : lastAgentBody;
-            if (activeBody) {
-              activeBody.textContent += textContent;
-              scrollDeferred();
-            } else {
-              var subLabel = currentStreamAgent || null;
-              var p = makeAgentPanel(textContent, subLabel);
-              if (sg2) { p.remove(); sg2.body.appendChild(p); }
-              var newBody = p.querySelector('.msg-body');
-              if (sg2) sg2.lastBody = newBody; else lastAgentBody = newBody;
-            }
-          }
-        }
-        // message_start
-        else if (evtType === 'message_start') {
-          lastAgentBody = null;
-          hasStreamedText = false;
-          streamedIndices = {};
-          currentStreamAgent = (msg.parent_tool_use_id || msg.agent_type || evt.message?.agent_type || '');
-        }
-        // message_delta — usage info only, ignore
         break;
-      }
+
+      case 'thinking_delta':
+        if (!msg.thinking) { // content_block_start{thinking}
+          lastAgentBody = null;
+          var idx = Date.now();
+          var panel = createThinkingPanel('', idx);
+          if (currentStreamAgent) { panel.remove(); getSubAgentGroup(currentStreamAgent).body.appendChild(panel); }
+          thinkingPanels[idx] = panel;
+          currentThinkingIdx = idx;
+        } else {
+          appendThinkingDelta(thinkingPanels[currentThinkingIdx], msg.thinking);
+        }
+        break;
+
+      case 'tool_call':
+        if (currentThinkingIdx >= 0) { finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]); currentThinkingIdx = -1; }
+        toolCount++; updateToolCount();
+        toolStartTimes[msg.id] = Date.now();
+        var tup = makeToolUsePanel(msg.name, msg.input, msg.id);
+        if (currentStreamAgent) { var sg = getSubAgentGroup(currentStreamAgent); tup.remove(); sg.body.appendChild(tup); }
+        lastAgentBody = null;
+        break;
+
+      case 'tool_result':
+        var elapsedResult = msg.id && toolStartTimes[msg.id] !== undefined ? Date.now() - toolStartTimes[msg.id] : null;
+        if (msg.id && elapsedResult != null) delete toolStartTimes[msg.id];
+        applyToolResult({ tool_use_id: msg.id, is_error: msg.isError, content: '' }, elapsedResult);
+        lastAgentBody = null;
+        break;
 
       case 'aborted':
         discarding = false;
-        abortBtn.disabled = false;
-        abortBtn.textContent = '中断';
-        setAbort(false);
-        hideReading();
+        abortBtn.disabled = false; abortBtn.textContent = '中断'; setAbort(false); hideReading();
         break;
 
-      case 'result': {
+      case 'result':
         discarding = false;
-        abortBtn.disabled = false;
-        abortBtn.textContent = '中断';
-        setAbort(false);
-        const sub = msg.subtype || 'unknown';
-        const label = sub === 'success' ? '✓ Done'
-                     : sub === 'aborted' ? '⏹ Aborted'
-                     : '✗ Failed';
-        const cls = sub === 'success' ? 'ok' : sub === 'aborted' ? 'warn' : 'error';
-        hideReading();
-        addResult(cls, label);
+        abortBtn.disabled = false; abortBtn.textContent = '中断'; setAbort(false);
+        var sub = msg.subtype || 'unknown';
+        var label = sub === 'success' ? '✓ Done' : sub === 'aborted' ? '⏹ Aborted' : '✗ Failed';
+        var cls = sub === 'success' ? 'ok' : sub === 'aborted' ? 'warn' : 'error';
+        hideReading(); addResult(cls, label);
         break;
-      }
     }
   }
 
@@ -1516,54 +1466,14 @@
   var lastAgentBody = null;
 
   function addMessage(isAssistant, content, agentType) {
-    if (typeof content === 'string') {
-      if (isAssistant && !agentType && lastAgentBody) {
-        // Append to existing agent panel (streaming)
-        lastAgentBody.textContent += '\n' + content;
-      } else if (isAssistant) {
-        var p = makeAgentPanel(content, agentType);
-        lastAgentBody = p.querySelector('.msg-body');
-      } else {
-        makeUserPanel(content);
-        lastAgentBody = null;
-      }
-    } else if (Array.isArray(content)) {
-      var saTarget = agentType ? getSubAgentGroup(agentType).body : null;
-      for (var i = 0; i < content.length; i++) {
-        var block = content[i];
-        if (block.type === 'text') {
-          if (hasStreamedText) continue;
-          var lastMsg = messagesEl.lastElementChild;
-          if (lastMsg && lastMsg.classList.contains('msg-agent') && !lastMsg.classList.contains('sub-agent') && lastAgentBody) {
-            lastAgentBody.textContent += '\n' + (block.text || '');
-          } else {
-            var tp = makeAgentPanel(block.text || '', agentType || null);
-            lastAgentBody = tp.querySelector('.msg-body');
-          }
-        } else if (block.type === 'thinking') {
-          if (streamedIndices[i]) continue;
-          var thText = block.thinking || '';
-          if (thText) {
-            var thPanel = createThinkingPanel(thText, i);
-            if (saTarget) { thPanel.remove(); saTarget.appendChild(thPanel); }
-            finalizeThinkingPanel(thPanel);
-            lastAgentBody = null;
-          }
-        } else if (block.type === 'tool_use') {
-          toolStartTimes[block.id] = Date.now();
-          var tup2 = makeToolUsePanel(block.name, block.input, block.id);
-          if (saTarget) { tup2.remove(); saTarget.appendChild(tup2); }
-          lastAgentBody = null;
-        } else if (block.type === 'tool_result') {
-          var elapsed = null;
-          if (block.id && toolStartTimes[block.id] !== undefined) {
-            elapsed = Date.now() - toolStartTimes[block.id];
-            delete toolStartTimes[block.id];
-          }
-          applyToolResult(block, elapsed);
-          lastAgentBody = null;
-        }
-      }
+    if (isAssistant && !agentType && lastAgentBody) {
+      lastAgentBody.textContent += '\n' + content;
+    } else if (isAssistant) {
+      var p = makeAgentPanel(content, agentType);
+      lastAgentBody = p.querySelector('.msg-body');
+    } else {
+      makeUserPanel(content);
+      lastAgentBody = null;
     }
     scrollDeferred();
   }
@@ -1672,9 +1582,12 @@
       if (!msgs || !msgs.length) return;
       for (var i = 0; i < msgs.length; i++) {
         var msg = msgs[i];
-        if (msg.type === 'assistant' || msg.type === 'user') {
-          if (msg.uuid) seenUuids[msg.uuid] = true;
+        if (msg.type === 'text_block' || msg.type === 'user') {
           addMsgSimple(msg);
+        } else if (msg.type === 'tool_call') {
+          makeToolUsePanel(msg.name, msg.input, msg.id);
+        } else if (msg.type === 'thinking_delta') {
+          if (msg.thinking) { var thp = createThinkingPanel(msg.thinking, i); finalizeThinkingPanel(thp); }
         } else if (msg.type === 'result') {
           var cls = msg.subtype === 'success' ? 'ok' : msg.subtype === 'aborted' ? 'warn' : 'error';
           var label = msg.subtype === 'success' ? '✓ Done' : msg.subtype === 'aborted' ? '⏹ Aborted' : '✗ Failed';
@@ -1692,28 +1605,10 @@
   }
 
   function addMsgSimple(msg) {
-    var isAssistant = msg.type === 'assistant';
-    var content = msg.message?.content;
-    if (!content) return;
-    if (typeof content === 'string') {
-      if (isAssistant) makeAgentPanel(content, msg.agent_type);
-      else makeUserPanel(content);
-    } else if (Array.isArray(content)) {
-      for (var j = 0; j < content.length; j++) {
-        var block = content[j];
-        if (block.type === 'text') {
-          if (isAssistant) makeAgentPanel(block.text || '', null);
-          else makeUserPanel(block.text || '');
-        } else if (block.type === 'thinking') {
-          var thPanel = createThinkingPanel(block.thinking || '', j);
-          finalizeThinkingPanel(thPanel);
-        } else if (block.type === 'tool_use') {
-          trackSdkTask(block.name, block.input);
-          makeToolUsePanel(block.name, block.input, block.id);
-        } else if (block.type === 'tool_result') {
-          applyToolResult(block, null);
-        }
-      }
+    if (msg.type === 'text_block') {
+      makeAgentPanel(msg.text || '', null);
+    } else if (msg.type === 'user') {
+      makeUserPanel(msg.text || '');
     }
     scrollDeferred();
   }
