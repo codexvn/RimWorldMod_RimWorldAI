@@ -17,6 +17,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>会话存储 — 由 EXE/MOD 在 WireUIMessageBus 前注入</summary>
         public static IConversationStore? ConversationStore { get; set; }
 
+        /// <summary>启动后是否已发送过消息（冷启检测：false 时触发首次问候）</summary>
+        public static bool HasEverSent { get; set; }
+
         /// <summary>CCB ↔ UIMessageBus 双向中继：SDK↔UiMessage 转换在 AgentCore 完成</summary>
         public static void WireUIMessageBus(CcbWebSocket ws)
         {
@@ -285,6 +288,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             try
             {
                 await ccbWs.SendChat(ChatChannel.System, prompt);
+                HasEverSent = true;
                 ConversationStore?.RecordSystemMessage("[System Prompt] " + prompt);
                 // 活动感知超时：每次 tool_use / result 重置计时器，避免长对话被误杀
                 while (!tcs.Task.IsCompleted)

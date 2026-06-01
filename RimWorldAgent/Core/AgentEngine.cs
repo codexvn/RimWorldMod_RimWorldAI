@@ -237,6 +237,26 @@ namespace RimWorldAgent.Core.AgentRuntime
             var currentTick = _gameState.GameTick;
             AgentOrchestrator.GameTick = currentTick;
 
+            // 优先级 0: 冷启动 — 首次连接后检查游戏就绪，发送初始 prompt
+            if (!AgentOrchestrator.IsRunning && !AgentLoop.HasEverSent)
+            {
+                try
+                {
+                    var speedResult = await _mcp.CallTool("get_game_speed");
+                    _logInfo($"[AgentEngine] 冷启动检测: get_game_speed={speedResult.Trim()}");
+                    if (!string.IsNullOrEmpty(speedResult) && speedResult != "error")
+                    {
+                        await _gameState.SyncGameStatusAsync();
+                        _logInfo($"[AgentEngine] 游戏已就绪 (Tick={_gameState.GameTick})");
+                        await RunAgent(isPlan: false);
+                        _logInfo($"[AgentEngine] 冷启动完成 (Day={_gameState.GameDay})");
+                        return;
+                    }
+                    _logInfo("[AgentEngine] 游戏尚未就绪，等待...");
+                }
+                catch (Exception ex) { _logInfo($"[AgentEngine] 冷启动检测失败: {ex.Message}"); }
+            }
+
             // 定时弹框扫描（每 2500 tick ≈ 60s 游戏时间）
             if (currentTick - _lastDialogCheckTick >= 2500)
             {
