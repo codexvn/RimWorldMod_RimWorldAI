@@ -286,7 +286,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 await ccbWs.SendChat(ChatChannel.System, prompt);
                 HasEverSent = true;
                 ConversationStore?.RecordSystemMessage("[System Prompt] " + prompt);
-                UIMessageBus.PushUiMessage(UiMessage.System("[System Prompt] " + prompt));
                 // 活动感知超时：每次 tool_use / result 重置计时器，避免长对话被误杀
                 while (!tcs.Task.IsCompleted)
                 {
