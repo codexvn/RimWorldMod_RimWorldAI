@@ -338,7 +338,14 @@ namespace RimWorldAgent.Core.AgentRuntime
             _logInfo($"[AgentEngine] 唤醒 commander (Day={_gameState.GameDay}, Plan={isPlan}, Interrupted={isInterrupted})");
 
             var prompt = await _ctx!.BuildAsync(isInterrupted: isInterrupted);
+            // 中断后立即继续：abort 确认后不经过 2s poll，直接构建新 prompt 发送
+            AgentLoop.OnContinueAfterInterrupt = async () =>
+            {
+                AgentOrchestrator.InterruptRequested = false;
+                await RunAgent(isInterrupted: true);
+            };
             await AgentLoop.RunSessionAsync(prompt, _mcp!, _ccbWs);
+            AgentLoop.OnContinueAfterInterrupt = null;
 
             AgentOrchestrator.EndSession();
             _logInfo("[AgentEngine] commander 休眠");
