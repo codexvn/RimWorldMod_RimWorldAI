@@ -319,9 +319,9 @@ namespace RimWorldAgent.Core.CcbManager
     {
         [JsonPropertyName("tool_use_id")] public string? ToolUseId { get; set; }
         [JsonPropertyName("is_error")] public bool IsError { get; set; }
-        /// <summary>工具执行返回的内容（文本或数组展开为字符串）</summary>
-        public string Content { get; set; } = "";
-        /// <summary>原始 content 字段（string / array / object 三种格式）</summary>
+        /// <summary>工具执行返回的内容（由 Converter 从 ContentRaw 解析填充，不参与 JSON 序列化）</summary>
+        [JsonIgnore] public string Content { get; set; } = "";
+        /// <summary>SDK 原始 content 字段（string / array / object 三种格式）</summary>
         [JsonPropertyName("content")] public JsonElement? ContentRaw { get; set; }
         public SdkToolResultBlock() { BlockType = "tool_result"; }
         internal static string ParseContent(JsonElement cnt)

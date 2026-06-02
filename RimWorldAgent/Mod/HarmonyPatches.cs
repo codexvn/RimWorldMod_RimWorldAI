@@ -30,15 +30,16 @@ namespace RimWorldAgent
     }
 
     /// <summary>
-    /// 退出存档到主菜单时触发。Patch Game.DeinitAndRemoveMap 确保任何退出路径都能捕获。
+    /// <see cref="Game.ClearAllMapsAndWorld"/> — 退出当前游戏（返回主菜单）。
+    /// 与 <see cref="Game.DeinitAndRemoveMap"/> 不同，后者是 Map 类方法且不被调用。
     /// </summary>
-    [HarmonyPatch(typeof(Game), "DeinitAndRemoveMap")]
-    public static class Patch_Game_DeinitAndRemoveMap
+    [HarmonyPatch(typeof(Game), "ClearAllMapsAndWorld")]
+    public static class Patch_Game_ClearAllMapsAndWorld
     {
         [HarmonyPostfix]
         public static void Postfix()
         {
-            Log.Message("[agent-harmony] Game.DeinitAndRemoveMap 被调用 → 退出存档");
+            Log.Message("[agent-harmony] Game.ClearAllMapsAndWorld → 退出到主菜单");
             try
             {
                 var gc = Current.Game?.GetComponent<GameComponent_RimWorldAgent>();
