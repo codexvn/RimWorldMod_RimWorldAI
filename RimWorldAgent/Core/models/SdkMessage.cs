@@ -183,7 +183,7 @@ namespace RimWorldAgent.Core.CcbManager
 
         public SdkStreamEventMessage(string rawJson, JsonElement root) : base(rawJson, "stream_event")
         {
-            var known = new HashSet<string> { "type", "event", "parent_tool_use_id", "index", "uuid", "session_id", "ttft_ms" };
+            var known = new HashSet<string> { "type", "event", "parent_tool_use_id", "uuid", "session_id", "ttft_ms" };
             ValidateFields(root, known, rawJson);
 
             Uuid = Str(root, "uuid");
