@@ -67,7 +67,6 @@ namespace RimWorldMCP.Harmony
 
             // 推送到 Agent 侧（不含路由，由 Agent 侧 RouteEvent 决策）
             var level = GetEventLevel(n.Type, n.DangerLabel);
-            if (level == EventLevel.Silent) return;
 
             var evt = new ColonyEvent
             {
@@ -76,6 +75,7 @@ namespace RimWorldMCP.Harmony
                 {
                     EventLevel.Critical => "Critical",
                     EventLevel.Warning => "Warning",
+                    EventLevel.Silent => "Silent",
                     _ => "Info"
                 },
                 Summary = n.Type switch
@@ -101,7 +101,8 @@ namespace RimWorldMCP.Harmony
                     evt.Category,
                     evt.Severity,
                     evt.Summary,
-                    evt.Tick
+                    evt.Tick,
+                    level = (int)level
                 });
                 SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/notification", sseJson);
             }

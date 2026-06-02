@@ -102,6 +102,8 @@ namespace RimWorldAgent.Core.Mcp
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
+        private int _notificationSeq;
+
         private void HandleNotification(JsonRpcNotification notif)
         {
             try
@@ -114,7 +116,11 @@ namespace RimWorldAgent.Core.Mcp
                         break;
 
                     default:
-                        CoreLog.Info($"[McpClient] 收到通知: {notif.Method}");
+                        var seq = Interlocked.Increment(ref _notificationSeq);
+                        var cat = notif.Params?["Category"]?.GetValue<string>() ?? "";
+                        var sev = notif.Params?["Severity"]?.GetValue<string>() ?? "";
+                        var summary = notif.Params?["Summary"]?.GetValue<string>() ?? "";
+                        CoreLog.Info($"[McpClient] 收到通知 #{seq}: {notif.Method} {sev}/{cat} summary={summary?.Substring(0, Math.Min(summary?.Length ?? 0, 80))}");
                         OnGameEvent?.Invoke(new ColonyEvent
                         {
                             Category = notif.Params?["Category"]?.GetValue<string>() ?? "",
@@ -122,7 +128,8 @@ namespace RimWorldAgent.Core.Mcp
                             Summary = notif.Params?["Summary"]?.GetValue<string>() ?? "",
                             Tick = notif.Params?["Tick"]?.GetValue<int>() ?? 0,
                             Method = notif.Method,
-                            Payload = notif.Params?.ToJsonString(_readableJson)
+                            Payload = notif.Params?.ToJsonString(_readableJson),
+                            Level = (EventLevel)(notif.Params?["level"]?.GetValue<int>() ?? 2) // 缺省 Warning
                         });
                         break;
                 }

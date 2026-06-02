@@ -197,25 +197,32 @@ namespace RimWorldAgent.Core.AgentRuntime
                 TokenUsageTracker.TotalCacheCreateTokens));
         }
 
-        /// <summary>MCP 游戏事件 → 所有通知都触发中断</summary>
+        /// <summary>MCP 游戏事件 → 按级别分流：Critical/Warning 中断，Info/Silent 仅 suffix</summary>
         public static void WireEvents(McpClient mcp)
         {
             // tick 事件 → 更新游戏 tick
             mcp.OnGameTick += tick => AgentOrchestrator.GameTick = tick;
 
-            // 游戏事件 → 所有事件触发中断 + 双工通知
+            // 游戏事件 → 按级别分流
             mcp.OnGameEvent += evt =>
             {
-                CoreLog.Info($"[event] {evt.Method}: {evt.Category}/{evt.Severity}: {evt.Summary}");
+                CoreLog.Info($"[event] {evt.Method}: {evt.Category}/{evt.Severity}(L{(int)evt.Level}): {evt.Summary}");
                 var cleanSummary = StripRichTags(evt.Summary);
                 var summary = $"[{evt.Severity}/{evt.Category}] {cleanSummary}";
-                AgentOrchestrator.RequestInterrupt(summary);
+
+                // 所有级别都注入 suffix（AI 下次工具调用可见）
                 _ = AgentOrchestrator.NotisAgent(summary);
                 ToolDispatcher.MarkNotifReceived();
-                // 推送 UI + 落盘（与 SDK 文本一致）
-                var notifyText = $"{AgentOrchestrator.InterruptPromptPrefix}\n{summary}\n{AgentOrchestrator.InterruptPromptSuffix}";
-                UIMessageBus.PushUiMessage(UiMessage.User(notifyText));
-                ConversationStore?.RecordUserMessage(notifyText);
+
+                if (evt.Level >= EventLevel.Warning)
+                {
+                    // Critical / Warning → 立即中断 + UI + DB
+                    AgentOrchestrator.RequestInterrupt(summary);
+                    var notifyText = $"{AgentOrchestrator.InterruptPromptPrefix}\n{summary}\n{AgentOrchestrator.InterruptPromptSuffix}";
+                    UIMessageBus.PushUiMessage(UiMessage.User(notifyText));
+                    ConversationStore?.RecordUserMessage(notifyText);
+                }
+                // Info / Silent → 仅 suffix，不打断当前会话
             };
         }
 

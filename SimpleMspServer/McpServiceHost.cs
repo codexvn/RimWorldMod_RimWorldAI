@@ -45,7 +45,8 @@ namespace SimpleMspServer
         public void SendEvent(string method, string jsonData)
         {
             var count = _sessions.Count;
-            _log.Info($"SendEvent: method={method}, sessions={count}, jsonLen={jsonData.Length}");
+            var sessionIds = _sessions.Keys.Select(k => k.Substring(0, Math.Min(k.Length, 8)));
+            _log.Info($"SendEvent: method={method}, sessions={count}, ids=[{string.Join(",", sessionIds)}], jsonLen={jsonData.Length}");
             foreach (var kv in _sessions)
                 _ = kv.Value.SendNotificationAsync(method, jsonData);
         }

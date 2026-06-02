@@ -18,17 +18,20 @@ namespace RimWorldAgent
         private CancellationTokenSource? _cts;
         private readonly int _port;
         private readonly int _bridgePort;
+        private readonly string _bridgeHost;
         private readonly string _webRoot;
 
         public int Port => _port;
         public bool IsRunning => _listener != null;
 
         /// <param name="bridgePort">UIMessageBus WS 端口，用于 index.html 模板替换</param>
+        /// <param name="bridgeHost">UIMessageBus WS 主机，用于 index.html 模板替换</param>
         /// <param name="webRoot">index.html 所在目录</param>
-        public WebUIHttpServer(int port = 19997, int bridgePort = 19999, string? webRoot = null)
+        public WebUIHttpServer(int port = 19997, int bridgePort = 19999, string bridgeHost = "127.0.0.1", string? webRoot = null)
         {
             _port = port;
             _bridgePort = bridgePort;
+            _bridgeHost = bridgeHost;
             _webRoot = webRoot ?? FindWebRoot();
         }
 
@@ -87,6 +90,7 @@ namespace RimWorldAgent
                     if (path.EndsWith(".html"))
                     {
                         var html = Encoding.UTF8.GetString(bytes);
+                        html = html.Replace("{{BRIDGE_HOST}}", _bridgeHost);
                         html = html.Replace("{{BRIDGE_PORT}}", _bridgePort.ToString());
                         bytes = Encoding.UTF8.GetBytes(html);
                     }

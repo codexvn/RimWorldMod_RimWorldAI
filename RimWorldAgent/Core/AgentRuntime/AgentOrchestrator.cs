@@ -138,6 +138,15 @@ namespace RimWorldAgent.Core.AgentRuntime
         }
     }
 
+    /// <summary>事件等级，与 MCP 侧 EventLevel 对齐</summary>
+    public enum EventLevel
+    {
+        Silent = 0,
+        Info = 1,
+        Warning = 2,
+        Critical = 3
+    }
+
     public class ColonyEvent
     {
         public string Category { get; set; } = "";
@@ -146,5 +155,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         public object? Payload { get; set; }
         public int Tick { get; set; }
         public string Method { get; set; } = "";
+        public EventLevel Level { get; set; } = EventLevel.Warning; // 缺省 Warning，向后兼容
     }
 }
