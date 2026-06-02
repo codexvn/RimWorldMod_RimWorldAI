@@ -682,7 +682,6 @@
         <tr><th>Session</th><td><span id="info-session">-</span></td></tr>
         <tr><th>Version</th><td><span id="info-version">-</span></td></tr>
         <tr><th>Permission</th><td><span id="info-permission">-</span></td></tr>
-        <tr><th>API Key</th><td><span id="info-apikey">-</span></td></tr>
         <tr><th>MCP</th><td><div class="info-list" id="info-mcp">-</div></td></tr>
         <tr><th>Tools</th><td><div class="info-list" id="info-tools">-</div></td></tr>
         <tr><th>Skills</th><td><div class="info-list" id="info-skills">-</div></td></tr>
@@ -1221,7 +1220,6 @@
     el = document.getElementById('info-version'); if (el) el.textContent = msg.claude_code_version || '?';
     el = document.getElementById('info-session'); if (el) el.textContent = msg.session_id || '?';
     el = document.getElementById('info-permission'); if (el) el.textContent = msg.permissionMode || '?';
-    el = document.getElementById('info-apikey'); if (el) el.textContent = msg.apiKeySource || '-';
     el = document.getElementById('info-mcp'); if (el) {
       var mcps = msg.mcp_servers || [];
       el.innerHTML = mcps.length

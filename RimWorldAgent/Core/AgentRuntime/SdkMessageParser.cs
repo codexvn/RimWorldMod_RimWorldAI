@@ -33,7 +33,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     case SdkSystemMessage sm:
                         if (sm.Subtype == "init")
                             result.Add(UiMessage.SystemInit(sm.Model, sm.SessionId,
-                                sm.ClaudeCodeVersion, sm.PermissionMode, sm.ApiKeySource,
+                                sm.ClaudeCodeVersion, sm.PermissionMode,
                                 sm.McpServers.Select(m => new UiMcpServerRef(m.Name, m.Status)).ToList(),
                                 sm.Tools, sm.Skills));
                         break;
