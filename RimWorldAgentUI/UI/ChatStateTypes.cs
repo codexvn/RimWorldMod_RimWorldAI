@@ -449,12 +449,19 @@ namespace RimWorldAgent
 
             var parts = new System.Text.StringBuilder();
 
-            // ① 窗口用量: 入 12K/200K 6%
-            long ctxWin = ContextWindow;
-            if (ctxWin > 0 && inputTokens > 0)
+            // ① 输入用量: 入 12K 或 入 12K/200K 6%
+            if (inputTokens > 0)
             {
-                double ctxPct = (double)inputTokens / ctxWin * 100.0;
-                parts.Append($"入 {Fmt(inputTokens)}/{Fmt(ctxWin)} {ctxPct:F0}%");
+                long ctxWin = ContextWindow;
+                if (ctxWin > 0)
+                {
+                    double ctxPct = (double)inputTokens / ctxWin * 100.0;
+                    parts.Append($"入 {Fmt(inputTokens)}/{Fmt(ctxWin)} {ctxPct:F0}%");
+                }
+                else
+                {
+                    parts.Append($"入 {Fmt(inputTokens)}");
+                }
             }
 
             // ② Token 预算: Tok 43K/200K 85%

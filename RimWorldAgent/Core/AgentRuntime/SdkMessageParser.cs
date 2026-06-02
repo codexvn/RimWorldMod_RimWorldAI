@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using RimWorldAgent.Core.CcbManager;
 
@@ -31,7 +32,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                         break;
                     case SdkSystemMessage sm:
                         if (sm.Subtype == "init")
-                            result.Add(UiMessage.SystemInit(sm.Model, sm.SessionId));
+                            result.Add(UiMessage.SystemInit(sm.Model, sm.SessionId,
+                                sm.ClaudeCodeVersion, sm.PermissionMode, sm.ApiKeySource,
+                                sm.McpServers.Select(m => new UiMcpServerRef(m.Name, m.Status)).ToList(),
+                                sm.Tools, sm.Skills));
                         break;
                     case SdkAbortedMessage _:
                         result.Add(UiMessage.Aborted());

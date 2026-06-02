@@ -938,7 +938,7 @@
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     setStatus('connecting');
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = location.hostname || '127.0.0.1';
+    const host = '{{BRIDGE_HOST}}';
     const wsPort = {{BRIDGE_PORT}};
     const url = protocol + '//' + host + ':' + wsPort;
     ws = new WebSocket(url);
@@ -1002,10 +1002,14 @@
     var fmt = function(v) { return v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : String(v); };
 
     var parts = [];
-    // ① 窗口用量: 入 12K/200K 6%
-    if (contextWindow > 0 && inputTokens > 0) {
-      var ctxPct = Math.round(inputTokens / contextWindow * 100);
-      parts.push('<span class="ctx-window">入 ' + fmt(inputTokens) + '/' + fmt(contextWindow) + ' ' + ctxPct + '%</span>');
+    // ① 输入用量: 入 12K 或 入 12K/200K 6%
+    if (inputTokens > 0) {
+      if (contextWindow > 0) {
+        var ctxPct = Math.round(inputTokens / contextWindow * 100);
+        parts.push('<span class="ctx-window">入 ' + fmt(inputTokens) + '/' + fmt(contextWindow) + ' ' + ctxPct + '%</span>');
+      } else {
+        parts.push('<span class="ctx-window">入 ' + fmt(inputTokens) + '</span>');
+      }
     }
     // ② Token 预算: Tok 43K/200K 85%
     var tokPart = 'Tok ' + fmt(used) + '/' + (limit > 0 ? fmt(limit) : '--');

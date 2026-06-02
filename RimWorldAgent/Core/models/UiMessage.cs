@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace RimWorldAgent.Core
@@ -16,7 +17,11 @@ namespace RimWorldAgent.Core
         public static UiToolResult ToolResult(string id, bool isError, double durationMs, string? content = null) => new UiToolResult(id, isError, durationMs, content);
         public static UiResult Result(string subtype, string? stopReason) => new UiResult(subtype, stopReason ?? "");
         public static UiAborted Aborted() => new UiAborted();
-        public static UiSystemInit SystemInit(string? model, string? sessionId) => new UiSystemInit(model, sessionId);
+        public static UiSystemInit SystemInit(string? model, string? sessionId, string? claudeCodeVersion = null,
+            string? permissionMode = null, string? apiKeySource = null, List<UiMcpServerRef>? mcpServers = null,
+            List<string>? tools = null, List<string>? skills = null)
+            => new UiSystemInit(model, sessionId, claudeCodeVersion, permissionMode, apiKeySource,
+                mcpServers ?? new List<UiMcpServerRef>(), tools ?? new List<string>(), skills ?? new List<string>());
         public static UiError Error(string error) => new UiError(error);
         public static UiUser User(string text) => new UiUser(text);
         public static UiSystem System(string text) => new UiSystem(text);
@@ -86,8 +91,25 @@ namespace RimWorldAgent.Core
         public string type => "system_init";
         public string? model { get; }
         public string? session_id { get; }
-        public UiSystemInit(string? model, string? sessionId)
-        { this.model = model; this.session_id = sessionId; }
+        public string? claude_code_version { get; }
+        public string? permissionMode { get; }
+        public string? apiKeySource { get; }
+        public List<UiMcpServerRef> mcp_servers { get; }
+        public List<string> tools { get; }
+        public List<string> skills { get; }
+        public UiSystemInit(string? model, string? sessionId, string? claudeCodeVersion, string? permissionMode,
+            string? apiKeySource, List<UiMcpServerRef> mcpServers, List<string> tools, List<string> skills)
+        { this.model = model; this.session_id = sessionId; this.claude_code_version = claudeCodeVersion;
+          this.permissionMode = permissionMode; this.apiKeySource = apiKeySource;
+          this.mcp_servers = mcpServers; this.tools = tools; this.skills = skills; }
+    }
+
+    /// <summary>MCP 服务器引用（system_init 中 mcp_servers 数组元素）</summary>
+    public class UiMcpServerRef
+    {
+        public string name { get; }
+        public string status { get; }
+        public UiMcpServerRef(string name, string status) { this.name = name; this.status = status; }
     }
 
     public class UiError : UiMessage
