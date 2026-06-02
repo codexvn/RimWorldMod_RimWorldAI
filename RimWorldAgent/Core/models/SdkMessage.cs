@@ -299,10 +299,10 @@ namespace RimWorldAgent.Core.CcbManager
     {
         [JsonPropertyName("id")] public string Id { get; set; } = "";
         [JsonPropertyName("name")] public string Name { get; set; } = "";
-        /// <summary>工具调用参数（JSON 字符串，由 Converter 从 InputEl 转换）</summary>
-        [JsonIgnore] public string Input { get; set; } = "{}";
-        /// <summary>工具输入参数原始 JSON（SDK 以对象形式发送，net472 必须 public）</summary>
-        [JsonPropertyName("input")] public JsonElement? InputEl { get; set; }
+        /// <summary>工具调用参数原始 JSON（SDK 以对象形式发送）</summary>
+        [JsonPropertyName("input")] public JsonElement? InputRaw { get; set; }
+        /// <summary>工具调用参数（JSON 字符串，由 Converter 从 InputRaw 转换）</summary>
+        [JsonIgnore] public string InputStr { get; set; } = "{}";
         public SdkToolUseBlock() { BlockType = "tool_use"; }
     }
 
@@ -319,10 +319,10 @@ namespace RimWorldAgent.Core.CcbManager
     {
         [JsonPropertyName("tool_use_id")] public string? ToolUseId { get; set; }
         [JsonPropertyName("is_error")] public bool IsError { get; set; }
-        /// <summary>工具执行返回的内容（由 Converter 从 ContentRaw 解析填充，不参与 JSON 序列化）</summary>
-        [JsonIgnore] public string Content { get; set; } = "";
         /// <summary>SDK 原始 content 字段（string / array / object 三种格式）</summary>
         [JsonPropertyName("content")] public JsonElement? ContentRaw { get; set; }
+        /// <summary>工具执行返回的内容（由 Converter 从 ContentRaw 解析为字符串）</summary>
+        [JsonIgnore] public string ContentStr { get; set; } = "";
         public SdkToolResultBlock() { BlockType = "tool_result"; }
         internal static string ParseContent(JsonElement cnt)
         {
@@ -356,7 +356,7 @@ namespace RimWorldAgent.Core.CcbManager
                     var tu = JsonSerializer.Deserialize<SdkToolUseBlock>(root.GetRawText(), options);
                     if (tu == null) return new SdkToolUseBlock();
                     tu.BlockType = "tool_use";
-                    tu.Input = tu.InputEl?.GetRawText() ?? "{}";
+                    tu.InputStr = tu.InputRaw?.GetRawText() ?? "{}";
                     return tu;
                 case "thinking":
                     return JsonSerializer.Deserialize<SdkThinkingBlock>(root.GetRawText(), options);
@@ -364,7 +364,7 @@ namespace RimWorldAgent.Core.CcbManager
                     var tr = JsonSerializer.Deserialize<SdkToolResultBlock>(root.GetRawText(), options);
                     if (tr == null) return new SdkToolResultBlock();
                     tr.BlockType = "tool_result";
-                    tr.Content = SdkToolResultBlock.ParseContent(tr.ContentRaw.GetValueOrDefault());
+                    tr.ContentStr = SdkToolResultBlock.ParseContent(tr.ContentRaw.GetValueOrDefault());
                     return tr;
                 default:
                     return new SdkTextBlock("(unknown content type)");

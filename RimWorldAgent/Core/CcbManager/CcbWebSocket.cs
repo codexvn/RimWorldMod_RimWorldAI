@@ -228,7 +228,7 @@ public class CcbWebSocket : IDisposable
                 case SdkAssistantMessage am:
                     foreach (var b in am.Content)
                         if (b is SdkToolUseBlock tu)
-                            OnToolUse?.Invoke(tu.Id, tu.Name, tu.Input);
+                            OnToolUse?.Invoke(tu.Id, tu.Name, tu.InputStr);
                     break;
 
                 case SdkUserMessage _:

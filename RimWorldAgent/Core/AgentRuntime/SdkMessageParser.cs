@@ -46,8 +46,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                         {
                             if (block is SdkToolResultBlock tr)
                             {
-                                result.Add(UiMessage.ToolResult(tr.ToolUseId ?? "", tr.IsError, 0, tr.Content));
-                                UIMessageBus.RaiseToolResultRecorded(tr.ToolUseId ?? "", tr.IsError, tr.Content);
+                                result.Add(UiMessage.ToolResult(tr.ToolUseId ?? "", tr.IsError, 0, tr.ContentStr));
+                                UIMessageBus.RaiseToolResultRecorded(tr.ToolUseId ?? "", tr.IsError, tr.ContentStr);
                             }
                         }
                         break;
@@ -87,8 +87,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
                 else if (block is SdkToolUseBlock tu)
                 {
-                    outList.Add(UiMessage.ToolCall(tu.Id, tu.Name, tu.Input));
-                    UIMessageBus.RaiseToolCallRecorded(tu.Id, tu.Name, tu.Input);
+                    outList.Add(UiMessage.ToolCall(tu.Id, tu.Name, tu.InputStr));
+                    UIMessageBus.RaiseToolCallRecorded(tu.Id, tu.Name, tu.InputStr);
                 }
             }
 
