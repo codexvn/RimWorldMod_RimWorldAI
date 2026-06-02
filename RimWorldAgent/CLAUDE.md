@@ -308,19 +308,99 @@ UI 模组 `RimWorldAgentUI` 通过 WebSocket 连接 UIMessageBus，不引用 Age
 
 ### SdkMessage 类型层次
 
+协议来源：`@anthropic-ai/claude-agent-sdk` `coreSchemas.ts`（Zod 模式）。
+
+`FromJson(rawJson)` 工厂：Parse JSON → type dispatch → 子类构造 → `ValidateFields` 检测多余字段。
+未知字段记录 `[WARN]` 但**不拒绝**消息；已知字段静默通过。
+
 ```
 SdkMessage (abstract)
-├── SdkAssistantMessage   { Content[], Usage, Model, StopReason }
+├── SdkAssistantMessage   { ParentToolUseId, Error, Content[], Usage?, Model, StopReason, StopSequence }
 ├── SdkStreamEventMessage  { ParentToolUseId, Index, Event }
-├── SdkResultMessage       { Subtype, IsError, NumTurns, DurationMs, Usage }
-├── SdkSystemMessage       { Subtype, Model, SessionId, Tools[], Skills[], McpServers[] }
-├── SdkUserMessage         { Content[], ParentToolUseId, IsSynthetic }
+├── SdkResultMessage       { Subtype, StopReason, IsError, NumTurns, DurationMs, DurationApiMs, Result, TotalCostUsd, Usage? }
+├── SdkSystemMessage       { Subtype, Model?, SessionId?, ClaudeCodeVersion?, PermissionMode?, Cwd?, ApiKeySource?, Tools[], Skills[], McpServers[] }
+├── SdkUserMessage         { ParentToolUseId, IsSynthetic, Priority, Content[] }
 ├── SdkAbortedMessage      { }
 ├── SdkHelloOkMessage      { }
-└── SdkUnknownMessage      { Type, Root }  ← 未知类型不可识别时报错日志
+└── SdkUnknownMessage      { Type, Root }  ← 未知类型不可识别时记录日志
 ```
 
-所有子类字段与 TS 协议 `coreSchemas.ts` 一致，FromJson 构造时 `ValidateFields` 检测多余未知字段。
+#### 各类型字段详情
+
+**SdkAssistantMessage** — AI 完整回复。
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ParentToolUseId | string? | 父工具调用链 ID，顶层为 null |
+| Error | string? | API 错误类型（authentication_failed / rate_limit / server_error …) |
+| Content | List\<SdkContentBlock\> | text / tool_use / thinking 块 |
+| Usage | SdkUsage? | Token 统计（已消费→TokenUsageTracker.Record） |
+| Model | string? | 模型标识符 |
+| StopReason | string? | end_turn / max_tokens / stop_sequence / tool_use |
+| StopSequence | string? | 触发停止的序列文本 |
+| [known] | context_management | SDK 发出，当前未解析使用 |
+
+**SdkStreamEventMessage** — 流式增量事件。
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ParentToolUseId | string? | 父工具调用链 ID |
+| Index | int? | 内容块索引 |
+| Event | SdkStreamEvent? | content_block_start / delta / stop |
+| [known] | ttft_ms | ★ 首 Token 延迟 (ms)，SDK 发出，**当前未解析使用** |
+
+**SdkResultMessage** — 会话结束。
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| Subtype | string | success / error_during_execution / error_max_turns / error_max_budget_usd / error_max_structured_output_retries |
+| StopReason | string? | 停止原因 |
+| IsError | bool | 是否错误结束 |
+| NumTurns | int? | ★ 会话总轮次，**当前未消费** |
+| DurationMs | long? | ★ 会话总耗时 (ms)，**已解析但 Record() 硬编码传 0** |
+| DurationApiMs | long? | ★ API 纯耗时 (ms)，**当前未消费** |
+| Result | string? | AI 最终回复文本 |
+| TotalCostUsd | double? | ★ 总费用 (USD)，**已解析但无存储路径** |
+| Usage | SdkUsage? | 会话聚合 Token 统计（**当前未消费**；per-assistant Usage 已消费） |
+| [known] | modelUsage, permission_denials, errors, structured_output, fast_mode_state | SDK 发出，当前未解析 |
+
+**SdkSystemMessage** — 系统生命周期事件。
+| Subtype | 携带字段 | 消费情况 |
+|---------|---------|---------|
+| `init` | Model, SessionId, ClaudeCodeVersion, PermissionMode, Cwd, ApiKeySource, Tools[], Skills[], McpServers[], slash_commands, output_style, agents, plugins, betas, fast_mode_state, analytics_disabled, product_feedback_disabled, memory_paths | Model→TokenUsageTracker.CurrentModel, Model+SessionId→UiSystemInit UI 推送 |
+| `status` | status ("compacting"\|null), permissionMode | **状态变更，当前未消费** |
+| `compact_boundary` | compact_metadata {trigger, pre_tokens, preserved_segment} | ★ 上下文压缩分界，**当前未消费** |
+| 其他 (14+) | task_notification, task_started, task_progress, session_state_changed, api_retry, hook_started/progress/response, files_persisted, elicitation_complete, local_command_output, post_turn_summary | **全部未消费** |
+
+**SdkUserMessage** — SDK 回显的用户消息。
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ParentToolUseId | string? | 父工具调用链 ID |
+| IsSynthetic | bool | 是否 SDK 内部合成 |
+| Priority | string? | now / next / later |
+| Content | List\<SdkContentBlock\> | text / tool_result 块 |
+| [known] | timestamp, isReplay, tool_use_result | SDK 发出，当前未解析 |
+
+**辅助类型：**
+| 类型 | 字段 | 说明 |
+|------|------|------|
+| SdkContentBlock (abstract) | BlockType | text / tool_use / thinking / tool_result |
+| SdkTextBlock | Text | 文本内容 |
+| SdkToolUseBlock | Id, Name, Input | 工具调用（Id 关联 tool_result） |
+| SdkThinkingBlock | Thinking, Signature? | 思考过程 |
+| SdkToolResultBlock | ToolUseId?, IsError, Content | 工具执行结果 |
+| SdkStreamEvent | EventType, Index, BlockType?, Text?, Thinking?, PartialJson?, ToolUseId?, ToolName? | 流式增量（工厂方法 TextDelta/ThinkingDelta/InputJsonDelta/TextBlockStart/ThinkingBlockStart/ToolUseBlockStart） |
+| SdkUsage | InputTokens, OutputTokens, CacheReadInputTokens?, CacheCreationInputTokens? | Token 统计 |
+| SdkMcpServerInfo | Name, Status | MCP 服务器连接状态（connected/failed/needs-auth/pending/disabled） |
+
+#### 已知但未解析的性能指标
+
+| ★ 高价值 | 所在消息 | 字段 | 当前状态 |
+|----------|---------|------|---------|
+| 首 Token 延迟 | stream_event | ttft_ms | 仅 known，不解析 |
+| 会话总耗时 | result | DurationMs | 已解析，但 Record() 传 0 |
+| 会话 API 耗时 | result | DurationApiMs | 已解析，未消费 |
+| 总费用 | result | TotalCostUsd | 已解析，无存储路径 |
+| 会话轮次 | result | NumTurns | 已解析，未消费 |
+| 压缩通知 | system(status) | status="compacting" | 仅 known，不处理 |
+
 
 ### Plan/Act 阶段
 

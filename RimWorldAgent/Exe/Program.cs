@@ -19,7 +19,7 @@ namespace RimWorldAgent
         {
             Console.OutputEncoding = Encoding.UTF8;
 
-            var mcpUrl = "http://localhost:9877";
+            var mcpUrl = "http://10.126.126.1:9877/";
             var modelName = "";
             var planSpeed = "paused";
             for (int i = 0; i < args.Length; i++)
@@ -35,6 +35,14 @@ namespace RimWorldAgent
                     planSpeed = args[++i];
                 else if (arg.StartsWith("--plan-speed="))
                     planSpeed = arg.Substring("--plan-speed=".Length);
+                else if ((arg == "--mcp-url" || arg == "--mcp" || arg == "-u") && i + 1 < args.Length)
+                    mcpUrl = args[++i];
+                else if (arg.StartsWith("--mcp-url="))
+                    mcpUrl = arg.Substring("--mcp-url=".Length);
+                else if (arg.StartsWith("--mcp="))
+                    mcpUrl = arg.Substring("--mcp=".Length);
+                else if (arg.StartsWith("-u="))
+                    mcpUrl = arg.Substring("-u=".Length);
                 else if (!arg.StartsWith("-"))
                     mcpUrl = arg;
             }
