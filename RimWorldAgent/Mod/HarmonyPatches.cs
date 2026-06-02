@@ -1,6 +1,4 @@
 using System;
-using System.Linq;
-using System.Reflection;
 using HarmonyLib;
 using RimWorldAgent.Core.CcbManager;
 using Verse;
@@ -14,28 +12,22 @@ namespace RimWorldAgent
 
         static HarmonyPatches()
         {
-            // 纯日志：验证调用时机
-            TryPatch(typeof(Map), "DeinitAndRemoveMap", nameof(Postfix_DeinitAndRemoveMap), null);
-
-            // 主功能：退出存档时 Kill CCB（用 Prefix 在 ClearAllMapsAndWorld 执行前拿 GameComponent）
-            TryPatch(typeof(Verse.Profile.MemoryUtility), "ClearAllMapsAndWorld", null, nameof(Prefix_ClearAllMapsAndWorld));
+            // 退出存档时 Kill CCB（用 Prefix 在 ClearAllMapsAndWorld 执行前拿 GameComponent）
+            TryPatch(typeof(Verse.Profile.MemoryUtility), "ClearAllMapsAndWorld", nameof(Prefix_ClearAllMapsAndWorld));
         }
 
-        private static void TryPatch(Type targetType, string methodName, string? postfixMethod, string? prefixMethod)
+        private static void TryPatch(Type targetType, string methodName, string prefixMethod)
         {
             try
             {
                 var original = AccessTools.Method(targetType, methodName);
                 if (original == null)
                 {
-                    var all = targetType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-                        .Select(m => m.Name).Distinct().Take(20);
-                    SafeLog.Warning($"[agent-harmony] 跳过 {targetType.FullName}.{methodName}: 方法不存在 (前20: {string.Join(", ", all)})");
+                    SafeLog.Warning($"[agent-harmony] 跳过 {targetType.FullName}.{methodName}: 方法不存在");
                     return;
                 }
-                var prefix = prefixMethod != null ? new HarmonyMethod(typeof(HarmonyPatches), prefixMethod) : null;
-                var postfix = postfixMethod != null ? new HarmonyMethod(typeof(HarmonyPatches), postfixMethod) : null;
-                _harmony.Patch(original, prefix: prefix, postfix: postfix);
+                _harmony.Patch(original,
+                    prefix: new HarmonyMethod(typeof(HarmonyPatches), prefixMethod));
                 SafeLog.Info($"[agent-harmony] Patch {targetType.Name}.{methodName} 成功");
             }
             catch (Exception ex)
@@ -45,11 +37,6 @@ namespace RimWorldAgent
         }
 
         // ===== 回调 =====
-
-        public static void Postfix_DeinitAndRemoveMap()
-        {
-            SafeLog.Info("[agent-harmony] Map.DeinitAndRemoveMap 被调用");
-        }
 
         public static void Prefix_ClearAllMapsAndWorld()
         {
