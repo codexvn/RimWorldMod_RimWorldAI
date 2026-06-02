@@ -162,27 +162,29 @@ C# 侧：`CcbWebSocket.ReceiveLoop` → `SdkMessage.FromJson` → `OnSdkMessage`
 所有消息继承 `UiMessage` 基类，`ToJson()` 序列化后 WS 广播。
 
 ```
-┌─ Dialog_AiChat ──────────────────────────────────────────────────────────────────────┐
-│ 冰盖 · 1年 夏第5天                   入 12K/200K 6% │ Tok 43K/200K 85% │ 缓存 12K 35% │ ← header
-│ ─────────────────────────────────────────────────────────────────────────────────── │
-│ ┌─ 对话 (text_delta / thinking_delta) ──────┐ ┌─ 工具调用 (tool_call / tool_result) ┐│
-│ │ [user] 查看殖民地状态                       │ │ #1 ✓ get_colony  1.2s               ││
-│ │ [AI思考中] 让我想想...                      │ │ #2 ◎ search_items                  ││
-│ │ [AI] 下一步建议：扩大种植区。                │ │ #3 ✓ read_memory  0.5s              ││
-│ └─────────────────────────────────────────────┘ │ [右栏下: 任务 (TaskCreate/Update)]  ││
-│                                                 └───────────────────────────────────┘│
-│ > 查看所有殖民者的健康状态________________________________________________ [发送]        │ ← 输入
-│ ● 已连接 │ ACT / 运行 │ ⏳ 压缩中… │ 透明 [-] [+]         清空  继续  中断              │ ← 底栏
-└──────────────────────────────────────────────────────────────────────────────────────┘
-
-底栏状态来源: agent-status(role) │ compaction-status(active) │ BridgeConnected
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ RimWorld AI 指挥官                                                                         │
+│ 冰盖 · 1年 夏第5天                                        入 12K/200K 6% │ Tok 43K/200K 85% │ 缓存 12K 35% │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ── 对话 ──                                                     │ ── 工具调用 ──                                 │
+│ [你] 查看殖民地状态                                            │ #1 [OK] get_colony (1.2s)                      │
+│ [思考] 让我想想接下来的安排...                                 │ #2 [..] search_items                           │
+│ [AI] 下一步建议：扩大种植区。                                  │ #3 [OK] read_memory (0.5s)                     │
+│                                                                │ ── 任务 ──                                     │
+│                                                                │ [>] 补全字段                                   │
+│                                                                │ [ ] 修复编译错误                               │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ > 查看所有殖民者的健康状态______________ [发送]                                                            │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ * 已连接 | ACT / 运行 | [压缩中] | 透明 [-] [+] | 清空 继续 中断                                           │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 | type | C# 类 | 字段 | 渲染位置 |
 |------|-------|------|---------|
 | `text_delta` | `UiTextDelta` | `text` | 左栏·对话流（空串=新条目开始） |
-| `thinking_delta` | `UiThinkingDelta` | `thinking` | 左栏·"AI思考中"标签 + 橙色文本 |
-| `tool_call` | `UiToolCall` | `id`, `name`, `input` | 右栏上·工具卡片（◎运行中/✓完成/✗失败） |
+| `thinking_delta` | `UiThinkingDelta` | `thinking` | 左栏·"思考"标签 + 橙色文本 |
+| `tool_call` | `UiToolCall` | `id`, `name`, `input` | 右栏上·工具卡片（[OK]/[..]/[XX] 状态） |
 | `tool_result` | `UiToolResult` | `id`, `isError`, `durationMs`, `content?` | 右栏上·卡片状态+耗时更新 |
 | `result` | `UiResult` | `subtype`, `stop_reason` | 结束流式条目 |
 | `aborted` | `UiAborted` | (无) | 流式条目追加"（已中断）" |
@@ -191,7 +193,7 @@ C# 侧：`CcbWebSocket.ReceiveLoop` → `SdkMessage.FromJson` → `OnSdkMessage`
 | `system` | `UiSystem` | `text` | 左栏·[系统] 条目 |
 | `budget_status` | `UiBudgetStatus` | `used`, `limit`, `action`, `cacheRead`, `totalInput`, `cacheCreate`, `contextWindow`, `inputTokens` | header 三指标 |
 | `agent-status` | `UiAgentStatus` | `role` | 底栏 "ACT / 运行" |
-| `compaction-status` | `UiCompactionStatus` | `active` | 底栏 "⏳ 压缩中…" |
+| `compaction-status` | `UiCompactionStatus` | `active` | 底栏 "[压缩中]" |
 
 ##### UI → Agent（客户端消息）
 
