@@ -1,15 +1,21 @@
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace RimWorldAgent.Core.AgentRuntime.Tools
 {
-    /// <summary>获取指定任务的详细信息（替代 SDK 原生 TaskGet，实现结构化数据拦截）</summary>
+    /// <summary>获取指定任务的详细信息</summary>
     public class Tool_TaskGet : IInternalTool
     {
         public string Name => "task_get";
-        public string Description => "获取指定任务的详细信息，包括描述、依赖关系等。";
+        public string Description => @"获取指定任务的完整详情，包括描述和状态。
+
+何时使用：
+- 开始工作前需要了解任务的完整要求
+- 被分配任务后查看详细描述
+
+输出：任务标题、描述、状态。
+开始工作前用 task_list 查看所有任务的摘要。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
@@ -33,18 +39,9 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
                 return Task.FromResult(($"未找到任务 #{taskId}。使用 task_list 查看所有任务。", false));
 
             var sb = new StringBuilder();
-            sb.AppendLine($"任务 #{item.Id}");
-            sb.AppendLine($"标题: {item.Subject}");
+            sb.AppendLine($"任务 #{item.Id}: {item.Subject}");
             sb.AppendLine($"状态: {item.Status}");
             sb.AppendLine($"描述: {item.Description}");
-            if (!string.IsNullOrEmpty(item.ActiveForm))
-                sb.AppendLine($"进行中描述: {item.ActiveForm}");
-            if (!string.IsNullOrEmpty(item.Owner))
-                sb.AppendLine($"负责人: {item.Owner}");
-            if (item.Blocks.Count > 0)
-                sb.AppendLine($"阻塞任务: {string.Join(", ", item.Blocks.Select(b => $"#{b}"))}");
-            if (item.BlockedBy.Count > 0)
-                sb.AppendLine($"被阻塞: {string.Join(", ", item.BlockedBy.Select(b => $"#{b}"))}");
 
             return Task.FromResult((sb.ToString(), false));
         }

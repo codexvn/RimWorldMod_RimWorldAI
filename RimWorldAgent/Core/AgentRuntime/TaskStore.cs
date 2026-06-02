@@ -1,22 +1,18 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    /// <summary>任务数据模型（与 Claude Agent SDK TaskCreate/TaskUpdate 对齐）</summary>
+    /// <summary>任务数据模型</summary>
     public class TaskItem
     {
         public string Id { get; set; } = "";
+        /// <summary>任务标题，简洁明了（如"建造围墙防御区"）</summary>
         public string Subject { get; set; } = "";
+        /// <summary>任务详细描述</summary>
         public string Description { get; set; } = "";
+        /// <summary>pending / in_progress / completed</summary>
         public string Status { get; set; } = "pending";
-        public string? ActiveForm { get; set; }
-        public string? Owner { get; set; }
-        public List<string> Blocks { get; set; } = new();
-        public List<string> BlockedBy { get; set; } = new();
-        public Dictionary<string, JsonElement>? Metadata { get; set; }
     }
 
     /// <summary>线程安全的任务存储，供内部 task_* 工具和 ToolDispatcher 提醒共用</summary>
@@ -39,30 +35,29 @@ namespace RimWorldAgent.Core.AgentRuntime
         }
 
         /// <summary>创建任务，返回分配的任务</summary>
-        public static TaskItem Create(string subject, string description, string? activeForm = null,
-            Dictionary<string, JsonElement>? metadata = null)
+        public static TaskItem Create(string subject, string description)
         {
+            TaskItem item;
             lock (_lock)
             {
-                var item = new TaskItem
+                item = new TaskItem
                 {
                     Id = (_nextId++).ToString(),
                     Subject = subject,
-                    Description = description,
-                    ActiveForm = activeForm,
-                    Metadata = metadata
+                    Description = description
                 };
                 _tasks.Add(item);
-                return item;
             }
+            UIMessageBus.PushSdkTasks();
+            return item;
         }
 
         /// <summary>更新任务。返回 null 表示未找到。status=deleted 时移除任务。</summary>
         public static TaskItem? Update(string taskId,
-            string? subject = null, string? description = null, string? activeForm = null,
-            string? status = null, List<string>? addBlocks = null, List<string>? addBlockedBy = null,
-            string? owner = null, Dictionary<string, JsonElement>? metadata = null)
+            string? subject = null, string? description = null, string? status = null)
         {
+            bool changed = false;
+            TaskItem? result;
             lock (_lock)
             {
                 var item = _tasks.FirstOrDefault(t => t.Id == taskId);
@@ -71,26 +66,19 @@ namespace RimWorldAgent.Core.AgentRuntime
                 if (status == "deleted")
                 {
                     _tasks.Remove(item);
-                    return item;
+                    changed = true;
+                    result = item;
                 }
-
-                if (subject != null) item.Subject = subject;
-                if (description != null) item.Description = description;
-                if (activeForm != null) item.ActiveForm = activeForm;
-                if (status != null) item.Status = status;
-                if (owner != null) item.Owner = owner;
-                if (metadata != null)
+                else
                 {
-                    foreach (var kv in metadata)
-                        item.Metadata![kv.Key] = kv.Value;
+                    if (subject != null && item.Subject != subject) { item.Subject = subject; changed = true; }
+                    if (description != null && item.Description != description) { item.Description = description; changed = true; }
+                    if (status != null && item.Status != status) { item.Status = status; changed = true; }
+                    result = item;
                 }
-                if (addBlocks != null && addBlocks.Count > 0)
-                    item.Blocks.AddRange(addBlocks);
-                if (addBlockedBy != null && addBlockedBy.Count > 0)
-                    item.BlockedBy.AddRange(addBlockedBy);
-
-                return item;
             }
+            if (changed) UIMessageBus.PushSdkTasks();
+            return result;
         }
 
         /// <summary>获取单个任务</summary>
@@ -114,7 +102,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>清空全部任务（新会话开始时调用）</summary>
         public static void Clear()
         {
-            lock (_lock) { _tasks.Clear(); _nextId = 1; }
+            int count;
+            lock (_lock) { count = _tasks.Count; _tasks.Clear(); _nextId = 1; }
+            if (count > 0) UIMessageBus.PushSdkTasks();
         }
     }
 }

@@ -36,8 +36,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             // Layer 7: 当前模式指引
             var phaseHint = AgentOrchestrator.CurrentPhase switch
             {
-                GamePhase.Plan => "## 当前模式: PLAN\n游戏已暂停。你现在可以：查询状态、制定计划、查看知识。\n**不能执行任何游戏操作**（建造/装备/征召/advance_tick/生产单据等）。\n计划完成后调用 enter_act() 进入 ACT 模式执行。",
-                GamePhase.Act => "## 当前模式: ACT\n游戏运行中。你现在可以执行所有操作。\n完成后如需重新规划调用 enter_plan()。",
+                GamePhase.Plan => "## 当前模式: PLAN\n游戏已暂停。你现在可以：查询状态、制定计划、查看知识。\n**不能执行任何游戏操作**（建造/装备/征召/advance_tick/生产单据等）。\n制定计划后用 task_create 创建任务清单，用 task_list 检查现有任务。计划完成后调用 enter_act() 进入 ACT 模式执行。",
+                GamePhase.Act => "## 当前模式: ACT\n游戏运行中。你现在可以执行所有操作。\n执行中及时用 task_update 更新任务状态，完成阶段性工作后用 task_list 检查进度。完成后如需重新规划调用 enter_plan()。",
                 _ => null
             };
             if (phaseHint != null)

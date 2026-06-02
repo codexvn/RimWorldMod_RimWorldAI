@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using Fleck;
 using RimWorldAgent.Core.AgentRuntime;
@@ -55,6 +56,16 @@ namespace RimWorldAgent.Core
                 catch (Exception ex) { CoreLog.Info($"[UIMessageBus] 发送失败: {ex.Message}"); _clients.TryRemove(kv.Key, out _); }
             }
             OnDisplayMessage?.Invoke(json);
+        }
+
+        /// <summary>推送任务列表快照 — TaskStore 变化时调用</summary>
+        public static void PushSdkTasks()
+        {
+            if (!IsRunning) return;
+            var tasks = AgentRuntime.TaskStore.GetAll()
+                .Select(t => new UiSdkTask(t.Id, t.Subject, t.Status))
+                .ToList();
+            PushUiMessage(new UiSdkTasks(tasks));
         }
 
         // ===== 下游：客户端 → UIMessageBus → AgentCore =====

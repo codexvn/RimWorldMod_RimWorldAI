@@ -786,25 +786,6 @@
   var taskCountEl = document.getElementById('task-count');
   var sdkTaskListEl = document.getElementById('sdk-task-list');
 
-  function trackSdkTask(name, input) {
-    if (!input) return;
-    console.log('[CCGUI_DEBUG] trackSdkTask 前端 调用 name=' + name + ' input=' + JSON.stringify(input));
-    if (name === 'TaskCreate') {
-      var subj = input.subject || input.activeForm || '?';
-      sdkTasks.push({ id: sdkTasks.length + 1, subject: subj, status: 'pending' });
-      console.log('[CCGUI_DEBUG] trackSdkTask 前端 TaskCreate id=' + sdkTasks.length + ' subject=' + subj);
-    } else if (name === 'TaskUpdate') {
-      var tid = input.taskId;
-      var st = input.status;
-      console.log('[CCGUI_DEBUG] trackSdkTask 前端 TaskUpdate taskId=' + tid + ' status=' + st);
-      for (var i = 0; i < sdkTasks.length; i++) {
-        if (String(sdkTasks[i].id) === String(tid)) { sdkTasks[i].status = st; console.log('[CCGUI_DEBUG] trackSdkTask 前端 匹配成功 id=' + tid + ' -> ' + st); break; }
-      }
-    }
-    console.log('[CCGUI_DEBUG] trackSdkTask 前端 当前任务列表=' + JSON.stringify(sdkTasks));
-    renderSdkTasks();
-  }
-
   function renderSdkTasks() {
     var pending = 0;
     for (var i = 0; i < sdkTasks.length; i++) {
@@ -1124,7 +1105,8 @@
 
       case 'sdk-tasks':
         console.log('[CCGUI_DEBUG] 收到 sdk-tasks 消息 tasks=' + JSON.stringify(msg.tasks));
-        if (msg.tasks && msg.tasks.length) { sdkTasks = msg.tasks; renderSdkTasks(); }
+        sdkTasks = msg.tasks || [];
+        renderSdkTasks();
         break;
 
       case 'system_init':

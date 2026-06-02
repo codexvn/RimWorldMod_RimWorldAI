@@ -1,26 +1,40 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace RimWorldAgent.Core.AgentRuntime.Tools
 {
-    /// <summary>创建新任务（替代 SDK 原生 TaskCreate，实现结构化数据拦截）</summary>
+    /// <summary>创建新任务</summary>
     public class Tool_TaskCreate : IInternalTool
     {
         public string Name => "task_create";
-        public string Description => "创建新任务跟踪执行进度。建议在开始复杂多步骤工作时使用。";
+        public string Description => @"创建新任务跟踪执行进度。用于组织复杂工作、跟踪进度。
+
+何时使用：
+- 复杂多步骤任务（3+ 步）
+- 非平凡的重要任务需要仔细规划
+- PLAN 阶段制定计划时
+- 收到新指令后立即捕获为任务
+- 开始工作时标记进度，完成后标注状态
+
+何时不用：
+- 单一步骤直接完成的任务
+- 纯对话或信息查询
+- 少于 3 个步骤的简单操作
+
+字段说明：
+- subject: 任务标题，简洁明了（如'建造围墙防御区'）
+- description: 需要做什么的详细描述
+
+所有任务创建时状态为 pending。用 task_update 标记完成。创建前先用 task_list 确认没有重复任务。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
-                subject = new { type = "string", description = "任务标题，简洁明了（如'修复登录 Bug'）" },
-                description = new { type = "string", description = "任务详细描述，说明要做什么" },
-                activeForm = new { type = "string", description = "进行中时的描述文本（如'正在修复登录 Bug'），不提供则用 subject" },
-                metadata = new { type = "object", description = "自定义元数据（可选）" }
+                subject = new { type = "string", description = "任务标题，简洁明了（如'建造围墙防御区'）" },
+                description = new { type = "string", description = "任务详细描述，说明要做什么" }
             },
             required = new[] { "subject", "description" }
         });
@@ -32,28 +46,12 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
 
             var subject = args.Value.GetProperty("subject").GetString()!;
             var description = args.Value.GetProperty("description").GetString()!;
-            var activeForm = args.Value.TryGetProperty("activeForm", out var af) && af.ValueKind != JsonValueKind.Null
-                ? af.GetString() : null;
-            Dictionary<string, JsonElement>? metadata = null;
-            if (args.Value.TryGetProperty("metadata", out var m) && m.ValueKind == JsonValueKind.Object)
-            {
-                metadata = new Dictionary<string, JsonElement>();
-                foreach (var kv in m.EnumerateObject())
-                    metadata[kv.Name] = kv.Value.Clone();
-            }
 
-            var item = TaskStore.Create(subject, description, activeForm, metadata);
+            var item = TaskStore.Create(subject, description);
 
             var sb = new StringBuilder();
-            sb.AppendLine($"已创建任务 #{item.Id}");
-            sb.AppendLine($"标题: {item.Subject}");
-            sb.AppendLine($"状态: {item.Status}");
-            if (!string.IsNullOrEmpty(item.Description))
-                sb.AppendLine($"描述: {item.Description}");
-
-            var pending = TaskStore.PendingCount;
-            sb.AppendLine();
-            sb.AppendLine($"当前共 {pending} 个未完成任务。");
+            sb.AppendLine($"已创建任务 #{item.Id}: {item.Subject}");
+            sb.AppendLine($"共 {TaskStore.PendingCount} 个未完成任务。");
 
             return Task.FromResult((sb.ToString(), false));
         }

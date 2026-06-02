@@ -84,6 +84,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                         socket.Send(UIMessageBus.LastSystemInit.ToJson());
                 }
                 catch (Exception ex) { CoreLog.Warn($"[AgentLoop] 推送 system_init 失败: {ex.GetType().Name}: {ex.Message}"); }
+                // 新客户端 → 推送当前任务列表
+                UIMessageBus.PushSdkTasks();
             };
 
             // 客户端 history → 返回历史消息

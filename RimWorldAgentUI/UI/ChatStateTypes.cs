@@ -244,8 +244,6 @@ namespace RimWorldAgent
                     Status = ToolStatus.Running,
                 });
 
-                // 检测 SDK 任务工具调用（TaskCreate/TaskUpdate）
-                TrackSdkTaskLocked(toolName, meta);
             }
             OnChanged?.Invoke();
         }
@@ -265,44 +263,6 @@ namespace RimWorldAgent
                 }
             }
             OnChanged?.Invoke();
-        }
-
-        // ===== SDK 任务追踪（仿 WebUI JS 端逻辑） =====
-
-        private static void TrackSdkTaskLocked(string toolName, string meta)
-        {
-            if (string.IsNullOrEmpty(meta)) return;
-            try
-            {
-                if (toolName.Contains("TaskCreate"))
-                {
-                    using var doc = JsonDocument.Parse(meta);
-                    var root = doc.RootElement;
-                    var subj = root.TryGetProperty("subject", out var s) ? s.GetString() ?? "?" : "?";
-                    _sdkTasks.Add(new SdkTaskItem
-                    {
-                        Id = (_sdkTasks.Count + 1).ToString(),
-                        Subject = subj,
-                        Status = "pending"
-                    });
-                }
-                else if (toolName.Contains("TaskUpdate"))
-                {
-                    using var doc = JsonDocument.Parse(meta);
-                    var root = doc.RootElement;
-                    var tid = root.TryGetProperty("taskId", out var t) ? t.GetString() ?? "" : "";
-                    var st = root.TryGetProperty("status", out var u) ? u.GetString() ?? "" : "";
-                    for (int i = _sdkTasks.Count - 1; i >= 0; i--)
-                    {
-                        if (_sdkTasks[i].Id == tid)
-                        {
-                            _sdkTasks[i].Status = st;
-                            break;
-                        }
-                    }
-                }
-            }
-            catch { /* 解析失败忽略 */ }
         }
 
         public static void Clear()
@@ -434,7 +394,28 @@ namespace RimWorldAgent
                         CompactionActive = root.TryGetProperty("active", out var ca) && ca.GetBoolean();
                         break;
                     case "sdk-tasks":
+                    {
+                        var tasksArr = root.TryGetProperty("tasks", out var ta) ? ta : default;
+                        EnqueueUiEvent(() =>
+                        {
+                            lock (_lock)
+                            {
+                                _sdkTasks.Clear();
+                                if (tasksArr.ValueKind == JsonValueKind.Array)
+                                {
+                                    foreach (var te in tasksArr.EnumerateArray())
+                                    {
+                                        var tid = te.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+                                        var tsubj = te.TryGetProperty("subject", out var sjEl) ? sjEl.GetString() ?? "" : "";
+                                        var tstat = te.TryGetProperty("status", out var stEl) ? stEl.GetString() ?? "pending" : "pending";
+                                        _sdkTasks.Add(new SdkTaskItem { Id = tid, Subject = tsubj, Status = tstat });
+                                    }
+                                }
+                            }
+                            OnChanged?.Invoke();
+                        });
                         break;
+                    }
                 }
             }
             catch (Exception ex)

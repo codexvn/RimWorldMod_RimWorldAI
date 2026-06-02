@@ -161,4 +161,22 @@ namespace RimWorldAgent.Core
         public bool active { get; }
         public UiCompactionStatus(bool active) { this.active = active; }
     }
+
+    /// <summary>任务列表推送 — TaskStore 变化时广播到所有 UI</summary>
+    public class UiSdkTasks : UiMessage
+    {
+        public string type => "sdk-tasks";
+        public List<UiSdkTask> tasks { get; }
+        public UiSdkTasks(List<UiSdkTask> tasks) { this.tasks = tasks; }
+    }
+
+    /// <summary>任务列表单项</summary>
+    public class UiSdkTask
+    {
+        public string id { get; }
+        public string subject { get; }
+        public string status { get; }
+        public UiSdkTask(string id, string subject, string status)
+        { this.id = id; this.subject = subject; this.status = status; }
+    }
 }
