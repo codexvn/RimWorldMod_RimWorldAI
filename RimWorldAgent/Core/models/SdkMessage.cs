@@ -138,7 +138,7 @@ namespace RimWorldAgent.Core.CcbManager
 
             if (root.TryGetProperty("message", out var msg))
             {
-                var msgKnown = new HashSet<string> { "id", "type", "role", "content", "model", "stop_reason", "stop_sequence", "usage", "context_management" };
+                var msgKnown = new HashSet<string> { "id", "type", "role", "content", "model", "stop_reason", "stop_sequence", "usage", "context_management", "service_tier" };
                 ValidateFields(msg, msgKnown, rawJson);
 
                 MessageId = Str(msg, "id");
