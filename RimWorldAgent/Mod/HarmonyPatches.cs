@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using RimWorldAgent.Core.CcbManager;
 using Verse;
@@ -13,33 +14,44 @@ namespace RimWorldAgent
 
         static HarmonyPatches()
         {
+            // 纯日志：验证调用时机
+            TryPatch(typeof(Game), "DeinitAndRemoveMap", nameof(Postfix_DeinitAndRemoveMap));
+
+            // 主功能：退出存档时 Kill CCB
+            TryPatch(typeof(Verse.Profile.MemoryUtility), "ClearAllMapsAndWorld", nameof(Postfix_ClearAllMapsAndWorld));
+        }
+
+        private static void TryPatch(Type targetType, string methodName, string postfixMethod)
+        {
             try
             {
-                Log.Message("[agent-harmony] 开始安装 Harmony 补丁...");
-                _harmony.PatchAll();
-                var patched = _harmony.GetPatchedMethods().ToList();
-                Log.Message($"[agent-harmony] Harmony 补丁已安装，共 {patched.Count} 个方法");
-                foreach (var m in patched)
-                    Log.Message($"[agent-harmony]   - {m.DeclaringType?.FullName}.{m.Name}");
+                var original = AccessTools.Method(targetType, methodName);
+                if (original == null)
+                {
+                    var allMethods = targetType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+                        .Select(m => m.Name).Distinct().Take(20);
+                    Log.Warning($"[agent-harmony] 跳过 {targetType.FullName}.{methodName}: 方法不存在 (前20: {string.Join(", ", allMethods)})");
+                    return;
+                }
+                _harmony.Patch(original, postfix: new HarmonyMethod(typeof(HarmonyPatches), postfixMethod));
+                Log.Message($"[agent-harmony] Patch {targetType.Name}.{methodName} 成功");
             }
             catch (Exception ex)
             {
-                Log.Error($"[agent-harmony] 安装 Harmony 失败: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+                Log.Error($"[agent-harmony] Patch {targetType.FullName}.{methodName} 失败: {ex.GetType().Name}: {ex.Message}");
             }
         }
-    }
 
-    /// <summary>
-    /// <see cref="Game.ClearAllMapsAndWorld"/> — 退出当前游戏（返回主菜单）。
-    /// 与 <see cref="Game.DeinitAndRemoveMap"/> 不同，后者是 Map 类方法且不被调用。
-    /// </summary>
-    [HarmonyPatch(typeof(Game), "ClearAllMapsAndWorld")]
-    public static class Patch_Game_ClearAllMapsAndWorld
-    {
-        [HarmonyPostfix]
-        public static void Postfix()
+        // ===== 回调方法 =====
+
+        public static void Postfix_DeinitAndRemoveMap()
         {
-            Log.Message("[agent-harmony] Game.ClearAllMapsAndWorld → 退出到主菜单");
+            Log.Message("[agent-harmony] Game.DeinitAndRemoveMap 被调用");
+        }
+
+        public static void Postfix_ClearAllMapsAndWorld()
+        {
+            Log.Message("[agent-harmony] MemoryUtility.ClearAllMapsAndWorld → 退出到主菜单");
             try
             {
                 var gc = Current.Game?.GetComponent<GameComponent_RimWorldAgent>();
