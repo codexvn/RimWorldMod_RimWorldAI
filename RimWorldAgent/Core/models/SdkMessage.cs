@@ -299,10 +299,10 @@ namespace RimWorldAgent.Core.CcbManager
     {
         [JsonPropertyName("id")] public string Id { get; set; } = "";
         [JsonPropertyName("name")] public string Name { get; set; } = "";
-        /// <summary>工具调用参数原始 JSON（SDK 以对象形式发送）</summary>
-        [JsonPropertyName("input")] public JsonElement? InputRaw { get; set; }
-        /// <summary>工具调用参数（JSON 字符串，由 Converter 从 InputRaw 转换）</summary>
-        [JsonIgnore] public string InputStr { get; set; } = "{}";
+        /// <summary>工具调用参数（JSON 字符串，SDK 以对象形式发送，由 RawJsonConverter 转换）</summary>
+        [JsonPropertyName("input")]
+        [JsonConverter(typeof(RawJsonConverter))]
+        public string Input { get; set; } = "{}";
         public SdkToolUseBlock() { BlockType = "tool_use"; }
     }
 
@@ -319,24 +319,35 @@ namespace RimWorldAgent.Core.CcbManager
     {
         [JsonPropertyName("tool_use_id")] public string? ToolUseId { get; set; }
         [JsonPropertyName("is_error")] public bool IsError { get; set; }
-        /// <summary>SDK 原始 content 字段（string / array / object 三种格式）</summary>
-        [JsonPropertyName("content")] public JsonElement? ContentRaw { get; set; }
-        /// <summary>工具执行返回的内容（由 Converter 从 ContentRaw 解析为字符串）</summary>
-        [JsonIgnore] public string ContentStr { get; set; } = "";
+        /// <summary>工具执行返回的内容（字符串 / 数组 / 对象，由 RawJsonConverter 自动展平为文本）</summary>
+        [JsonPropertyName("content")]
+        [JsonConverter(typeof(RawJsonConverter))]
+        public string Content { get; set; } = "";
         public SdkToolResultBlock() { BlockType = "tool_result"; }
-        internal static string ParseContent(JsonElement cnt)
+    }
+
+    // ===== 自定义转换器 =====
+
+    /// <summary>JSON 任意值 → 字符串。对象/数组返回原始 JSON 文本，字符串返回内容。</summary>
+    internal class RawJsonConverter : JsonConverter<string>
+    {
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (cnt.ValueKind == JsonValueKind.String) return cnt.GetString() ?? "";
-            if (cnt.ValueKind == JsonValueKind.Array)
+            switch (reader.TokenType)
             {
-                var c = "";
-                foreach (var item in cnt.EnumerateArray())
-                    if (item.TryGetProperty("text", out var txt)) c += txt.GetString();
-                return c;
+                case JsonTokenType.String:
+                    return reader.GetString();
+                case JsonTokenType.Null:
+                    reader.GetString(); // consume
+                    return "";
+                default:
+                    using (var doc = JsonDocument.ParseValue(ref reader))
+                        return doc.RootElement.GetRawText();
             }
-            if (cnt.ValueKind != JsonValueKind.Undefined) return cnt.GetRawText();
-            return "";
         }
+
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value);
     }
 
     // ===== ContentBlock 多态反序列化器 =====
@@ -348,27 +359,14 @@ namespace RimWorldAgent.Core.CcbManager
             using var doc = JsonDocument.ParseValue(ref reader);
             var root = doc.RootElement;
             var bt = root.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
-            switch (bt)
+            return bt switch
             {
-                case "text":
-                    return JsonSerializer.Deserialize<SdkTextBlock>(root.GetRawText(), options);
-                case "tool_use":
-                    var tu = JsonSerializer.Deserialize<SdkToolUseBlock>(root.GetRawText(), options);
-                    if (tu == null) return new SdkToolUseBlock();
-                    tu.BlockType = "tool_use";
-                    tu.InputStr = tu.InputRaw?.GetRawText() ?? "{}";
-                    return tu;
-                case "thinking":
-                    return JsonSerializer.Deserialize<SdkThinkingBlock>(root.GetRawText(), options);
-                case "tool_result":
-                    var tr = JsonSerializer.Deserialize<SdkToolResultBlock>(root.GetRawText(), options);
-                    if (tr == null) return new SdkToolResultBlock();
-                    tr.BlockType = "tool_result";
-                    tr.ContentStr = SdkToolResultBlock.ParseContent(tr.ContentRaw.GetValueOrDefault());
-                    return tr;
-                default:
-                    return new SdkTextBlock("(unknown content type)");
-            }
+                "text" => JsonSerializer.Deserialize<SdkTextBlock>(root.GetRawText(), options),
+                "tool_use" => JsonSerializer.Deserialize<SdkToolUseBlock>(root.GetRawText(), options),
+                "thinking" => JsonSerializer.Deserialize<SdkThinkingBlock>(root.GetRawText(), options),
+                "tool_result" => JsonSerializer.Deserialize<SdkToolResultBlock>(root.GetRawText(), options),
+                _ => new SdkTextBlock("(unknown content type)")
+            };
         }
 
         public override void Write(Utf8JsonWriter writer, SdkContentBlock value, JsonSerializerOptions options)
