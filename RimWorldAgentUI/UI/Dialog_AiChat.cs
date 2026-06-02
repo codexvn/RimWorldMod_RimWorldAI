@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using RimWorld;
 using UnityEngine;
@@ -597,23 +598,37 @@ namespace RimWorldAgent
                 return;
             }
 
+            // 已完成的任务排到最后
+            var sorted = tasks.OrderBy(t => t.Status == "completed" ? 1 : 0).ToList();
+
             float itemH = 20f;
-            float totalH = tasks.Count * (itemH + 2f) + 4f;
+            float totalH = sorted.Count * (itemH + 2f) + 4f;
             float contentW = scrollRect.width - 16f;
 
             Rect viewRect = new Rect(0f, 0f, contentW, Mathf.Max(totalH, scrollRect.height));
             Widgets.BeginScrollView(scrollRect, ref _taskScrollPos, viewRect);
 
             float curY = 2f;
-            for (int idx = 0; idx < tasks.Count; idx++)
+            for (int idx = 0; idx < sorted.Count; idx++)
             {
-                var item = tasks[idx];
+                var item = sorted[idx];
 
-                string icon = item.Status == "in_progress" ? "▶" : "○";
-                Color iconColor = item.Status == "in_progress"
-                    ? new Color(0.7f, 0.6f, 0.35f)
-                    : new Color(0.45f, 0.45f, 0.45f);
-                Color textColor = new Color(0.75f, 0.75f, 0.75f);
+                string icon; Color iconColor;
+                if (item.Status == "completed")
+                {
+                    icon = "✓"; iconColor = new Color(0.3f, 0.7f, 0.35f);
+                }
+                else if (item.Status == "in_progress")
+                {
+                    icon = "▶"; iconColor = new Color(0.7f, 0.6f, 0.35f);
+                }
+                else
+                {
+                    icon = "○"; iconColor = new Color(0.45f, 0.45f, 0.45f);
+                }
+                Color textColor = item.Status == "completed"
+                    ? new Color(0.45f, 0.45f, 0.45f)
+                    : new Color(0.75f, 0.75f, 0.75f);
 
                 Rect rowRect = new Rect(2f, curY, contentW - 4f, itemH);
                 if (idx % 2 == 0)
@@ -623,7 +638,9 @@ namespace RimWorldAgent
                 GUI.color = iconColor;
                 Widgets.Label(new Rect(rowRect.x + 2f, rowRect.y + 2f, 16f, 16f), icon);
 
-                string label = item.Status == "in_progress" ? $"[进行中] {item.Subject}" : item.Subject;
+                string label = item.Status == "in_progress" ? $"[进行中] {item.Subject}"
+                    : item.Status == "completed" ? item.Subject
+                    : item.Subject;
                 GUI.color = textColor;
                 Widgets.Label(new Rect(rowRect.x + 20f, rowRect.y + 2f, rowRect.width - 22f, 16f),
                     label ?? "");
