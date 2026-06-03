@@ -30,12 +30,13 @@ namespace RimWorldAgent.Core.AgentRuntime
                         // 会话真实耗时（per-assistant 的 Record 调用中 durationMs 始终为 0）
                         TokenUsageTracker.Record(0, 0, 0, 0, rm.DurationMs ?? 0);
                         break;
-                    case SdkSystemMessage sm:
-                        if (sm.Subtype == "init")
-                            result.Add(UiMessage.SystemInit(sm.Model, sm.SessionId,
-                                sm.ClaudeCodeVersion, sm.PermissionMode,
-                                sm.McpServers.Select(m => new UiMcpServerRef(m.Name, m.Status)).ToList(),
-                                sm.Tools, sm.Skills));
+                    case SdkSystemInitMessage init:
+                        result.Add(UiMessage.SystemInit(init.Model, init.SessionId,
+                            init.ClaudeCodeVersion, init.PermissionMode,
+                            init.McpServers.Select(m => new UiMcpServerRef(m.Name, m.Status)).ToList(),
+                            init.Tools, init.Skills));
+                        break;
+                    case SdkSystemMessage _:
                         break;
                     case SdkAbortedMessage _:
                         result.Add(UiMessage.Aborted());

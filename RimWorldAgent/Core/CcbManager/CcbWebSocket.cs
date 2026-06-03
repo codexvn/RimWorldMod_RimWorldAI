@@ -251,18 +251,18 @@ public class CcbWebSocket : IDisposable
                     OnAborted?.Invoke();
                     break;
 
-                case SdkSystemMessage sm:
-                    if (sm.Subtype == "init")
-                    {
-                        TokenUsageTracker.CurrentModel = sm.Model ?? "";
-                        _ttftLogged = false;
-                    }
-                    else if (sm.Subtype == "status")
-                    {
-                        var isCompacting = sm.Status == "compacting";
-                        AgentOrchestrator.IsCompacting = isCompacting;
-                        UIMessageBus.PushUiMessage(UiMessage.CompactionStatus(isCompacting));
-                    }
+                case SdkSystemInitMessage init:
+                    TokenUsageTracker.CurrentModel = init.Model ?? "";
+                    _ttftLogged = false;
+                    break;
+
+                case SdkSystemStatusMessage status:
+                    var isCompacting = status.Status == "compacting";
+                    AgentOrchestrator.IsCompacting = isCompacting;
+                    UIMessageBus.PushUiMessage(UiMessage.CompactionStatus(isCompacting));
+                    break;
+
+                case SdkSystemMessage _:
                     break;
 
                 case SdkUnknownMessage unk:

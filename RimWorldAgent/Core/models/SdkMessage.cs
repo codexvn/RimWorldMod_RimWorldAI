@@ -93,7 +93,7 @@ namespace RimWorldAgent.Core.CcbManager
                 "assistant" => JsonSerializer.Deserialize<SdkAssistantMessage>(bodyJson, SdkMessageSerializer.Options),
                 "stream_event" => JsonSerializer.Deserialize<SdkStreamEventMessage>(bodyJson, SdkMessageSerializer.Options),
                 "result" => JsonSerializer.Deserialize<SdkResultMessage>(bodyJson, SdkMessageSerializer.Options),
-                "system" => JsonSerializer.Deserialize<SdkSystemMessage>(bodyJson, SdkMessageSerializer.Options),
+                "system" => SdkSystemMessage.FromJson(bodyJson, rawJson),
                 "user" => JsonSerializer.Deserialize<SdkUserMessage>(bodyJson, SdkMessageSerializer.Options),
                 "hello-ok" => JsonSerializer.Deserialize<SdkHelloOkMessage>(bodyJson, SdkMessageSerializer.Options),
                 "aborted" => JsonSerializer.Deserialize<SdkAbortedMessage>(bodyJson, SdkMessageSerializer.Options),
@@ -194,34 +194,12 @@ namespace RimWorldAgent.Core.CcbManager
     }
 
     /// <summary>
-    /// system 消息 — 系统生命周期事件。
-    /// 子类型包括 init（初始化配置）、status（运行状态变更）、compact_boundary（上下文压缩分界）等。
+    /// system 消息 — 系统生命周期事件（抽象基类）。
+    /// 子类型按 subtype 分发到具体子类（SdkSystemInitMessage 等）。
     /// </summary>
-    public class SdkSystemMessage : SdkMessage
+    public abstract partial class SdkSystemMessage : SdkMessage
     {
         [JsonPropertyName("subtype")] public string Subtype { get; set; } = "";
-        // init 字段
-        [JsonPropertyName("model")] public string? Model { get; set; }
-        [JsonPropertyName("claude_code_version")] public string? ClaudeCodeVersion { get; set; }
-        [JsonPropertyName("permissionMode")] public string? PermissionMode { get; set; }
-        [JsonPropertyName("cwd")] public string? Cwd { get; set; }
-        [JsonPropertyName("apiKeySource")] public string? ApiKeySource { get; set; }
-        [JsonPropertyName("tools")] public List<string> Tools { get; set; } = new();
-        [JsonPropertyName("skills")] public List<string> Skills { get; set; } = new();
-        [JsonPropertyName("mcp_servers")] public List<SdkMcpServerInfo> McpServers { get; set; } = new();
-        [JsonPropertyName("slash_commands")] public List<string> SlashCommands { get; set; } = new();
-        [JsonPropertyName("output_style")] public string? OutputStyle { get; set; }
-        [JsonPropertyName("agents")] public List<string> Agents { get; set; } = new();
-        [JsonPropertyName("plugins")] public List<SdkPluginInfo> Plugins { get; set; } = new();
-        [JsonPropertyName("betas")] public List<string> Betas { get; set; } = new();
-        [JsonPropertyName("fast_mode_state")] public string? FastModeState { get; set; }
-        [JsonPropertyName("analytics_disabled")] public bool? AnalyticsDisabled { get; set; }
-        [JsonPropertyName("product_feedback_disabled")] public bool? ProductFeedbackDisabled { get; set; }
-        [JsonPropertyName("memory_paths")] public SdkMemoryPaths? MemoryPaths { get; set; }
-        // status 字段
-        [JsonPropertyName("status")] public string? Status { get; set; }
-        // compact_boundary 字段
-        [JsonPropertyName("compact_metadata")] public SdkCompactMetadata? CompactMetadata { get; set; }
     }
 
     /// <summary>

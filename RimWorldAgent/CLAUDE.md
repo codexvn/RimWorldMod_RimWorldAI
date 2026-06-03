@@ -25,6 +25,8 @@ RimWorldAgent/
 │   │   ├── InternalToolRegistry.cs ★ 内部工具注册 + Skill 加载（IToolProvider）
 │   │   └── Tools/                 7 个内部工具 + ProxyToolProvider
 │   ├── models/                  ★ 类型定义 — SdkMessage / UiMessage / ChatChannel
+│   │   ├── SdkMessage.cs          SDK 消息模型 + 内容块 + 辅助类型
+│   │   └── SdkSystemMessages.cs   System 消息子类（15 subtype × 1 兜底）
 │   ├── Data/                    ★ 数据抽象层 — IDbStore + IConversationStore (ConversationEntry / MemoryConvStore / SqliteConvStore / UiHistoryFormatter)
 │   ├── Mcp/                     MCP 客户端 + Agent MCP Server (:9878)
 │   ├── CcbManager/              CCB 子进程管理 + CcbWebSocket + TokenUsageTracker
@@ -231,7 +233,23 @@ SdkMessage (abstract)
 ├── SdkAssistantMessage  { Content[], Usage, Model, StopReason, Error }
 ├── SdkStreamEventMessage { ParentToolUseId, Index, Event }
 ├── SdkResultMessage      { Subtype, IsError, NumTurns, DurationMs, Usage, Result, TotalCostUsd }
-├── SdkSystemMessage      { Subtype, Model, SessionId, ClaudeCodeVersion, Tools[], Skills[], McpServers[] }
+├── SdkSystemMessage      { Subtype } ★ abstract
+│   ├── SdkSystemInitMessage           { Model, ClaudeCodeVersion, PermissionMode, Cwd, ApiKeySource, Tools[], Skills[], McpServers[], SlashCommands[], OutputStyle, Agents[], Plugins[], Betas[], FastModeState?, AnalyticsDisabled?, ProductFeedbackDisabled?, MemoryPaths? }
+│   ├── SdkSystemStatusMessage         { Status?, PermissionMode? }
+│   ├── SdkSystemCompactBoundaryMessage { CompactMetadata? }
+│   ├── SdkApiRetryMessage             { Attempt, MaxRetries, RetryDelayMs, ErrorStatus?, Error? }
+│   ├── SdkSessionStateChangedMessage  { State }
+│   ├── SdkPostTurnSummaryMessage      { SummarizesUuid, StatusCategory, StatusDetail, IsNoteworthy, Title, Description, RecentAction, NeedsAction, ArtifactUrls[] }
+│   ├── SdkTaskNotificationMessage     { TaskId, ToolUseId?, Status, OutputFile, Summary, Usage? }
+│   ├── SdkTaskStartedMessage          { TaskId, ToolUseId?, Description, TaskType?, WorkflowName?, Prompt? }
+│   ├── SdkTaskProgressMessage         { TaskId, ToolUseId?, Description, Usage, LastToolName?, Summary? }
+│   ├── SdkHookStartedMessage          { HookId, HookName, HookEvent }
+│   ├── SdkHookProgressMessage         { HookId, HookName, HookEvent, Stdout, Stderr, Output }
+│   ├── SdkHookResponseMessage         { HookId, HookName, HookEvent, Output, Stdout, Stderr, ExitCode?, Outcome }
+│   ├── SdkFilesPersistedMessage       { Files[], Failed[], ProcessedAt }
+│   ├── SdkLocalCommandOutputMessage   { Content }
+│   ├── SdkElicitationCompleteMessage  { McpServerName, ElicitationId }
+│   └── SdkSystemFallbackMessage       { RawBody } ← 未知 subtype 兜底
 ├── SdkUserMessage        { Content[], ParentToolUseId, IsSynthetic, Priority }
 ├── SdkAbortedMessage     { }
 ├── SdkHelloOkMessage     { }
@@ -336,7 +354,7 @@ SdkMessage (abstract)
 ├── SdkAssistantMessage   { ParentToolUseId, Error, Content[], Usage?, Model, StopReason, StopSequence }
 ├── SdkStreamEventMessage  { ParentToolUseId, Index, Event }
 ├── SdkResultMessage       { Subtype, StopReason, IsError, NumTurns, DurationMs, DurationApiMs, Result, TotalCostUsd, Usage? }
-├── SdkSystemMessage       { Subtype, Model?, SessionId?, ClaudeCodeVersion?, PermissionMode?, Cwd?, ApiKeySource?, Tools[], Skills[], McpServers[] }
+├── SdkSystemMessage       { Subtype } ★ abstract — 15 种子类型按 subtype 分发，见下表
 ├── SdkUserMessage         { ParentToolUseId, IsSynthetic, Priority, Content[] }
 ├── SdkAbortedMessage      { }
 ├── SdkHelloOkMessage      { }
@@ -379,13 +397,26 @@ SdkMessage (abstract)
 | Usage | SdkUsage? | 会话聚合 Token 统计（**当前未消费**；per-assistant Usage 已消费） |
 | [known] | modelUsage, permission_denials, errors, structured_output, fast_mode_state | SDK 发出，当前未解析 |
 
-**SdkSystemMessage** — 系统生命周期事件。
-| Subtype | 携带字段 | 消费情况 |
-|---------|---------|---------|
-| `init` | Model, SessionId, ClaudeCodeVersion, PermissionMode, Cwd, ApiKeySource, Tools[], Skills[], McpServers[], slash_commands, output_style, agents, plugins, betas, fast_mode_state, analytics_disabled, product_feedback_disabled, memory_paths | Model→TokenUsageTracker.CurrentModel, Model+SessionId→UiSystemInit UI 推送 |
-| `status` | status ("compacting"\|null), permissionMode | **状态变更，当前未消费** |
-| `compact_boundary` | compact_metadata {trigger, pre_tokens, preserved_segment} | ★ 上下文压缩分界，**当前未消费** |
-| 其他 (14+) | task_notification, task_started, task_progress, session_state_changed, api_retry, hook_started/progress/response, files_persisted, elicitation_complete, local_command_output, post_turn_summary | **全部未消费** |
+**SdkSystemMessage** — 系统生命周期事件（抽象基类，C# 类 `SdkSystemMessage` 仅含 `Subtype`，按值分发到具体子类）。
+
+| Subtype | C# 类 | 字段 | 消费情况 |
+|---------|-------|------|---------|
+| `init` | `SdkSystemInitMessage` | Model, ClaudeCodeVersion, PermissionMode, Cwd, ApiKeySource, Tools[], Skills[], McpServers[], SlashCommands[], OutputStyle, Agents[], Plugins[], Betas[], FastModeState?, AnalyticsDisabled?, ProductFeedbackDisabled?, MemoryPaths? | Model→CurrentModel, Model+SessionId→UiSystemInit 推送 |
+| `status` | `SdkSystemStatusMessage` | Status ("compacting"\|null), PermissionMode? | IsCompacting + CompactionStatus 推送 |
+| `compact_boundary` | `SdkSystemCompactBoundaryMessage` | CompactMetadata {trigger, pre_tokens, preserved_segment} | ★ 上下文压缩分界，**未消费** |
+| `api_retry` | `SdkApiRetryMessage` | Attempt, MaxRetries, RetryDelayMs, ErrorStatus?, Error? | **字段已解析，未消费** |
+| `session_state_changed` | `SdkSessionStateChangedMessage` | State (idle/running/requires_action) | **未消费** |
+| `post_turn_summary` | `SdkPostTurnSummaryMessage` | SummarizesUuid, StatusCategory, StatusDetail, IsNoteworthy, Title, Description, RecentAction, NeedsAction, ArtifactUrls[] | **未消费** |
+| `task_notification` | `SdkTaskNotificationMessage` | TaskId, ToolUseId?, Status, OutputFile, Summary, Usage? | **未消费** |
+| `task_started` | `SdkTaskStartedMessage` | TaskId, ToolUseId?, Description, TaskType?, WorkflowName?, Prompt? | **未消费** |
+| `task_progress` | `SdkTaskProgressMessage` | TaskId, ToolUseId?, Description, Usage, LastToolName?, Summary? | **未消费** |
+| `hook_started` | `SdkHookStartedMessage` | HookId, HookName, HookEvent | **未消费** |
+| `hook_progress` | `SdkHookProgressMessage` | HookId, HookName, HookEvent, Stdout, Stderr, Output | **未消费** |
+| `hook_response` | `SdkHookResponseMessage` | HookId, HookName, HookEvent, Output, Stdout, Stderr, ExitCode?, Outcome | **未消费** |
+| `files_persisted` | `SdkFilesPersistedMessage` | Files[], Failed[], ProcessedAt | **未消费** |
+| `local_command_output` | `SdkLocalCommandOutputMessage` | Content | **未消费** |
+| `elicitation_complete` | `SdkElicitationCompleteMessage` | McpServerName, ElicitationId | **未消费** |
+| 其他未知 | `SdkSystemFallbackMessage` | RawBody (原始 JSON) + `[JsonExtensionData]` | WARN 日志 |
 
 **SdkUserMessage** — SDK 回显的用户消息。
 | 字段 | 类型 | 说明 |
