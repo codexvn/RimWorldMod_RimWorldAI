@@ -23,6 +23,9 @@ namespace RimWorldAgent.Core.CcbManager
         private readonly string _budgetAction;
         private bool _ready;
         private IntPtr _jobHandle = IntPtr.Zero;
+        private bool _starting; // 防止 Start() 重入
+        private int _lastRestartTick; // 上次重启的 Environment.TickCount，防抖
+        private const int RestartCooldownMs = 3000; // 重启冷却 3s
 
         public bool IsReady => _ready;
         /// <summary>TickAndRestart 重启了 companion 进程时为 true，调用方检查后应清除</summary>
@@ -43,6 +46,17 @@ namespace RimWorldAgent.Core.CcbManager
         }
 
         public bool Start()
+        {
+            if (_starting) { CoreLog.Info("[CcbManager] Start() 已在执行中，跳过重入"); return false; }
+            _starting = true;
+            try
+            {
+                return StartCore();
+            }
+            finally { _starting = false; }
+        }
+
+        private bool StartCore()
         {
             if (string.IsNullOrEmpty(_nodeExe) || !Directory.Exists(_companionDir))
             {
@@ -128,8 +142,15 @@ namespace RimWorldAgent.Core.CcbManager
                     }
                 };
                 _process.ErrorDataReceived += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) CoreLog.Error($"[ccb] {e.Data}"); };
-                _process.BeginOutputReadLine();
-                _process.BeginErrorReadLine();
+
+                // BeginOutputReadLine / BeginErrorReadLine 在 .NET Framework 中可能因管道竞态抛出
+                // "An async read operation has already been started on the stream"
+                // 逐个 try-catch，一个失败不影响另一个
+                try { _process.BeginOutputReadLine(); }
+                catch (Exception ex) { CoreLog.Error($"[CcbManager] BeginOutputReadLine 失败: {ex.GetType().Name}: {ex.Message}"); }
+
+                try { _process.BeginErrorReadLine(); }
+                catch (Exception ex) { CoreLog.Error($"[CcbManager] BeginErrorReadLine 失败: {ex.GetType().Name}: {ex.Message}"); }
 
                 // 写 PID 文件，供进程残留清理
                 WritePidFile(_process.Id);
@@ -137,7 +158,17 @@ namespace RimWorldAgent.Core.CcbManager
                 CoreLog.Info($"[CcbManager] 已启动 (PID={_process.Id}, port={_ccbPort})");
                 return true;
             }
-            catch (Exception ex) { CoreLog.Error($"[CcbManager] 启动异常: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"[CcbManager] 启动异常: {ex.GetType().Name}: {ex.Message}");
+                for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                    sb.Append($" ← {inner.GetType().Name}: {inner.Message}");
+                CoreLog.Error(sb.ToString());
+                // 确保 _process 在异常时也被清理
+                if (_process != null) { try { _process.Dispose(); } catch (Exception exDispose) { CoreLog.Info($"[CcbManager] Dispose _process 异常: {exDispose.GetType().Name}: {exDispose.Message}"); } _process = null; }
+                return false;
+            }
         }
 
         public async Task<bool> WaitReadyAsync(int waitMs = 15000)
@@ -152,15 +183,25 @@ namespace RimWorldAgent.Core.CcbManager
             return _ready;
         }
 
-        /// <summary>每帧检测进程崩溃，自动重拉</summary>
+        /// <summary>每帧检测进程崩溃，自动重拉（带 3s 冷却防抖）</summary>
         public bool TickAndRestart()
         {
             if (_process == null || _process.HasExited)
             {
+                // 防抖：3s 内不重复重启，避免高频崩溃循环
+                var now = Environment.TickCount;
+                if (_lastRestartTick != 0 && unchecked(now - _lastRestartTick) < RestartCooldownMs)
+                    return false;
+                _lastRestartTick = now;
+
                 if (_process != null)
                 {
-                    var exitCode = _process.ExitCode;
-                    CoreLog.Error($"[CcbManager] 进程异常退出 (code={exitCode})，重启...");
+                    try
+                    {
+                        var exitCode = _process.ExitCode;
+                        CoreLog.Error($"[CcbManager] 进程异常退出 (code={exitCode})，重启...");
+                    }
+                    catch (Exception ex) { CoreLog.Error($"[CcbManager] 读取退出码异常: {ex.GetType().Name}: {ex.Message}"); }
                 }
                 Stop();
                 WasRestarted = true;
