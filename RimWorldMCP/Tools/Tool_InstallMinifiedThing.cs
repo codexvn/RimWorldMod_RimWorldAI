@@ -22,7 +22,8 @@ namespace RimWorldMCP.Tools
                 pos_x = new { type = "integer", description = "目标 X 坐标（水平网格）" },
                 pos_y = new { type = "integer", description = "目标 Y 坐标（垂直网格）" },
                 rotation = new { type = "string", description = "旋转方向", @enum = new[] { "North", "East", "South", "West" } },
-                ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" }
+                ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" },
+                check_plan = new { type = "boolean", description = "检查目标是否在规划区域内（默认 true），传 false 跳过检测" }
             },
             required = new[] { "thing_id", "pos_x", "pos_y" }
         });
@@ -44,6 +45,9 @@ namespace RimWorldMCP.Tools
             bool ignore_unreachable = false;
             if (args.Value.TryGetProperty("ignore_unreachable", out var jIgnore) && jIgnore.ValueKind == JsonValueKind.True)
                 ignore_unreachable = true;
+            bool checkPlan = true;
+            if (args.Value.TryGetProperty("check_plan", out var jCP) && jCP.ValueKind == JsonValueKind.False)
+                checkPlan = false;
 
             Rot4 rot = rotationStr switch
             {
@@ -80,6 +84,9 @@ namespace RimWorldMCP.Tools
                         false, minifiedThing, innerThing, null, false, false, false);
                     if (!canPlace.Accepted)
                         return ToolResult.Error($"无法在 ({posX}, {posY}) 安装 {innerThing.Label}：{canPlace.Reason}");
+
+                    if (checkPlan && map.planManager.PlanAt(targetCell) == null)
+                        return ToolResult.Error($"({posX}, {posY}) 不在任何规划区域内，拒绝安装。请先用 plan_add 添加规划标记，或传 check_plan=false 跳过此检测。");
 
                     // 取消已有蓝图
                     InstallBlueprintUtility.CancelBlueprintsFor(minifiedThing);

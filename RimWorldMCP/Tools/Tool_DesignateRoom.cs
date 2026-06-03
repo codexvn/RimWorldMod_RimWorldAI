@@ -30,7 +30,8 @@ namespace RimWorldMCP.Tools
                 door_defName = new { type = "string", description = "门的 DefName，默认 Door", @default = "Door" },
                 floor_defName = new { type = "string", description = "地板 DefName，可选" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" },
-                ignore_overwrite = new { type = "boolean", description = "跳过内部人造墙体冲突检测（默认 false）。默认会检查房间内部是否有其他人造墙体（坐标交叉错误），检测到则拒绝建造。设为 true 可强制覆盖。天然岩壁始终忽略。" }
+                ignore_overwrite = new { type = "boolean", description = "跳过内部人造墙体冲突检测（默认 false）。默认会检查房间内部是否有其他人造墙体（坐标交叉错误），检测到则拒绝建造。设为 true 可强制覆盖。天然岩壁始终忽略。" },
+                check_plan = new { type = "boolean", description = "检查墙体位置是否在规划区域内（默认 true），传 false 跳过检测" }
             },
             required = new[] { "pos_x", "pos_y", "end_x", "end_y" }
         });
@@ -66,6 +67,9 @@ namespace RimWorldMCP.Tools
             bool ignore_overwrite = false;
             if (args.Value.TryGetProperty("ignore_overwrite", out var jIgnoreOver) && jIgnoreOver.ValueKind == JsonValueKind.True)
                 ignore_overwrite = true;
+            bool checkPlan = true;
+            if (args.Value.TryGetProperty("check_plan", out var jCP) && jCP.ValueKind == JsonValueKind.False)
+                checkPlan = false;
 
             // 计算房间几何（不涉及游戏状态，可在任意线程执行）
             int minX = Math.Min(rawStartX, rawEndX);
@@ -196,7 +200,17 @@ namespace RimWorldMCP.Tools
                                 conflictWalls.Add($"({x},{z}) {edifice.def.label}");
                             }
                         }
-                        if (conflictWalls.Count > 0)
+                        // 规划区域检测
+                    if (checkPlan)
+                    {
+                        var noPlanCells = wallPositions
+                            .Where(wp => map.planManager.PlanAt(new IntVec3(wp.x, 0, wp.y)) == null)
+                            .Take(5).Select(wp => $"({wp.x},{wp.y})").ToList();
+                        if (noPlanCells.Count > 0)
+                            return ToolResult.Error($"以下墙体位置不在规划区域内：{string.Join(", ", noPlanCells)}。请先用 plan_add 添加规划标记，或传 check_plan=false 跳过此检测。");
+                    }
+
+                    if (conflictWalls.Count > 0)
                         {
                             var sb2 = new StringBuilder();
                             sb2.AppendLine($"⚠ 房间区域内发现 {conflictWalls.Count} 处人造墙体，坐标可能与已有建筑交叉：");

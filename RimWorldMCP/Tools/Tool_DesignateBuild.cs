@@ -25,6 +25,7 @@ namespace RimWorldMCP.Tools
                 rotation = new { type = "string", description = "旋转方向", @enum = new[] { "North", "East", "South", "West" } },
                 stuff_defName = new { type = "string", description = "建筑材料 DefName（可选），先用 search_thing_def(keyword=\"花岗岩\", flags=\"stuff\") 查可用材料" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" },
+                check_plan = new { type = "boolean", description = "检查目标是否在规划区域内（默认 true），传 false 跳过检测" },
             },
             required = new[] { "thingDef_name", "pos_x", "pos_y" }
         });
@@ -53,6 +54,9 @@ namespace RimWorldMCP.Tools
             bool ignore_unreachable = false;
             if (args.Value.TryGetProperty("ignore_unreachable", out var jIgnore) && jIgnore.ValueKind == JsonValueKind.True)
                 ignore_unreachable = true;
+            bool checkPlan = true;
+            if (args.Value.TryGetProperty("check_plan", out var jCP) && jCP.ValueKind == JsonValueKind.False)
+                checkPlan = false;
 
             return await McpCommandQueue.DispatchAsync(() =>
             {
@@ -127,6 +131,9 @@ namespace RimWorldMCP.Tools
                     var canPlace = designator.CanDesignateCell(pos);
                     if (!canPlace)
                         return ToolResult.Error($"无法在 ({posX}, {posY}) 放置 {def.label}：{canPlace.Reason}");
+
+                    if (checkPlan && Find.CurrentMap.planManager.PlanAt(pos) == null)
+                        return ToolResult.Error($"({posX}, {posY}) 不在任何规划区域内，拒绝建造。请先用 plan_add 添加规划标记，或传 check_plan=false 跳过此检测。");
 
                     if (!ignore_unreachable)
                     {
