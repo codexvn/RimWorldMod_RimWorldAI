@@ -14,9 +14,11 @@ namespace RimWorldAgent
         {
             // 退出存档时 Kill CCB（用 Prefix 在 ClearAllMapsAndWorld 执行前拿 GameComponent）
             TryPatch(typeof(Verse.Profile.MemoryUtility), "ClearAllMapsAndWorld", nameof(Prefix_ClearAllMapsAndWorld));
+            // UIRoot.UIRootUpdate() 覆盖 Entry/Menu/Play 全部状态，每帧刷新 SafeLog
+            TryPatch(typeof(UIRoot), "UIRootUpdate", nameof(Postfix_FlushSafeLog), postfix: true);
         }
 
-        private static void TryPatch(Type targetType, string methodName, string prefixMethod)
+        private static void TryPatch(Type targetType, string methodName, string patchMethod, bool postfix = false)
         {
             try
             {
@@ -26,8 +28,10 @@ namespace RimWorldAgent
                     SafeLog.Warning($"[agent-harmony] 跳过 {targetType.FullName}.{methodName}: 方法不存在");
                     return;
                 }
+                var method = new HarmonyMethod(typeof(HarmonyPatches), patchMethod);
                 _harmony.Patch(original,
-                    prefix: new HarmonyMethod(typeof(HarmonyPatches), prefixMethod));
+                    prefix: postfix ? null : method,
+                    postfix: postfix ? method : null);
                 SafeLog.Info($"[agent-harmony] Patch {targetType.Name}.{methodName} 成功");
             }
             catch (Exception ex)
@@ -37,6 +41,13 @@ namespace RimWorldAgent
         }
 
         // ===== 回调 =====
+
+        /// <summary>UIRoot 每帧 Postfix — 调用 SafeLog.Flush() 确保日志永不积压</summary>
+        public static void Postfix_FlushSafeLog()
+        {
+            try { SafeLog.Flush(); }
+            catch { /* 不允许破坏帧循环 */ }
+        }
 
         public static void Prefix_ClearAllMapsAndWorld()
         {
