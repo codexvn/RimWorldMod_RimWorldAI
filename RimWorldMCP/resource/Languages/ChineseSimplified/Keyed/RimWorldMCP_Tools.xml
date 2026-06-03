@@ -104,6 +104,7 @@
   <!-- 弹框 -->
   <RimWorldMCP_Tool_get_open_dialogs>弹框列表</RimWorldMCP_Tool_get_open_dialogs>
   <RimWorldMCP_Tool_select_dialog_option>选择弹框</RimWorldMCP_Tool_select_dialog_option>
+  <RimWorldMCP_Tool_capture_dialog_ascii>弹框ASCII视图</RimWorldMCP_Tool_capture_dialog_ascii>
 
   <!-- Skill -->
   <RimWorldMCP_Tool_get_skills>领域技能</RimWorldMCP_Tool_get_skills>
