@@ -80,7 +80,7 @@ namespace RimWorldMCP
                 var json = System.Text.Json.JsonSerializer.Serialize(new { type = "tick", tick });
                 SimpleMspServer.McpServiceHost.Instance?.SendEvent("game/tick", json);
             }
-            catch (Exception ex) { Verse.Log.Warning($"[McpServer] tick 推送失败: {ex.Message}"); }
+            catch (Exception ex) { McpLog.Warn($"tick 推送失败: {ex}"); }
         }
 
         private void StartMcpSession()
