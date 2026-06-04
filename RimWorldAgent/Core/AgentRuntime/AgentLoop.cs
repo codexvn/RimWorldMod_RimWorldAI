@@ -152,7 +152,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                     TokenUsageTracker.TotalAllTokens, BudgetLimit, "Block",
-                    TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens, TokenUsageTracker.TotalCacheCreateTokens));
+                    TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens, TokenUsageTracker.TotalCacheCreateTokens,
+                    0, TokenUsageTracker.CurrentInputTokens));
             };
 
             // 初始推送：budget 起始状态
@@ -206,7 +207,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                 db.TotalAllTokens, BudgetLimit, "Idle",
                 db.TotalCacheReadTokens, db.TotalInputTokens,
-                db.TotalCacheCreateTokens));
+                db.TotalCacheCreateTokens, 0, TokenUsageTracker.CurrentInputTokens));
         }
 
         /// <summary>MCP 游戏事件 → 按级别分流：Critical/Warning 中断，Info/Silent 仅 suffix</summary>
@@ -223,7 +224,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 var summary = $"[{evt.Severity}/{evt.Category}] {cleanSummary}";
 
                 // 所有级别都注入 suffix（AI 下次工具调用可见）
-                _ = AgentOrchestrator.NotisAgent(summary);
+                AgentOrchestrator.NotisAgent(summary);
                 ToolDispatcher.MarkNotifReceived();
 
                 if (evt.Level >= EventLevel.Warning)

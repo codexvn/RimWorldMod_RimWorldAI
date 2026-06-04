@@ -1,6 +1,4 @@
 using System;
-using System.Text.Json;
-using System.Threading.Tasks;
 using RimWorldAgent.Core.CcbManager;
 using RimWorldAgent.Core.models;
 
@@ -111,30 +109,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
         }
 
-        /// <summary>向 Agent 注入通知。优先 suffix 注入（AI 工具结果中看到），否则推送 UI 提示。</summary>
-        public static async Task NotisAgent(string notification)
+        /// <summary>向 Agent 注入通知。写入本地 suffix 缓冲，下次工具调用结果自动拼接。</summary>
+        public static void NotisAgent(string notification)
         {
             if (string.IsNullOrEmpty(notification)) return;
-
-            if (SessionMcp != null)
-            {
-                try
-                {
-                    var args = new System.Collections.Generic.Dictionary<string, JsonElement>
-                    {
-                        ["suffix"] = JsonSerializer.SerializeToElement(notification)
-                    };
-                    await SessionMcp.CallTool("set_tool_result_suffix", args);
-                    CoreLog.Info($"[NotisAgent] suffix 注入 ({notification.Length} 字符)");
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    CoreLog.Warn($"[NotisAgent] suffix 注入失败，降级为直接发送: {ex.Message}");
-                }
-            }
-
-            // 降级：推送到 UI（已无 companion 通道，通知走 suffix 注入主路径）
+            ToolDispatcher.EnqueueNotifSuffix(notification);
+            CoreLog.Info($"[NotisAgent] suffix 入队 ({notification.Length} 字符)");
         }
     }
 

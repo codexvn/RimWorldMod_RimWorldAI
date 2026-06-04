@@ -67,9 +67,9 @@ namespace RimWorldAgent.Core.AgentRuntime
             // Token 用量
             if (msg.Usage != null)
             {
+                TokenUsageTracker.CurrentInputTokens = msg.Usage.InputTokens;
                 TokenUsageTracker.Record(msg.Usage.InputTokens, msg.Usage.OutputTokens,
                     msg.Usage.CacheReadInputTokens ?? 0, msg.Usage.CacheCreationInputTokens ?? 0, 0);
-                TokenUsageTracker.CurrentInputTokens = msg.Usage.InputTokens;
             }
 
             // 积累 text + thinking 文本，用于会话录制

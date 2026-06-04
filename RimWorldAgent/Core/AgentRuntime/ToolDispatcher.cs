@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +75,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static int WorldSummaryRefreshInterval = 30;
 
         private static int _notifReceivedCount;
+        private static readonly ConcurrentQueue<string> _notifSuffixes = new ConcurrentQueue<string>();
 
         private static readonly List<Reminder> _reminders = new();
         public static IReadOnlyList<Reminder> Reminders => _reminders.AsReadOnly();
@@ -165,6 +168,22 @@ namespace RimWorldAgent.Core.AgentRuntime
             TrackToolUse(toolName, input);
         }
 
+        /// <summary>添加通知 suffix（本地操作，无 MCP 往返）</summary>
+        public static void EnqueueNotifSuffix(string suffix)
+        {
+            if (!string.IsNullOrEmpty(suffix))
+                _notifSuffixes.Enqueue(suffix);
+        }
+
+        /// <summary>消费所有待注入通知 suffix</summary>
+        private static string DrainNotifSuffixes()
+        {
+            var sb = new StringBuilder();
+            while (_notifSuffixes.TryDequeue(out var s))
+                sb.Append("\n\n").Append(s);
+            return sb.ToString();
+        }
+
         public static async Task<string> BuildModeSuffixAsync()
         {
             var phase = AgentOrchestrator.CurrentPhase switch
@@ -188,7 +207,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             foreach (var r in _reminders) r.Tick();
 
             // 组装后缀
-            var suffix = new System.Text.StringBuilder();
+            var suffix = new StringBuilder();
+            // 通知 suffix（一次性，无 MCP 往返）
+            var notifSuffix = DrainNotifSuffixes();
+            if (notifSuffix.Length > 0)
+                suffix.Append(notifSuffix);
             suffix.Append($"\n\n---\n当前模式: {phase}");
             foreach (var r in _reminders)
             {

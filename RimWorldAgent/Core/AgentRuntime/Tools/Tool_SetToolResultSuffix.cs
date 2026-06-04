@@ -1,10 +1,9 @@
-using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace RimWorldAgent.Core.AgentRuntime.Tools
 {
-    /// <summary>设置 MCP 工具结果后缀，之后每次工具调用结果末尾自动追加此文本</summary>
+    /// <summary>设置工具结果后缀（一次性），直接写入本地缓冲，无 MCP 往返</summary>
     public class Tool_SetToolResultSuffix : IInternalTool
     {
         public string Name => "set_tool_result_suffix";
@@ -20,28 +19,13 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             required = new[] { "suffix" }
         });
 
-        public async Task<(string result, bool exit)> ExecuteAsync(JsonElement? args)
+        public Task<(string result, bool exit)> ExecuteAsync(JsonElement? args)
         {
             if (args == null || !args.Value.TryGetProperty("suffix", out var suffixEl) || string.IsNullOrWhiteSpace(suffixEl.GetString()))
-                return ("suffix 不能为空。", false);
+                return Task.FromResult(("suffix 不能为空。", false));
             var suffix = suffixEl.GetString()!;
-            var mcp = AgentOrchestrator.SessionMcp;
-            if (mcp == null) return ("MCP 连接不可用，无法设置后缀。", false);
-
-            try
-            {
-                var mcpArgs = new Dictionary<string, JsonElement>
-                {
-                    ["suffix"] = JsonSerializer.SerializeToElement(suffix)
-                };
-                var result = await mcp.CallTool("set_tool_result_suffix", mcpArgs);
-                return (result, false);
-            }
-            catch (System.Exception ex)
-            {
-                CoreLog.Error($"[SetToolResultSuffix] 调用 MCP 失败: {ex.Message}");
-                return ($"设置后缀失败: {ex.Message}", false);
-            }
+            ToolDispatcher.EnqueueNotifSuffix(suffix);
+            return Task.FromResult(($"工具结果后缀已设置（{suffix.Length} 字符）。", false));
         }
     }
 }
