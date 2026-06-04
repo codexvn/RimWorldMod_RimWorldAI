@@ -63,11 +63,11 @@ namespace RimWorldMCP.Harmony
         {
             Pending.Enqueue(n);
             McpLog.Info($"[notify] + {n.Type} danger={n.DangerLabel} pri={n.Priority} label={n.Label}");
-            if (!HighDangerPending && GetEventLevel(n.Type, n.DangerLabel) == EventLevel.Critical)
+            if (!HighDangerPending && GetEventLevel(n.Type, n.DangerLabel, n.Priority) == EventLevel.Critical)
                 HighDangerPending = true;
 
             // 推送到 Agent 侧（不含路由，由 Agent 侧 RouteEvent 决策）
-            var level = GetEventLevel(n.Type, n.DangerLabel);
+            var level = GetEventLevel(n.Type, n.DangerLabel, n.Priority);
 
             var evt = new ColonyEvent
             {
@@ -120,7 +120,7 @@ namespace RimWorldMCP.Harmony
         }
 
         /// <summary>事件等级判定 — 统一入口</summary>
-        public static EventLevel GetEventLevel(NotificationType type, string dangerLabel)
+        public static EventLevel GetEventLevel(NotificationType type, string dangerLabel, int priority = 0)
         {
             switch (type)
             {
@@ -141,7 +141,12 @@ namespace RimWorldMCP.Harmony
                         _ => EventLevel.Info  // 事件, 正面, 完成, 状态解除
                     };
                 case NotificationType.AlertStart:
-                    return EventLevel.Critical;
+                    return priority switch
+                    {
+                        2 => EventLevel.Critical,   // RimWorld AlertPriority.Critical
+                        1 => EventLevel.Warning,    // AlertPriority.High
+                        _ => EventLevel.Info        // Medium 等不打断
+                    };
                 case NotificationType.AlertEnd:
                     return EventLevel.Info;
                 default:
