@@ -13,12 +13,25 @@ RimWorldMCP/
 ├── CLAUDE.md
 ├── resource/                  ← MOD 元数据（构建时复制到根 publish）
 │   ├── About/About.xml
-│   └── Languages/
-├── Tools/                     ← 100 个游戏 Tool
+│   ├── Languages/
+│   └── Symbols.json           ← 词表文件 — defName→显示字符映射（由脚本从游戏XML生成）
+├── scripts/                   ← 开发脚本
+│   ├── generate_symbols.py    ← 从游戏XML生成Symbols.json
+│   ├── check_symbols.py       ← 校验Symbols.json一对一映射
+│   └── semantic_map.py        ← AI润色后的语义字符参照表
+├── Tools/                     ← 100+ 游戏 Tool
+├── MapRendering/              ← 网格渲染与符号映射
+│   ├── CellCharProviders.cs   ← 单元格→字符映射（tile/terrain/fertility/temperature/pollution）
+│   ├── SymbolDictionary.cs    ← 词表驱动符号字典 — 每次启动重建，无缓存
+│   ├── MapChunker.cs          ← Chunk索引↔世界坐标转换（TryParseChunkId/GetChunkByIndex等）
+│   ├── MapChunk.cs            ← Chunk数据模型
+│   ├── GridRenderer.cs        ← 矩形范围字符网格渲染器
+│   └── AiObservationOverlay.cs← AI操作区域半透明覆盖层
 ├── Mcp/                       ← MCP Server (JSON-RPC dispatch)
 ├── Harmony/                   ← 事件拦截 (NotificationBus)
 ├── Bridge/                    ← 空 stub (原 CC 桥接已迁至 Agent)
 ├── Transport/                 ← SseTransport (HTTP + SSE)
+├── Compression/               ← Chunk压缩（RLE/RowRefRLE/未压缩）
 ├── Skills/                                # 领域知识 Skill 系统
 │   ├── SkillInfo.cs                       # Skill 数据模型
 │   ├── SkillRegistry.cs                   # 加载 .md 文件、解析 frontmatter
@@ -55,6 +68,34 @@ RimWorld 的 `IntVec3(x, y, z)` 字段含义：
 
 **禁止**写成 `new IntVec3(posX, posY, 0)`——这会把用户 Y 坐标塞进海拔字段，所有建筑落到 z=0 行。
 
+### 词表符号系统（SymbolDictionary）
+
+网格地图中每个 Def（建筑/物品/植物/地形）用**单个 Unicode 字符**表示。字符映射由词表文件 `resource/Symbols.json` 驱动，格式 `{defName: {char, group}}`。
+
+**工作流**：
+1. `scripts/generate_symbols.py` — 从 RimWorld XML 自动生成词表，每个 Def 分配独立 Unicode 字符
+2. AI 手工编辑 `resource/Symbols.json`，将核心 Def 的字符替换为语义匹配的 ASCII 符号（如 `Wall→#`, `Door→D`, `Steel→S`）
+3. `scripts/check_symbols.py` — 校验：一对一映射、无固定网格冲突、无控制字符
+
+**运行时**：`SymbolDictionary.Initialize()` 每次启动直接读词表+游戏 Def 重建，无缓存文件。词表中没有的 Def 走兜底动态池分配。`DictHash` 供网格工具输出，验证 LLM 侧符号表一致。
+
+**固定网格**（不经过词表，字符硬编码）：
+- `fertility_grid` / `temperature_grid` / `pollution_grid` 使用 `▓▒░·○◎●█P.?` 等字符
+- `get_tile_grid` 的迷雾用 `█`
+
+**图例**：`GetLegendString(usedSymbols)` 输出 `{char}={def.label}`，字符→Def 一一对应。
+
+### 网格查询模式切换
+
+5 个网格工具（`get_tile_grid`, `fertility_grid`, `terrain_grid`, `temperature_grid`, `pollution_grid`）支持两种查询模式，通过设置 `GridQueryMode` 切换：
+
+| 模式 | InputSchema 参数 | Execute 行为 | 输出格式 |
+|------|-----------------|-------------|---------|
+| **Chunk**（默认） | `chunk_id: string`（格式 `"X_Z"`） | `MapChunker.TryParseChunkId` → `GetChunkByIndex` → 手动迭代 → 压缩 | RLE/RowRefRLE 压缩 |
+| **坐标** | `pos_x, pos_y, end_x?, end_y?` | 直接坐标解析 → `GridRenderer.RenderGrid()` | 逐行 `z{WZ}: {chars}` |
+
+Chunk 模式内部通过 `MapChunker` 完成坐标转换，不新增 Helper。
+
 ### 端口清理机制
 
 `McpServiceManager` 全局单例管理唯一传输层实例。通过 `[StaticConstructorOnStartup]` 在 Def 加载后立即启动，跨存档持续运行。`McpServiceManager.Start()` 幂等（`IsRunning` 检查）。端口变更需重启 RimWorld 生效。
@@ -80,9 +121,15 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 | Token | - | WS 握手认证，companion 层面 |
 | 模型名称 | - | Companion 启动时传入的模型名 |
 | 自动移动视角 | 开启 | AI 调用坐标工具时自动平移到目标位置 |
+| AI观察覆盖层 | 开启 | AI 查询时在地图上短暂显示彩色标记 |
+| 自动跟踪殖民者 | 开启 | 运行时自动平移到殖民者聚集位置 |
 | OSS 上传 | 关闭 | 截图自动上传到阿里云 OSS |
 | OSS Endpoint/Bucket/Key | - | 阿里云 OSS 访问配置 |
 | 签名 URL | 开启 | 预签名 URL 有效期 24h |
+| 分块宽度 | 32 | Chunk 网格查询的单元格宽度（16/24/32/48/64） |
+| 分块高度 | 32 | 与宽度同步，保持一致 |
+| 压缩方法 | RLE | Chunk 数据压缩 — 未压缩 / RLE / 行引用+RLE |
+| 网格查询模式 | Chunk | Chunk: 按分块查询(压缩输出) / 坐标: 按坐标范围查询(逐行输出) |
 
 ## 事件系统
 
@@ -160,12 +207,12 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 ### 网格查询 (6)
 | Tool | 说明 | 参数 |
 |------|------|------|
-| `get_tile_detail` | 指定坐标范围详情（建筑/物品/植物/生物） | pos_x, pos_y, end_x, end_y |
-| `get_tile_grid` | 文本化字符网格地图（64 种符号） | chunk_id 或 pos_x, pos_y, end_x, end_y（视设置） |
-| `fertility_grid` | 地面肥沃度视图（字符网格） | chunk_id 或 pos_x, pos_y, end_x, end_y（视设置） |
-| `terrain_grid` | 地形类型视图（字符网格） | chunk_id 或 pos_x, pos_y, end_x, end_y（视设置） |
-| `temperature_grid` | 温度分布视图（字符网格） | chunk_id 或 pos_x, pos_y, end_x, end_y（视设置） |
-| `pollution_grid` | 污染程度视图（字符网格） | chunk_id 或 pos_x, pos_y, end_x, end_y（视设置） |
+| `get_tile_detail` | 指定坐标范围详情（建筑/物品/植物/生物） | pos_x, pos_y, end_x, end_y（也支持 chunk_id） |
+| `get_tile_grid` | 文本化字符网格地图 | chunk_id 或 pos_x/pos_y/end_x/end_y（视设置切换） |
+| `fertility_grid` | 地面肥沃度视图 | chunk_id 或 pos_x/pos_y/end_x/end_y（视设置切换） |
+| `terrain_grid` | 地形类型视图 | chunk_id 或 pos_x/pos_y/end_x/end_y（视设置切换） |
+| `temperature_grid` | 温度分布视图 | chunk_id 或 pos_x/pos_y/end_x/end_y（视设置切换） |
+| `pollution_grid` | 污染程度视图 | chunk_id 或 pos_x/pos_y/end_x/end_y（视设置切换） |
 
 ### 制造 (4)
 | Tool | 说明 | 数据源/操作 |

@@ -6,3 +6,4 @@ obj/
 *.user
 publish/
 claude-sessions/
+__pycache__/
