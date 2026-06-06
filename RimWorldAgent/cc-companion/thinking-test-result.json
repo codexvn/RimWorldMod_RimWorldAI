@@ -1,0 +1,122 @@
+[
+  {
+    "label": "disabled",
+    "elapsed": "8.4",
+    "thinkingLen": 0,
+    "text": "这是5个关于与人相处之道的成语：\n\n1. **和而不同** — 能与他人和睦相处，但不盲目附和，保持独立见解。\n\n2. **推心置腹** — 把赤诚的心交给人家，比喻真心待人、坦诚相见。\n\n3. **宽以待人** — 以宽容的态度对待他人，不计较小过。\n\n4. **将心比心** — 拿自己的心去比照别人的心，指做事应该替别人着想。\n\n5. **与人为善** — 与人交往时怀善意，乐于帮助别人、成全别人。",
+    "usage": {
+      "input_tokens": 18,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 31232,
+      "output_tokens": 124,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard"
+    }
+  },
+  {
+    "label": "adaptive+low",
+    "elapsed": "6.7",
+    "thinkingLen": 220,
+    "text": "以下是 5 个关于与人相处的成语：\n\n1. **和而不同** — 与人和谐相处，但不盲目附和，保持独立见解。\n2. **推心置腹** — 把真心交给对方，比喻真诚待人、坦诚相见。\n3. **宽以待人** — 以宽容的态度对待他人，多一份理解和包容。\n4. **将心比心** — 拿自己的心去衡量别人的心，设身处地为他人着想。\n5. **相敬如宾** — 彼此像对待宾客一样互相尊重，形容相处时彼此恭敬有礼。",
+    "usage": {
+      "input_tokens": 18,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 31232,
+      "output_tokens": 175,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard"
+    }
+  },
+  {
+    "label": "adaptive+high",
+    "elapsed": "12.1",
+    "thinkingLen": 226,
+    "text": "# 与人相处愉快的 5 个成语\n\n1. **和而不同** — 与人和睦相处，但不盲目附和，保持独立见解。真正的融洽不是一味迎合，而是求同存异。\n\n2. **推己及人** — 换位思考，用自己的感受去理解他人。懂得体谅别人的处境，相处自然融洽。\n\n3. **将心比心** — 拿自己的心去衡量别人的心。遇事多替对方想想，矛盾就少一大半。\n\n4. **宽以待人** — 对他人宽容大度，不计较细枝末节。人无完人，包容别人的缺点才能长久相处。\n\n5. **以诚相待** — 用真诚的态度对待他人。真诚是人际交往的基石，虚情假意终会被识破。\n\n---\n\n> 这五个成语可以概括为一个字：**真** — 真诚待人、真心理解、真正包容，人际关系自然和谐。",
+    "usage": {
+      "input_tokens": 18,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 31232,
+      "output_tokens": 253,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard"
+    }
+  },
+  {
+    "label": "adaptive+xhigh",
+    "elapsed": "8.9",
+    "thinkingLen": 155,
+    "text": "以下是 5 个关于与人愉快相处的成语：\n\n1. **和而不同** — 能与他人和谐相处，同时保持自己独立的见解和立场。\n2. **推心置腹** — 把赤诚的心交给人家，比喻真心待人、坦诚相处。\n3. **将心比心** — 拿自己的心去比照别人的心，指做事应该替别人着想。\n4. **宽以待人** — 以宽宏大量的态度对待他人，包容他人的不足。\n5. **以诚相待** — 用真诚的心对待别人，不虚伪、不敷衍。\n\n这五个成语分别涵盖了**求同存异、真诚坦率、换位思考、宽容大度、诚实守信**五个维度，是与人愉快相处的核心智慧。",
+    "usage": {
+      "input_tokens": 18,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 31232,
+      "output_tokens": 199,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard"
+    }
+  },
+  {
+    "label": "adaptive+max",
+    "elapsed": "7.0",
+    "thinkingLen": 208,
+    "text": "这是一些关于与人愉快相处的成语：\n\n1. **和而不同** — 能与人和谐相处，但不盲目附和，保持自己的独立见解。\n2. **推己及人** — 换位思考，用自己的感受去理解他人，将心比心。\n3. **宽以待人** — 对别人宽容大度，不苛求，给他人留有余地。\n4. **言而有信** — 说话算数，诚实守信，让人感到可靠。\n5. **礼尚往来** — 人际交往中互相尊重、互相回报，关系才能长久。\n\n简单总结就是：**尊重差异、换位思考、宽容待人、守信重诺、互相尊重**。",
+    "usage": {
+      "input_tokens": 29394,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 1856,
+      "output_tokens": 196,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard"
+    }
+  }
+]

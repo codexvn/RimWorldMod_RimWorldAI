@@ -27,8 +27,19 @@ namespace RimWorldAgent.Core.AgentRuntime
                         break;
                     case SdkResultMessage rm:
                         result.Add(UiMessage.Result(rm.Subtype, rm.StopReason));
-                        // 会话真实耗时（per-assistant 的 Record 调用中 durationMs 始终为 0）
-                        TokenUsageTracker.Record(0, 0, 0, 0, rm.DurationMs ?? 0);
+                        // 从 result 消息取最终精确的 Token 统计 + 耗时
+                        if (rm.Usage != null)
+                        {
+                            TokenUsageTracker.CurrentInputTokens = rm.Usage.InputTokens;
+                            TokenUsageTracker.Record(rm.Usage.InputTokens, rm.Usage.OutputTokens,
+                                rm.Usage.CacheReadInputTokens ?? 0, rm.Usage.CacheCreationInputTokens ?? 0,
+                                rm.DurationMs ?? 0);
+                        }
+                        else
+                        {
+                            // 降级：至少记录耗时
+                            TokenUsageTracker.Record(0, 0, 0, 0, rm.DurationMs ?? 0);
+                        }
                         break;
                     case SdkSystemInitMessage init:
                         result.Add(UiMessage.SystemInit(init.Model, init.SessionId,
@@ -64,14 +75,6 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         private static void ParseAssistant(SdkAssistantMessage msg, List<UiMessage> outList)
         {
-            // Token 用量
-            if (msg.Usage != null)
-            {
-                TokenUsageTracker.CurrentInputTokens = msg.Usage.InputTokens;
-                TokenUsageTracker.Record(msg.Usage.InputTokens, msg.Usage.OutputTokens,
-                    msg.Usage.CacheReadInputTokens ?? 0, msg.Usage.CacheCreationInputTokens ?? 0, 0);
-            }
-
             // 积累 text + thinking 文本，用于会话录制
             var textAccum = new System.Text.StringBuilder();
             var thinkingAccum = new System.Text.StringBuilder();
