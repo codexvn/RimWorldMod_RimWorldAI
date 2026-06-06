@@ -946,7 +946,7 @@
       "group": "Building"
     },
     "Battery": {
-      "char": "㊸",
+      "char": "B",
       "group": "Building"
     },
     "Bear_Grizzly": {
@@ -1366,7 +1366,7 @@
       "group": "Building"
     },
     "Campfire": {
-      "char": "㌡",
+      "char": "*",
       "group": "Building"
     },
     "CannibalPlatter": {
@@ -1422,7 +1422,7 @@
       "group": "Building"
     },
     "Chemfuel": {
-      "char": "㌯",
+      "char": "f",
       "group": "Item"
     },
     "ChemfuelPoweredGenerator": {
@@ -1554,15 +1554,15 @@
       "group": "Building"
     },
     "Column": {
-      "char": "㍐",
+      "char": "O",
       "group": "Building"
     },
     "CommsConsole": {
-      "char": "㍑",
+      "char": "@",
       "group": "Building"
     },
     "ComponentIndustrial": {
-      "char": "㍒",
+      "char": "c",
       "group": "Item"
     },
     "ComponentSpacer": {
@@ -1570,7 +1570,7 @@
       "group": "Item"
     },
     "Concrete": {
-      "char": "㍔",
+      "char": "_",
       "group": "Terrain"
     },
     "ControlSublink": {
@@ -1582,7 +1582,7 @@
       "group": "Item"
     },
     "Cooler": {
-      "char": "㍗",
+      "char": "C",
       "group": "Building"
     },
     "CorrosiveHeart": {
@@ -1634,7 +1634,7 @@
       "group": "Building"
     },
     "CryptosleepCasket": {
-      "char": "㍤",
+      "char": "X",
       "group": "Building"
     },
     "DarklightBrazier": {
@@ -1726,7 +1726,7 @@
       "group": "Pawn"
     },
     "Door": {
-      "char": "㍻",
+      "char": "D",
       "group": "Building"
     },
     "DoubleBed": {
@@ -1942,7 +1942,7 @@
       "group": "Building"
     },
     "ElectricStove": {
-      "char": "㎱",
+      "char": "K",
       "group": "Building"
     },
     "ElectricTailoringBench": {
@@ -1994,7 +1994,7 @@
       "group": "Building"
     },
     "Fence": {
-      "char": "㎾",
+      "char": "/",
       "group": "Building"
     },
     "FenceGate": {
@@ -2418,7 +2418,7 @@
       "group": "Pawn"
     },
     "Gold": {
-      "char": "⌨",
+      "char": "g",
       "group": "Item"
     },
     "GoldTile": {
@@ -2450,11 +2450,11 @@
       "group": "Item"
     },
     "Grave": {
-      "char": "⌰",
+      "char": "v",
       "group": "Building"
     },
     "Gravel": {
-      "char": "⌱",
+      "char": "`",
       "group": "Terrain"
     },
     "GrayBox": {
@@ -2722,7 +2722,7 @@
       "group": "Building"
     },
     "Heater": {
-      "char": "⍴",
+      "char": "H",
       "group": "Building"
     },
     "HemogenAmplifier": {
@@ -2806,7 +2806,7 @@
       "group": "Pawn"
     },
     "Ice": {
-      "char": "⎉",
+      "char": "=",
       "group": "Terrain"
     },
     "Ideogram": {
@@ -2850,7 +2850,7 @@
       "group": "Item"
     },
     "Kibble": {
-      "char": "⎔",
+      "char": "F",
       "group": "Item"
     },
     "Kidney": {
@@ -3026,7 +3026,7 @@
       "group": "Building"
     },
     "Marsh": {
-      "char": "⏀",
+      "char": "M",
       "group": "Terrain"
     },
     "MarshyTerrain": {
@@ -3062,7 +3062,7 @@
       "group": "Item"
     },
     "MealSimple": {
-      "char": "⏉",
+      "char": "E",
       "group": "Item"
     },
     "MealSurvivalPack": {
@@ -3298,7 +3298,7 @@
       "group": "Item"
     },
     "MedicineHerbal": {
-      "char": "▤",
+      "char": "h",
       "group": "Item"
     },
     "MedicineIndustrial": {
@@ -4210,7 +4210,7 @@
       "group": "Item"
     },
     "Mud": {
-      "char": "⚋",
+      "char": "Z",
       "group": "Terrain"
     },
     "Muffalo": {
@@ -4254,7 +4254,7 @@
       "group": "Item"
     },
     "Neutroamine": {
-      "char": "⚖",
+      "char": "m",
       "group": "Item"
     },
     "Nociosphere": {
@@ -4282,7 +4282,7 @@
       "group": "Item"
     },
     "NutrientPasteDispenser": {
-      "char": "⚝",
+      "char": "N",
       "group": "Building"
     },
     "OrbitalTargeterBombardment": {
@@ -4438,7 +4438,7 @@
       "group": "Plant"
     },
     "Plant_Bush": {
-      "char": "⛄",
+      "char": "V",
       "group": "Plant"
     },
     "Plant_Chokevine": {
@@ -4454,7 +4454,7 @@
       "group": "Plant"
     },
     "Plant_Cotton": {
-      "char": "⛈",
+      "char": "t",
       "group": "Plant"
     },
     "Plant_Dandelion": {
@@ -4462,11 +4462,11 @@
       "group": "Plant"
     },
     "Plant_Daylily": {
-      "char": "⛊",
+      "char": "l",
       "group": "Plant"
     },
     "Plant_Devilstrand": {
-      "char": "⛋",
+      "char": "d",
       "group": "Plant"
     },
     "Plant_Fibercorn": {
@@ -4474,7 +4474,7 @@
       "group": "Plant"
     },
     "Plant_Grass": {
-      "char": "⛍",
+      "char": "i",
       "group": "Plant"
     },
     "Plant_GrassAnima": {
@@ -4490,7 +4490,7 @@
       "group": "Plant"
     },
     "Plant_Healroot": {
-      "char": "⛑",
+      "char": "z",
       "group": "Plant"
     },
     "Plant_HealrootWild": {
@@ -4498,7 +4498,7 @@
       "group": "Plant"
     },
     "Plant_Hops": {
-      "char": "⛓",
+      "char": "j",
       "group": "Plant"
     },
     "Plant_Moss": {
@@ -4526,11 +4526,11 @@
       "group": "Plant"
     },
     "Plant_Potato": {
-      "char": "⛚",
+      "char": "p",
       "group": "Plant"
     },
     "Plant_Psychoid": {
-      "char": "⛛",
+      "char": "y",
       "group": "Plant"
     },
     "Plant_Rafflesia": {
@@ -4542,7 +4542,7 @@
       "group": "Plant"
     },
     "Plant_Rice": {
-      "char": "⛞",
+      "char": "r",
       "group": "Plant"
     },
     "Plant_Ripthorn": {
@@ -4550,7 +4550,7 @@
       "group": "Plant"
     },
     "Plant_Rose": {
-      "char": "⛠",
+      "char": "J",
       "group": "Plant"
     },
     "Plant_SaguaroCactus": {
@@ -4562,7 +4562,7 @@
       "group": "Plant"
     },
     "Plant_Smokeleaf": {
-      "char": "⛣",
+      "char": "k",
       "group": "Plant"
     },
     "Plant_Strawberry": {
@@ -4634,7 +4634,7 @@
       "group": "Plant"
     },
     "Plant_TreeOak": {
-      "char": "⛵",
+      "char": "Y",
       "group": "Plant"
     },
     "Plant_TreePalm": {
@@ -4666,7 +4666,7 @@
       "group": "Plant"
     },
     "Plasteel": {
-      "char": "⛽",
+      "char": "a",
       "group": "Item"
     },
     "Plates_Spikecore": {
@@ -4698,7 +4698,7 @@
       "group": "Building"
     },
     "PowerConduit": {
-      "char": "✅",
+      "char": "-",
       "group": "Building"
     },
     "PowerSwitch": {
@@ -4842,11 +4842,11 @@
       "group": "Item"
     },
     "RawBerries": {
-      "char": "✩",
+      "char": "b",
       "group": "Item"
     },
     "RawCorn": {
-      "char": "✪",
+      "char": "U",
       "group": "Item"
     },
     "RawFungus": {
@@ -4858,11 +4858,11 @@
       "group": "Item"
     },
     "RawPotatoes": {
-      "char": "✭",
+      "char": "I",
       "group": "Item"
     },
     "RawRice": {
-      "char": "✮",
+      "char": "R",
       "group": "Item"
     },
     "RawToxipotato": {
@@ -4990,7 +4990,7 @@
       "group": "Building"
     },
     "Sand": {
-      "char": "❎",
+      "char": "\"",
       "group": "Terrain"
     },
     "SandCubeSculpture": {
@@ -5002,7 +5002,7 @@
       "group": "Item"
     },
     "Sandbags": {
-      "char": "❑",
+      "char": "n",
       "group": "Building"
     },
     "Sandstone": {
@@ -5038,7 +5038,7 @@
       "group": "Building"
     },
     "SculptureSmall": {
-      "char": "❚",
+      "char": "A",
       "group": "Building"
     },
     "SculptureTerror": {
@@ -5258,7 +5258,7 @@
       "group": "Item"
     },
     "Silver": {
-      "char": "➑",
+      "char": "$",
       "group": "Item"
     },
     "SilverTile": {
@@ -5278,7 +5278,7 @@
       "group": "Building"
     },
     "SimpleResearchBench": {
-      "char": "➖",
+      "char": "Q",
       "group": "Building"
     },
     "Skull": {
@@ -5406,15 +5406,15 @@
       "group": "Item"
     },
     "Soil": {
-      "char": "➶",
+      "char": ",",
       "group": "Terrain"
     },
     "SoilRich": {
-      "char": "➷",
+      "char": ":",
       "group": "Terrain"
     },
     "SolarGenerator": {
-      "char": "➸",
+      "char": "G",
       "group": "Building"
     },
     "SolarPinhole": {
@@ -5466,7 +5466,7 @@
       "group": "Building"
     },
     "StandingLamp": {
-      "char": "⟅",
+      "char": "L",
       "group": "Building"
     },
     "SteamGeyser": {
@@ -5474,7 +5474,7 @@
       "group": "Building"
     },
     "Steel": {
-      "char": "⟇",
+      "char": "S",
       "group": "Item"
     },
     "SteleGrand": {
@@ -5798,7 +5798,7 @@
       "group": "Building"
     },
     "TrapSpike": {
-      "char": "⦨",
+      "char": "^",
       "group": "Building"
     },
     "TriggerContainerEmptied": {
@@ -5854,7 +5854,7 @@
       "group": "Building"
     },
     "Turret_MiniTurret": {
-      "char": "⦶",
+      "char": "T",
       "group": "Building"
     },
     "Turret_Mortar": {
@@ -5962,7 +5962,7 @@
       "group": "Building"
     },
     "Uranium": {
-      "char": "⧑",
+      "char": "u",
       "group": "Item"
     },
     "Urn": {
@@ -5986,7 +5986,7 @@
       "group": "Building"
     },
     "VitalsMonitor": {
-      "char": "⧗",
+      "char": "+",
       "group": "Building"
     },
     "VoidMonolith": {
@@ -6078,7 +6078,7 @@
       "group": "Item"
     },
     "Wall": {
-      "char": "⧮",
+      "char": "#",
       "group": "Building"
     },
     "WallLamp": {
@@ -6122,7 +6122,7 @@
       "group": "Building"
     },
     "WaterDeep": {
-      "char": "⧹",
+      "char": "W",
       "group": "Terrain"
     },
     "WaterMovingChestDeep": {
@@ -6142,7 +6142,7 @@
       "group": "Terrain"
     },
     "WaterShallow": {
-      "char": "⧾",
+      "char": "~",
       "group": "Terrain"
     },
     "WatermillGenerator": {
@@ -6194,7 +6194,7 @@
       "group": "Building"
     },
     "WoodLog": {
-      "char": "⬋",
+      "char": "w",
       "group": "Item"
     },
     "WoodPlankFloor": {
