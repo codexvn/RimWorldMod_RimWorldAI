@@ -1,0 +1,7805 @@
+{
+  "version": 1,
+  "symbols": {
+    "AIPersonaCore": {
+      "char": "㆐",
+      "label": "persona core",
+      "group": "Item"
+    },
+    "ActivatorCountdown": {
+      "char": "㆑",
+      "label": "count-down activator",
+      "group": "Building"
+    },
+    "ActivatorProximity": {
+      "char": "㆒",
+      "label": "proximity activator",
+      "group": "Building"
+    },
+    "ActiveDropPod": {
+      "char": "㆓",
+      "label": "drop pod",
+      "group": "Other"
+    },
+    "ActiveDropPodMechanoid": {
+      "char": "㆔",
+      "label": "ActiveDropPodMechanoid",
+      "group": "Other"
+    },
+    "AdrenalHeart": {
+      "char": "㆕",
+      "label": "adrenal heart",
+      "group": "Other"
+    },
+    "AestheticNose": {
+      "char": "㆖",
+      "label": "aesthetic nose",
+      "group": "Other"
+    },
+    "AestheticShaper": {
+      "char": "㆗",
+      "label": "aesthetic shaper",
+      "group": "Other"
+    },
+    "Agarilux": {
+      "char": "㆘",
+      "label": "agarilux",
+      "group": "Plant"
+    },
+    "Alpaca": {
+      "char": "㆙",
+      "label": "alpaca",
+      "group": "Pawn"
+    },
+    "Alphabeaver": {
+      "char": "㆚",
+      "label": "alphabeaver",
+      "group": "Pawn"
+    },
+    "Altar_Grand": {
+      "char": "㆛",
+      "label": "grand altar",
+      "group": "Building"
+    },
+    "Altar_Large": {
+      "char": "㆜",
+      "label": "large altar",
+      "group": "Building"
+    },
+    "Altar_Medium": {
+      "char": "㆝",
+      "label": "medium altar",
+      "group": "Building"
+    },
+    "Altar_Small": {
+      "char": "㆞",
+      "label": "small altar",
+      "group": "Building"
+    },
+    "Ambrosia": {
+      "char": "㇀",
+      "label": "ambrosia",
+      "group": "Other"
+    },
+    "AncientAPC": {
+      "char": "㇁",
+      "label": "ancient ruined APC",
+      "group": "Building"
+    },
+    "AncientATM": {
+      "char": "㇂",
+      "label": "ancient ATM",
+      "group": "Building"
+    },
+    "AncientAirConditioner": {
+      "char": "㇃",
+      "label": "ancient air conditioner",
+      "group": "Building"
+    },
+    "AncientBandNode": {
+      "char": "㇄",
+      "label": "ancient band node",
+      "group": "Building"
+    },
+    "AncientBarrel": {
+      "char": "㇅",
+      "label": "ancient barrel",
+      "group": "Building"
+    },
+    "AncientBasicRecharger": {
+      "char": "㇆",
+      "label": "ancient basic recharger",
+      "group": "Building"
+    },
+    "AncientBed": {
+      "char": "㇇",
+      "label": "ancient bed",
+      "group": "Building"
+    },
+    "AncientCommsConsole": {
+      "char": "㇈",
+      "label": "ancient comms console",
+      "group": "Building"
+    },
+    "AncientConcrete": {
+      "char": "㇉",
+      "label": "ancient concrete",
+      "group": "Terrain"
+    },
+    "AncientConcreteBarrier": {
+      "char": "㇊",
+      "label": "ancient concrete barrier",
+      "group": "Building"
+    },
+    "AncientCrate": {
+      "char": "㇋",
+      "label": "ancient crate",
+      "group": "Building"
+    },
+    "AncientCryptosleepCasket": {
+      "char": "㇌",
+      "label": "ancient cryptosleep casket",
+      "group": "Building"
+    },
+    "AncientCryptosleepPod": {
+      "char": "㇍",
+      "label": "ancient cryptosleep pod",
+      "group": "Building"
+    },
+    "AncientDisplayBank": {
+      "char": "㇎",
+      "label": "ancient display bank",
+      "group": "Building"
+    },
+    "AncientDropshipEngine": {
+      "char": "㇏",
+      "label": "ancient dropship engine",
+      "group": "Building"
+    },
+    "AncientEnemyTerminal": {
+      "char": "㇐",
+      "label": "ancient enemy terminal",
+      "group": "Building"
+    },
+    "AncientEquipmentBlocks": {
+      "char": "㇑",
+      "label": "ancient equipment blocks",
+      "group": "Building"
+    },
+    "AncientExostriderCannon": {
+      "char": "㇒",
+      "label": "ancient exostrider cannon",
+      "group": "Building"
+    },
+    "AncientExostriderHead": {
+      "char": "㇓",
+      "label": "ancient exostrider head",
+      "group": "Building"
+    },
+    "AncientExostriderLeg": {
+      "char": "㇔",
+      "label": "ancient exostrider leg",
+      "group": "Building"
+    },
+    "AncientExostriderRemains": {
+      "char": "㇕",
+      "label": "ancient exostrider midsection",
+      "group": "Building"
+    },
+    "AncientFence": {
+      "char": "㇖",
+      "label": "ancient fence",
+      "group": "Building"
+    },
+    "AncientFuelNode": {
+      "char": "㇗",
+      "label": "ancient unstable fuel node",
+      "group": "Building"
+    },
+    "AncientGenerator": {
+      "char": "㇘",
+      "label": "ancient generator",
+      "group": "Building"
+    },
+    "AncientGiantWheel": {
+      "char": "㇙",
+      "label": "ancient giant wheel",
+      "group": "Building"
+    },
+    "AncientHermeticCrate": {
+      "char": "㇚",
+      "label": "hermetic crate",
+      "group": "Building"
+    },
+    "AncientHydrant": {
+      "char": "㇛",
+      "label": "ancient hydrant",
+      "group": "Building"
+    },
+    "AncientJetEngine": {
+      "char": "㇜",
+      "label": "ancient jet engine",
+      "group": "Building"
+    },
+    "AncientKitchenSink": {
+      "char": "㇝",
+      "label": "ancient kitchen sink",
+      "group": "Building"
+    },
+    "AncientLamp": {
+      "char": "㇞",
+      "label": "ancient lamp",
+      "group": "Building"
+    },
+    "AncientLamppost": {
+      "char": "㇟",
+      "label": "ancient lamppost",
+      "group": "Building"
+    },
+    "AncientLargeContainer": {
+      "char": "㇠",
+      "label": "ancient container",
+      "group": "Building"
+    },
+    "AncientLargeCrate": {
+      "char": "㇡",
+      "label": "ancient large crate",
+      "group": "Building"
+    },
+    "AncientLargeMechGestator": {
+      "char": "㇢",
+      "label": "ancient large mech gestator",
+      "group": "Building"
+    },
+    "AncientLargeRustedEngineBlock": {
+      "char": "㇣",
+      "label": "ancient macro-engine block",
+      "group": "Building"
+    },
+    "AncientLockerBank": {
+      "char": "㈀",
+      "label": "ancient locker bank",
+      "group": "Building"
+    },
+    "AncientLongCrate": {
+      "char": "㈁",
+      "label": "ancient long crate",
+      "group": "Building"
+    },
+    "AncientMachine": {
+      "char": "㈂",
+      "label": "ancient machine",
+      "group": "Building"
+    },
+    "AncientMechDropBeacon": {
+      "char": "㈃",
+      "label": "ancient mech drop beacon",
+      "group": "Building"
+    },
+    "AncientMechGestator": {
+      "char": "㈄",
+      "label": "ancient mech gestator",
+      "group": "Building"
+    },
+    "AncientMechGestatorTank": {
+      "char": "㈅",
+      "label": "ancient mech vat",
+      "group": "Building"
+    },
+    "AncientMegaCannonBarrel": {
+      "char": "㈆",
+      "label": "ancient mega-cannon barrel",
+      "group": "Building"
+    },
+    "AncientMegaCannonTripod": {
+      "char": "㈇",
+      "label": "ancient mega-cannon platform",
+      "group": "Building"
+    },
+    "AncientMicrowave": {
+      "char": "㈈",
+      "label": "ancient microwave",
+      "group": "Building"
+    },
+    "AncientMilitaryCrate": {
+      "char": "㈉",
+      "label": "ancient military crate",
+      "group": "Building"
+    },
+    "AncientMiniWarwalkerRemains": {
+      "char": "㈊",
+      "label": "ancient warsprinter remains",
+      "group": "Building"
+    },
+    "AncientOperatingTable": {
+      "char": "㈋",
+      "label": "ancient operating table",
+      "group": "Building"
+    },
+    "AncientOven": {
+      "char": "㈌",
+      "label": "ancient oven",
+      "group": "Building"
+    },
+    "AncientPipelineSection": {
+      "char": "㈍",
+      "label": "ancient pipeline section",
+      "group": "Building"
+    },
+    "AncientPipes": {
+      "char": "㈎",
+      "label": "ancient pipes",
+      "group": "Building"
+    },
+    "AncientPodCar": {
+      "char": "㈏",
+      "label": "ancient pod car",
+      "group": "Building"
+    },
+    "AncientPostbox": {
+      "char": "㈐",
+      "label": "ancient postbox",
+      "group": "Building"
+    },
+    "AncientRazorWire": {
+      "char": "㈑",
+      "label": "ancient razor wire",
+      "group": "Building"
+    },
+    "AncientRefrigerator": {
+      "char": "㈒",
+      "label": "ancient refrigerator",
+      "group": "Building"
+    },
+    "AncientRustedCar": {
+      "char": "㈓",
+      "label": "ancient car",
+      "group": "Building"
+    },
+    "AncientRustedCarFrame": {
+      "char": "㈔",
+      "label": "ancient car frame",
+      "group": "Building"
+    },
+    "AncientRustedDropship": {
+      "char": "㈕",
+      "label": "ancient dropship",
+      "group": "Building"
+    },
+    "AncientRustedEngineBlock": {
+      "char": "㈖",
+      "label": "ancient engine block",
+      "group": "Building"
+    },
+    "AncientRustedJeep": {
+      "char": "㈗",
+      "label": "ancient troop carrier",
+      "group": "Building"
+    },
+    "AncientRustedTruck": {
+      "char": "㈘",
+      "label": "ancient truck",
+      "group": "Building"
+    },
+    "AncientSecurityCrate": {
+      "char": "㈙",
+      "label": "security crate",
+      "group": "Building"
+    },
+    "AncientSecurityTurret": {
+      "char": "㈚",
+      "label": "ancient security turret",
+      "group": "Building"
+    },
+    "AncientShipBeacon": {
+      "char": "㈛",
+      "label": "ancient nav beacon",
+      "group": "Building"
+    },
+    "AncientShoppingCart": {
+      "char": "㈜",
+      "label": "ancient shopping cart",
+      "group": "Building"
+    },
+    "AncientSmallCrate": {
+      "char": "㈝",
+      "label": "ancient small crate",
+      "group": "Building"
+    },
+    "AncientSpacerCrate": {
+      "char": "㈞",
+      "label": "ancient spacer crate",
+      "group": "Building"
+    },
+    "AncientStandardRecharger": {
+      "char": "㈠",
+      "label": "ancient standard recharger",
+      "group": "Building"
+    },
+    "AncientStorageCylinder": {
+      "char": "㈡",
+      "label": "ancient storage cylinder",
+      "group": "Building"
+    },
+    "AncientStove": {
+      "char": "㈢",
+      "label": "ancient stove",
+      "group": "Building"
+    },
+    "AncientSystemRack": {
+      "char": "㈣",
+      "label": "ancient system rack",
+      "group": "Building"
+    },
+    "AncientTank": {
+      "char": "㈤",
+      "label": "ancient ruined tank",
+      "group": "Building"
+    },
+    "AncientTankTrap": {
+      "char": "㈥",
+      "label": "ancient tank trap",
+      "group": "Building"
+    },
+    "AncientTerminal": {
+      "char": "㈦",
+      "label": "AncientTerminal",
+      "group": "Building"
+    },
+    "AncientTerminal_Worshipful": {
+      "char": "㈧",
+      "label": "AncientTerminal_Worshipful",
+      "group": "Building"
+    },
+    "AncientTile": {
+      "char": "㈨",
+      "label": "ancient tile",
+      "group": "Terrain"
+    },
+    "AncientToilet": {
+      "char": "㈩",
+      "label": "ancient toilet",
+      "group": "Building"
+    },
+    "AncientToxifierGenerator": {
+      "char": "㈪",
+      "label": "ancient toxifier generator",
+      "group": "Building"
+    },
+    "AncientVendingMachine": {
+      "char": "㈫",
+      "label": "ancient vending machine",
+      "group": "Building"
+    },
+    "AncientWarspiderRemains": {
+      "char": "㈬",
+      "label": "ancient warspider remains",
+      "group": "Building"
+    },
+    "AncientWarwalkerClaw": {
+      "char": "㈭",
+      "label": "ancient warwalker claw",
+      "group": "Building"
+    },
+    "AncientWarwalkerFoot": {
+      "char": "㈮",
+      "label": "ancient warwalker foot",
+      "group": "Building"
+    },
+    "AncientWarwalkerLeg": {
+      "char": "㈯",
+      "label": "ancient warwalker leg",
+      "group": "Building"
+    },
+    "AncientWarwalkerShell": {
+      "char": "㈰",
+      "label": "ancient warwalker shell",
+      "group": "Building"
+    },
+    "AncientWarwalkerTorso": {
+      "char": "㈱",
+      "label": "ancient warwalker torso",
+      "group": "Building"
+    },
+    "AncientWashingMachine": {
+      "char": "㈲",
+      "label": "ancient washing machine",
+      "group": "Building"
+    },
+    "AncientWheel": {
+      "char": "㈳",
+      "label": "ancient wheel",
+      "group": "Building"
+    },
+    "AncientWoodPlankFloor": {
+      "char": "㈴",
+      "label": "ancient wood floor",
+      "group": "Terrain"
+    },
+    "AnimalBed": {
+      "char": "㈵",
+      "label": "animal bed",
+      "group": "Building"
+    },
+    "AnimalFlap": {
+      "char": "㈶",
+      "label": "animal flap",
+      "group": "Building"
+    },
+    "AnimalSleepingBox": {
+      "char": "㈷",
+      "label": "animal sleeping box",
+      "group": "Building"
+    },
+    "AnimalSleepingSpot": {
+      "char": "㈸",
+      "label": "animal sleeping spot",
+      "group": "Building"
+    },
+    "AnimalistSlab_Broad": {
+      "char": "㈹",
+      "label": "animalist slab (broad)",
+      "group": "Other"
+    },
+    "AnimalistSlab_Medium": {
+      "char": "㈺",
+      "label": "animalist slab (medium)",
+      "group": "Other"
+    },
+    "AnimusStone": {
+      "char": "㈻",
+      "label": "animus stone",
+      "group": "Building"
+    },
+    "Apparel_AdvancedHelmet": {
+      "char": "㈼",
+      "label": "flak helmet",
+      "group": "Other"
+    },
+    "Apparel_AirwireHeadset": {
+      "char": "㈽",
+      "label": "airwire headset",
+      "group": "Other"
+    },
+    "Apparel_ArmorCataphract": {
+      "char": "㈾",
+      "label": "cataphract armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorCataphractPhoenix": {
+      "char": "㈿",
+      "label": "phoenix armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorCataphractPrestige": {
+      "char": "㉀",
+      "label": "prestige cataphract armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorHelmetCataphract": {
+      "char": "㉁",
+      "label": "cataphract helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorHelmetCataphractPrestige": {
+      "char": "㉂",
+      "label": "prestige cataphract helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorHelmetMechCommander": {
+      "char": "㉃",
+      "label": "mechcommander helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorHelmetMechlordHelmet": {
+      "char": "㉄",
+      "label": "mechlord helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorHelmetRecon": {
+      "char": "㉅",
+      "label": "recon helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorHelmetReconPrestige": {
+      "char": "㉆",
+      "label": "prestige recon helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorLocust": {
+      "char": "㉇",
+      "label": "locust armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorMarineGrenadier": {
+      "char": "㉈",
+      "label": "grenadier armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorMarineHelmetPrestige": {
+      "char": "㉉",
+      "label": "prestige marine helmet",
+      "group": "Other"
+    },
+    "Apparel_ArmorMarinePrestige": {
+      "char": "㉊",
+      "label": "prestige marine armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorRecon": {
+      "char": "㉋",
+      "label": "recon armor",
+      "group": "Other"
+    },
+    "Apparel_ArmorReconPrestige": {
+      "char": "㉌",
+      "label": "prestige recon armor",
+      "group": "Other"
+    },
+    "Apparel_ArrayHeadset": {
+      "char": "㉍",
+      "label": "array headset",
+      "group": "Other"
+    },
+    "Apparel_AuthorityCap": {
+      "char": "㉎",
+      "label": "authority cap",
+      "group": "Other"
+    },
+    "Apparel_Bandolier": {
+      "char": "㉏",
+      "label": "heavy bandolier",
+      "group": "Other"
+    },
+    "Apparel_BasicShirt": {
+      "char": "㉐",
+      "label": "T-shirt",
+      "group": "Other"
+    },
+    "Apparel_Beret": {
+      "char": "㉑",
+      "label": "beret",
+      "group": "Other"
+    },
+    "Apparel_BiomutationLance": {
+      "char": "㉒",
+      "label": "biomutation lance",
+      "group": "Other"
+    },
+    "Apparel_Blindfold": {
+      "char": "㉓",
+      "label": "blindfold",
+      "group": "Other"
+    },
+    "Apparel_BodyStrap": {
+      "char": "㉔",
+      "label": "slave body strap",
+      "group": "Other"
+    },
+    "Apparel_BowlerHat": {
+      "char": "㉕",
+      "label": "bowler hat",
+      "group": "Other"
+    },
+    "Apparel_Broadwrap": {
+      "char": "㉖",
+      "label": "broadwrap",
+      "group": "Other"
+    },
+    "Apparel_Burka": {
+      "char": "㉗",
+      "label": "burka",
+      "group": "Other"
+    },
+    "Apparel_Cape": {
+      "char": "㉘",
+      "label": "cape",
+      "group": "Other"
+    },
+    "Apparel_CeremonialCultistMask": {
+      "char": "㉙",
+      "label": "ceremonial hood",
+      "group": "Other"
+    },
+    "Apparel_ClothMask": {
+      "char": "㉚",
+      "label": "face mask",
+      "group": "Other"
+    },
+    "Apparel_Collar": {
+      "char": "㉛",
+      "label": "slave collar",
+      "group": "Other"
+    },
+    "Apparel_CollarShirt": {
+      "char": "㉜",
+      "label": "button-down shirt",
+      "group": "Other"
+    },
+    "Apparel_Coronet": {
+      "char": "㉝",
+      "label": "coronet",
+      "group": "Other"
+    },
+    "Apparel_Corset": {
+      "char": "㉞",
+      "label": "corset",
+      "group": "Other"
+    },
+    "Apparel_CowboyHat": {
+      "char": "㉟",
+      "label": "cowboy hat",
+      "group": "Other"
+    },
+    "Apparel_Crown": {
+      "char": "㉠",
+      "label": "crown",
+      "group": "Other"
+    },
+    "Apparel_CrownStellic": {
+      "char": "㉡",
+      "label": "stellic crown",
+      "group": "Other"
+    },
+    "Apparel_CultistMask": {
+      "char": "㉢",
+      "label": "ritual mask",
+      "group": "Other"
+    },
+    "Apparel_DeadlifePack": {
+      "char": "㉣",
+      "label": "deadlife pack",
+      "group": "Other"
+    },
+    "Apparel_DisruptorFlarePack": {
+      "char": "㉤",
+      "label": "disruptor flare pack",
+      "group": "Other"
+    },
+    "Apparel_Duster": {
+      "char": "㉥",
+      "label": "duster",
+      "group": "Other"
+    },
+    "Apparel_EltexSkullcap": {
+      "char": "㉦",
+      "label": "eltex skullcap",
+      "group": "Other"
+    },
+    "Apparel_FirefoampopPack": {
+      "char": "㉧",
+      "label": "firefoam pop pack",
+      "group": "Other"
+    },
+    "Apparel_FlakJacket": {
+      "char": "㉨",
+      "label": "flak jacket",
+      "group": "Other"
+    },
+    "Apparel_FlakPants": {
+      "char": "㉩",
+      "label": "flak pants",
+      "group": "Other"
+    },
+    "Apparel_FlakVest": {
+      "char": "㉪",
+      "label": "flak vest",
+      "group": "Other"
+    },
+    "Apparel_Flophat": {
+      "char": "㉫",
+      "label": "flophat",
+      "group": "Other"
+    },
+    "Apparel_GasMask": {
+      "char": "㉬",
+      "label": "gas mask",
+      "group": "Other"
+    },
+    "Apparel_Gunlink": {
+      "char": "㉭",
+      "label": "gunlink",
+      "group": "Other"
+    },
+    "Apparel_HatHood": {
+      "char": "㉮",
+      "label": "hood",
+      "group": "Other"
+    },
+    "Apparel_HatLadies": {
+      "char": "㉯",
+      "label": "ladies hat",
+      "group": "Other"
+    },
+    "Apparel_HatTop": {
+      "char": "㉰",
+      "label": "top hat",
+      "group": "Other"
+    },
+    "Apparel_Headwrap": {
+      "char": "㉱",
+      "label": "headwrap",
+      "group": "Other"
+    },
+    "Apparel_HeavyShield": {
+      "char": "㉲",
+      "label": "heavy shield unit",
+      "group": "Other"
+    },
+    "Apparel_IntegratorHeadset": {
+      "char": "㉳",
+      "label": "integrator headset",
+      "group": "Other"
+    },
+    "Apparel_Jacket": {
+      "char": "㉴",
+      "label": "jacket",
+      "group": "Other"
+    },
+    "Apparel_KidHelmet": {
+      "char": "㉵",
+      "label": "kid helmet",
+      "group": "Other"
+    },
+    "Apparel_KidPants": {
+      "char": "㉶",
+      "label": "kid pants",
+      "group": "Other"
+    },
+    "Apparel_KidParka": {
+      "char": "㉷",
+      "label": "kid parka",
+      "group": "Other"
+    },
+    "Apparel_KidRomper": {
+      "char": "㉸",
+      "label": "kid romper",
+      "group": "Other"
+    },
+    "Apparel_KidShirt": {
+      "char": "㉹",
+      "label": "kid shirt",
+      "group": "Other"
+    },
+    "Apparel_KidTribal": {
+      "char": "㉺",
+      "label": "kid tribalwear",
+      "group": "Other"
+    },
+    "Apparel_LabCoat": {
+      "char": "㉻",
+      "label": "lab coat",
+      "group": "Other"
+    },
+    "Apparel_MechlordSuit": {
+      "char": "㉼",
+      "label": "mechlord suit",
+      "group": "Other"
+    },
+    "Apparel_PackBandwidth": {
+      "char": "㉽",
+      "label": "bandwidth pack",
+      "group": "Other"
+    },
+    "Apparel_PackBroadshield": {
+      "char": "㉾",
+      "label": "low-shield pack",
+      "group": "Other"
+    },
+    "Apparel_PackControl": {
+      "char": "㉿",
+      "label": "control pack",
+      "group": "Other"
+    },
+    "Apparel_PackJump": {
+      "char": "㊀",
+      "label": "jump pack",
+      "group": "Other"
+    },
+    "Apparel_PackTox": {
+      "char": "㊁",
+      "label": "tox pack",
+      "group": "Other"
+    },
+    "Apparel_PackTurret": {
+      "char": "㊂",
+      "label": "turret pack",
+      "group": "Other"
+    },
+    "Apparel_Pants": {
+      "char": "㊃",
+      "label": "pants",
+      "group": "Other"
+    },
+    "Apparel_Parka": {
+      "char": "㊄",
+      "label": "parka",
+      "group": "Other"
+    },
+    "Apparel_PlateArmor": {
+      "char": "㊅",
+      "label": "plate armor",
+      "group": "Other"
+    },
+    "Apparel_PowerArmor": {
+      "char": "㊆",
+      "label": "marine armor",
+      "group": "Other"
+    },
+    "Apparel_PowerArmorHelmet": {
+      "char": "㊇",
+      "label": "marine helmet",
+      "group": "Other"
+    },
+    "Apparel_PsychicFoilHelmet": {
+      "char": "㊈",
+      "label": "psychic foil helmet",
+      "group": "Other"
+    },
+    "Apparel_PsychicInsanityLance": {
+      "char": "㊉",
+      "label": "psychic insanity lance",
+      "group": "Other"
+    },
+    "Apparel_PsychicShockLance": {
+      "char": "㊊",
+      "label": "psychic shock lance",
+      "group": "Other"
+    },
+    "Apparel_PsyfocusHelmet": {
+      "char": "㊋",
+      "label": "eltex helmet",
+      "group": "Other"
+    },
+    "Apparel_PsyfocusRobe": {
+      "char": "㊌",
+      "label": "eltex robe",
+      "group": "Other"
+    },
+    "Apparel_PsyfocusShirt": {
+      "char": "㊍",
+      "label": "eltex shirt",
+      "group": "Other"
+    },
+    "Apparel_PsyfocusVest": {
+      "char": "㊎",
+      "label": "eltex vest",
+      "group": "Other"
+    },
+    "Apparel_Robe": {
+      "char": "㊏",
+      "label": "robe",
+      "group": "Other"
+    },
+    "Apparel_RobeRoyal": {
+      "char": "㊐",
+      "label": "prestige robe",
+      "group": "Other"
+    },
+    "Apparel_Sash": {
+      "char": "㊑",
+      "label": "sash",
+      "group": "Other"
+    },
+    "Apparel_Shadecone": {
+      "char": "㊒",
+      "label": "shadecone",
+      "group": "Other"
+    },
+    "Apparel_ShardPsychicInsanityLance": {
+      "char": "㊓",
+      "label": "shard insanity lance",
+      "group": "Other"
+    },
+    "Apparel_ShardPsychicShockLance": {
+      "char": "㊔",
+      "label": "shard shock lance",
+      "group": "Other"
+    },
+    "Apparel_ShieldBelt": {
+      "char": "㊕",
+      "label": "shield belt",
+      "group": "Other"
+    },
+    "Apparel_ShirtRuffle": {
+      "char": "㊖",
+      "label": "formal shirt",
+      "group": "Other"
+    },
+    "Apparel_SimpleHelmet": {
+      "char": "㊗",
+      "label": "simple helmet",
+      "group": "Other"
+    },
+    "Apparel_Slicecap": {
+      "char": "㊘",
+      "label": "slicecap",
+      "group": "Other"
+    },
+    "Apparel_SmokepopBelt": {
+      "char": "㊙",
+      "label": "smokepop pack",
+      "group": "Other"
+    },
+    "Apparel_Tailcap": {
+      "char": "㊚",
+      "label": "tailcap",
+      "group": "Other"
+    },
+    "Apparel_TortureCrown": {
+      "char": "㊛",
+      "label": "torture crown",
+      "group": "Other"
+    },
+    "Apparel_TribalA": {
+      "char": "㊜",
+      "label": "tribalwear",
+      "group": "Other"
+    },
+    "Apparel_TribalHeaddress": {
+      "char": "㊝",
+      "label": "tribal headdress",
+      "group": "Other"
+    },
+    "Apparel_Tuque": {
+      "char": "㊞",
+      "label": "tuque",
+      "group": "Other"
+    },
+    "Apparel_VestRoyal": {
+      "char": "㊟",
+      "label": "formal vest",
+      "group": "Other"
+    },
+    "Apparel_VisageMask": {
+      "char": "㊠",
+      "label": "visage mask",
+      "group": "Other"
+    },
+    "Apparel_WarMask": {
+      "char": "㊡",
+      "label": "war mask",
+      "group": "Other"
+    },
+    "Apparel_WarVeil": {
+      "char": "㊢",
+      "label": "veil",
+      "group": "Other"
+    },
+    "ArchiteCapsule": {
+      "char": "㊣",
+      "label": "archite capsule",
+      "group": "Item"
+    },
+    "ArchonexusCore": {
+      "char": "㊤",
+      "label": "archonexus core",
+      "group": "Building"
+    },
+    "ArchotechArm": {
+      "char": "㊥",
+      "label": "archotech arm",
+      "group": "Other"
+    },
+    "ArchotechEye": {
+      "char": "㊦",
+      "label": "archotech eye",
+      "group": "Other"
+    },
+    "ArchotechLeg": {
+      "char": "㊧",
+      "label": "archotech leg",
+      "group": "Other"
+    },
+    "ArchotechTower": {
+      "char": "㊨",
+      "label": "archotech tower",
+      "group": "Building"
+    },
+    "Armchair": {
+      "char": "㊩",
+      "label": "armchair",
+      "group": "Building"
+    },
+    "ArmorskinGland": {
+      "char": "㊪",
+      "label": "armorskin gland",
+      "group": "Other"
+    },
+    "Arrow_Great": {
+      "char": "㊫",
+      "label": "greatbow arrow",
+      "group": "Item"
+    },
+    "Arrow_Recurve": {
+      "char": "㊬",
+      "label": "recurve bow arrow",
+      "group": "Item"
+    },
+    "Arrow_Short": {
+      "char": "㊭",
+      "label": "shortbow arrow",
+      "group": "Item"
+    },
+    "Artillery_AutoMortar": {
+      "char": "㊮",
+      "label": "auto-mortar",
+      "group": "Building"
+    },
+    "Artillery_Mortar": {
+      "char": "㊯",
+      "label": "mortar",
+      "group": "Building"
+    },
+    "AtmosphericHeater": {
+      "char": "㊰",
+      "label": "atmospheric heater",
+      "group": "Building"
+    },
+    "AtmosphericHeaterGlowingVents": {
+      "char": "㊱",
+      "label": "AtmosphericHeaterGlowingVents",
+      "group": "Other"
+    },
+    "Autobong": {
+      "char": "㊲",
+      "label": "autobong",
+      "group": "Building"
+    },
+    "Autodoor": {
+      "char": "㊳",
+      "label": "autodoor",
+      "group": "Building"
+    },
+    "BabyDecoration": {
+      "char": "㊴",
+      "label": "baby decoration",
+      "group": "Building"
+    },
+    "BabyFood": {
+      "char": "㊵",
+      "label": "baby food",
+      "group": "Item"
+    },
+    "BabySleepingSpot": {
+      "char": "㊶",
+      "label": "baby sleeping spot",
+      "group": "Building"
+    },
+    "BandNode": {
+      "char": "㊷",
+      "label": "band node",
+      "group": "Building"
+    },
+    "Barricade": {
+      "char": "㊸",
+      "label": "barricade",
+      "group": "Building"
+    },
+    "BasicRecharger": {
+      "char": "㊹",
+      "label": "mech recharger",
+      "group": "Building"
+    },
+    "Battery": {
+      "char": "㊺",
+      "label": "battery",
+      "group": "Building"
+    },
+    "Bear_Grizzly": {
+      "char": "㊻",
+      "label": "grizzly bear",
+      "group": "Pawn"
+    },
+    "Bear_Polar": {
+      "char": "㊼",
+      "label": "polar bear",
+      "group": "Pawn"
+    },
+    "Bed": {
+      "char": "㊽",
+      "label": "bed",
+      "group": "Building"
+    },
+    "Bedroll": {
+      "char": "㊾",
+      "label": "bedroll",
+      "group": "Building"
+    },
+    "BedrollDouble": {
+      "char": "㊿",
+      "label": "double bedroll",
+      "group": "Building"
+    },
+    "Beer": {
+      "char": "㋀",
+      "label": "beer",
+      "group": "Other"
+    },
+    "BilliardsTable": {
+      "char": "㋁",
+      "label": "billiards table",
+      "group": "Building"
+    },
+    "Bioferrite": {
+      "char": "㋂",
+      "label": "bioferrite",
+      "group": "Item"
+    },
+    "BioferriteGenerator": {
+      "char": "㋃",
+      "label": "bioferrite generator",
+      "group": "Building"
+    },
+    "BioferriteHarvester": {
+      "char": "㋄",
+      "label": "bioferrite harvester",
+      "group": "Building"
+    },
+    "BioferritePlate": {
+      "char": "㋅",
+      "label": "bioferrite plate",
+      "group": "Terrain"
+    },
+    "BioferriteShaper": {
+      "char": "㋆",
+      "label": "bioferrite shaper",
+      "group": "Building"
+    },
+    "BiofuelRefinery": {
+      "char": "㋇",
+      "label": "biofuel refinery",
+      "group": "Building"
+    },
+    "BiomutationPulser": {
+      "char": "㋈",
+      "label": "biomutation pulser",
+      "group": "Item"
+    },
+    "BiomutationWarmup": {
+      "char": "㋉",
+      "label": "BiomutationWarmup",
+      "group": "Other"
+    },
+    "BionicArm": {
+      "char": "㋊",
+      "label": "bionic arm",
+      "group": "Other"
+    },
+    "BionicEar": {
+      "char": "㋋",
+      "label": "bionic ear",
+      "group": "Other"
+    },
+    "BionicEye": {
+      "char": "㋌",
+      "label": "bionic eye",
+      "group": "Other"
+    },
+    "BionicHeart": {
+      "char": "㋍",
+      "label": "bionic heart",
+      "group": "Other"
+    },
+    "BionicJaw": {
+      "char": "㋎",
+      "label": "bionic jaw",
+      "group": "Other"
+    },
+    "BionicLeg": {
+      "char": "㋏",
+      "label": "bionic leg",
+      "group": "Other"
+    },
+    "BionicSpine": {
+      "char": "㋐",
+      "label": "bionic spine",
+      "group": "Other"
+    },
+    "BionicStomach": {
+      "char": "㋑",
+      "label": "bionic stomach",
+      "group": "Other"
+    },
+    "BionicTongue": {
+      "char": "㋒",
+      "label": "bionic tongue",
+      "group": "Other"
+    },
+    "BiosculpterPod": {
+      "char": "㋓",
+      "label": "biosculpter pod",
+      "group": "Building"
+    },
+    "Bison": {
+      "char": "㋔",
+      "label": "bison",
+      "group": "Pawn"
+    },
+    "Blackboard": {
+      "char": "㋕",
+      "label": "blackboard",
+      "group": "Building"
+    },
+    "Blight": {
+      "char": "㋖",
+      "label": "blight",
+      "group": "Other"
+    },
+    "BlocksGranite": {
+      "char": "㋗",
+      "label": "granite blocks",
+      "group": "Other"
+    },
+    "BlocksLimestone": {
+      "char": "㋘",
+      "label": "limestone blocks",
+      "group": "Other"
+    },
+    "BlocksMarble": {
+      "char": "㋙",
+      "label": "marble blocks",
+      "group": "Other"
+    },
+    "BlocksSandstone": {
+      "char": "㋚",
+      "label": "sandstone blocks",
+      "group": "Other"
+    },
+    "BlocksSlate": {
+      "char": "㋛",
+      "label": "slate blocks",
+      "group": "Other"
+    },
+    "Boards_Totemic": {
+      "char": "㋜",
+      "label": "totemic boards",
+      "group": "Terrain"
+    },
+    "Bombardment": {
+      "char": "㋝",
+      "label": "bombardment",
+      "group": "Other"
+    },
+    "Bookcase": {
+      "char": "㋞",
+      "label": "bookcase",
+      "group": "Building"
+    },
+    "BookcaseSmall": {
+      "char": "㋟",
+      "label": "small bookcase",
+      "group": "Building"
+    },
+    "Boomalope": {
+      "char": "㋠",
+      "label": "boomalope",
+      "group": "Pawn"
+    },
+    "Boomrat": {
+      "char": "㋡",
+      "label": "boomrat",
+      "group": "Pawn"
+    },
+    "Bow_Great": {
+      "char": "㋢",
+      "label": "greatbow",
+      "group": "Item"
+    },
+    "Bow_Recurve": {
+      "char": "㋣",
+      "label": "recurve bow",
+      "group": "Item"
+    },
+    "Bow_Short": {
+      "char": "㋤",
+      "label": "short bow",
+      "group": "Item"
+    },
+    "Brazier": {
+      "char": "㋥",
+      "label": "brazier",
+      "group": "Building"
+    },
+    "Brewery": {
+      "char": "㋦",
+      "label": "brewery",
+      "group": "Building"
+    },
+    "Bridge": {
+      "char": "㋧",
+      "label": "bridge",
+      "group": "Terrain"
+    },
+    "BroadshieldCore": {
+      "char": "㋨",
+      "label": "shield core",
+      "group": "Other"
+    },
+    "BroadshieldProjector": {
+      "char": "㋩",
+      "label": "burnout low-shield",
+      "group": "Building"
+    },
+    "BrokenAsphalt": {
+      "char": "㋪",
+      "label": "broken asphalt",
+      "group": "Terrain"
+    },
+    "Bryolux": {
+      "char": "㋫",
+      "label": "bryolux",
+      "group": "Plant"
+    },
+    "Bulbfreak": {
+      "char": "㋬",
+      "label": "bulbfreak",
+      "group": "Pawn"
+    },
+    "BulletShieldPsychic": {
+      "char": "㋭",
+      "label": "skipshield",
+      "group": "Other"
+    },
+    "Bullet_AssaultRifle": {
+      "char": "㋮",
+      "label": "assault rifle bullet",
+      "group": "Item"
+    },
+    "Bullet_AutocannonTurret": {
+      "char": "㋯",
+      "label": "autocannon shell",
+      "group": "Building"
+    },
+    "Bullet_Autopistol": {
+      "char": "㋰",
+      "label": "autopistol bullet",
+      "group": "Item"
+    },
+    "Bullet_BoltActionRifle": {
+      "char": "㋱",
+      "label": "bolt-action rifle bullet",
+      "group": "Item"
+    },
+    "Bullet_ChargeBlasterHeavy": {
+      "char": "㋲",
+      "label": "charge blaster shot",
+      "group": "Item"
+    },
+    "Bullet_ChargeLance": {
+      "char": "㋳",
+      "label": "charge lance shot",
+      "group": "Item"
+    },
+    "Bullet_ChargeRifle": {
+      "char": "㋴",
+      "label": "charge shot",
+      "group": "Item"
+    },
+    "Bullet_DoomsdayRocket": {
+      "char": "㋵",
+      "label": "doomsday rocket",
+      "group": "Item"
+    },
+    "Bullet_EMPLauncher": {
+      "char": "㋶",
+      "label": "EMP launcher shell",
+      "group": "Item"
+    },
+    "Bullet_FleshmelterBolt": {
+      "char": "㋷",
+      "label": "fleshmelter bolt",
+      "group": "Other"
+    },
+    "Bullet_Heatspike": {
+      "char": "㋸",
+      "label": "heatspike shot",
+      "group": "Other"
+    },
+    "Bullet_HeavySMG": {
+      "char": "㋹",
+      "label": "heavy SMG bullet",
+      "group": "Item"
+    },
+    "Bullet_HellcatRifle": {
+      "char": "㋺",
+      "label": "hellcat rifle bullet",
+      "group": "Item"
+    },
+    "Bullet_HellsphereCannonGun": {
+      "char": "㋻",
+      "label": "hellsphere cannon shot",
+      "group": "Item"
+    },
+    "Bullet_IncendiaryLauncher": {
+      "char": "㋼",
+      "label": "incendiary bolt",
+      "group": "Item"
+    },
+    "Bullet_InfernoCannon": {
+      "char": "㋽",
+      "label": "inferno cannon shell",
+      "group": "Item"
+    },
+    "Bullet_LMG": {
+      "char": "㋾",
+      "label": "LMG bullet",
+      "group": "Item"
+    },
+    "Bullet_MachinePistol": {
+      "char": "㌀",
+      "label": "machine pistol bullet",
+      "group": "Item"
+    },
+    "Bullet_MiniShotgun": {
+      "char": "㌁",
+      "label": "shotgun blast",
+      "group": "Item"
+    },
+    "Bullet_MiniSlug": {
+      "char": "㌂",
+      "label": "mini-slug",
+      "group": "Building"
+    },
+    "Bullet_MiniTurret": {
+      "char": "㌃",
+      "label": "mini-turret bullet",
+      "group": "Building"
+    },
+    "Bullet_Minigun": {
+      "char": "㌄",
+      "label": "minigun bullet",
+      "group": "Item"
+    },
+    "Bullet_NeedleGun": {
+      "char": "㌅",
+      "label": "needle shot",
+      "group": "Item"
+    },
+    "Bullet_Revolver": {
+      "char": "㌆",
+      "label": "revolver bullet",
+      "group": "Item"
+    },
+    "Bullet_Rocket": {
+      "char": "㌇",
+      "label": "rocket",
+      "group": "Item"
+    },
+    "Bullet_Shell_AcidSpit": {
+      "char": "㌈",
+      "label": "acid spit",
+      "group": "Building"
+    },
+    "Bullet_Shell_AntigrainWarhead": {
+      "char": "㌉",
+      "label": "antigrain warhead",
+      "group": "Item"
+    },
+    "Bullet_Shell_Deadlife": {
+      "char": "㌊",
+      "label": "deadlife capsule",
+      "group": "Item"
+    },
+    "Bullet_Shell_EMP": {
+      "char": "㌋",
+      "label": "EMP shell",
+      "group": "Item"
+    },
+    "Bullet_Shell_Firefoam": {
+      "char": "㌌",
+      "label": "firefoam shell",
+      "group": "Item"
+    },
+    "Bullet_Shell_HighExplosive": {
+      "char": "㌍",
+      "label": "high-explosive shell",
+      "group": "Item"
+    },
+    "Bullet_Shell_Incendiary": {
+      "char": "㌎",
+      "label": "incendiary shell",
+      "group": "Item"
+    },
+    "Bullet_Shell_Smoke": {
+      "char": "㌏",
+      "label": "smoke shell",
+      "group": "Item"
+    },
+    "Bullet_Shell_Tox": {
+      "char": "㌐",
+      "label": "tox shell",
+      "group": "Item"
+    },
+    "Bullet_Shotgun": {
+      "char": "㌑",
+      "label": "shotgun blast",
+      "group": "Item"
+    },
+    "Bullet_Slugthrower": {
+      "char": "㌒",
+      "label": "slug",
+      "group": "Item"
+    },
+    "Bullet_SmokeLauncher": {
+      "char": "㌓",
+      "label": "smoke launcher shell",
+      "group": "Item"
+    },
+    "Bullet_SniperRifle": {
+      "char": "㌔",
+      "label": "sniper rifle bullet",
+      "group": "Item"
+    },
+    "Bullet_Spiner": {
+      "char": "㌕",
+      "label": "spine",
+      "group": "Item"
+    },
+    "Bullet_TacticalTurret": {
+      "char": "㌖",
+      "label": "tactical turret bullet",
+      "group": "Building"
+    },
+    "Bullet_ThumpCannon": {
+      "char": "㌗",
+      "label": "thump bomb",
+      "group": "Item"
+    },
+    "Bullet_ToxbombLauncher": {
+      "char": "㌘",
+      "label": "toxbomb launcher shell",
+      "group": "Item"
+    },
+    "Bullet_ToxicNeedleGun": {
+      "char": "㌙",
+      "label": "toxic needle",
+      "group": "Item"
+    },
+    "Bullet_TurretSniper": {
+      "char": "㌚",
+      "label": "uranium slug",
+      "group": "Building"
+    },
+    "Burnbong": {
+      "char": "㌛",
+      "label": "burnbong",
+      "group": "Building"
+    },
+    "BurnedBioferritePlate": {
+      "char": "㌜",
+      "label": "burned bioferrite plate",
+      "group": "Terrain"
+    },
+    "BurnedCarpet": {
+      "char": "㌝",
+      "label": "burned carpet",
+      "group": "Terrain"
+    },
+    "BurnedStrawMatting": {
+      "char": "㌞",
+      "label": "burned straw matting",
+      "group": "Terrain"
+    },
+    "BurnedTree": {
+      "char": "㌟",
+      "label": "burned stump",
+      "group": "Plant"
+    },
+    "BurnedWoodPlankFloor": {
+      "char": "㌠",
+      "label": "burned wood floor",
+      "group": "Terrain"
+    },
+    "BurningPowerCell": {
+      "char": "㌡",
+      "label": "burning power cell",
+      "group": "Building"
+    },
+    "BurnoutMechlinkBooster": {
+      "char": "㌢",
+      "label": "mechband antenna",
+      "group": "Building"
+    },
+    "ButcherSpot": {
+      "char": "㌣",
+      "label": "butcher spot",
+      "group": "Building"
+    },
+    "Campfire": {
+      "char": "㌤",
+      "label": "campfire",
+      "group": "Building"
+    },
+    "CannibalPlatter": {
+      "char": "㌥",
+      "label": "cannibal platter",
+      "group": "Building"
+    },
+    "Capybara": {
+      "char": "㌦",
+      "label": "capybara",
+      "group": "Pawn"
+    },
+    "CaravanPackingSpot": {
+      "char": "㌧",
+      "label": "caravan hitching spot",
+      "group": "Building"
+    },
+    "Caribou": {
+      "char": "㌨",
+      "label": "caribou",
+      "group": "Pawn"
+    },
+    "Carpet_Mindbend": {
+      "char": "㌩",
+      "label": "mindbend carpet",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendA": {
+      "char": "㌪",
+      "label": "diamond mindbend carpet",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendB": {
+      "char": "㌫",
+      "label": "purple mindbend carpet",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendC": {
+      "char": "㌬",
+      "label": "green mindbend carpet",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendD": {
+      "char": "㌭",
+      "label": "blue mindbend carpet",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendE": {
+      "char": "㌮",
+      "label": "yellow mindbend carpet",
+      "group": "Terrain"
+    },
+    "Cassowary": {
+      "char": "㌯",
+      "label": "cassowary",
+      "group": "Pawn"
+    },
+    "Cat": {
+      "char": "㌰",
+      "label": "cat",
+      "group": "Pawn"
+    },
+    "CaveExit": {
+      "char": "㌱",
+      "label": "cave exit",
+      "group": "Building"
+    },
+    "Chemfuel": {
+      "char": "㌲",
+      "label": "chemfuel",
+      "group": "Item"
+    },
+    "ChemfuelPoweredGenerator": {
+      "char": "㌳",
+      "label": "chemfuel powered generator",
+      "group": "Building"
+    },
+    "ChessTable": {
+      "char": "㌴",
+      "label": "chess table",
+      "group": "Building"
+    },
+    "Chicken": {
+      "char": "㌵",
+      "label": "chicken",
+      "group": "Pawn"
+    },
+    "Chimera": {
+      "char": "㌶",
+      "label": "chimera",
+      "group": "Pawn"
+    },
+    "Chinchilla": {
+      "char": "㌷",
+      "label": "chinchilla",
+      "group": "Pawn"
+    },
+    "Chocolate": {
+      "char": "㌸",
+      "label": "chocolate",
+      "group": "Item"
+    },
+    "ChoppedStump": {
+      "char": "㌹",
+      "label": "chopped stump",
+      "group": "Plant"
+    },
+    "ChoppedStump_Anima": {
+      "char": "㌺",
+      "label": "chopped anima stump",
+      "group": "Plant"
+    },
+    "ChoppedStump_Gauranlen": {
+      "char": "㌻",
+      "label": "chopped gauranlen stump",
+      "group": "Plant"
+    },
+    "ChoppedStump_Harbinger": {
+      "char": "㌼",
+      "label": "chopped harbinger stump",
+      "group": "Plant"
+    },
+    "ChoppedStump_Polluted": {
+      "char": "㌽",
+      "label": "chopped stump",
+      "group": "Plant"
+    },
+    "ChoppedStump_Polux": {
+      "char": "㌾",
+      "label": "chopped polux stump",
+      "group": "Plant"
+    },
+    "ChristmasTree": {
+      "char": "㌿",
+      "label": "christmas tree",
+      "group": "Building"
+    },
+    "ChunkGranite": {
+      "char": "㍀",
+      "label": "granite chunk",
+      "group": "Other"
+    },
+    "ChunkLimestone": {
+      "char": "㍁",
+      "label": "limestone chunk",
+      "group": "Other"
+    },
+    "ChunkMarble": {
+      "char": "㍂",
+      "label": "marble chunk",
+      "group": "Other"
+    },
+    "ChunkMechanoidSlag": {
+      "char": "㍃",
+      "label": "mechanoid slag chunk",
+      "group": "Building"
+    },
+    "ChunkSandstone": {
+      "char": "㍄",
+      "label": "sandstone chunk",
+      "group": "Other"
+    },
+    "ChunkSlagSteel": {
+      "char": "㍅",
+      "label": "steel slag chunk",
+      "group": "Other"
+    },
+    "ChunkSlate": {
+      "char": "㍆",
+      "label": "slate chunk",
+      "group": "Other"
+    },
+    "CircadianAssistant": {
+      "char": "㍇",
+      "label": "circadian assistant",
+      "group": "Other"
+    },
+    "CircadianHalfCycler": {
+      "char": "㍈",
+      "label": "circadian half-cycler",
+      "group": "Other"
+    },
+    "ClimateAdjuster": {
+      "char": "㍉",
+      "label": "climate adjuster",
+      "group": "Building"
+    },
+    "Cloth": {
+      "char": "㍊",
+      "label": "cloth",
+      "group": "Item"
+    },
+    "Coagulator": {
+      "char": "㍋",
+      "label": "coagulator",
+      "group": "Other"
+    },
+    "Cobra": {
+      "char": "㍌",
+      "label": "cobra",
+      "group": "Pawn"
+    },
+    "CochlearImplant": {
+      "char": "㍍",
+      "label": "cochlear implant",
+      "group": "Other"
+    },
+    "CocoonMegascarab": {
+      "char": "㍎",
+      "label": "megascarab cocoon",
+      "group": "Building"
+    },
+    "CocoonMegaspider": {
+      "char": "㍏",
+      "label": "megaspider cocoon",
+      "group": "Building"
+    },
+    "CocoonSpawner": {
+      "char": "㍐",
+      "label": "insect cocoon",
+      "group": "Other"
+    },
+    "CocoonSpelopede": {
+      "char": "㍑",
+      "label": "spelopede cocoon",
+      "group": "Building"
+    },
+    "CollapsedRocks": {
+      "char": "㍒",
+      "label": "collapsed rocks",
+      "group": "Building"
+    },
+    "Column": {
+      "char": "㍓",
+      "label": "column",
+      "group": "Building"
+    },
+    "CommsConsole": {
+      "char": "㍔",
+      "label": "comms console",
+      "group": "Building"
+    },
+    "ComponentIndustrial": {
+      "char": "㍕",
+      "label": "component",
+      "group": "Item"
+    },
+    "ComponentSpacer": {
+      "char": "㍖",
+      "label": "advanced component",
+      "group": "Item"
+    },
+    "Concrete": {
+      "char": "㍗",
+      "label": "concrete",
+      "group": "Terrain"
+    },
+    "ControlSublink": {
+      "char": "㍘",
+      "label": "control sublink (standard)",
+      "group": "Other"
+    },
+    "ControlSublinkHigh": {
+      "char": "㍙",
+      "label": "control sublink (high)",
+      "group": "Other"
+    },
+    "Cooler": {
+      "char": "㍚",
+      "label": "cooler",
+      "group": "Building"
+    },
+    "CorrosiveHeart": {
+      "char": "㍛",
+      "label": "corrosive heart",
+      "group": "Other"
+    },
+    "Couch": {
+      "char": "㍜",
+      "label": "couch",
+      "group": "Building"
+    },
+    "Cougar": {
+      "char": "㍝",
+      "label": "cougar",
+      "group": "Pawn"
+    },
+    "Cow": {
+      "char": "㍞",
+      "label": "cow",
+      "group": "Pawn"
+    },
+    "CracksShieldBreak": {
+      "char": "㍟",
+      "label": "CracksShieldBreak",
+      "group": "Other"
+    },
+    "CraftingSpot": {
+      "char": "㍠",
+      "label": "crafting spot",
+      "group": "Building"
+    },
+    "CrashedShipPartIncoming": {
+      "char": "㍡",
+      "label": "crashed ship part (incoming)",
+      "group": "Other"
+    },
+    "CraterLarge": {
+      "char": "㍢",
+      "label": "CraterLarge",
+      "group": "Building"
+    },
+    "CraterMedium": {
+      "char": "㍣",
+      "label": "CraterMedium",
+      "group": "Building"
+    },
+    "CraterSmall": {
+      "char": "㍤",
+      "label": "CraterSmall",
+      "group": "Building"
+    },
+    "CreepJoiner": {
+      "char": "㍥",
+      "label": "CreepJoiner",
+      "group": "Pawn"
+    },
+    "Crib": {
+      "char": "㍦",
+      "label": "crib",
+      "group": "Building"
+    },
+    "CryptosleepCasket": {
+      "char": "㍧",
+      "label": "cryptosleep casket",
+      "group": "Building"
+    },
+    "DarklightBrazier": {
+      "char": "㍨",
+      "label": "darklight brazier",
+      "group": "Building"
+    },
+    "Darktorch": {
+      "char": "㍩",
+      "label": "darktorch",
+      "group": "Building"
+    },
+    "DarktorchFungus": {
+      "char": "㍪",
+      "label": "fungus darktorch",
+      "group": "Building"
+    },
+    "DeathAcidifier": {
+      "char": "㍫",
+      "label": "death acidifier",
+      "group": "Other"
+    },
+    "DeathrestAccelerator": {
+      "char": "㍬",
+      "label": "deathrest accelerator",
+      "group": "Building"
+    },
+    "DeathrestCapacitySerum": {
+      "char": "㍭",
+      "label": "deathrest capacity serum",
+      "group": "Item"
+    },
+    "DeathrestCasket": {
+      "char": "㍮",
+      "label": "deathrest casket",
+      "group": "Building"
+    },
+    "DeepDrill": {
+      "char": "㍯",
+      "label": "deep drill",
+      "group": "Building"
+    },
+    "Deer": {
+      "char": "㍰",
+      "label": "deer",
+      "group": "Pawn"
+    },
+    "Defoliator": {
+      "char": "㍱",
+      "label": "defoliator",
+      "group": "Building"
+    },
+    "DefoliatorShipPart": {
+      "char": "㍲",
+      "label": "ship part (defoliator)",
+      "group": "Building"
+    },
+    "DelayedEffecterSpawner": {
+      "char": "㍳",
+      "label": "delayed effecter spawner",
+      "group": "Building"
+    },
+    "DelayedMetalhorrorEmerger": {
+      "char": "㍴",
+      "label": "delayed metalhorror emerge",
+      "group": "Building"
+    },
+    "DetoxifierKidney": {
+      "char": "㍵",
+      "label": "detoxifier kidney",
+      "group": "Other"
+    },
+    "DetoxifierLung": {
+      "char": "㍶",
+      "label": "detoxifier lung",
+      "group": "Other"
+    },
+    "DetoxifierStomach": {
+      "char": "㍷",
+      "label": "sterilizing stomach",
+      "group": "Other"
+    },
+    "DevilstrandCloth": {
+      "char": "㍸",
+      "label": "devilstrand",
+      "group": "Item"
+    },
+    "Devourer": {
+      "char": "㍹",
+      "label": "devourer",
+      "group": "Pawn"
+    },
+    "DiningChair": {
+      "char": "㍺",
+      "label": "dining chair",
+      "group": "Building"
+    },
+    "DirtCubeSculpture": {
+      "char": "㍻",
+      "label": "dirt cube sculpture",
+      "group": "Building"
+    },
+    "DisruptorFlare": {
+      "char": "㍼",
+      "label": "disruptor flare",
+      "group": "Other"
+    },
+    "Donkey": {
+      "char": "㍽",
+      "label": "donkey",
+      "group": "Pawn"
+    },
+    "Door": {
+      "char": "㍾",
+      "label": "door",
+      "group": "Building"
+    },
+    "DoubleBed": {
+      "char": "㍿",
+      "label": "double bed",
+      "group": "Building"
+    },
+    "DoubleSleepingSpot": {
+      "char": "㎀",
+      "label": "double sleeping spot",
+      "group": "Building"
+    },
+    "Drape": {
+      "char": "㎁",
+      "label": "drape",
+      "group": "Building"
+    },
+    "Dreadmeld": {
+      "char": "㎂",
+      "label": "dreadmeld",
+      "group": "Pawn"
+    },
+    "Dresser": {
+      "char": "㎃",
+      "label": "dresser",
+      "group": "Building"
+    },
+    "DrillArm": {
+      "char": "㎄",
+      "label": "drill arm",
+      "group": "Other"
+    },
+    "Dromedary": {
+      "char": "㎅",
+      "label": "dromedary",
+      "group": "Pawn"
+    },
+    "DropPodIncoming": {
+      "char": "㎆",
+      "label": "drop pod (incoming)",
+      "group": "Other"
+    },
+    "DropPodIncomingMechanoidRapid": {
+      "char": "㎇",
+      "label": "DropPodIncomingMechanoidRapid",
+      "group": "Other"
+    },
+    "DropPodLeaving": {
+      "char": "㎈",
+      "label": "drop pod (leaving)",
+      "group": "Other"
+    },
+    "DrugLab": {
+      "char": "㎉",
+      "label": "drug lab",
+      "group": "Building"
+    },
+    "Drum": {
+      "char": "㎊",
+      "label": "drum",
+      "group": "Building"
+    },
+    "DryadCocoon": {
+      "char": "㎋",
+      "label": "dryad cocoon",
+      "group": "Building"
+    },
+    "DryadHealingPod": {
+      "char": "㎌",
+      "label": "dryad healing pod",
+      "group": "Building"
+    },
+    "Dryad_Barkskin": {
+      "char": "㎍",
+      "label": "barkskin dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Basic": {
+      "char": "㎎",
+      "label": "immature dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Berrymaker": {
+      "char": "㎏",
+      "label": "berrymaker dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Carrier": {
+      "char": "㎐",
+      "label": "carrier dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Clawer": {
+      "char": "㎑",
+      "label": "clawer dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Gaumaker": {
+      "char": "㎒",
+      "label": "gaumaker dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Medicinemaker": {
+      "char": "㎓",
+      "label": "medicinemaker dryad",
+      "group": "Pawn"
+    },
+    "Dryad_Woodmaker": {
+      "char": "㎔",
+      "label": "woodmaker dryad",
+      "group": "Pawn"
+    },
+    "Duck": {
+      "char": "㎕",
+      "label": "duck",
+      "group": "Pawn"
+    },
+    "Dye": {
+      "char": "㎖",
+      "label": "dye",
+      "group": "Plant"
+    },
+    "DyingRevenant": {
+      "char": "㎗",
+      "label": "DyingRevenant",
+      "group": "Other"
+    },
+    "EMIDynamo": {
+      "char": "㎘",
+      "label": "EMI dynamo",
+      "group": "Building"
+    },
+    "Effigy": {
+      "char": "㎙",
+      "label": "effigy",
+      "group": "Building"
+    },
+    "EggBox": {
+      "char": "㎚",
+      "label": "egg box",
+      "group": "Building"
+    },
+    "EggCassowaryFertilized": {
+      "char": "㎛",
+      "label": "cassowary egg (fert.)",
+      "group": "Item"
+    },
+    "EggCassowaryUnfertilized": {
+      "char": "㎜",
+      "label": "cassowary egg (unfert.)",
+      "group": "Item"
+    },
+    "EggChickenFertilized": {
+      "char": "㎝",
+      "label": "chicken egg (fert.)",
+      "group": "Item"
+    },
+    "EggChickenUnfertilized": {
+      "char": "㎞",
+      "label": "chicken egg (unfert.)",
+      "group": "Item"
+    },
+    "EggCobraFertilized": {
+      "char": "㎟",
+      "label": "cobra egg (fert.)",
+      "group": "Item"
+    },
+    "EggCobraUnfertilized": {
+      "char": "㎠",
+      "label": "cobra egg (unfert.)",
+      "group": "Item"
+    },
+    "EggDuckFertilized": {
+      "char": "㎡",
+      "label": "duck egg (fert.)",
+      "group": "Item"
+    },
+    "EggDuckUnfertilized": {
+      "char": "㎢",
+      "label": "duck egg (unfert.)",
+      "group": "Item"
+    },
+    "EggEmuFertilized": {
+      "char": "㎣",
+      "label": "emu egg (fert.)",
+      "group": "Item"
+    },
+    "EggEmuUnfertilized": {
+      "char": "㎤",
+      "label": "emu egg (unfert.)",
+      "group": "Item"
+    },
+    "EggGooseFertilized": {
+      "char": "㎥",
+      "label": "goose egg (fert.)",
+      "group": "Item"
+    },
+    "EggGooseUnfertilized": {
+      "char": "㎦",
+      "label": "goose egg (unfert.)",
+      "group": "Item"
+    },
+    "EggIguanaFertilized": {
+      "char": "㎧",
+      "label": "iguana egg (fert.)",
+      "group": "Item"
+    },
+    "EggIguanaUnfertilized": {
+      "char": "㎨",
+      "label": "iguana egg (unfert.)",
+      "group": "Item"
+    },
+    "EggOstrichFertilized": {
+      "char": "㎩",
+      "label": "ostrich egg (fert.)",
+      "group": "Item"
+    },
+    "EggOstrichUnfertilized": {
+      "char": "㎪",
+      "label": "ostrich egg (unfert.)",
+      "group": "Item"
+    },
+    "EggTortoiseFertilized": {
+      "char": "㎫",
+      "label": "tortoise egg (fert.)",
+      "group": "Item"
+    },
+    "EggTortoiseUnfertilized": {
+      "char": "㎬",
+      "label": "tortoise egg (unfert.)",
+      "group": "Item"
+    },
+    "EggTurkeyFertilized": {
+      "char": "㎭",
+      "label": "turkey egg (fert.)",
+      "group": "Item"
+    },
+    "EggTurkeyUnfertilized": {
+      "char": "㎮",
+      "label": "turkey egg (unfert.)",
+      "group": "Item"
+    },
+    "ElbowBlade": {
+      "char": "㎯",
+      "label": "elbow blade",
+      "group": "Other"
+    },
+    "ElectricCrematorium": {
+      "char": "㎰",
+      "label": "electric crematorium",
+      "group": "Building"
+    },
+    "ElectricInhibitor": {
+      "char": "㎱",
+      "label": "electric inhibitor",
+      "group": "Building"
+    },
+    "ElectricSmelter": {
+      "char": "㎲",
+      "label": "electric smelter",
+      "group": "Building"
+    },
+    "ElectricSmithy": {
+      "char": "㎳",
+      "label": "electric smithy",
+      "group": "Building"
+    },
+    "ElectricStove": {
+      "char": "㎴",
+      "label": "electric stove",
+      "group": "Building"
+    },
+    "ElectricTailoringBench": {
+      "char": "㎵",
+      "label": "electric tailor bench",
+      "group": "Building"
+    },
+    "Electroharvester": {
+      "char": "㎶",
+      "label": "electroharvester",
+      "group": "Building"
+    },
+    "Elephant": {
+      "char": "㎷",
+      "label": "elephant",
+      "group": "Pawn"
+    },
+    "ElephantTusk": {
+      "char": "㎸",
+      "label": "elephant tusk",
+      "group": "Item"
+    },
+    "Elk": {
+      "char": "㎹",
+      "label": "elk",
+      "group": "Pawn"
+    },
+    "Emu": {
+      "char": "㎺",
+      "label": "emu",
+      "group": "Pawn"
+    },
+    "EndTable": {
+      "char": "㎻",
+      "label": "end table",
+      "group": "Building"
+    },
+    "EndlessPit2x2c": {
+      "char": "㎼",
+      "label": "EndlessPit2x2c",
+      "group": "Building"
+    },
+    "EndlessPit3x2c": {
+      "char": "㎽",
+      "label": "EndlessPit3x2c",
+      "group": "Building"
+    },
+    "EndlessPit3x3c": {
+      "char": "㎾",
+      "label": "EndlessPit3x3c",
+      "group": "Building"
+    },
+    "Explosion": {
+      "char": "㎿",
+      "label": "explosion",
+      "group": "Other"
+    },
+    "FabricationBench": {
+      "char": "㏀",
+      "label": "fabrication bench",
+      "group": "Building"
+    },
+    "Fence": {
+      "char": "㏁",
+      "label": "fence",
+      "group": "Building"
+    },
+    "FenceGate": {
+      "char": "㏂",
+      "label": "fence gate",
+      "group": "Building"
+    },
+    "FermentingBarrel": {
+      "char": "㏃",
+      "label": "fermenting barrel",
+      "group": "Building"
+    },
+    "FieldHand": {
+      "char": "㏄",
+      "label": "field hand",
+      "group": "Other"
+    },
+    "Filth_AmnioticFluid": {
+      "char": "㏅",
+      "label": "amniotic fluid",
+      "group": "Other"
+    },
+    "Filth_AnimalFilth": {
+      "char": "㏆",
+      "label": "animal filth",
+      "group": "Other"
+    },
+    "Filth_Ash": {
+      "char": "㏇",
+      "label": "ash",
+      "group": "Other"
+    },
+    "Filth_BlastMark": {
+      "char": "㏈",
+      "label": "blast mark",
+      "group": "Other"
+    },
+    "Filth_Blood": {
+      "char": "㏉",
+      "label": "blood",
+      "group": "Other"
+    },
+    "Filth_BloodInsect": {
+      "char": "㏊",
+      "label": "bugblood",
+      "group": "Other"
+    },
+    "Filth_BloodSmear": {
+      "char": "㏋",
+      "label": "blood smear",
+      "group": "Other"
+    },
+    "Filth_CorpseBile": {
+      "char": "㏌",
+      "label": "corpse bile",
+      "group": "Other"
+    },
+    "Filth_DarkBlood": {
+      "char": "㏍",
+      "label": "dark blood",
+      "group": "Other"
+    },
+    "Filth_DarkBloodSmear": {
+      "char": "㏎",
+      "label": "dark blood smear",
+      "group": "Other"
+    },
+    "Filth_Dirt": {
+      "char": "㏏",
+      "label": "dirt",
+      "group": "Other"
+    },
+    "Filth_DriedBlood": {
+      "char": "㏐",
+      "label": "dried blood",
+      "group": "Other"
+    },
+    "Filth_FireFoam": {
+      "char": "㏑",
+      "label": "firefoam",
+      "group": "Other"
+    },
+    "Filth_FlammableBile": {
+      "char": "㏒",
+      "label": "flammable bile",
+      "group": "Other"
+    },
+    "Filth_Fleshmass": {
+      "char": "㏓",
+      "label": "fleshmass debris",
+      "group": "Other"
+    },
+    "Filth_Floordrawing": {
+      "char": "㏔",
+      "label": "floordrawing",
+      "group": "Other"
+    },
+    "Filth_Fuel": {
+      "char": "㏕",
+      "label": "chemfuel puddle",
+      "group": "Other"
+    },
+    "Filth_GestationFluid": {
+      "char": "㏖",
+      "label": "gestation fluid",
+      "group": "Other"
+    },
+    "Filth_GrayFlesh": {
+      "char": "㏗",
+      "label": "gray flesh",
+      "group": "Other"
+    },
+    "Filth_GrayFleshNoticeable": {
+      "char": "㏘",
+      "label": "Filth_GrayFleshNoticeable",
+      "group": "Other"
+    },
+    "Filth_Hair": {
+      "char": "㏙",
+      "label": "hair",
+      "group": "Other"
+    },
+    "Filth_LooseGround": {
+      "char": "㏚",
+      "label": "loose ground",
+      "group": "Other"
+    },
+    "Filth_MachineBits": {
+      "char": "㏛",
+      "label": "machine bits",
+      "group": "Other"
+    },
+    "Filth_MetalhorrorDebris": {
+      "char": "㏜",
+      "label": "metalhorror debris",
+      "group": "Other"
+    },
+    "Filth_MoldyUniform": {
+      "char": "㏝",
+      "label": "ragged uniform",
+      "group": "Other"
+    },
+    "Filth_OilSmear": {
+      "char": "㏞",
+      "label": "oil smear",
+      "group": "Other"
+    },
+    "Filth_PodSlime": {
+      "char": "㏟",
+      "label": "pod slime",
+      "group": "Other"
+    },
+    "Filth_RevenantBloodPool": {
+      "char": "㏠",
+      "label": "revenant gore pool",
+      "group": "Other"
+    },
+    "Filth_RevenantSmear": {
+      "char": "㏡",
+      "label": "revenant smear",
+      "group": "Other"
+    },
+    "Filth_RubbleBuilding": {
+      "char": "㏢",
+      "label": "building rubble",
+      "group": "Other"
+    },
+    "Filth_RubbleRock": {
+      "char": "㏣",
+      "label": "rock rubble",
+      "group": "Other"
+    },
+    "Filth_Sand": {
+      "char": "㏤",
+      "label": "sand",
+      "group": "Other"
+    },
+    "Filth_ScatteredDocuments": {
+      "char": "㏥",
+      "label": "scattered documents",
+      "group": "Other"
+    },
+    "Filth_Slime": {
+      "char": "㏦",
+      "label": "slime",
+      "group": "Other"
+    },
+    "Filth_SpentAcid": {
+      "char": "㏧",
+      "label": "spent acid",
+      "group": "Other"
+    },
+    "Filth_Trash": {
+      "char": "㏨",
+      "label": "trash",
+      "group": "Other"
+    },
+    "Filth_TwistedFlesh": {
+      "char": "㏩",
+      "label": "twisted flesh",
+      "group": "Other"
+    },
+    "Filth_Vomit": {
+      "char": "㏪",
+      "label": "vomit",
+      "group": "Other"
+    },
+    "Filth_Water": {
+      "char": "㏫",
+      "label": "water puddle",
+      "group": "Other"
+    },
+    "FineTileGranite": {
+      "char": "㏬",
+      "label": "fine granite tile",
+      "group": "Terrain"
+    },
+    "FineTileLimestone": {
+      "char": "㏭",
+      "label": "fine limestone tile",
+      "group": "Terrain"
+    },
+    "FineTileMarble": {
+      "char": "㏮",
+      "label": "fine marble tile",
+      "group": "Terrain"
+    },
+    "FineTileSandstone": {
+      "char": "㏯",
+      "label": "fine sandstone tile",
+      "group": "Terrain"
+    },
+    "FineTileSlate": {
+      "char": "㏰",
+      "label": "fine slate tile",
+      "group": "Terrain"
+    },
+    "FineTileVacstone": {
+      "char": "㏱",
+      "label": "fine vacstone tile",
+      "group": "Terrain"
+    },
+    "Fingerspike": {
+      "char": "㏲",
+      "label": "fingerspike",
+      "group": "Pawn"
+    },
+    "Fire": {
+      "char": "㏳",
+      "label": "fire",
+      "group": "Other"
+    },
+    "FirefoamPopper": {
+      "char": "㏴",
+      "label": "firefoam popper",
+      "group": "Building"
+    },
+    "FlagstoneGranite": {
+      "char": "㏵",
+      "label": "granite flagstone",
+      "group": "Terrain"
+    },
+    "FlagstoneLimestone": {
+      "char": "㏶",
+      "label": "limestone flagstone",
+      "group": "Terrain"
+    },
+    "FlagstoneMarble": {
+      "char": "㏷",
+      "label": "marble flagstone",
+      "group": "Terrain"
+    },
+    "FlagstoneSandstone": {
+      "char": "㏸",
+      "label": "sandstone flagstone",
+      "group": "Terrain"
+    },
+    "FlagstoneSlate": {
+      "char": "㏹",
+      "label": "slate flagstone",
+      "group": "Terrain"
+    },
+    "Flake": {
+      "char": "㏺",
+      "label": "flake",
+      "group": "Other"
+    },
+    "Flamebow": {
+      "char": "㏻",
+      "label": "flamebow",
+      "group": "Item"
+    },
+    "FlashShieldBreak": {
+      "char": "㏼",
+      "label": "FlashShieldBreak",
+      "group": "Other"
+    },
+    "Flashstorm": {
+      "char": "㏽",
+      "label": "flashstorm",
+      "group": "Other"
+    },
+    "FlatscreenTelevision": {
+      "char": "㏾",
+      "label": "flatscreen television",
+      "group": "Building"
+    },
+    "Flesh": {
+      "char": "⌀",
+      "label": "flesh",
+      "group": "Terrain"
+    },
+    "FleshSack": {
+      "char": "⌁",
+      "label": "flesh sack",
+      "group": "Building"
+    },
+    "FleshbeastGroundSpawner": {
+      "char": "⌂",
+      "label": "FleshbeastGroundSpawner",
+      "group": "Other"
+    },
+    "Fleshbulb": {
+      "char": "⌃",
+      "label": "fleshbulb",
+      "group": "Building"
+    },
+    "Fleshmass": {
+      "char": "⌄",
+      "label": "fleshmass",
+      "group": "Building"
+    },
+    "FleshmassHeart": {
+      "char": "⌅",
+      "label": "fleshmass heart",
+      "group": "Building"
+    },
+    "FleshmassHeartSpawner": {
+      "char": "⌆",
+      "label": "underground emergence",
+      "group": "Building"
+    },
+    "FleshmassNeuralLump": {
+      "char": "⌇",
+      "label": "fleshmass neural lump",
+      "group": "Item"
+    },
+    "FleshmassNucleus": {
+      "char": "⌈",
+      "label": "fleshmass nucleus",
+      "group": "Pawn"
+    },
+    "FleshmassSpitter": {
+      "char": "⌉",
+      "label": "fleshmass spitter",
+      "group": "Building"
+    },
+    "Fleshmass_Active": {
+      "char": "⌊",
+      "label": "Fleshmass_Active",
+      "group": "Building"
+    },
+    "FloodLight": {
+      "char": "⌋",
+      "label": "flood light",
+      "group": "Building"
+    },
+    "FloorEtching": {
+      "char": "⌌",
+      "label": "floor etching",
+      "group": "Building"
+    },
+    "FloorEtchingRambling": {
+      "char": "⌍",
+      "label": "FloorEtchingRambling",
+      "group": "Building"
+    },
+    "FlyerArrival": {
+      "char": "⌎",
+      "label": "flying creature",
+      "group": "Other"
+    },
+    "FlyerLeaving": {
+      "char": "⌏",
+      "label": "flying creature",
+      "group": "Other"
+    },
+    "Fox_Arctic": {
+      "char": "⌐",
+      "label": "arctic fox",
+      "group": "Pawn"
+    },
+    "Fox_Fennec": {
+      "char": "⌑",
+      "label": "fennec fox",
+      "group": "Pawn"
+    },
+    "Fox_Red": {
+      "char": "⌒",
+      "label": "red fox",
+      "group": "Pawn"
+    },
+    "FrenzyInducer": {
+      "char": "⌓",
+      "label": "frenzy inducer",
+      "group": "Building"
+    },
+    "FueledSmithy": {
+      "char": "⌔",
+      "label": "fueled smithy",
+      "group": "Building"
+    },
+    "FueledStove": {
+      "char": "⌕",
+      "label": "fueled stove",
+      "group": "Building"
+    },
+    "FungalGravel": {
+      "char": "⌖",
+      "label": "fungal gravel",
+      "group": "Terrain"
+    },
+    "GameOfUrBoard": {
+      "char": "⌗",
+      "label": "Game-of-Ur board",
+      "group": "Building"
+    },
+    "GastroAnalyzer": {
+      "char": "⌘",
+      "label": "gastro-analyzer",
+      "group": "Other"
+    },
+    "GaumakerCocoon": {
+      "char": "⌙",
+      "label": "gaumaker pod",
+      "group": "Building"
+    },
+    "GauranlenSeed": {
+      "char": "⌚",
+      "label": "Gauranlen seed",
+      "group": "Plant"
+    },
+    "Gazelle": {
+      "char": "⌛",
+      "label": "gazelle",
+      "group": "Pawn"
+    },
+    "GeneAssembler": {
+      "char": "⌜",
+      "label": "gene assembler",
+      "group": "Building"
+    },
+    "GeneBank": {
+      "char": "⌝",
+      "label": "gene bank",
+      "group": "Building"
+    },
+    "GeneExtractor": {
+      "char": "⌞",
+      "label": "gene extractor",
+      "group": "Building"
+    },
+    "GeneProcessor": {
+      "char": "⌟",
+      "label": "gene processor",
+      "group": "Building"
+    },
+    "Genepack": {
+      "char": "⌠",
+      "label": "genepack",
+      "group": "Item"
+    },
+    "GeothermalGenerator": {
+      "char": "⌡",
+      "label": "geothermal generator",
+      "group": "Building"
+    },
+    "GhoulBarbs": {
+      "char": "⌢",
+      "label": "ghoul barbs",
+      "group": "Other"
+    },
+    "GhoulPlating": {
+      "char": "⌣",
+      "label": "ghoul plating",
+      "group": "Other"
+    },
+    "GhoulResurrectionSerum": {
+      "char": "⌤",
+      "label": "ghoul resurrection serum",
+      "group": "Item"
+    },
+    "GibbetCage": {
+      "char": "⌥",
+      "label": "gibbet cage",
+      "group": "Building"
+    },
+    "Gloomlight": {
+      "char": "⌦",
+      "label": "mech node",
+      "group": "Building"
+    },
+    "GlowPod": {
+      "char": "⌧",
+      "label": "glow pod",
+      "group": "Building"
+    },
+    "Glowstool": {
+      "char": "⌨",
+      "label": "glowstool",
+      "group": "Plant"
+    },
+    "GlucosoidPump": {
+      "char": "〈",
+      "label": "glucosoid pump",
+      "group": "Building"
+    },
+    "GoJuice": {
+      "char": "〉",
+      "label": "go-juice",
+      "group": "Other"
+    },
+    "Goat": {
+      "char": "⌫",
+      "label": "goat",
+      "group": "Pawn"
+    },
+    "Gold": {
+      "char": "⌬",
+      "label": "gold",
+      "group": "Item"
+    },
+    "GoldTile": {
+      "char": "⌭",
+      "label": "gold tile",
+      "group": "Terrain"
+    },
+    "GoldenCube": {
+      "char": "⌮",
+      "label": "golden cube",
+      "group": "Item"
+    },
+    "Goose": {
+      "char": "⌯",
+      "label": "goose",
+      "group": "Pawn"
+    },
+    "Gorehulk": {
+      "char": "⌰",
+      "label": "gorehulk",
+      "group": "Pawn"
+    },
+    "GrandArchotechStructure": {
+      "char": "⌱",
+      "label": "grand archotech structure",
+      "group": "Building"
+    },
+    "GrandThrone": {
+      "char": "⌲",
+      "label": "grand meditation throne",
+      "group": "Building"
+    },
+    "Granite": {
+      "char": "⌳",
+      "label": "granite",
+      "group": "Other"
+    },
+    "Grave": {
+      "char": "⌴",
+      "label": "grave",
+      "group": "Building"
+    },
+    "Gravel": {
+      "char": "⌵",
+      "label": "stony soil",
+      "group": "Terrain"
+    },
+    "GrayBox": {
+      "char": "⌶",
+      "label": "gray box",
+      "group": "Building"
+    },
+    "GrayDoor": {
+      "char": "⌷",
+      "label": "GrayDoor",
+      "group": "Building"
+    },
+    "GrayFleshSample": {
+      "char": "⌸",
+      "label": "gray flesh sample",
+      "group": "Item"
+    },
+    "GrayStatueDeadlifeDust": {
+      "char": "⌹",
+      "label": "GrayStatueDeadlifeDust",
+      "group": "Building"
+    },
+    "GrayStatueTeleporter": {
+      "char": "⌺",
+      "label": "GrayStatueTeleporter",
+      "group": "Building"
+    },
+    "GraySurface": {
+      "char": "⌻",
+      "label": "gray surface",
+      "group": "Terrain"
+    },
+    "GrayWall": {
+      "char": "⌼",
+      "label": "wall",
+      "group": "Building"
+    },
+    "Grenade_Deadlife": {
+      "char": "⌽",
+      "label": "deadlife capsule",
+      "group": "Other"
+    },
+    "Grenade_DisruptorFlare": {
+      "char": "⌾",
+      "label": "disruptor flare",
+      "group": "Other"
+    },
+    "Grenade_TurretPack": {
+      "char": "⌿",
+      "label": "turret pack capsule",
+      "group": "Other"
+    },
+    "GroundCrackHuge": {
+      "char": "⍀",
+      "label": "GroundCrackHuge",
+      "group": "Other"
+    },
+    "GroundPenetratingScanner": {
+      "char": "⍁",
+      "label": "ground-penetrating scanner",
+      "group": "Building"
+    },
+    "GrowthVat": {
+      "char": "⍂",
+      "label": "growth vat",
+      "group": "Building"
+    },
+    "GuineaPig": {
+      "char": "⍃",
+      "label": "guinea pig",
+      "group": "Pawn"
+    },
+    "Gun_AssaultRifle": {
+      "char": "⍄",
+      "label": "assault rifle",
+      "group": "Item"
+    },
+    "Gun_AutocannonTurret": {
+      "char": "⍅",
+      "label": "autocannon",
+      "group": "Building"
+    },
+    "Gun_Autopistol": {
+      "char": "⍆",
+      "label": "autopistol",
+      "group": "Item"
+    },
+    "Gun_BeamGraser": {
+      "char": "⍇",
+      "label": "beam graser",
+      "group": "Item"
+    },
+    "Gun_BoltActionRifle": {
+      "char": "⍈",
+      "label": "bolt-action rifle",
+      "group": "Item"
+    },
+    "Gun_ChainShotgun": {
+      "char": "⍉",
+      "label": "chain shotgun",
+      "group": "Item"
+    },
+    "Gun_ChargeBlasterHeavy": {
+      "char": "⍊",
+      "label": "Gun_ChargeBlasterHeavy",
+      "group": "Item"
+    },
+    "Gun_ChargeBlasterHeavyTurret": {
+      "char": "⍋",
+      "label": "light charge blaster",
+      "group": "Building"
+    },
+    "Gun_ChargeBlasterTurret": {
+      "char": "⍌",
+      "label": "charge blaster turret",
+      "group": "Pawn"
+    },
+    "Gun_ChargeLance": {
+      "char": "⍍",
+      "label": "charge lance",
+      "group": "Item"
+    },
+    "Gun_ChargeRifle": {
+      "char": "⍎",
+      "label": "charge rifle",
+      "group": "Item"
+    },
+    "Gun_DoomsdayRocket": {
+      "char": "⍏",
+      "label": "doomsday rocket launcher",
+      "group": "Item"
+    },
+    "Gun_EmpLauncher": {
+      "char": "⍐",
+      "label": "EMP launcher",
+      "group": "Item"
+    },
+    "Gun_HeavySMG": {
+      "char": "⍑",
+      "label": "heavy SMG",
+      "group": "Item"
+    },
+    "Gun_HellcatRifle": {
+      "char": "⍒",
+      "label": "hellcat rifle",
+      "group": "Item"
+    },
+    "Gun_HellsphereCannon": {
+      "char": "⍓",
+      "label": "hellsphere cannon",
+      "group": "Item"
+    },
+    "Gun_IncendiaryLauncher": {
+      "char": "⍔",
+      "label": "incendiary launcher",
+      "group": "Item"
+    },
+    "Gun_Incinerator": {
+      "char": "⍕",
+      "label": "incinerator",
+      "group": "Item"
+    },
+    "Gun_InfernoCannon": {
+      "char": "⍖",
+      "label": "Gun_InfernoCannon",
+      "group": "Item"
+    },
+    "Gun_InfernoCannonTurret": {
+      "char": "⍗",
+      "label": "Gun_InfernoCannonTurret",
+      "group": "Building"
+    },
+    "Gun_LMG": {
+      "char": "⍘",
+      "label": "LMG",
+      "group": "Item"
+    },
+    "Gun_MachinePistol": {
+      "char": "⍙",
+      "label": "machine pistol",
+      "group": "Item"
+    },
+    "Gun_MiniFlameblaster": {
+      "char": "⍚",
+      "label": "mini-flameblaster",
+      "group": "Item"
+    },
+    "Gun_MiniShotgun": {
+      "char": "⍛",
+      "label": "mini-shotgun",
+      "group": "Item"
+    },
+    "Gun_MiniTurret": {
+      "char": "⍜",
+      "label": "mini-turret gun",
+      "group": "Building"
+    },
+    "Gun_MiniTurretMech": {
+      "char": "⍝",
+      "label": "mini-slugger",
+      "group": "Building"
+    },
+    "Gun_Minigun": {
+      "char": "⍞",
+      "label": "minigun",
+      "group": "Item"
+    },
+    "Gun_Needle": {
+      "char": "⍟",
+      "label": "needle gun",
+      "group": "Item"
+    },
+    "Gun_NeedleLauncher": {
+      "char": "⍠",
+      "label": "needle launcher",
+      "group": "Item"
+    },
+    "Gun_PumpShotgun": {
+      "char": "⍡",
+      "label": "pump shotgun",
+      "group": "Item"
+    },
+    "Gun_Revolver": {
+      "char": "⍢",
+      "label": "revolver",
+      "group": "Item"
+    },
+    "Gun_RocketswarmLauncher": {
+      "char": "⍣",
+      "label": "rocketswarm tube",
+      "group": "Building"
+    },
+    "Gun_Slugthrower": {
+      "char": "⍤",
+      "label": "slugthrower",
+      "group": "Item"
+    },
+    "Gun_SmokeLauncher": {
+      "char": "⍥",
+      "label": "smoke launcher",
+      "group": "Item"
+    },
+    "Gun_SniperRifle": {
+      "char": "⍦",
+      "label": "sniper rifle",
+      "group": "Item"
+    },
+    "Gun_Spiner": {
+      "char": "⍧",
+      "label": "spiner",
+      "group": "Item"
+    },
+    "Gun_TacticalTurret": {
+      "char": "⍨",
+      "label": "tactical turret gun",
+      "group": "Building"
+    },
+    "Gun_ThumpCannon": {
+      "char": "⍩",
+      "label": "thump cannon",
+      "group": "Item"
+    },
+    "Gun_ToxbombLauncher": {
+      "char": "⍪",
+      "label": "toxbomb launcher",
+      "group": "Item"
+    },
+    "Gun_ToxicNeedle": {
+      "char": "⍫",
+      "label": "toxic needle gun",
+      "group": "Item"
+    },
+    "Gun_TripleRocket": {
+      "char": "⍬",
+      "label": "triple rocket launcher",
+      "group": "Item"
+    },
+    "Gun_TurretFoam": {
+      "char": "⍭",
+      "label": "foam sprayer",
+      "group": "Building"
+    },
+    "Gun_TurretSniper": {
+      "char": "⍮",
+      "label": "uranium slug cannon",
+      "group": "Building"
+    },
+    "HandTailoringBench": {
+      "char": "⍯",
+      "label": "hand tailor bench",
+      "group": "Building"
+    },
+    "HandTalon": {
+      "char": "⍰",
+      "label": "hand talon",
+      "group": "Other"
+    },
+    "HarbingerSeed": {
+      "char": "⍱",
+      "label": "harbinger seed",
+      "group": "Plant"
+    },
+    "Hare": {
+      "char": "⍲",
+      "label": "hare",
+      "group": "Pawn"
+    },
+    "Harp": {
+      "char": "⍳",
+      "label": "harp",
+      "group": "Building"
+    },
+    "Harpsichord": {
+      "char": "⍴",
+      "label": "harpsichord",
+      "group": "Building"
+    },
+    "Hay": {
+      "char": "⍵",
+      "label": "hay",
+      "group": "Item"
+    },
+    "HealingEnhancer": {
+      "char": "⍶",
+      "label": "healing enhancer",
+      "group": "Other"
+    },
+    "Heart": {
+      "char": "⍷",
+      "label": "heart",
+      "group": "Other"
+    },
+    "Heater": {
+      "char": "⍸",
+      "label": "heater",
+      "group": "Building"
+    },
+    "HemogenAmplifier": {
+      "char": "⍹",
+      "label": "hemogen amplifier",
+      "group": "Building"
+    },
+    "HemogenPack": {
+      "char": "⍺",
+      "label": "hemogen pack",
+      "group": "Item"
+    },
+    "Hemopump": {
+      "char": "⍻",
+      "label": "hemopump",
+      "group": "Building"
+    },
+    "HiTechResearchBench": {
+      "char": "⍼",
+      "label": "hi-tech research bench",
+      "group": "Building"
+    },
+    "HiddenConduit": {
+      "char": "⍽",
+      "label": "hidden conduit",
+      "group": "Building"
+    },
+    "Hive": {
+      "char": "⍾",
+      "label": "hive",
+      "group": "Building"
+    },
+    "HoldingPlatform": {
+      "char": "⍿",
+      "label": "holding platform",
+      "group": "Building"
+    },
+    "HoldingSpot": {
+      "char": "⎀",
+      "label": "holding spot",
+      "group": "Building"
+    },
+    "HoopstoneRing": {
+      "char": "⎁",
+      "label": "hoopstone ring",
+      "group": "Building"
+    },
+    "Hopper": {
+      "char": "⎂",
+      "label": "hopper",
+      "group": "Building"
+    },
+    "Horse": {
+      "char": "⎃",
+      "label": "horse",
+      "group": "Pawn"
+    },
+    "HorseshoesPin": {
+      "char": "⎄",
+      "label": "horseshoes pin",
+      "group": "Building"
+    },
+    "HospitalBed": {
+      "char": "⎅",
+      "label": "hospital bed",
+      "group": "Building"
+    },
+    "Human": {
+      "char": "⎆",
+      "label": "human",
+      "group": "Pawn"
+    },
+    "HumanEmbryo": {
+      "char": "⎇",
+      "label": "embryo",
+      "group": "Item"
+    },
+    "HumanOvum": {
+      "char": "⎈",
+      "label": "ovum",
+      "group": "Item"
+    },
+    "Husky": {
+      "char": "⎉",
+      "label": "husky",
+      "group": "Pawn"
+    },
+    "HydroponicsBasin": {
+      "char": "⎊",
+      "label": "hydroponics basin",
+      "group": "Building"
+    },
+    "Hyperweave": {
+      "char": "⎋",
+      "label": "hyperweave",
+      "group": "Item"
+    },
+    "Ibex": {
+      "char": "⎌",
+      "label": "ibex",
+      "group": "Pawn"
+    },
+    "Ice": {
+      "char": "⎍",
+      "label": "Ice",
+      "group": "Terrain"
+    },
+    "Ideogram": {
+      "char": "⎎",
+      "label": "ideogram",
+      "group": "Building"
+    },
+    "Iguana": {
+      "char": "⎏",
+      "label": "iguana",
+      "group": "Pawn"
+    },
+    "Immunoenhancer": {
+      "char": "⎐",
+      "label": "immunoenhancer",
+      "group": "Other"
+    },
+    "IncenseShrine": {
+      "char": "⎑",
+      "label": "incense shrine",
+      "group": "Building"
+    },
+    "IncineratorSpray": {
+      "char": "⎒",
+      "label": "IncineratorSpray",
+      "group": "Other"
+    },
+    "InfiniteChemreactor": {
+      "char": "⎓",
+      "label": "infinite chemreactor",
+      "group": "Building"
+    },
+    "InsectJelly": {
+      "char": "⎔",
+      "label": "insect jelly",
+      "group": "Item"
+    },
+    "Jade": {
+      "char": "⎕",
+      "label": "jade",
+      "group": "Item"
+    },
+    "Joywire": {
+      "char": "⎖",
+      "label": "joywire",
+      "group": "Other"
+    },
+    "JuggernautSerum": {
+      "char": "⎗",
+      "label": "juggernaut serum",
+      "group": "Item"
+    },
+    "Kibble": {
+      "char": "⎘",
+      "label": "kibble",
+      "group": "Item"
+    },
+    "Kidney": {
+      "char": "⎙",
+      "label": "kidney",
+      "group": "Other"
+    },
+    "KneeSpike": {
+      "char": "⎚",
+      "label": "knee spike",
+      "group": "Other"
+    },
+    "KneelPillow": {
+      "char": "⎛",
+      "label": "kneel pillow",
+      "group": "Building"
+    },
+    "KneelSheet": {
+      "char": "⎜",
+      "label": "kneel sheet",
+      "group": "Building"
+    },
+    "LabradorRetriever": {
+      "char": "⎝",
+      "label": "labrador retriever",
+      "group": "Pawn"
+    },
+    "LabyrinthMatter": {
+      "char": "⎞",
+      "label": "gray",
+      "group": "Item"
+    },
+    "LargeMechGestator": {
+      "char": "⎟",
+      "label": "large mech gestator",
+      "group": "Building"
+    },
+    "LearningAssistant": {
+      "char": "⎠",
+      "label": "learning assistant",
+      "group": "Other"
+    },
+    "Leather_Bear": {
+      "char": "⎡",
+      "label": "bearskin",
+      "group": "Item"
+    },
+    "Leather_Bird": {
+      "char": "⎢",
+      "label": "birdskin",
+      "group": "Item"
+    },
+    "Leather_Bluefur": {
+      "char": "⎣",
+      "label": "bluefur",
+      "group": "Item"
+    },
+    "Leather_Camel": {
+      "char": "⎤",
+      "label": "camelhide",
+      "group": "Item"
+    },
+    "Leather_Chinchilla": {
+      "char": "⎥",
+      "label": "chinchilla fur",
+      "group": "Item"
+    },
+    "Leather_Dog": {
+      "char": "⎦",
+      "label": "dog leather",
+      "group": "Item"
+    },
+    "Leather_Dread": {
+      "char": "⎧",
+      "label": "dread leather",
+      "group": "Item"
+    },
+    "Leather_Elephant": {
+      "char": "⎨",
+      "label": "elephant leather",
+      "group": "Item"
+    },
+    "Leather_Fox": {
+      "char": "⎩",
+      "label": "foxfur",
+      "group": "Item"
+    },
+    "Leather_GuineaPig": {
+      "char": "⎪",
+      "label": "guinea pig fur",
+      "group": "Item"
+    },
+    "Leather_Heavy": {
+      "char": "⎫",
+      "label": "heavy fur",
+      "group": "Item"
+    },
+    "Leather_Human": {
+      "char": "⎬",
+      "label": "human leather",
+      "group": "Item"
+    },
+    "Leather_Light": {
+      "char": "⎭",
+      "label": "lightleather",
+      "group": "Item"
+    },
+    "Leather_Lizard": {
+      "char": "⎮",
+      "label": "lizardskin",
+      "group": "Item"
+    },
+    "Leather_Panthera": {
+      "char": "⎯",
+      "label": "panthera fur",
+      "group": "Item"
+    },
+    "Leather_Patch": {
+      "char": "⎰",
+      "label": "patchleather",
+      "group": "Item"
+    },
+    "Leather_Pig": {
+      "char": "⎱",
+      "label": "pigskin",
+      "group": "Item"
+    },
+    "Leather_Plain": {
+      "char": "⎲",
+      "label": "plainleather",
+      "group": "Item"
+    },
+    "Leather_Rhinoceros": {
+      "char": "⎳",
+      "label": "rhinoceros leather",
+      "group": "Item"
+    },
+    "Leather_Thrumbo": {
+      "char": "⎴",
+      "label": "thrumbofur",
+      "group": "Item"
+    },
+    "Leather_Wolf": {
+      "char": "⎵",
+      "label": "wolfskin",
+      "group": "Item"
+    },
+    "Lectern": {
+      "char": "⎶",
+      "label": "lectern",
+      "group": "Building"
+    },
+    "LightBall": {
+      "char": "⎷",
+      "label": "lightball",
+      "group": "Building"
+    },
+    "Limestone": {
+      "char": "⎸",
+      "label": "limestone",
+      "group": "Other"
+    },
+    "Liver": {
+      "char": "⎹",
+      "label": "liver",
+      "group": "Other"
+    },
+    "LongRangeMineralScanner": {
+      "char": "⎺",
+      "label": "long-range mineral scanner",
+      "group": "Building"
+    },
+    "Loudspeaker": {
+      "char": "⎻",
+      "label": "loudspeaker",
+      "group": "Building"
+    },
+    "LoveEnhancer": {
+      "char": "⎼",
+      "label": "love enhancer",
+      "group": "Other"
+    },
+    "Luciferium": {
+      "char": "⎽",
+      "label": "luciferium",
+      "group": "Other"
+    },
+    "Lung": {
+      "char": "⎾",
+      "label": "lung",
+      "group": "Other"
+    },
+    "Lynx": {
+      "char": "⎿",
+      "label": "lynx",
+      "group": "Pawn"
+    },
+    "MajorArchotechStructure": {
+      "char": "⏀",
+      "label": "major archotech structure",
+      "group": "Building"
+    },
+    "MajorArchotechStructureStudiable": {
+      "char": "⏁",
+      "label": "MajorArchotechStructureStudiable",
+      "group": "Building"
+    },
+    "Marble": {
+      "char": "⏂",
+      "label": "marble",
+      "group": "Other"
+    },
+    "MarriageSpot": {
+      "char": "⏃",
+      "label": "marriage spot",
+      "group": "Building"
+    },
+    "Marsh": {
+      "char": "⏄",
+      "label": "marsh",
+      "group": "Terrain"
+    },
+    "MarshyTerrain": {
+      "char": "⏅",
+      "label": "marshy soil",
+      "group": "Terrain"
+    },
+    "MealFine": {
+      "char": "⏆",
+      "label": "fine meal",
+      "group": "Item"
+    },
+    "MealFine_Meat": {
+      "char": "⏇",
+      "label": "carnivore fine meal",
+      "group": "Item"
+    },
+    "MealFine_Veg": {
+      "char": "⏈",
+      "label": "vegetarian fine meal",
+      "group": "Item"
+    },
+    "MealLavish": {
+      "char": "⏉",
+      "label": "lavish meal",
+      "group": "Item"
+    },
+    "MealLavish_Meat": {
+      "char": "⏊",
+      "label": "carnivore lavish meal",
+      "group": "Item"
+    },
+    "MealLavish_Veg": {
+      "char": "⏋",
+      "label": "vegetarian lavish meal",
+      "group": "Item"
+    },
+    "MealNutrientPaste": {
+      "char": "⏌",
+      "label": "nutrient paste meal",
+      "group": "Item"
+    },
+    "MealSimple": {
+      "char": "⏍",
+      "label": "simple meal",
+      "group": "Item"
+    },
+    "MealSurvivalPack": {
+      "char": "⏎",
+      "label": "packaged survival meal",
+      "group": "Item"
+    },
+    "Meat_Twisted": {
+      "char": "⏏",
+      "label": "twisted meat",
+      "group": "Item"
+    },
+    "MechAssembler": {
+      "char": "⏐",
+      "label": "mech birther",
+      "group": "Building"
+    },
+    "MechBooster": {
+      "char": "⏑",
+      "label": "mech booster",
+      "group": "Building"
+    },
+    "MechCapsule": {
+      "char": "⏒",
+      "label": "mech capsule",
+      "group": "Building"
+    },
+    "MechDropBeacon": {
+      "char": "⏓",
+      "label": "mech drop beacon",
+      "group": "Building"
+    },
+    "MechFormfeeder": {
+      "char": "⏔",
+      "label": "mech gestation processor",
+      "group": "Other"
+    },
+    "MechGestator": {
+      "char": "⏕",
+      "label": "mech gestator",
+      "group": "Building"
+    },
+    "MechGestatorCycleCompleteLarge_East": {
+      "char": "⏖",
+      "label": "MechGestatorCycleCompleteLarge_East",
+      "group": "Other"
+    },
+    "MechGestatorCycleCompleteLarge_North": {
+      "char": "⏗",
+      "label": "MechGestatorCycleCompleteLarge_North",
+      "group": "Other"
+    },
+    "MechGestatorCycleCompleteLarge_South": {
+      "char": "⏘",
+      "label": "MechGestatorCycleCompleteLarge_South",
+      "group": "Other"
+    },
+    "MechGestatorCycleCompleteLarge_West": {
+      "char": "⏙",
+      "label": "MechGestatorCycleCompleteLarge_West",
+      "group": "Other"
+    },
+    "MechGestatorCycleComplete_East": {
+      "char": "⏚",
+      "label": "MechGestatorCycleComplete_East",
+      "group": "Other"
+    },
+    "MechGestatorCycleComplete_North": {
+      "char": "⏛",
+      "label": "MechGestatorCycleComplete_North",
+      "group": "Other"
+    },
+    "MechGestatorCycleComplete_South": {
+      "char": "⏜",
+      "label": "MechGestatorCycleComplete_South",
+      "group": "Other"
+    },
+    "MechGestatorFormedLarge_East": {
+      "char": "⏝",
+      "label": "MechGestatorFormedLarge_East",
+      "group": "Other"
+    },
+    "MechGestatorFormedLarge_North": {
+      "char": "⏞",
+      "label": "MechGestatorFormedLarge_North",
+      "group": "Other"
+    },
+    "MechGestatorFormedLarge_South": {
+      "char": "⏟",
+      "label": "MechGestatorFormedLarge_South",
+      "group": "Other"
+    },
+    "MechGestatorFormedLarge_West": {
+      "char": "⏠",
+      "label": "MechGestatorFormedLarge_West",
+      "group": "Other"
+    },
+    "MechGestatorFormed_East": {
+      "char": "⏡",
+      "label": "MechGestatorFormed_East",
+      "group": "Other"
+    },
+    "MechGestatorFormed_North": {
+      "char": "⏢",
+      "label": "MechGestatorFormed_North",
+      "group": "Other"
+    },
+    "MechGestatorFormed_South": {
+      "char": "⏣",
+      "label": "MechGestatorFormed_South",
+      "group": "Other"
+    },
+    "MechGestatorFormingLarge_East": {
+      "char": "⏤",
+      "label": "MechGestatorFormingLarge_East",
+      "group": "Other"
+    },
+    "MechGestatorFormingLarge_North": {
+      "char": "⏥",
+      "label": "MechGestatorFormingLarge_North",
+      "group": "Other"
+    },
+    "MechGestatorFormingLarge_South": {
+      "char": "⏦",
+      "label": "MechGestatorFormingLarge_South",
+      "group": "Other"
+    },
+    "MechGestatorFormingLarge_West": {
+      "char": "⏧",
+      "label": "MechGestatorFormingLarge_West",
+      "group": "Other"
+    },
+    "MechGestatorForming_East": {
+      "char": "⏨",
+      "label": "MechGestatorForming_East",
+      "group": "Other"
+    },
+    "MechGestatorForming_North": {
+      "char": "⏩",
+      "label": "MechGestatorForming_North",
+      "group": "Other"
+    },
+    "MechGestatorForming_South": {
+      "char": "⏪",
+      "label": "MechGestatorForming_South",
+      "group": "Other"
+    },
+    "MechSerumHealer": {
+      "char": "⏫",
+      "label": "healer mech serum",
+      "group": "Item"
+    },
+    "MechSerumResurrector": {
+      "char": "⏬",
+      "label": "resurrector mech serum",
+      "group": "Item"
+    },
+    "MechShield": {
+      "char": "⏭",
+      "label": "mech shield",
+      "group": "Other"
+    },
+    "Mech_Agrihand": {
+      "char": "⏮",
+      "label": "agrihand",
+      "group": "Pawn"
+    },
+    "Mech_Apocriton": {
+      "char": "⏯",
+      "label": "apocriton",
+      "group": "Pawn"
+    },
+    "Mech_CentipedeBlaster": {
+      "char": "⏰",
+      "label": "centipede blaster",
+      "group": "Pawn"
+    },
+    "Mech_CentipedeBurner": {
+      "char": "⏱",
+      "label": "centipede burner",
+      "group": "Pawn"
+    },
+    "Mech_CentipedeGunner": {
+      "char": "⏲",
+      "label": "centipede gunner",
+      "group": "Pawn"
+    },
+    "Mech_Centurion": {
+      "char": "⏳",
+      "label": "centurion",
+      "group": "Pawn"
+    },
+    "Mech_Cleansweeper": {
+      "char": "⏴",
+      "label": "cleansweeper",
+      "group": "Pawn"
+    },
+    "Mech_Constructoid": {
+      "char": "⏵",
+      "label": "constructoid",
+      "group": "Pawn"
+    },
+    "Mech_Diabolus": {
+      "char": "⏶",
+      "label": "diabolus",
+      "group": "Pawn"
+    },
+    "Mech_Fabricor": {
+      "char": "⏷",
+      "label": "fabricor",
+      "group": "Pawn"
+    },
+    "Mech_Lancer": {
+      "char": "⏸",
+      "label": "lancer",
+      "group": "Pawn"
+    },
+    "Mech_Legionary": {
+      "char": "⏹",
+      "label": "legionary",
+      "group": "Pawn"
+    },
+    "Mech_Lifter": {
+      "char": "⏺",
+      "label": "lifter",
+      "group": "Pawn"
+    },
+    "Mech_Militor": {
+      "char": "⏻",
+      "label": "militor",
+      "group": "Pawn"
+    },
+    "Mech_Paramedic": {
+      "char": "⏼",
+      "label": "paramedic",
+      "group": "Pawn"
+    },
+    "Mech_Pikeman": {
+      "char": "⏽",
+      "label": "pikeman",
+      "group": "Pawn"
+    },
+    "Mech_Scorcher": {
+      "char": "⏾",
+      "label": "scorcher",
+      "group": "Pawn"
+    },
+    "Mech_Scyther": {
+      "char": "■",
+      "label": "scyther",
+      "group": "Pawn"
+    },
+    "Mech_Termite": {
+      "char": "□",
+      "label": "termite",
+      "group": "Pawn"
+    },
+    "Mech_Tesseron": {
+      "char": "▢",
+      "label": "tesseron",
+      "group": "Pawn"
+    },
+    "Mech_Tunneler": {
+      "char": "▣",
+      "label": "tunneler",
+      "group": "Pawn"
+    },
+    "Mech_WarUrchin": {
+      "char": "▤",
+      "label": "war urchin",
+      "group": "Pawn"
+    },
+    "Mech_Warqueen": {
+      "char": "▥",
+      "label": "war queen",
+      "group": "Pawn"
+    },
+    "MechanoidTransponder": {
+      "char": "▦",
+      "label": "mechanoid transponder",
+      "group": "Item"
+    },
+    "MechbandDish": {
+      "char": "▧",
+      "label": "mechband dish",
+      "group": "Building"
+    },
+    "Mechlink": {
+      "char": "▨",
+      "label": "mechlink",
+      "group": "Other"
+    },
+    "MedicineHerbal": {
+      "char": "▩",
+      "label": "herbal medicine",
+      "group": "Item"
+    },
+    "MedicineIndustrial": {
+      "char": "▪",
+      "label": "medicine",
+      "group": "Item"
+    },
+    "MedicineUltratech": {
+      "char": "▫",
+      "label": "glitterworld medicine",
+      "group": "Item"
+    },
+    "MeditationSpot": {
+      "char": "▬",
+      "label": "meditation spot",
+      "group": "Building"
+    },
+    "Megascarab": {
+      "char": "▭",
+      "label": "megascarab",
+      "group": "Pawn"
+    },
+    "MegascreenTelevision": {
+      "char": "▮",
+      "label": "megascreen television",
+      "group": "Building"
+    },
+    "Megasloth": {
+      "char": "▯",
+      "label": "megasloth",
+      "group": "Pawn"
+    },
+    "Megaspider": {
+      "char": "▰",
+      "label": "megaspider",
+      "group": "Pawn"
+    },
+    "MeleeWeapon_Axe": {
+      "char": "▱",
+      "label": "axe",
+      "group": "Item"
+    },
+    "MeleeWeapon_BreachAxe": {
+      "char": "▲",
+      "label": "breach axe",
+      "group": "Item"
+    },
+    "MeleeWeapon_Club": {
+      "char": "△",
+      "label": "club",
+      "group": "Item"
+    },
+    "MeleeWeapon_Gladius": {
+      "char": "▴",
+      "label": "gladius",
+      "group": "Item"
+    },
+    "MeleeWeapon_Ikwa": {
+      "char": "▵",
+      "label": "ikwa",
+      "group": "Item"
+    },
+    "MeleeWeapon_Knife": {
+      "char": "▶",
+      "label": "knife",
+      "group": "Item"
+    },
+    "MeleeWeapon_LongSword": {
+      "char": "▷",
+      "label": "longsword",
+      "group": "Item"
+    },
+    "MeleeWeapon_Mace": {
+      "char": "▸",
+      "label": "mace",
+      "group": "Item"
+    },
+    "MeleeWeapon_MonoSword": {
+      "char": "▹",
+      "label": "monosword",
+      "group": "Item"
+    },
+    "MeleeWeapon_MonoSwordBladelink": {
+      "char": "►",
+      "label": "persona monosword",
+      "group": "Item"
+    },
+    "MeleeWeapon_PlasmaSword": {
+      "char": "▻",
+      "label": "plasmasword",
+      "group": "Item"
+    },
+    "MeleeWeapon_PlasmaSwordBladelink": {
+      "char": "▼",
+      "label": "persona plasmasword",
+      "group": "Item"
+    },
+    "MeleeWeapon_PsyfocusStaff": {
+      "char": "▽",
+      "label": "eltex staff",
+      "group": "Item"
+    },
+    "MeleeWeapon_Spear": {
+      "char": "▾",
+      "label": "spear",
+      "group": "Item"
+    },
+    "MeleeWeapon_Warhammer": {
+      "char": "▿",
+      "label": "warhammer",
+      "group": "Item"
+    },
+    "MeleeWeapon_ZeusHammerBladelink": {
+      "char": "◀",
+      "label": "persona zeushammer",
+      "group": "Item"
+    },
+    "MeleeWeapon_Zeushammer": {
+      "char": "◁",
+      "label": "zeushammer",
+      "group": "Item"
+    },
+    "MetalHellAmbience": {
+      "char": "◂",
+      "label": "MetalHellAmbience",
+      "group": "Other"
+    },
+    "MetalHellFloorCracks": {
+      "char": "◃",
+      "label": "MetalHellFloorCracks",
+      "group": "Other"
+    },
+    "MetalHellFloorMarkings": {
+      "char": "◄",
+      "label": "MetalHellFloorMarkings",
+      "group": "Other"
+    },
+    "MetalHellFog": {
+      "char": "◅",
+      "label": "MetalHellFog",
+      "group": "Other"
+    },
+    "MetalHellFogHigh": {
+      "char": "◆",
+      "label": "MetalHellFogHigh",
+      "group": "Other"
+    },
+    "MetalTile": {
+      "char": "◇",
+      "label": "steel tile",
+      "group": "Terrain"
+    },
+    "MetalbloodHeart": {
+      "char": "◈",
+      "label": "metalblood heart",
+      "group": "Other"
+    },
+    "MetalbloodSerum": {
+      "char": "◉",
+      "label": "metalblood serum",
+      "group": "Item"
+    },
+    "Metalhorror": {
+      "char": "◊",
+      "label": "metalhorror",
+      "group": "Pawn"
+    },
+    "MeteoriteCraterIncoming": {
+      "char": "◌",
+      "label": "MeteoriteCraterIncoming",
+      "group": "Other"
+    },
+    "MeteoriteIncoming": {
+      "char": "◍",
+      "label": "meteorite (incoming)",
+      "group": "Other"
+    },
+    "Milk": {
+      "char": "◐",
+      "label": "milk",
+      "group": "Item"
+    },
+    "MindNumbSerum": {
+      "char": "◑",
+      "label": "mind-numb serum",
+      "group": "Item"
+    },
+    "Mindscrew": {
+      "char": "◒",
+      "label": "mindscrew",
+      "group": "Other"
+    },
+    "MineableComponentsIndustrial": {
+      "char": "◓",
+      "label": "compacted machinery",
+      "group": "Building"
+    },
+    "MineableGold": {
+      "char": "◔",
+      "label": "gold ore",
+      "group": "Building"
+    },
+    "MineableJade": {
+      "char": "◕",
+      "label": "jade",
+      "group": "Building"
+    },
+    "MineablePlasteel": {
+      "char": "◖",
+      "label": "compacted plasteel",
+      "group": "Building"
+    },
+    "MineableSilver": {
+      "char": "◗",
+      "label": "silver ore",
+      "group": "Building"
+    },
+    "MineableSteel": {
+      "char": "◘",
+      "label": "compacted steel",
+      "group": "Building"
+    },
+    "MineableUranium": {
+      "char": "◙",
+      "label": "uranium ore",
+      "group": "Building"
+    },
+    "MinifiedThing": {
+      "char": "◚",
+      "label": "minified thing",
+      "group": "Item"
+    },
+    "MinifiedThingRealtimeDraw": {
+      "char": "◛",
+      "label": "MinifiedThingRealtimeDraw",
+      "group": "Item"
+    },
+    "MinifiedTree": {
+      "char": "◜",
+      "label": "minified tree",
+      "group": "Item"
+    },
+    "MoisturePump": {
+      "char": "◝",
+      "label": "moisture pump",
+      "group": "Building"
+    },
+    "Monkey": {
+      "char": "◞",
+      "label": "monkey",
+      "group": "Pawn"
+    },
+    "MonolithFragment": {
+      "char": "◟",
+      "label": "monolith fragment",
+      "group": "Item"
+    },
+    "MonolithIncoming": {
+      "char": "◠",
+      "label": "MonolithIncoming",
+      "group": "Other"
+    },
+    "MonumentMarker": {
+      "char": "◡",
+      "label": "monument marker",
+      "group": "Other"
+    },
+    "MorbidSlab_Broad": {
+      "char": "◢",
+      "label": "morbid slab (broad)",
+      "group": "Other"
+    },
+    "MorbidSlab_Medium": {
+      "char": "◣",
+      "label": "morbid slab (medium)",
+      "group": "Other"
+    },
+    "MossyTerrain": {
+      "char": "◤",
+      "label": "lichen-covered soil",
+      "group": "Terrain"
+    },
+    "Mote_AbductWarmupDistortionRing": {
+      "char": "◥",
+      "label": "Mote_AbductWarmupDistortionRing",
+      "group": "Other"
+    },
+    "Mote_AbductWarmupDistortionRingBuilding": {
+      "char": "◦",
+      "label": "Mote_AbductWarmupDistortionRingBuilding",
+      "group": "Other"
+    },
+    "Mote_ActivatedVoidStructure": {
+      "char": "◧",
+      "label": "Mote_ActivatedVoidStructure",
+      "group": "Other"
+    },
+    "Mote_ActivatorCountdownGlow": {
+      "char": "◨",
+      "label": "Mote_ActivatorCountdownGlow",
+      "group": "Other"
+    },
+    "Mote_ActivatorProximityGlow": {
+      "char": "◩",
+      "label": "Mote_ActivatorProximityGlow",
+      "group": "Other"
+    },
+    "Mote_AnimalWarcallDistortion": {
+      "char": "◪",
+      "label": "Mote_AnimalWarcallDistortion",
+      "group": "Other"
+    },
+    "Mote_AnimalWarcallFlash": {
+      "char": "◫",
+      "label": "Mote_AnimalWarcallFlash",
+      "group": "Other"
+    },
+    "Mote_AnimalWarcallMentalState": {
+      "char": "◬",
+      "label": "Mote_AnimalWarcallMentalState",
+      "group": "Other"
+    },
+    "Mote_AnimalWarcallTarget": {
+      "char": "◭",
+      "label": "Mote_AnimalWarcallTarget",
+      "group": "Other"
+    },
+    "Mote_AnimalWarcallTargetFlash": {
+      "char": "◮",
+      "label": "Mote_AnimalWarcallTargetFlash",
+      "group": "Other"
+    },
+    "Mote_AnimalWarcallWarmup": {
+      "char": "◯",
+      "label": "Mote_AnimalWarcallWarmup",
+      "group": "Other"
+    },
+    "Mote_ApocritonPulse": {
+      "char": "◰",
+      "label": "Mote_ApocritonPulse",
+      "group": "Other"
+    },
+    "Mote_ApocritonWarmupArea": {
+      "char": "◱",
+      "label": "Mote_ApocritonWarmupArea",
+      "group": "Other"
+    },
+    "Mote_BabyCryingDots": {
+      "char": "◲",
+      "label": "Mote_BabyCryingDots",
+      "group": "Other"
+    },
+    "Mote_BerserkBit": {
+      "char": "◳",
+      "label": "Mote_BerserkBit",
+      "group": "Other"
+    },
+    "Mote_Bestow": {
+      "char": "◴",
+      "label": "Mote_Bestow",
+      "group": "Other"
+    },
+    "Mote_BioFerriteHarvested": {
+      "char": "◵",
+      "label": "Mote_BioFerriteHarvested",
+      "group": "Other"
+    },
+    "Mote_Bombardment": {
+      "char": "◶",
+      "label": "Mote_Bombardment",
+      "group": "Other"
+    },
+    "Mote_Bombardment_PreImpact": {
+      "char": "◷",
+      "label": "Mote_Bombardment_PreImpact",
+      "group": "Other"
+    },
+    "Mote_Cards": {
+      "char": "◸",
+      "label": "Mote_Cards",
+      "group": "Other"
+    },
+    "Mote_CastPsycast": {
+      "char": "◹",
+      "label": "Mote_CastPsycast",
+      "group": "Other"
+    },
+    "Mote_ChargingCablesPulse": {
+      "char": "◺",
+      "label": "Mote_ChargingCablesPulse",
+      "group": "Other"
+    },
+    "Mote_ChargingElectroCables": {
+      "char": "◻",
+      "label": "Mote_ChargingElectroCables",
+      "group": "Other"
+    },
+    "Mote_Clean": {
+      "char": "◼",
+      "label": "Mote_Clean",
+      "group": "Other"
+    },
+    "Mote_ClearSnow": {
+      "char": "◽",
+      "label": "Mote_ClearSnow",
+      "group": "Other"
+    },
+    "Mote_Clipboard": {
+      "char": "◾",
+      "label": "Mote_Clipboard",
+      "group": "Other"
+    },
+    "Mote_CoagulateA": {
+      "char": "☀",
+      "label": "Mote_CoagulateA",
+      "group": "Other"
+    },
+    "Mote_CoagulateB": {
+      "char": "☁",
+      "label": "Mote_CoagulateB",
+      "group": "Other"
+    },
+    "Mote_CoagulateStencil": {
+      "char": "☂",
+      "label": "Mote_CoagulateStencil",
+      "group": "Other"
+    },
+    "Mote_CocoonBreaking": {
+      "char": "☃",
+      "label": "Mote_CocoonBreaking",
+      "group": "Other"
+    },
+    "Mote_CocoonDestroyedFlyingPiece": {
+      "char": "☄",
+      "label": "Mote_CocoonDestroyedFlyingPiece",
+      "group": "Other"
+    },
+    "Mote_CocoonDestroyedFlyingSlime": {
+      "char": "★",
+      "label": "Mote_CocoonDestroyedFlyingSlime",
+      "group": "Other"
+    },
+    "Mote_CocoonDestroyedMist": {
+      "char": "☆",
+      "label": "Mote_CocoonDestroyedMist",
+      "group": "Other"
+    },
+    "Mote_ColonistAttacking": {
+      "char": "☇",
+      "label": "Mote_ColonistAttacking",
+      "group": "Other"
+    },
+    "Mote_ColonistFleeing": {
+      "char": "☈",
+      "label": "Mote_ColonistFleeing",
+      "group": "Other"
+    },
+    "Mote_CombatCommand": {
+      "char": "☉",
+      "label": "Mote_CombatCommand",
+      "group": "Other"
+    },
+    "Mote_CombatCommandLinkLine": {
+      "char": "☊",
+      "label": "Mote_CombatCommandLinkLine",
+      "group": "Other"
+    },
+    "Mote_CookBit": {
+      "char": "☋",
+      "label": "Mote_CookBit",
+      "group": "Other"
+    },
+    "Mote_Danger": {
+      "char": "☌",
+      "label": "Mote_Danger",
+      "group": "Other"
+    },
+    "Mote_Deathresting": {
+      "char": "☍",
+      "label": "Mote_Deathresting",
+      "group": "Other"
+    },
+    "Mote_DistortionPulse": {
+      "char": "☎",
+      "label": "Mote_DistortionPulse",
+      "group": "Other"
+    },
+    "Mote_DrunkBubble": {
+      "char": "☏",
+      "label": "Mote_DrunkBubble",
+      "group": "Other"
+    },
+    "Mote_DuelCircle": {
+      "char": "☐",
+      "label": "Mote_DuelCircle",
+      "group": "Other"
+    },
+    "Mote_ExtinguisherPuff": {
+      "char": "☑",
+      "label": "Mote_ExtinguisherPuff",
+      "group": "Other"
+    },
+    "Mote_FleshmelterBolt_Aim": {
+      "char": "☒",
+      "label": "Mote_FleshmelterBolt_Aim",
+      "group": "Other"
+    },
+    "Mote_FleshmelterBolt_Charge": {
+      "char": "☓",
+      "label": "Mote_FleshmelterBolt_Charge",
+      "group": "Other"
+    },
+    "Mote_FleshmelterBolt_Target": {
+      "char": "☔",
+      "label": "Mote_FleshmelterBolt_Target",
+      "group": "Other"
+    },
+    "Mote_FoodBitMeat": {
+      "char": "☕",
+      "label": "Mote_FoodBitMeat",
+      "group": "Other"
+    },
+    "Mote_FoodBitVegetarian": {
+      "char": "☖",
+      "label": "Mote_FoodBitVegetarian",
+      "group": "Other"
+    },
+    "Mote_ForceJob": {
+      "char": "☗",
+      "label": "Mote_ForceJob",
+      "group": "Other"
+    },
+    "Mote_ForceJobMaintained": {
+      "char": "☘",
+      "label": "Mote_ForceJobMaintained",
+      "group": "Other"
+    },
+    "Mote_ForcedVisible": {
+      "char": "☙",
+      "label": "Mote_ForcedVisible",
+      "group": "Other"
+    },
+    "Mote_GauranlenCasteChanged": {
+      "char": "☚",
+      "label": "Mote_GauranlenCasteChanged",
+      "group": "Other"
+    },
+    "Mote_GiantExplosion": {
+      "char": "☛",
+      "label": "Mote_GiantExplosion",
+      "group": "Other"
+    },
+    "Mote_GiantExplosionInner": {
+      "char": "☜",
+      "label": "Mote_GiantExplosionInner",
+      "group": "Other"
+    },
+    "Mote_GraserBeamBase": {
+      "char": "☝",
+      "label": "Mote_GraserBeamBase",
+      "group": "Other"
+    },
+    "Mote_Hacking": {
+      "char": "☞",
+      "label": "Mote_Hacking",
+      "group": "Other"
+    },
+    "Mote_HarbingerTreeRoots": {
+      "char": "☟",
+      "label": "Mote_HarbingerTreeRoots",
+      "group": "Other"
+    },
+    "Mote_Harvest": {
+      "char": "☠",
+      "label": "Mote_Harvest",
+      "group": "Other"
+    },
+    "Mote_HateChantCall": {
+      "char": "☡",
+      "label": "Mote_HateChantCall",
+      "group": "Other"
+    },
+    "Mote_HateChantShadow": {
+      "char": "☢",
+      "label": "Mote_HateChantShadow",
+      "group": "Other"
+    },
+    "Mote_HellsphereCannon_Aim": {
+      "char": "☣",
+      "label": "Mote_HellsphereCannon_Aim",
+      "group": "Other"
+    },
+    "Mote_HellsphereCannon_Charge": {
+      "char": "☤",
+      "label": "Mote_HellsphereCannon_Charge",
+      "group": "Other"
+    },
+    "Mote_HellsphereCannon_Target": {
+      "char": "☥",
+      "label": "Mote_HellsphereCannon_Target",
+      "group": "Other"
+    },
+    "Mote_HoraxHugeSpellWarmup": {
+      "char": "☦",
+      "label": "Mote_HoraxHugeSpellWarmup",
+      "group": "Other"
+    },
+    "Mote_HoraxSmallSpellWarmup": {
+      "char": "☧",
+      "label": "Mote_HoraxSmallSpellWarmup",
+      "group": "Other"
+    },
+    "Mote_IncineratorBurst": {
+      "char": "☨",
+      "label": "Mote_IncineratorBurst",
+      "group": "Other"
+    },
+    "Mote_Leaf": {
+      "char": "☩",
+      "label": "Mote_Leaf",
+      "group": "Other"
+    },
+    "Mote_LightBall": {
+      "char": "☪",
+      "label": "Mote_LightBall",
+      "group": "Other"
+    },
+    "Mote_LightBallLights": {
+      "char": "☫",
+      "label": "Mote_LightBallLights",
+      "group": "Other"
+    },
+    "Mote_LongSparkThrown": {
+      "char": "☬",
+      "label": "Mote_LongSparkThrown",
+      "group": "Other"
+    },
+    "Mote_LoudspeakerLights": {
+      "char": "☭",
+      "label": "Mote_LoudspeakerLights",
+      "group": "Other"
+    },
+    "Mote_MeatExplosionFlyingPiece": {
+      "char": "☮",
+      "label": "Mote_MeatExplosionFlyingPiece",
+      "group": "Other"
+    },
+    "Mote_MeatExplosionFlyingPieceOverloaded": {
+      "char": "☯",
+      "label": "Mote_MeatExplosionFlyingPieceOverloaded",
+      "group": "Other"
+    },
+    "Mote_MeatExplosionFlyingSplatter": {
+      "char": "☰",
+      "label": "Mote_MeatExplosionFlyingSplatter",
+      "group": "Other"
+    },
+    "Mote_MeatExplosionMist": {
+      "char": "☱",
+      "label": "Mote_MeatExplosionMist",
+      "group": "Other"
+    },
+    "Mote_MechCharging": {
+      "char": "☲",
+      "label": "Mote_MechCharging",
+      "group": "Other"
+    },
+    "Mote_MechControlTakingSparkArch": {
+      "char": "☳",
+      "label": "Mote_MechControlTakingSparkArch",
+      "group": "Other"
+    },
+    "Mote_MechResurrectFlash": {
+      "char": "☴",
+      "label": "Mote_MechResurrectFlash",
+      "group": "Other"
+    },
+    "Mote_MechResurrectGlow": {
+      "char": "☵",
+      "label": "Mote_MechResurrectGlow",
+      "group": "Other"
+    },
+    "Mote_MechResurrectWarmupOnTarget": {
+      "char": "☶",
+      "label": "Mote_MechResurrectWarmupOnTarget",
+      "group": "Other"
+    },
+    "Mote_MechSparkSimple": {
+      "char": "☷",
+      "label": "Mote_MechSparkSimple",
+      "group": "Other"
+    },
+    "Mote_MechTunnelerSlowedDown": {
+      "char": "☸",
+      "label": "Mote_MechTunnelerSlowedDown",
+      "group": "Other"
+    },
+    "Mote_MechUncontrolled": {
+      "char": "☹",
+      "label": "Mote_MechUncontrolled",
+      "group": "Other"
+    },
+    "Mote_MechbandAntennaWaves": {
+      "char": "☺",
+      "label": "Mote_MechbandAntennaWaves",
+      "group": "Other"
+    },
+    "Mote_MechbandDishWaves": {
+      "char": "☻",
+      "label": "Mote_MechbandDishWaves",
+      "group": "Other"
+    },
+    "Mote_MechbandElectricity": {
+      "char": "☼",
+      "label": "Mote_MechbandElectricity",
+      "group": "Other"
+    },
+    "Mote_MechbandPreparing": {
+      "char": "☽",
+      "label": "Mote_MechbandPreparing",
+      "group": "Other"
+    },
+    "Mote_NewbornBecomeChildGlow": {
+      "char": "☾",
+      "label": "Mote_NewbornBecomeChildGlow",
+      "group": "Other"
+    },
+    "Mote_NoctolEyes": {
+      "char": "☿",
+      "label": "Mote_NoctolEyes",
+      "group": "Other"
+    },
+    "Mote_ObeliskExplosionWarmupArea": {
+      "char": "♀",
+      "label": "Mote_ObeliskExplosionWarmupArea",
+      "group": "Other"
+    },
+    "Mote_Paint": {
+      "char": "♁",
+      "label": "Mote_Paint",
+      "group": "Other"
+    },
+    "Mote_PollutionPump": {
+      "char": "♂",
+      "label": "Mote_PollutionPump",
+      "group": "Other"
+    },
+    "Mote_PowerBeam": {
+      "char": "♃",
+      "label": "Mote_PowerBeam",
+      "group": "Other"
+    },
+    "Mote_PowerCellBurning": {
+      "char": "♄",
+      "label": "Mote_PowerCellBurning",
+      "group": "Other"
+    },
+    "Mote_ProgressBar": {
+      "char": "♅",
+      "label": "Mote_ProgressBar",
+      "group": "Other"
+    },
+    "Mote_ProgressBarAlwaysVisible": {
+      "char": "♆",
+      "label": "Mote_ProgressBarAlwaysVisible",
+      "group": "Other"
+    },
+    "Mote_ProximityScannerActivated": {
+      "char": "♇",
+      "label": "Mote_ProximityScannerActivated",
+      "group": "Other"
+    },
+    "Mote_ProximityScannerRadius": {
+      "char": "♈",
+      "label": "Mote_ProximityScannerRadius",
+      "group": "Other"
+    },
+    "Mote_PsychicBanshee": {
+      "char": "♉",
+      "label": "Mote_PsychicBanshee",
+      "group": "Other"
+    },
+    "Mote_PsychicConditionCauserEffect": {
+      "char": "♊",
+      "label": "Mote_PsychicConditionCauserEffect",
+      "group": "Other"
+    },
+    "Mote_PsychicDistortionRingContractingQuick": {
+      "char": "♋",
+      "label": "Mote_PsychicDistortionRingContractingQuick",
+      "group": "Other"
+    },
+    "Mote_PsychicEmanatorEffect": {
+      "char": "♌",
+      "label": "Mote_PsychicEmanatorEffect",
+      "group": "Other"
+    },
+    "Mote_PsychicLinkLine": {
+      "char": "♍",
+      "label": "Mote_PsychicLinkLine",
+      "group": "Other"
+    },
+    "Mote_PsychicLinkPulse": {
+      "char": "♎",
+      "label": "Mote_PsychicLinkPulse",
+      "group": "Other"
+    },
+    "Mote_PsychicRitualInvocation": {
+      "char": "♏",
+      "label": "Mote_PsychicRitualInvocation",
+      "group": "Other"
+    },
+    "Mote_PsyfocusPulse": {
+      "char": "♐",
+      "label": "Mote_PsyfocusPulse",
+      "group": "Other"
+    },
+    "Mote_RedFlash": {
+      "char": "♑",
+      "label": "Mote_RedFlash",
+      "group": "Other"
+    },
+    "Mote_RedFlashStrong": {
+      "char": "♒",
+      "label": "Mote_RedFlashStrong",
+      "group": "Other"
+    },
+    "Mote_ResurrectAbility": {
+      "char": "♓",
+      "label": "Mote_ResurrectAbility",
+      "group": "Other"
+    },
+    "Mote_ResurrectFlash": {
+      "char": "♔",
+      "label": "Mote_ResurrectFlash",
+      "group": "Other"
+    },
+    "Mote_RevenantHeard": {
+      "char": "♕",
+      "label": "Mote_RevenantHeard",
+      "group": "Other"
+    },
+    "Mote_RipscannerHeadGlow": {
+      "char": "♖",
+      "label": "Mote_RipscannerHeadGlow",
+      "group": "Other"
+    },
+    "Mote_RitualCandleA": {
+      "char": "♗",
+      "label": "Mote_RitualCandleA",
+      "group": "Other"
+    },
+    "Mote_RitualCandleB": {
+      "char": "♘",
+      "label": "Mote_RitualCandleB",
+      "group": "Other"
+    },
+    "Mote_RitualCandleC": {
+      "char": "♙",
+      "label": "Mote_RitualCandleC",
+      "group": "Other"
+    },
+    "Mote_RitualGlowRays": {
+      "char": "♚",
+      "label": "Mote_RitualGlowRays",
+      "group": "Other"
+    },
+    "Mote_RitualGlowSingleRay": {
+      "char": "♛",
+      "label": "Mote_RitualGlowSingleRay",
+      "group": "Other"
+    },
+    "Mote_RitualSmoke": {
+      "char": "♜",
+      "label": "Mote_RitualSmoke",
+      "group": "Other"
+    },
+    "Mote_RitualSmokeDust": {
+      "char": "♝",
+      "label": "Mote_RitualSmokeDust",
+      "group": "Other"
+    },
+    "Mote_RitualSmokeDustVague": {
+      "char": "♞",
+      "label": "Mote_RitualSmokeDustVague",
+      "group": "Other"
+    },
+    "Mote_RitualSmokeThick": {
+      "char": "♟",
+      "label": "Mote_RitualSmokeThick",
+      "group": "Other"
+    },
+    "Mote_RitualSmokeThickSlim": {
+      "char": "♠",
+      "label": "Mote_RitualSmokeThickSlim",
+      "group": "Other"
+    },
+    "Mote_RitualTechLineA": {
+      "char": "♡",
+      "label": "Mote_RitualTechLineA",
+      "group": "Other"
+    },
+    "Mote_RitualTechLineB": {
+      "char": "♢",
+      "label": "Mote_RitualTechLineB",
+      "group": "Other"
+    },
+    "Mote_RitualTechLineC": {
+      "char": "♣",
+      "label": "Mote_RitualTechLineC",
+      "group": "Other"
+    },
+    "Mote_RolePawnHighlight": {
+      "char": "♤",
+      "label": "Mote_RolePawnHighlight",
+      "group": "Other"
+    },
+    "Mote_RolePositionHighlight": {
+      "char": "♥",
+      "label": "Mote_RolePositionHighlight",
+      "group": "Other"
+    },
+    "Mote_SanguophageMeetingSmoke": {
+      "char": "♦",
+      "label": "Mote_SanguophageMeetingSmoke",
+      "group": "Other"
+    },
+    "Mote_ShamblerAlert": {
+      "char": "♧",
+      "label": "Mote_ShamblerAlert",
+      "group": "Other"
+    },
+    "Mote_ShamblerRaiseMist": {
+      "char": "♨",
+      "label": "Mote_ShamblerRaiseMist",
+      "group": "Other"
+    },
+    "Mote_SkyLanternGlow": {
+      "char": "♩",
+      "label": "Mote_SkyLanternGlow",
+      "group": "Other"
+    },
+    "Mote_SkyLanternOuterGlow": {
+      "char": "♪",
+      "label": "Mote_SkyLanternOuterGlow",
+      "group": "Other"
+    },
+    "Mote_SkyLanternSmoke": {
+      "char": "♫",
+      "label": "Mote_SkyLanternSmoke",
+      "group": "Other"
+    },
+    "Mote_SmokeFlake": {
+      "char": "♬",
+      "label": "Mote_SmokeFlake",
+      "group": "Other"
+    },
+    "Mote_SmokeJoint": {
+      "char": "♭",
+      "label": "Mote_SmokeJoint",
+      "group": "Other"
+    },
+    "Mote_Sow": {
+      "char": "♮",
+      "label": "Mote_Sow",
+      "group": "Other"
+    },
+    "Mote_SparkSimple": {
+      "char": "♯",
+      "label": "Mote_SparkSimple",
+      "group": "Other"
+    },
+    "Mote_SparkThrown": {
+      "char": "♰",
+      "label": "Mote_SparkThrown",
+      "group": "Other"
+    },
+    "Mote_SparkThrownFast": {
+      "char": "♱",
+      "label": "Mote_SparkThrownFast",
+      "group": "Other"
+    },
+    "Mote_SparkThrownFastBlue": {
+      "char": "♲",
+      "label": "Mote_SparkThrownFastBlue",
+      "group": "Other"
+    },
+    "Mote_SparkThrownFastBright": {
+      "char": "♳",
+      "label": "Mote_SparkThrownFastBright",
+      "group": "Other"
+    },
+    "Mote_Speech": {
+      "char": "♴",
+      "label": "Mote_Speech",
+      "group": "Other"
+    },
+    "Mote_SpikePipe": {
+      "char": "♵",
+      "label": "Mote_SpikePipe",
+      "group": "Other"
+    },
+    "Mote_Splash": {
+      "char": "♶",
+      "label": "Mote_Splash",
+      "group": "Other"
+    },
+    "Mote_StoneBit": {
+      "char": "♷",
+      "label": "Mote_StoneBit",
+      "group": "Other"
+    },
+    "Mote_Stun": {
+      "char": "♸",
+      "label": "Mote_Stun",
+      "group": "Other"
+    },
+    "Mote_SubcoreEncoderEast": {
+      "char": "♹",
+      "label": "Mote_SubcoreEncoderEast",
+      "group": "Other"
+    },
+    "Mote_SubcoreEncoderNorth": {
+      "char": "♺",
+      "label": "Mote_SubcoreEncoderNorth",
+      "group": "Other"
+    },
+    "Mote_SubcoreEncoderSouth": {
+      "char": "♻",
+      "label": "Mote_SubcoreEncoderSouth",
+      "group": "Other"
+    },
+    "Mote_TempRoof": {
+      "char": "♼",
+      "label": "Mote_TempRoof",
+      "group": "Other"
+    },
+    "Mote_TerrorHalo": {
+      "char": "♽",
+      "label": "Mote_TerrorHalo",
+      "group": "Other"
+    },
+    "Mote_Text": {
+      "char": "♾",
+      "label": "Mote_Text",
+      "group": "Other"
+    },
+    "Mote_Thought": {
+      "char": "♿",
+      "label": "Mote_Thought",
+      "group": "Other"
+    },
+    "Mote_ThoughtBad": {
+      "char": "⚀",
+      "label": "Mote_ThoughtBad",
+      "group": "Other"
+    },
+    "Mote_ThoughtGood": {
+      "char": "⚁",
+      "label": "Mote_ThoughtGood",
+      "group": "Other"
+    },
+    "Mote_TotemOutline": {
+      "char": "⚂",
+      "label": "Mote_TotemOutline",
+      "group": "Other"
+    },
+    "Mote_ToxicDamage": {
+      "char": "⚃",
+      "label": "Mote_ToxicDamage",
+      "group": "Other"
+    },
+    "Mote_Toy": {
+      "char": "⚄",
+      "label": "Mote_Toy",
+      "group": "Other"
+    },
+    "Mote_VatGlowHorizontal": {
+      "char": "⚅",
+      "label": "Mote_VatGlowHorizontal",
+      "group": "Other"
+    },
+    "Mote_VatGlowVertical": {
+      "char": "⚆",
+      "label": "Mote_VatGlowVertical",
+      "group": "Other"
+    },
+    "Mote_VoidNode": {
+      "char": "⚇",
+      "label": "Mote_VoidNode",
+      "group": "Other"
+    },
+    "Mote_VomitBit": {
+      "char": "⚈",
+      "label": "Mote_VomitBit",
+      "group": "Other"
+    },
+    "Mote_WarQueenSpineGlow": {
+      "char": "⚉",
+      "label": "Mote_WarQueenSpineGlow",
+      "group": "Other"
+    },
+    "Mote_WarUrchinSpawnFlash": {
+      "char": "⚊",
+      "label": "Mote_WarUrchinSpawnFlash",
+      "group": "Other"
+    },
+    "Mote_WarhUrchinSpawnElectricity": {
+      "char": "⚋",
+      "label": "Mote_WarhUrchinSpawnElectricity",
+      "group": "Other"
+    },
+    "Mote_WarmupNeuroquake": {
+      "char": "⚌",
+      "label": "Mote_WarmupNeuroquake",
+      "group": "Other"
+    },
+    "Mote_WarmupWordOf": {
+      "char": "⚍",
+      "label": "Mote_WarmupWordOf",
+      "group": "Other"
+    },
+    "Mote_WorkCommand": {
+      "char": "⚎",
+      "label": "Mote_WorkCommand",
+      "group": "Other"
+    },
+    "Mote_WorkCommandLinkLine": {
+      "char": "⚏",
+      "label": "Mote_WorkCommandLinkLine",
+      "group": "Other"
+    },
+    "Mote_XenogermImplantation": {
+      "char": "⚐",
+      "label": "Mote_XenogermImplantation",
+      "group": "Other"
+    },
+    "Mud": {
+      "char": "⚑",
+      "label": "mud",
+      "group": "Terrain"
+    },
+    "Muffalo": {
+      "char": "⚒",
+      "label": "muffalo",
+      "group": "Pawn"
+    },
+    "MultiAnalyzer": {
+      "char": "⚓",
+      "label": "multi-analyzer",
+      "group": "Building"
+    },
+    "NanostructuringChip": {
+      "char": "⚔",
+      "label": "nano structuring chip",
+      "group": "Item"
+    },
+    "NatureShrine_Large": {
+      "char": "⚕",
+      "label": "large nature shrine",
+      "group": "Building"
+    },
+    "NatureShrine_Small": {
+      "char": "⚖",
+      "label": "small nature shrine",
+      "group": "Building"
+    },
+    "NerveBundle": {
+      "char": "⚗",
+      "label": "nerve bundle",
+      "group": "Building"
+    },
+    "NerveSpiker": {
+      "char": "⚘",
+      "label": "nerve spiker",
+      "group": "Item"
+    },
+    "NerveSpiker_Spike": {
+      "char": "⚙",
+      "label": "nerve spike",
+      "group": "Item"
+    },
+    "NeuralSupercharger": {
+      "char": "⚚",
+      "label": "neural supercharger",
+      "group": "Building"
+    },
+    "Neurocalculator": {
+      "char": "⚛",
+      "label": "neurocalculator",
+      "group": "Other"
+    },
+    "Neutroamine": {
+      "char": "⚜",
+      "label": "neutroamine",
+      "group": "Item"
+    },
+    "Nociosphere": {
+      "char": "⚝",
+      "label": "nociosphere",
+      "group": "Pawn"
+    },
+    "Noctol": {
+      "char": "⚞",
+      "label": "noctol",
+      "group": "Pawn"
+    },
+    "Noctolith": {
+      "char": "⚟",
+      "label": "noctolith",
+      "group": "Building"
+    },
+    "NoctolithIncoming": {
+      "char": "⚠",
+      "label": "noctolith (incoming)",
+      "group": "Other"
+    },
+    "Novel": {
+      "char": "⚡",
+      "label": "novel",
+      "group": "Other"
+    },
+    "NuclearStomach": {
+      "char": "⚢",
+      "label": "nuclear stomach",
+      "group": "Other"
+    },
+    "NutrientPasteDispenser": {
+      "char": "⚣",
+      "label": "nutrient paste dispenser",
+      "group": "Building"
+    },
+    "OrbitalTargeterBombardment": {
+      "char": "⚤",
+      "label": "orbital bombardment targeter",
+      "group": "Item"
+    },
+    "OrbitalTargeterMechCluster": {
+      "char": "⚥",
+      "label": "orbital mech cluster targeter",
+      "group": "Item"
+    },
+    "OrbitalTargeterPowerBeam": {
+      "char": "⚦",
+      "label": "orbital power beam targeter",
+      "group": "Item"
+    },
+    "OrbitalTradeBeacon": {
+      "char": "⚧",
+      "label": "orbital trade beacon",
+      "group": "Building"
+    },
+    "OrnateDoor": {
+      "char": "⚨",
+      "label": "ornate door",
+      "group": "Building"
+    },
+    "Ostrich": {
+      "char": "⚩",
+      "label": "ostrich",
+      "group": "Pawn"
+    },
+    "PackedDirt": {
+      "char": "⚪",
+      "label": "packed dirt",
+      "group": "Terrain"
+    },
+    "Painstopper": {
+      "char": "⚫",
+      "label": "painstopper",
+      "group": "Other"
+    },
+    "Panther": {
+      "char": "⚬",
+      "label": "panther",
+      "group": "Pawn"
+    },
+    "PartySpot": {
+      "char": "⚭",
+      "label": "party spot",
+      "group": "Building"
+    },
+    "PassiveCooler": {
+      "char": "⚮",
+      "label": "passive cooler",
+      "group": "Building"
+    },
+    "PavedTile": {
+      "char": "⚯",
+      "label": "paved tile",
+      "group": "Terrain"
+    },
+    "PawnFlyer": {
+      "char": "⚰",
+      "label": "flying",
+      "group": "Other"
+    },
+    "PawnFlyer_ConsumeLeap": {
+      "char": "⚱",
+      "label": "PawnFlyer_ConsumeLeap",
+      "group": "Other"
+    },
+    "PawnFlyer_Stun": {
+      "char": "⚲",
+      "label": "PawnFlyer_Stun",
+      "group": "Other"
+    },
+    "PawnGroundSpawner": {
+      "char": "⚳",
+      "label": "disrupted soil",
+      "group": "Other"
+    },
+    "Pemmican": {
+      "char": "⚴",
+      "label": "pemmican",
+      "group": "Item"
+    },
+    "PenMarker": {
+      "char": "⚵",
+      "label": "pen marker",
+      "group": "Building"
+    },
+    "Penoxycyline": {
+      "char": "⚶",
+      "label": "penoxycyline",
+      "group": "Other"
+    },
+    "Pew": {
+      "char": "⚷",
+      "label": "pew",
+      "group": "Building"
+    },
+    "Piano": {
+      "char": "⚸",
+      "label": "piano",
+      "group": "Building"
+    },
+    "PiercingSpine": {
+      "char": "⚹",
+      "label": "keratin spine",
+      "group": "Other"
+    },
+    "Pig": {
+      "char": "⚺",
+      "label": "pig",
+      "group": "Pawn"
+    },
+    "Pila": {
+      "char": "⚻",
+      "label": "pila",
+      "group": "Item"
+    },
+    "Pilum_Thrown": {
+      "char": "⚼",
+      "label": "pilum",
+      "group": "Item"
+    },
+    "PitBurrow": {
+      "char": "⚽",
+      "label": "pit burrow",
+      "group": "Building"
+    },
+    "PitBurrowSpawner": {
+      "char": "⚾",
+      "label": "underground emergence",
+      "group": "Building"
+    },
+    "PitGate": {
+      "char": "⚿",
+      "label": "pit gate",
+      "group": "Building"
+    },
+    "PitGateExit": {
+      "char": "⛀",
+      "label": "pit gate exit",
+      "group": "Building"
+    },
+    "PitGateSpawner": {
+      "char": "⛁",
+      "label": "underground emergence",
+      "group": "Building"
+    },
+    "PlantPot": {
+      "char": "⛂",
+      "label": "plant pot",
+      "group": "Building"
+    },
+    "PlantPot_Bonsai": {
+      "char": "⛃",
+      "label": "bonsai pot",
+      "group": "Building"
+    },
+    "Plant_Agave": {
+      "char": "⛄",
+      "label": "agave",
+      "group": "Plant"
+    },
+    "Plant_Alocasia": {
+      "char": "⛅",
+      "label": "alocasia",
+      "group": "Plant"
+    },
+    "Plant_Ambrosia": {
+      "char": "⛆",
+      "label": "ambrosia bush",
+      "group": "Plant"
+    },
+    "Plant_Astragalus": {
+      "char": "⛇",
+      "label": "astragalus",
+      "group": "Plant"
+    },
+    "Plant_Berry": {
+      "char": "⛈",
+      "label": "berry bush",
+      "group": "Plant"
+    },
+    "Plant_Brambles": {
+      "char": "⛉",
+      "label": "brambles",
+      "group": "Plant"
+    },
+    "Plant_Bush": {
+      "char": "⛊",
+      "label": "bush",
+      "group": "Plant"
+    },
+    "Plant_Chokevine": {
+      "char": "⛋",
+      "label": "chokevine",
+      "group": "Plant"
+    },
+    "Plant_Clivia": {
+      "char": "⛌",
+      "label": "clivia",
+      "group": "Plant"
+    },
+    "Plant_Corn": {
+      "char": "⛍",
+      "label": "corn plant",
+      "group": "Plant"
+    },
+    "Plant_Cotton": {
+      "char": "⛎",
+      "label": "cotton plant",
+      "group": "Plant"
+    },
+    "Plant_Dandelion": {
+      "char": "⛏",
+      "label": "dandelions",
+      "group": "Plant"
+    },
+    "Plant_Daylily": {
+      "char": "⛐",
+      "label": "daylily",
+      "group": "Plant"
+    },
+    "Plant_Devilstrand": {
+      "char": "⛑",
+      "label": "devilstrand",
+      "group": "Plant"
+    },
+    "Plant_Fibercorn": {
+      "char": "⛒",
+      "label": "fibercorn",
+      "group": "Plant"
+    },
+    "Plant_Grass": {
+      "char": "⛓",
+      "label": "grass",
+      "group": "Plant"
+    },
+    "Plant_GrassAnima": {
+      "char": "⛔",
+      "label": "anima grass",
+      "group": "Plant"
+    },
+    "Plant_GrayGrass": {
+      "char": "⛕",
+      "label": "gray grass",
+      "group": "Plant"
+    },
+    "Plant_Haygrass": {
+      "char": "⛖",
+      "label": "haygrass",
+      "group": "Plant"
+    },
+    "Plant_Healroot": {
+      "char": "⛗",
+      "label": "healroot",
+      "group": "Plant"
+    },
+    "Plant_HealrootWild": {
+      "char": "⛘",
+      "label": "wild healroot",
+      "group": "Plant"
+    },
+    "Plant_Hops": {
+      "char": "⛙",
+      "label": "hop plant",
+      "group": "Plant"
+    },
+    "Plant_Moss": {
+      "char": "⛚",
+      "label": "moss",
+      "group": "Plant"
+    },
+    "Plant_MossGauranlen": {
+      "char": "⛛",
+      "label": "Gauranlen moss",
+      "group": "Plant"
+    },
+    "Plant_Nutrifungus": {
+      "char": "⛜",
+      "label": "nutrifungus",
+      "group": "Plant"
+    },
+    "Plant_PebbleCactus": {
+      "char": "⛝",
+      "label": "pebble cactus",
+      "group": "Plant"
+    },
+    "Plant_PincushionCactus": {
+      "char": "⛞",
+      "label": "pincushion cactus",
+      "group": "Plant"
+    },
+    "Plant_PodGauranlen": {
+      "char": "⛟",
+      "label": "Gauranlen pod",
+      "group": "Plant"
+    },
+    "Plant_Potato": {
+      "char": "⛠",
+      "label": "potato plant",
+      "group": "Plant"
+    },
+    "Plant_Psychoid": {
+      "char": "⛡",
+      "label": "psychoid plant",
+      "group": "Plant"
+    },
+    "Plant_Rafflesia": {
+      "char": "⛢",
+      "label": "giant rafflesia",
+      "group": "Plant"
+    },
+    "Plant_RatPalm": {
+      "char": "⛣",
+      "label": "rat palm tree",
+      "group": "Plant"
+    },
+    "Plant_Rice": {
+      "char": "⛤",
+      "label": "rice plant",
+      "group": "Plant"
+    },
+    "Plant_Ripthorn": {
+      "char": "⛥",
+      "label": "ripthorn",
+      "group": "Plant"
+    },
+    "Plant_Rose": {
+      "char": "⛦",
+      "label": "rose",
+      "group": "Plant"
+    },
+    "Plant_SaguaroCactus": {
+      "char": "⛧",
+      "label": "saguaro cactus",
+      "group": "Plant"
+    },
+    "Plant_ShrubLow": {
+      "char": "⛨",
+      "label": "low shrubs",
+      "group": "Plant"
+    },
+    "Plant_Smokeleaf": {
+      "char": "⛩",
+      "label": "smokeleaf plant",
+      "group": "Plant"
+    },
+    "Plant_Strawberry": {
+      "char": "⛪",
+      "label": "strawberry plant",
+      "group": "Plant"
+    },
+    "Plant_TallGrass": {
+      "char": "⛫",
+      "label": "tall grass",
+      "group": "Plant"
+    },
+    "Plant_Timbershroom": {
+      "char": "⛬",
+      "label": "timbershroom",
+      "group": "Plant"
+    },
+    "Plant_Tinctoria": {
+      "char": "⛭",
+      "label": "tinctoria",
+      "group": "Plant"
+    },
+    "Plant_Toxipotato": {
+      "char": "⛮",
+      "label": "toxipotato plant",
+      "group": "Plant"
+    },
+    "Plant_TreeAnima": {
+      "char": "⛯",
+      "label": "anima tree",
+      "group": "Plant"
+    },
+    "Plant_TreeBamboo": {
+      "char": "⛰",
+      "label": "bamboo tree",
+      "group": "Plant"
+    },
+    "Plant_TreeBirch": {
+      "char": "⛱",
+      "label": "birch tree",
+      "group": "Plant"
+    },
+    "Plant_TreeBonsai": {
+      "char": "⛲",
+      "label": "bonsai tree",
+      "group": "Plant"
+    },
+    "Plant_TreeCecropia": {
+      "char": "⛳",
+      "label": "cecropia tree",
+      "group": "Plant"
+    },
+    "Plant_TreeCocoa": {
+      "char": "⛴",
+      "label": "cocoa tree",
+      "group": "Plant"
+    },
+    "Plant_TreeCypress": {
+      "char": "⛵",
+      "label": "cypress tree",
+      "group": "Plant"
+    },
+    "Plant_TreeDrago": {
+      "char": "⛶",
+      "label": "drago tree",
+      "group": "Plant"
+    },
+    "Plant_TreeGauranlen": {
+      "char": "⛷",
+      "label": "Gauranlen tree",
+      "group": "Plant"
+    },
+    "Plant_TreeGrayPine": {
+      "char": "⛸",
+      "label": "gray pine tree",
+      "group": "Plant"
+    },
+    "Plant_TreeHarbinger": {
+      "char": "⛹",
+      "label": "harbinger tree",
+      "group": "Plant"
+    },
+    "Plant_TreeMaple": {
+      "char": "⛺",
+      "label": "maple tree",
+      "group": "Plant"
+    },
+    "Plant_TreeOak": {
+      "char": "⛻",
+      "label": "oak tree",
+      "group": "Plant"
+    },
+    "Plant_TreePalm": {
+      "char": "⛼",
+      "label": "palm tree",
+      "group": "Plant"
+    },
+    "Plant_TreePine": {
+      "char": "⛽",
+      "label": "pine tree",
+      "group": "Plant"
+    },
+    "Plant_TreePolux": {
+      "char": "⛾",
+      "label": "polux tree",
+      "group": "Plant"
+    },
+    "Plant_TreePoplar": {
+      "char": "✀",
+      "label": "poplar tree",
+      "group": "Plant"
+    },
+    "Plant_TreeTeak": {
+      "char": "✁",
+      "label": "teak tree",
+      "group": "Plant"
+    },
+    "Plant_TreeWillow": {
+      "char": "✂",
+      "label": "willow tree",
+      "group": "Plant"
+    },
+    "Plant_Witchwood": {
+      "char": "✃",
+      "label": "witchwood tree",
+      "group": "Plant"
+    },
+    "Plasteel": {
+      "char": "✄",
+      "label": "plasteel",
+      "group": "Item"
+    },
+    "Plates_Spikecore": {
+      "char": "✅",
+      "label": "spikecore plates",
+      "group": "Terrain"
+    },
+    "PodLauncher": {
+      "char": "✆",
+      "label": "pod launcher",
+      "group": "Building"
+    },
+    "PokerTable": {
+      "char": "✇",
+      "label": "poker table",
+      "group": "Building"
+    },
+    "PollutionPump": {
+      "char": "✈",
+      "label": "pollution pump",
+      "group": "Building"
+    },
+    "PoluxSeed": {
+      "char": "✉",
+      "label": "polux seed",
+      "group": "Plant"
+    },
+    "PowerBeam": {
+      "char": "✊",
+      "label": "power beam",
+      "group": "Other"
+    },
+    "PowerClaw": {
+      "char": "✋",
+      "label": "power claw",
+      "group": "Other"
+    },
+    "PowerConduit": {
+      "char": "✌",
+      "label": "power conduit",
+      "group": "Building"
+    },
+    "PowerSwitch": {
+      "char": "✍",
+      "label": "power switch",
+      "group": "Building"
+    },
+    "PowerfocusChip": {
+      "char": "✎",
+      "label": "powerfocus chip",
+      "group": "Item"
+    },
+    "Proj_Acid": {
+      "char": "✏",
+      "label": "acid",
+      "group": "Other"
+    },
+    "Proj_CorrosiveFluid": {
+      "char": "✐",
+      "label": "corrosive fluid",
+      "group": "Other"
+    },
+    "Proj_FireArrow": {
+      "char": "✑",
+      "label": "fire arrow",
+      "group": "Item"
+    },
+    "Proj_Foam": {
+      "char": "✒",
+      "label": "foam",
+      "group": "Building"
+    },
+    "Proj_Foam_Ability": {
+      "char": "✓",
+      "label": "Proj_Foam_Ability",
+      "group": "Other"
+    },
+    "Proj_GrenadeEMP": {
+      "char": "✔",
+      "label": "EMP grenade",
+      "group": "Item"
+    },
+    "Proj_GrenadeFrag": {
+      "char": "✕",
+      "label": "frag grenade",
+      "group": "Item"
+    },
+    "Proj_GrenadeMolotov": {
+      "char": "✖",
+      "label": "molotov cocktail",
+      "group": "Item"
+    },
+    "Proj_GrenadePhoenixFire": {
+      "char": "✗",
+      "label": "incendiary grenade",
+      "group": "Other"
+    },
+    "Proj_GrenadeTox": {
+      "char": "✘",
+      "label": "tox grenade",
+      "group": "Item"
+    },
+    "Proj_GrenadierGrenade": {
+      "char": "✙",
+      "label": "frag grenade",
+      "group": "Other"
+    },
+    "Proj_Rocket": {
+      "char": "✚",
+      "label": "rocket",
+      "group": "Building"
+    },
+    "ProximityDetector": {
+      "char": "✛",
+      "label": "proximity detector",
+      "group": "Building"
+    },
+    "PsychicAmplifier": {
+      "char": "✜",
+      "label": "psylink neuroformer",
+      "group": "Other"
+    },
+    "PsychicAnimalPulser": {
+      "char": "✝",
+      "label": "psychic animal pulser",
+      "group": "Item"
+    },
+    "PsychicDroner": {
+      "char": "✞",
+      "label": "psychic droner",
+      "group": "Building"
+    },
+    "PsychicDronerShipPart": {
+      "char": "✟",
+      "label": "ship part (psychic droner)",
+      "group": "Building"
+    },
+    "PsychicEmanator": {
+      "char": "✠",
+      "label": "psychic emanator",
+      "group": "Building"
+    },
+    "PsychicHarmonizer": {
+      "char": "✡",
+      "label": "psychic harmonizer",
+      "group": "Other"
+    },
+    "PsychicReader": {
+      "char": "✢",
+      "label": "psychic reader",
+      "group": "Other"
+    },
+    "PsychicRitualSpot": {
+      "char": "✣",
+      "label": "psychic ritual spot",
+      "group": "Building"
+    },
+    "PsychicSensitizer": {
+      "char": "✤",
+      "label": "psychic sensitizer",
+      "group": "Other"
+    },
+    "PsychicSoothePulser": {
+      "char": "✥",
+      "label": "psychic soothe pulser",
+      "group": "Item"
+    },
+    "PsychicSuppressor": {
+      "char": "✦",
+      "label": "psychic suppressor",
+      "group": "Building"
+    },
+    "PsychiteTea": {
+      "char": "✧",
+      "label": "psychite tea",
+      "group": "Other"
+    },
+    "PsychofluidPump": {
+      "char": "✨",
+      "label": "psychofluid pump",
+      "group": "Building"
+    },
+    "PsychoidLeaves": {
+      "char": "✩",
+      "label": "psychoid leaves",
+      "group": "Item"
+    },
+    "Pyre": {
+      "char": "✪",
+      "label": "pyre",
+      "group": "Building"
+    },
+    "Raccoon": {
+      "char": "✫",
+      "label": "raccoon",
+      "group": "Pawn"
+    },
+    "RadialTrigger": {
+      "char": "✬",
+      "label": "proximity trigger",
+      "group": "Other"
+    },
+    "RaisedRocks": {
+      "char": "✭",
+      "label": "raised rocks",
+      "group": "Building"
+    },
+    "Rat": {
+      "char": "✮",
+      "label": "rat",
+      "group": "Pawn"
+    },
+    "RawAgave": {
+      "char": "✯",
+      "label": "agave fruit",
+      "group": "Item"
+    },
+    "RawBerries": {
+      "char": "✰",
+      "label": "berries",
+      "group": "Item"
+    },
+    "RawCorn": {
+      "char": "✱",
+      "label": "corn",
+      "group": "Item"
+    },
+    "RawFungus": {
+      "char": "✲",
+      "label": "raw fungus",
+      "group": "Item"
+    },
+    "RawHops": {
+      "char": "✳",
+      "label": "hops",
+      "group": "Item"
+    },
+    "RawPotatoes": {
+      "char": "✴",
+      "label": "potatoes",
+      "group": "Item"
+    },
+    "RawRice": {
+      "char": "✵",
+      "label": "rice",
+      "group": "Item"
+    },
+    "RawToxipotato": {
+      "char": "✶",
+      "label": "toxipotatoes",
+      "group": "Item"
+    },
+    "RectTrigger": {
+      "char": "✷",
+      "label": "rect trigger",
+      "group": "Other"
+    },
+    "ReinforcedBarrel": {
+      "char": "✸",
+      "label": "reinforced barrel",
+      "group": "Item"
+    },
+    "RelicInertArk": {
+      "char": "✹",
+      "label": "ark",
+      "group": "Other"
+    },
+    "RelicInertBox": {
+      "char": "✺",
+      "label": "box",
+      "group": "Other"
+    },
+    "RelicInertCube": {
+      "char": "✻",
+      "label": "cube",
+      "group": "Other"
+    },
+    "RelicInertCup": {
+      "char": "✼",
+      "label": "chalice",
+      "group": "Other"
+    },
+    "RelicInertFragment": {
+      "char": "✽",
+      "label": "fragment",
+      "group": "Other"
+    },
+    "RelicInertPendant": {
+      "char": "✾",
+      "label": "pendant",
+      "group": "Other"
+    },
+    "RelicInertSwordHandle": {
+      "char": "✿",
+      "label": "hilt",
+      "group": "Other"
+    },
+    "RelicInertTablet": {
+      "char": "❀",
+      "label": "tablet",
+      "group": "Other"
+    },
+    "Reliquary": {
+      "char": "❁",
+      "label": "reliquary",
+      "group": "Building"
+    },
+    "RemoteRepairer": {
+      "char": "❂",
+      "label": "remote repairer",
+      "group": "Other"
+    },
+    "RemoteShielder": {
+      "char": "❃",
+      "label": "remote shielder",
+      "group": "Other"
+    },
+    "RepairProbe": {
+      "char": "❄",
+      "label": "repair probe",
+      "group": "Other"
+    },
+    "ReprocessorStomach": {
+      "char": "❅",
+      "label": "reprocessor stomach",
+      "group": "Other"
+    },
+    "Revenant": {
+      "char": "❆",
+      "label": "revenant",
+      "group": "Pawn"
+    },
+    "RevenantFleshChunk": {
+      "char": "❇",
+      "label": "revenant flesh chunk",
+      "group": "Item"
+    },
+    "RevenantSpine": {
+      "char": "❈",
+      "label": "revenant spine",
+      "group": "Item"
+    },
+    "RevenantVertebrae": {
+      "char": "❉",
+      "label": "revenant vertebrae",
+      "group": "Other"
+    },
+    "Rhinoceros": {
+      "char": "❊",
+      "label": "rhinoceros",
+      "group": "Pawn"
+    },
+    "RipScannerGlow_East": {
+      "char": "❋",
+      "label": "RipScannerGlow_East",
+      "group": "Other"
+    },
+    "RipScannerGlow_North": {
+      "char": "❌",
+      "label": "RipScannerGlow_North",
+      "group": "Other"
+    },
+    "RipScannerGlow_South": {
+      "char": "❍",
+      "label": "RipScannerGlow_South",
+      "group": "Other"
+    },
+    "RipScannerGlow_West": {
+      "char": "❎",
+      "label": "RipScannerGlow_West",
+      "group": "Other"
+    },
+    "RitualSpot": {
+      "char": "❏",
+      "label": "ritual spot",
+      "group": "Building"
+    },
+    "Riverbank": {
+      "char": "❐",
+      "label": "riverbank",
+      "group": "Terrain"
+    },
+    "RoyalBed": {
+      "char": "❑",
+      "label": "royal bed",
+      "group": "Building"
+    },
+    "RusticRug_Broad": {
+      "char": "❒",
+      "label": "rustic rug (broad)",
+      "group": "Other"
+    },
+    "RusticRug_Medium": {
+      "char": "❓",
+      "label": "rustic rug (medium)",
+      "group": "Other"
+    },
+    "SacrificialFlag": {
+      "char": "❔",
+      "label": "sacrificial flag",
+      "group": "Building"
+    },
+    "Sand": {
+      "char": "❕",
+      "label": "sand",
+      "group": "Terrain"
+    },
+    "SandCubeSculpture": {
+      "char": "❖",
+      "label": "sand cube sculpture",
+      "group": "Building"
+    },
+    "SandbagRubble": {
+      "char": "❗",
+      "label": "scattered sandbags",
+      "group": "Other"
+    },
+    "Sandbags": {
+      "char": "❘",
+      "label": "sandbags",
+      "group": "Building"
+    },
+    "Sandstone": {
+      "char": "❙",
+      "label": "sandstone",
+      "group": "Other"
+    },
+    "SanguphageMeetingTorch": {
+      "char": "❚",
+      "label": "blood torch",
+      "group": "Building"
+    },
+    "Sarcophagus": {
+      "char": "❛",
+      "label": "sarcophagus",
+      "group": "Building"
+    },
+    "Schematic": {
+      "char": "❜",
+      "label": "schematic",
+      "group": "Other"
+    },
+    "SchoolDesk": {
+      "char": "❝",
+      "label": "school desk",
+      "group": "Building"
+    },
+    "ScrapCubeSculpture": {
+      "char": "❞",
+      "label": "scrap cube sculpture",
+      "group": "Building"
+    },
+    "SculptureGrand": {
+      "char": "❟",
+      "label": "grand sculpture",
+      "group": "Building"
+    },
+    "SculptureLarge": {
+      "char": "❠",
+      "label": "large sculpture",
+      "group": "Building"
+    },
+    "SculptureSmall": {
+      "char": "❡",
+      "label": "small sculpture",
+      "group": "Building"
+    },
+    "SculptureTerror": {
+      "char": "❢",
+      "label": "terror sculpture",
+      "group": "Building"
+    },
+    "SecurityDoor": {
+      "char": "❣",
+      "label": "security door",
+      "group": "Building"
+    },
+    "SerumCentrifuge": {
+      "char": "❤",
+      "label": "serum lab",
+      "group": "Building"
+    },
+    "Shard": {
+      "char": "❥",
+      "label": "shard",
+      "group": "Item"
+    },
+    "ShardAnimalPulser": {
+      "char": "❦",
+      "label": "shard animal pulser",
+      "group": "Item"
+    },
+    "ShardBeacon": {
+      "char": "❧",
+      "label": "shard beacon",
+      "group": "Building"
+    },
+    "ShardInhibitor": {
+      "char": "❨",
+      "label": "shard inhibitor",
+      "group": "Building"
+    },
+    "Sheep": {
+      "char": "❩",
+      "label": "sheep",
+      "group": "Pawn"
+    },
+    "Shelf": {
+      "char": "❪",
+      "label": "shelf",
+      "group": "Building"
+    },
+    "ShelfSmall": {
+      "char": "❫",
+      "label": "small shelf",
+      "group": "Building"
+    },
+    "Shell_AntigrainWarhead": {
+      "char": "❬",
+      "label": "antigrain warhead",
+      "group": "Item"
+    },
+    "Shell_Deadlife": {
+      "char": "❭",
+      "label": "deadlife shell",
+      "group": "Item"
+    },
+    "Shell_Deadlife_Releasing": {
+      "char": "❮",
+      "label": "deadlife capsule",
+      "group": "Item"
+    },
+    "Shell_EMP": {
+      "char": "❯",
+      "label": "EMP shell",
+      "group": "Item"
+    },
+    "Shell_Firefoam": {
+      "char": "❰",
+      "label": "firefoam shell",
+      "group": "Item"
+    },
+    "Shell_HighExplosive": {
+      "char": "❱",
+      "label": "high-explosive shell",
+      "group": "Item"
+    },
+    "Shell_Incendiary": {
+      "char": "❲",
+      "label": "incendiary shell",
+      "group": "Item"
+    },
+    "Shell_Smoke": {
+      "char": "❳",
+      "label": "smoke shell",
+      "group": "Item"
+    },
+    "Shell_Toxic": {
+      "char": "❴",
+      "label": "tox shell",
+      "group": "Item"
+    },
+    "Shell_Toxic_Releasing": {
+      "char": "❵",
+      "label": "Shell_Toxic_Releasing",
+      "group": "Item"
+    },
+    "Shell_Toxic_Releasing_Water": {
+      "char": "❶",
+      "label": "Shell_Toxic_Releasing_Water",
+      "group": "Item"
+    },
+    "ShieldGeneratorBullets": {
+      "char": "❷",
+      "label": "mech low-shield",
+      "group": "Building"
+    },
+    "ShieldGeneratorMortar": {
+      "char": "❸",
+      "label": "mech high-shield",
+      "group": "Building"
+    },
+    "ShipChunk": {
+      "char": "❹",
+      "label": "ship chunk",
+      "group": "Building"
+    },
+    "ShipChunkIncoming": {
+      "char": "❺",
+      "label": "ship chunk (incoming)",
+      "group": "Other"
+    },
+    "ShipChunkIncoming_SmallExplosion": {
+      "char": "❻",
+      "label": "ShipChunkIncoming_SmallExplosion",
+      "group": "Other"
+    },
+    "ShipLandingBeacon": {
+      "char": "❼",
+      "label": "ship landing beacon",
+      "group": "Building"
+    },
+    "Ship_Beam": {
+      "char": "❽",
+      "label": "ship structural beam",
+      "group": "Building"
+    },
+    "Ship_ComputerCore": {
+      "char": "❾",
+      "label": "ship computer core",
+      "group": "Building"
+    },
+    "Ship_CryptosleepCasket": {
+      "char": "❿",
+      "label": "ship cryptosleep casket",
+      "group": "Building"
+    },
+    "Ship_Engine": {
+      "char": "➀",
+      "label": "ship engine",
+      "group": "Building"
+    },
+    "Ship_Reactor": {
+      "char": "➁",
+      "label": "ship reactor",
+      "group": "Building"
+    },
+    "Ship_SensorCluster": {
+      "char": "➂",
+      "label": "sensor cluster",
+      "group": "Building"
+    },
+    "Shuttle": {
+      "char": "➃",
+      "label": "imperial shuttle",
+      "group": "Building"
+    },
+    "ShuttleCrashed": {
+      "char": "➄",
+      "label": "crashed shuttle",
+      "group": "Building"
+    },
+    "ShuttleCrashed_Exitable": {
+      "char": "➅",
+      "label": "ShuttleCrashed_Exitable",
+      "group": "Building"
+    },
+    "ShuttleCrashed_Exitable_Mechanitor": {
+      "char": "➆",
+      "label": "crashed mechanitor ship",
+      "group": "Building"
+    },
+    "ShuttleCrashing": {
+      "char": "➇",
+      "label": "shuttle (crashing)",
+      "group": "Other"
+    },
+    "ShuttleCrashing_Mechanitor": {
+      "char": "➈",
+      "label": "mechanitor ship (crashing)",
+      "group": "Other"
+    },
+    "ShuttleIncoming": {
+      "char": "➉",
+      "label": "shuttle (incoming)",
+      "group": "Other"
+    },
+    "ShuttleLeaving": {
+      "char": "➊",
+      "label": "shuttle (leaving)",
+      "group": "Other"
+    },
+    "Sightstealer": {
+      "char": "➋",
+      "label": "sightstealer",
+      "group": "Pawn"
+    },
+    "SignalAction_Ambush": {
+      "char": "➌",
+      "label": "SignalAction_Ambush",
+      "group": "Other"
+    },
+    "SignalAction_Delay": {
+      "char": "➍",
+      "label": "SignalAction_Delay",
+      "group": "Other"
+    },
+    "SignalAction_DormancyWakeUp": {
+      "char": "➎",
+      "label": "SignalAction_DormancyWakeUp",
+      "group": "Other"
+    },
+    "SignalAction_Incident": {
+      "char": "➏",
+      "label": "SignalAction_Incident",
+      "group": "Other"
+    },
+    "SignalAction_Infestation": {
+      "char": "➐",
+      "label": "SignalAction_Infestation",
+      "group": "Other"
+    },
+    "SignalAction_Letter": {
+      "char": "➑",
+      "label": "SignalAction_Letter",
+      "group": "Other"
+    },
+    "SignalAction_Message": {
+      "char": "➒",
+      "label": "SignalAction_Message",
+      "group": "Other"
+    },
+    "SignalAction_OpenCasket": {
+      "char": "➓",
+      "label": "SignalAction_OpenCasket",
+      "group": "Other"
+    },
+    "SignalAction_OpenDoor": {
+      "char": "➔",
+      "label": "SignalAction_OpenDoor",
+      "group": "Other"
+    },
+    "SignalAction_SoundOneShot": {
+      "char": "➕",
+      "label": "SignalAction_SoundOneShot",
+      "group": "Other"
+    },
+    "SignalAction_StartWick": {
+      "char": "➖",
+      "label": "SignalAction_StartWick",
+      "group": "Other"
+    },
+    "SignalChip": {
+      "char": "➗",
+      "label": "signal chip",
+      "group": "Item"
+    },
+    "Silver": {
+      "char": "➘",
+      "label": "silver",
+      "group": "Item"
+    },
+    "SilverTile": {
+      "char": "➙",
+      "label": "silver tile",
+      "group": "Terrain"
+    },
+    "SimpleProstheticArm": {
+      "char": "➚",
+      "label": "prosthetic arm",
+      "group": "Other"
+    },
+    "SimpleProstheticHeart": {
+      "char": "➛",
+      "label": "prosthetic heart",
+      "group": "Other"
+    },
+    "SimpleProstheticLeg": {
+      "char": "➜",
+      "label": "prosthetic leg",
+      "group": "Other"
+    },
+    "SimpleResearchBench": {
+      "char": "➝",
+      "label": "simple research bench",
+      "group": "Building"
+    },
+    "Skull": {
+      "char": "➞",
+      "label": "skull",
+      "group": "Item"
+    },
+    "Skullspike": {
+      "char": "➟",
+      "label": "skullspike",
+      "group": "Building"
+    },
+    "SkyLantern": {
+      "char": "➠",
+      "label": "skylantern",
+      "group": "Other"
+    },
+    "SlabBed": {
+      "char": "➡",
+      "label": "slab bed",
+      "group": "Building"
+    },
+    "SlabDoubleBed": {
+      "char": "➢",
+      "label": "slab double bed",
+      "group": "Building"
+    },
+    "SlagRubble": {
+      "char": "➣",
+      "label": "scattered slag",
+      "group": "Other"
+    },
+    "Slate": {
+      "char": "➤",
+      "label": "slate",
+      "group": "Other"
+    },
+    "SleepAccelerator": {
+      "char": "➥",
+      "label": "sleep accelerator",
+      "group": "Building"
+    },
+    "SleepSuppressor": {
+      "char": "➦",
+      "label": "sleep suppressor",
+      "group": "Building"
+    },
+    "SleepingSpot": {
+      "char": "➧",
+      "label": "sleeping spot",
+      "group": "Building"
+    },
+    "SmashedStump": {
+      "char": "➨",
+      "label": "smashed stump",
+      "group": "Plant"
+    },
+    "SmashedStump_Anima": {
+      "char": "➩",
+      "label": "smashed anima stump",
+      "group": "Plant"
+    },
+    "SmashedStump_Gauranlen": {
+      "char": "➪",
+      "label": "smashed gauranlen stump",
+      "group": "Plant"
+    },
+    "SmashedStump_Harbinger": {
+      "char": "➫",
+      "label": "smashed harbinger stump",
+      "group": "Plant"
+    },
+    "SmashedStump_Polluted": {
+      "char": "➬",
+      "label": "smashed stump",
+      "group": "Plant"
+    },
+    "SmashedStump_Polux": {
+      "char": "➭",
+      "label": "smashed polux stump",
+      "group": "Plant"
+    },
+    "SmokeSpewer": {
+      "char": "➮",
+      "label": "smoke spewer",
+      "group": "Building"
+    },
+    "SmokeleafJoint": {
+      "char": "➯",
+      "label": "smokeleaf joint",
+      "group": "Other"
+    },
+    "SmokeleafLeaves": {
+      "char": "➰",
+      "label": "smokeleaf leaves",
+      "group": "Item"
+    },
+    "SmoothedGranite": {
+      "char": "➱",
+      "label": "smoothed granite",
+      "group": "Other"
+    },
+    "SmoothedLimestone": {
+      "char": "➲",
+      "label": "smoothed limestone",
+      "group": "Other"
+    },
+    "SmoothedMarble": {
+      "char": "➳",
+      "label": "smoothed marble",
+      "group": "Other"
+    },
+    "SmoothedSandstone": {
+      "char": "➴",
+      "label": "smoothed sandstone",
+      "group": "Other"
+    },
+    "SmoothedSlate": {
+      "char": "➵",
+      "label": "smoothed slate",
+      "group": "Other"
+    },
+    "Snowhare": {
+      "char": "➶",
+      "label": "snowhare",
+      "group": "Pawn"
+    },
+    "Snowman": {
+      "char": "➷",
+      "label": "snowman",
+      "group": "Building"
+    },
+    "SoftSand": {
+      "char": "➸",
+      "label": "soft sand",
+      "group": "Terrain"
+    },
+    "SoftScannerGlow_East": {
+      "char": "➹",
+      "label": "SoftScannerGlow_East",
+      "group": "Other"
+    },
+    "SoftScannerGlow_North": {
+      "char": "➺",
+      "label": "SoftScannerGlow_North",
+      "group": "Other"
+    },
+    "SoftScannerGlow_South": {
+      "char": "➻",
+      "label": "SoftScannerGlow_South",
+      "group": "Other"
+    },
+    "SoftScannerGlow_West": {
+      "char": "➼",
+      "label": "SoftScannerGlow_West",
+      "group": "Other"
+    },
+    "Soil": {
+      "char": "➽",
+      "label": "soil",
+      "group": "Terrain"
+    },
+    "SoilRich": {
+      "char": "➾",
+      "label": "rich soil",
+      "group": "Terrain"
+    },
+    "SolarGenerator": {
+      "char": "⟀",
+      "label": "solar generator",
+      "group": "Building"
+    },
+    "SolarPinhole": {
+      "char": "⟁",
+      "label": "solar pinhole",
+      "group": "Other"
+    },
+    "Spacedrone": {
+      "char": "⟂",
+      "label": "spacedrone",
+      "group": "Building"
+    },
+    "SpacedroneIncoming": {
+      "char": "⟃",
+      "label": "spacedrone (incoming)",
+      "group": "Other"
+    },
+    "Spark": {
+      "char": "⟄",
+      "label": "spark",
+      "group": "Other"
+    },
+    "Spelopede": {
+      "char": "⟅",
+      "label": "spelopede",
+      "group": "Pawn"
+    },
+    "Spike_Fingerspike": {
+      "char": "⟆",
+      "label": "Spike_Fingerspike",
+      "group": "Other"
+    },
+    "Spike_Toughspike": {
+      "char": "⟇",
+      "label": "Spike_Toughspike",
+      "group": "Other"
+    },
+    "SpikecoreFloorStar_Broad": {
+      "char": "⟈",
+      "label": "spikecore floor-star (broad)",
+      "group": "Other"
+    },
+    "SpikecoreFloorStar_Medium": {
+      "char": "⟉",
+      "label": "spikecore floor-star (medium)",
+      "group": "Other"
+    },
+    "Spine_Gorehulk": {
+      "char": "⟊",
+      "label": "spine",
+      "group": "Other"
+    },
+    "Squirrel": {
+      "char": "⟋",
+      "label": "squirrel",
+      "group": "Pawn"
+    },
+    "StandardRecharger": {
+      "char": "⟌",
+      "label": "large mech recharger",
+      "group": "Building"
+    },
+    "StandingLamp": {
+      "char": "⟍",
+      "label": "standing lamp",
+      "group": "Building"
+    },
+    "SteamGeyser": {
+      "char": "⟎",
+      "label": "steam geyser",
+      "group": "Building"
+    },
+    "Steel": {
+      "char": "⟏",
+      "label": "steel",
+      "group": "Item"
+    },
+    "SteleGrand": {
+      "char": "⟐",
+      "label": "grand stele",
+      "group": "Building"
+    },
+    "SteleLarge": {
+      "char": "⟑",
+      "label": "large stele",
+      "group": "Building"
+    },
+    "SterileTile": {
+      "char": "⟒",
+      "label": "sterile tile",
+      "group": "Terrain"
+    },
+    "StoneCubeSculpture": {
+      "char": "⟓",
+      "label": "stone cube sculpture",
+      "group": "Building"
+    },
+    "StoneskinGland": {
+      "char": "⟔",
+      "label": "stoneskin gland",
+      "group": "Other"
+    },
+    "Stool": {
+      "char": "⟕",
+      "label": "stool",
+      "group": "Building"
+    },
+    "StrawMatting": {
+      "char": "⟖",
+      "label": "straw matting",
+      "group": "Terrain"
+    },
+    "StylingStation": {
+      "char": "⟗",
+      "label": "styling station",
+      "group": "Building"
+    },
+    "SubcoreBasic": {
+      "char": "⟘",
+      "label": "basic subcore",
+      "group": "Item"
+    },
+    "SubcoreEncoder": {
+      "char": "⟙",
+      "label": "subcore encoder",
+      "group": "Building"
+    },
+    "SubcoreHigh": {
+      "char": "⟚",
+      "label": "high subcore",
+      "group": "Item"
+    },
+    "SubcoreRegular": {
+      "char": "⟛",
+      "label": "standard subcore",
+      "group": "Item"
+    },
+    "SubcoreRipscanner": {
+      "char": "⟜",
+      "label": "subcore ripscanner",
+      "group": "Building"
+    },
+    "SubcoreSoftscanner": {
+      "char": "⟝",
+      "label": "subcore softscanner",
+      "group": "Building"
+    },
+    "SunBlocker": {
+      "char": "⟞",
+      "label": "sun blocker",
+      "group": "Building"
+    },
+    "SunLamp": {
+      "char": "⟟",
+      "label": "sun lamp",
+      "group": "Building"
+    },
+    "Synthread": {
+      "char": "⟠",
+      "label": "synthread",
+      "group": "Item"
+    },
+    "Table1x2c": {
+      "char": "⟡",
+      "label": "table (1x2)",
+      "group": "Building"
+    },
+    "Table2x2c": {
+      "char": "⟢",
+      "label": "table (2x2)",
+      "group": "Building"
+    },
+    "Table2x4c": {
+      "char": "⟣",
+      "label": "table (2x4)",
+      "group": "Building"
+    },
+    "Table3x3c": {
+      "char": "⟤",
+      "label": "table (3x3)",
+      "group": "Building"
+    },
+    "TableButcher": {
+      "char": "⟥",
+      "label": "butcher table",
+      "group": "Building"
+    },
+    "TableMachining": {
+      "char": "⟦",
+      "label": "machining table",
+      "group": "Building"
+    },
+    "TableSculpting": {
+      "char": "⟧",
+      "label": "art bench",
+      "group": "Building"
+    },
+    "TableStonecutter": {
+      "char": "⟨",
+      "label": "stonecutter's table",
+      "group": "Building"
+    },
+    "TachycardiacArrestExplosion": {
+      "char": "⟩",
+      "label": "TachycardiacArrestExplosion",
+      "group": "Other"
+    },
+    "TechprofSubpersonaCore": {
+      "char": "⟪",
+      "label": "techprof subpersona core",
+      "group": "Item"
+    },
+    "Telescope": {
+      "char": "⟫",
+      "label": "telescope",
+      "group": "Building"
+    },
+    "TextBook": {
+      "char": "⟬",
+      "label": "textbook",
+      "group": "Other"
+    },
+    "Throne": {
+      "char": "⟭",
+      "label": "meditation throne",
+      "group": "Building"
+    },
+    "Thrumbo": {
+      "char": "⟮",
+      "label": "thrumbo",
+      "group": "Pawn"
+    },
+    "ThrumboHorn": {
+      "char": "⦀",
+      "label": "thrumbo horn",
+      "group": "Item"
+    },
+    "TileGranite": {
+      "char": "⦁",
+      "label": "granite tile",
+      "group": "Terrain"
+    },
+    "TileLimestone": {
+      "char": "⦂",
+      "label": "limestone tile",
+      "group": "Terrain"
+    },
+    "TileMarble": {
+      "char": "⦃",
+      "label": "marble tile",
+      "group": "Terrain"
+    },
+    "TileSandstone": {
+      "char": "⦄",
+      "label": "sandstone tile",
+      "group": "Terrain"
+    },
+    "TileSlate": {
+      "char": "⦅",
+      "label": "slate tile",
+      "group": "Terrain"
+    },
+    "Tile_MorbidGranite": {
+      "char": "⦆",
+      "label": "morbid granite tile",
+      "group": "Terrain"
+    },
+    "Tile_MorbidLimestone": {
+      "char": "⦇",
+      "label": "morbid limestone tile",
+      "group": "Terrain"
+    },
+    "Tile_MorbidMarble": {
+      "char": "⦈",
+      "label": "morbid marble tile",
+      "group": "Terrain"
+    },
+    "Tile_MorbidSandstone": {
+      "char": "⦉",
+      "label": "morbid sandstone tile",
+      "group": "Terrain"
+    },
+    "Tile_MorbidSlate": {
+      "char": "⦊",
+      "label": "morbid slate tile",
+      "group": "Terrain"
+    },
+    "Tile_MorbidVacstone": {
+      "char": "⦋",
+      "label": "morbid vacstone tile",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreGranite": {
+      "char": "⦌",
+      "label": "granite spikecore tile",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreLimestone": {
+      "char": "⦍",
+      "label": "limestone spikecore tile",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreMarble": {
+      "char": "⦎",
+      "label": "marble spikecore tile",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreSandstone": {
+      "char": "⦏",
+      "label": "sandstone spikecore tile",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreSlate": {
+      "char": "⦐",
+      "label": "slate spikecore tile",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreVacstone": {
+      "char": "⦑",
+      "label": "vacstone spikecore tile",
+      "group": "Terrain"
+    },
+    "Tile_TotemicGranite": {
+      "char": "⦒",
+      "label": "totemic granite tile",
+      "group": "Terrain"
+    },
+    "Tile_TotemicLimestone": {
+      "char": "⦓",
+      "label": "totemic limestone tile",
+      "group": "Terrain"
+    },
+    "Tile_TotemicMarble": {
+      "char": "⦔",
+      "label": "totemic marble tile",
+      "group": "Terrain"
+    },
+    "Tile_TotemicSandstone": {
+      "char": "⦕",
+      "label": "totemic sandstone tile",
+      "group": "Terrain"
+    },
+    "Tile_TotemicSlate": {
+      "char": "⦖",
+      "label": "totemic slate tile",
+      "group": "Terrain"
+    },
+    "Tile_TotemicVacstone": {
+      "char": "⦗",
+      "label": "totemic vacstone tile",
+      "group": "Terrain"
+    },
+    "Tile_Transhumanist": {
+      "char": "⦘",
+      "label": "hex tile",
+      "group": "Terrain"
+    },
+    "Tome": {
+      "char": "⦙",
+      "label": "tome",
+      "group": "Other"
+    },
+    "ToolCabinet": {
+      "char": "⦚",
+      "label": "tool cabinet",
+      "group": "Building"
+    },
+    "TorchLamp": {
+      "char": "⦛",
+      "label": "torch lamp",
+      "group": "Building"
+    },
+    "TorchWallLamp": {
+      "char": "⦜",
+      "label": "wall torch lamp",
+      "group": "Building"
+    },
+    "Tornado": {
+      "char": "⦝",
+      "label": "tornado",
+      "group": "Other"
+    },
+    "TornadoGenerator": {
+      "char": "⦞",
+      "label": "tornado generator",
+      "group": "Item"
+    },
+    "Tortoise": {
+      "char": "⦟",
+      "label": "tortoise",
+      "group": "Pawn"
+    },
+    "TotemicSlab_Broad": {
+      "char": "⦠",
+      "label": "totemic slab (broad)",
+      "group": "Other"
+    },
+    "TotemicSlab_Medium": {
+      "char": "⦡",
+      "label": "totemic slab (medium)",
+      "group": "Other"
+    },
+    "ToughskinGland": {
+      "char": "⦢",
+      "label": "toughskin gland",
+      "group": "Other"
+    },
+    "Toughspike": {
+      "char": "⦣",
+      "label": "toughspike",
+      "group": "Pawn"
+    },
+    "Toxalope": {
+      "char": "⦤",
+      "label": "toxalope",
+      "group": "Pawn"
+    },
+    "ToxicSpewer": {
+      "char": "⦥",
+      "label": "toxic spewer",
+      "group": "Building"
+    },
+    "ToxifierGenerator": {
+      "char": "⦦",
+      "label": "toxifier generator",
+      "group": "Building"
+    },
+    "ToyBox": {
+      "char": "⦧",
+      "label": "toy box",
+      "group": "Building"
+    },
+    "TransportPod": {
+      "char": "⦨",
+      "label": "transport pod",
+      "group": "Building"
+    },
+    "TrapIED_AntigrainWarhead": {
+      "char": "⦩",
+      "label": "IED antigrain warhead trap",
+      "group": "Building"
+    },
+    "TrapIED_Deadlife": {
+      "char": "⦪",
+      "label": "IED deadlife trap",
+      "group": "Building"
+    },
+    "TrapIED_EMP": {
+      "char": "⦫",
+      "label": "IED EMP trap",
+      "group": "Building"
+    },
+    "TrapIED_Firefoam": {
+      "char": "⦬",
+      "label": "IED firefoam trap",
+      "group": "Building"
+    },
+    "TrapIED_HighExplosive": {
+      "char": "⦭",
+      "label": "IED trap",
+      "group": "Building"
+    },
+    "TrapIED_Incendiary": {
+      "char": "⦮",
+      "label": "IED incendiary trap",
+      "group": "Building"
+    },
+    "TrapIED_Smoke": {
+      "char": "⦯",
+      "label": "IED smoke trap",
+      "group": "Building"
+    },
+    "TrapIED_ToxGas": {
+      "char": "⦰",
+      "label": "IED tox trap",
+      "group": "Building"
+    },
+    "TrapSpike": {
+      "char": "⦱",
+      "label": "spike trap",
+      "group": "Building"
+    },
+    "TriggerContainerEmptied": {
+      "char": "⦲",
+      "label": "trigger container emptied",
+      "group": "Other"
+    },
+    "TriggerUnfogged": {
+      "char": "⦳",
+      "label": "trigger unfogged",
+      "group": "Other"
+    },
+    "Trispike": {
+      "char": "⦴",
+      "label": "trispike",
+      "group": "Pawn"
+    },
+    "TubeTelevision": {
+      "char": "⦵",
+      "label": "tube television",
+      "group": "Building"
+    },
+    "TunnelHiveSpawner": {
+      "char": "⦶",
+      "label": "tunnel",
+      "group": "Other"
+    },
+    "TunnelJellySpawner": {
+      "char": "⦷",
+      "label": "tunnel",
+      "group": "Item"
+    },
+    "Turkey": {
+      "char": "⦸",
+      "label": "turkey",
+      "group": "Pawn"
+    },
+    "Turret_AutoChargeBlaster": {
+      "char": "⦹",
+      "label": "auto charge turret",
+      "group": "Building"
+    },
+    "Turret_AutoInferno": {
+      "char": "⦺",
+      "label": "auto inferno turret",
+      "group": "Building"
+    },
+    "Turret_AutoMiniTurret": {
+      "char": "⦻",
+      "label": "mini-slugger turret",
+      "group": "Building"
+    },
+    "Turret_AutoMortar": {
+      "char": "⦼",
+      "label": "auto mortar",
+      "group": "Building"
+    },
+    "Turret_Autocannon": {
+      "char": "⦽",
+      "label": "autocannon turret",
+      "group": "Building"
+    },
+    "Turret_FoamTurret": {
+      "char": "⦾",
+      "label": "foam turret",
+      "group": "Building"
+    },
+    "Turret_MiniTurret": {
+      "char": "⦿",
+      "label": "mini-turret",
+      "group": "Building"
+    },
+    "Turret_Mortar": {
+      "char": "⧀",
+      "label": "mortar",
+      "group": "Building"
+    },
+    "Turret_RocketswarmLauncher": {
+      "char": "⧁",
+      "label": "rocketswarm launcher",
+      "group": "Building"
+    },
+    "Turret_Sniper": {
+      "char": "⧂",
+      "label": "uranium slug turret",
+      "group": "Building"
+    },
+    "Turret_TacticalTurret": {
+      "char": "⧃",
+      "label": "tactical turret",
+      "group": "Building"
+    },
+    "TwistedArchotechSupport_Large": {
+      "char": "⧄",
+      "label": "TwistedArchotechSupport_Large",
+      "group": "Building"
+    },
+    "TwistedArchotechSupport_Small": {
+      "char": "⧅",
+      "label": "TwistedArchotechSupport_Small",
+      "group": "Building"
+    },
+    "TwistedArchotechSupport_Vertical": {
+      "char": "⧆",
+      "label": "TwistedArchotechSupport_Vertical",
+      "group": "Building"
+    },
+    "Underwall": {
+      "char": "⧇",
+      "label": "underwall",
+      "group": "Terrain"
+    },
+    "UnfinishedApparel": {
+      "char": "⧈",
+      "label": "unfinished apparel",
+      "group": "Item"
+    },
+    "UnfinishedArmor": {
+      "char": "⧉",
+      "label": "unfinished simple armor",
+      "group": "Item"
+    },
+    "UnfinishedBelt": {
+      "char": "⧊",
+      "label": "unfinished belt",
+      "group": "Item"
+    },
+    "UnfinishedComponent": {
+      "char": "⧋",
+      "label": "unfinished component",
+      "group": "Item"
+    },
+    "UnfinishedGun": {
+      "char": "⧌",
+      "label": "unfinished gun",
+      "group": "Item"
+    },
+    "UnfinishedHealthItemBionic": {
+      "char": "⧍",
+      "label": "unfinished bionic",
+      "group": "Item"
+    },
+    "UnfinishedHealthItemGhoul": {
+      "char": "⧎",
+      "label": "unfinished ghoul prosthetic",
+      "group": "Other"
+    },
+    "UnfinishedHealthItemProsthetic": {
+      "char": "⧏",
+      "label": "unfinished prosthetic",
+      "group": "Item"
+    },
+    "UnfinishedMask": {
+      "char": "⧐",
+      "label": "unfinished mask",
+      "group": "Item"
+    },
+    "UnfinishedMetallicTechArmor": {
+      "char": "⧑",
+      "label": "unfinished metal armor",
+      "group": "Item"
+    },
+    "UnfinishedMusicalInstrument": {
+      "char": "⧒",
+      "label": "unfinished musical instrument",
+      "group": "Building"
+    },
+    "UnfinishedPack": {
+      "char": "⧓",
+      "label": "unfinished pack",
+      "group": "Item"
+    },
+    "UnfinishedPiano": {
+      "char": "⧔",
+      "label": "unfinished piano",
+      "group": "Building"
+    },
+    "UnfinishedSculpture": {
+      "char": "⧕",
+      "label": "unfinished sculpture",
+      "group": "Item"
+    },
+    "UnfinishedSubcore": {
+      "char": "⧖",
+      "label": "unfinished subcore",
+      "group": "Item"
+    },
+    "UnfinishedTechArmor": {
+      "char": "⧗",
+      "label": "unfinished advanced armor",
+      "group": "Item"
+    },
+    "UnfinishedWeapon": {
+      "char": "⧘",
+      "label": "unfinished weapon",
+      "group": "Item"
+    },
+    "UnstablePowerCell": {
+      "char": "⧙",
+      "label": "unstable power cell",
+      "group": "Building"
+    },
+    "Uranium": {
+      "char": "⧚",
+      "label": "uranium",
+      "group": "Item"
+    },
+    "Urn": {
+      "char": "⧛",
+      "label": "urn",
+      "group": "Building"
+    },
+    "VanometricPowerCell": {
+      "char": "⧜",
+      "label": "vanometric power cell",
+      "group": "Building"
+    },
+    "VenomFangs": {
+      "char": "⧝",
+      "label": "venom fangs",
+      "group": "Other"
+    },
+    "VenomTalon": {
+      "char": "⧞",
+      "label": "venom talon",
+      "group": "Other"
+    },
+    "Vent": {
+      "char": "⧟",
+      "label": "vent",
+      "group": "Building"
+    },
+    "VitalsMonitor": {
+      "char": "⧠",
+      "label": "vitals monitor",
+      "group": "Building"
+    },
+    "VoidMonolith": {
+      "char": "⧡",
+      "label": "void monolith",
+      "group": "Building"
+    },
+    "VoidMonolithAttachmentBottomLeft": {
+      "char": "⧢",
+      "label": "VoidMonolithAttachmentBottomLeft",
+      "group": "Building"
+    },
+    "VoidMonolithAttachmentBottomRight": {
+      "char": "⧣",
+      "label": "VoidMonolithAttachmentBottomRight",
+      "group": "Building"
+    },
+    "VoidMonolithAttachmentLeft": {
+      "char": "⧤",
+      "label": "VoidMonolithAttachmentLeft",
+      "group": "Building"
+    },
+    "VoidMonolithAttachmentRight": {
+      "char": "⧥",
+      "label": "VoidMonolithAttachmentRight",
+      "group": "Building"
+    },
+    "VoidMonolithAttachmentTop": {
+      "char": "⧦",
+      "label": "VoidMonolithAttachmentTop",
+      "group": "Building"
+    },
+    "VoidMonolithPyramind": {
+      "char": "⧧",
+      "label": "VoidMonolithPyramind",
+      "group": "Other"
+    },
+    "VoidNode": {
+      "char": "⧨",
+      "label": "void node",
+      "group": "Building"
+    },
+    "VoidNodeCore_DustA": {
+      "char": "⧩",
+      "label": "VoidNodeCore_DustA",
+      "group": "Other"
+    },
+    "VoidNodeCore_DustB": {
+      "char": "⧪",
+      "label": "VoidNodeCore_DustB",
+      "group": "Other"
+    },
+    "VoidNodeDistortion": {
+      "char": "⧫",
+      "label": "VoidNodeDistortion",
+      "group": "Other"
+    },
+    "VoidSculpture": {
+      "char": "⧬",
+      "label": "void sculpture",
+      "group": "Building"
+    },
+    "VoidStructure": {
+      "char": "⧭",
+      "label": "void structure",
+      "group": "Building"
+    },
+    "VoidStructureIncoming": {
+      "char": "⧮",
+      "label": "VoidStructureIncoming",
+      "group": "Other"
+    },
+    "Voidmetal": {
+      "char": "⧯",
+      "label": "void metal",
+      "group": "Terrain"
+    },
+    "VoidmetalMass": {
+      "char": "⧰",
+      "label": "void metal mass",
+      "group": "Building"
+    },
+    "VoidmetalMassLarge": {
+      "char": "⧱",
+      "label": "VoidmetalMassLarge",
+      "group": "Building"
+    },
+    "VoidmetalMassMedium": {
+      "char": "⧲",
+      "label": "VoidmetalMassMedium",
+      "group": "Building"
+    },
+    "VoidmetalMassSmall": {
+      "char": "⧳",
+      "label": "VoidmetalMassSmall",
+      "group": "Building"
+    },
+    "VoidmetalWall": {
+      "char": "⧴",
+      "label": "void metal wall",
+      "group": "Building"
+    },
+    "VoidsightSerum": {
+      "char": "⧵",
+      "label": "voidsight serum",
+      "group": "Item"
+    },
+    "WakeUp": {
+      "char": "⧶",
+      "label": "wake-up",
+      "group": "Other"
+    },
+    "Wall": {
+      "char": "⧷",
+      "label": "wall",
+      "group": "Building"
+    },
+    "WallLamp": {
+      "char": "⧸",
+      "label": "wall lamp",
+      "group": "Building"
+    },
+    "Warg": {
+      "char": "⧹",
+      "label": "warg",
+      "group": "Pawn"
+    },
+    "WarpedObeliskIncoming": {
+      "char": "⧺",
+      "label": "obelisk (incoming)",
+      "group": "Other"
+    },
+    "WarpedObelisk_Abductor": {
+      "char": "⧻",
+      "label": "warped obelisk",
+      "group": "Building"
+    },
+    "WarpedObelisk_Duplicator": {
+      "char": "⧼",
+      "label": "corrupted obelisk",
+      "group": "Building"
+    },
+    "WarpedObelisk_Labyrinth": {
+      "char": "⧽",
+      "label": "warped obelisk",
+      "group": "Building"
+    },
+    "WarpedObelisk_Mutator": {
+      "char": "⧾",
+      "label": "twisted obelisk",
+      "group": "Building"
+    },
+    "WasteRat": {
+      "char": "⬀",
+      "label": "waste rat",
+      "group": "Pawn"
+    },
+    "Wastepack": {
+      "char": "⬁",
+      "label": "toxic wastepack",
+      "group": "Item"
+    },
+    "WastepackAtomizer": {
+      "char": "⬂",
+      "label": "wastepack atomizer",
+      "group": "Building"
+    },
+    "WaterDeep": {
+      "char": "⬃",
+      "label": "deep water",
+      "group": "Terrain"
+    },
+    "WaterMovingChestDeep": {
+      "char": "⬄",
+      "label": "chest-deep moving water",
+      "group": "Terrain"
+    },
+    "WaterMovingShallow": {
+      "char": "⬅",
+      "label": "shallow moving water",
+      "group": "Terrain"
+    },
+    "WaterOceanDeep": {
+      "char": "⬆",
+      "label": "deep ocean water",
+      "group": "Terrain"
+    },
+    "WaterOceanShallow": {
+      "char": "⬇",
+      "label": "shallow ocean water",
+      "group": "Terrain"
+    },
+    "WaterShallow": {
+      "char": "⬈",
+      "label": "shallow water",
+      "group": "Terrain"
+    },
+    "WatermillGenerator": {
+      "char": "⬉",
+      "label": "watermill generator",
+      "group": "Building"
+    },
+    "WaterproofConduit": {
+      "char": "⬊",
+      "label": "waterproof conduit",
+      "group": "Building"
+    },
+    "Weapon_GrenadeEMP": {
+      "char": "⬋",
+      "label": "EMP grenades",
+      "group": "Item"
+    },
+    "Weapon_GrenadeFrag": {
+      "char": "⬌",
+      "label": "frag grenades",
+      "group": "Item"
+    },
+    "Weapon_GrenadeMolotov": {
+      "char": "⬍",
+      "label": "molotov cocktails",
+      "group": "Item"
+    },
+    "Weapon_GrenadeTox": {
+      "char": "⬎",
+      "label": "tox grenades",
+      "group": "Item"
+    },
+    "WeatherController": {
+      "char": "⬏",
+      "label": "weather controller",
+      "group": "Building"
+    },
+    "WildBoar": {
+      "char": "⬐",
+      "label": "wild boar",
+      "group": "Pawn"
+    },
+    "WindTurbine": {
+      "char": "⬑",
+      "label": "wind turbine",
+      "group": "Building"
+    },
+    "Wolf_Arctic": {
+      "char": "⬒",
+      "label": "arctic wolf",
+      "group": "Pawn"
+    },
+    "Wolf_Timber": {
+      "char": "⬓",
+      "label": "timber wolf",
+      "group": "Pawn"
+    },
+    "WoodFiredGenerator": {
+      "char": "⬔",
+      "label": "wood-fired generator",
+      "group": "Building"
+    },
+    "WoodLog": {
+      "char": "⬕",
+      "label": "wood",
+      "group": "Item"
+    },
+    "WoodPlankFloor": {
+      "char": "⬖",
+      "label": "wood floor",
+      "group": "Terrain"
+    },
+    "WoolAlpaca": {
+      "char": "⬗",
+      "label": "alpaca wool",
+      "group": "Item"
+    },
+    "WoolBison": {
+      "char": "⬘",
+      "label": "bison wool",
+      "group": "Item"
+    },
+    "WoolMegasloth": {
+      "char": "⬙",
+      "label": "megasloth wool",
+      "group": "Item"
+    },
+    "WoolMuffalo": {
+      "char": "⬚",
+      "label": "muffalo wool",
+      "group": "Item"
+    },
+    "WoolSheep": {
+      "char": "⬛",
+      "label": "sheep wool",
+      "group": "Item"
+    },
+    "Wort": {
+      "char": "⬜",
+      "label": "wort",
+      "group": "Other"
+    },
+    "Xenogerm": {
+      "char": "⬝",
+      "label": "xenogerm",
+      "group": "Item"
+    },
+    "Yak": {
+      "char": "⬞",
+      "label": "yak",
+      "group": "Pawn"
+    },
+    "Yayo": {
+      "char": "⬟",
+      "label": "yayo",
+      "group": "Other"
+    },
+    "YorkshireTerrier": {
+      "char": "⬠",
+      "label": "yorkshire terrier",
+      "group": "Pawn"
+    }
+  }
+}

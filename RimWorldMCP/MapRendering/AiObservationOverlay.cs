@@ -6,21 +6,23 @@ using Verse;
 namespace RimWorldMCP.MapRendering
 {
     /// <summary>
-    /// AI 观察覆盖层 — 在地图上短暂显示半透明彩色标记，告知玩家 AI 正在关注这些区域。
-    /// 使用 GenDraw.DrawFieldEdges 每帧绘制，零持久状态，天然自过期。
+    /// AI 观察覆盖层 — 在地图上短暂显示半透明彩色填充矩形，告知玩家 AI 正在关注这些区域。
+    /// 使用 GenDraw.DrawCellRect 单次绘制，O(1) 性能，零持久状态，天然自过期。
     /// </summary>
     public static class AiObservationOverlay
     {
         private const float DurationSec = 0.8f;
+        private const float OverlayAlpha = 0.12f;
 
         private class Observation
         {
-            public List<IntVec3> Cells = null!;
+            public CellRect Rect;
             public Color Color;
             public float ExpireRealTime;
         }
 
         private static readonly Dictionary<Map, List<Observation>> _active = new Dictionary<Map, List<Observation>>();
+        private static readonly Dictionary<Color, Material> _materialCache = new Dictionary<Color, Material>();
 
         /// <summary>
         /// 在地图上显示 AI 观察标记，~0.8 秒后自动消失（实时钟，不受暂停影响）。
@@ -32,10 +34,6 @@ namespace RimWorldMCP.MapRendering
 
             var color = ParseColor(colorName);
 
-            var cells = new List<IntVec3>(rect.Area);
-            foreach (var cell in rect)
-                cells.Add(cell);
-
             if (!_active.TryGetValue(map, out var list))
             {
                 list = new List<Observation>();
@@ -43,7 +41,7 @@ namespace RimWorldMCP.MapRendering
             }
             list.Add(new Observation
             {
-                Cells = cells,
+                Rect = rect,
                 Color = color,
                 ExpireRealTime = Time.realtimeSinceStartup + DurationSec
             });
@@ -66,7 +64,9 @@ namespace RimWorldMCP.MapRendering
 
                 try
                 {
-                    GenDraw.DrawFieldEdges(list[i].Cells, list[i].Color);
+                    var obs = list[i];
+                    var mat = GetOrCreateMaterial(obs.Color);
+                    GenDraw.DrawCellRect(obs.Rect, Vector3.zero, mat);
                 }
                 catch (Exception ex)
                 {
@@ -76,6 +76,17 @@ namespace RimWorldMCP.MapRendering
 
             if (list.Count == 0)
                 _active.Remove(map);
+        }
+
+        private static Material GetOrCreateMaterial(Color color)
+        {
+            var key = new Color(color.r, color.g, color.b, OverlayAlpha);
+            if (!_materialCache.TryGetValue(key, out var mat))
+            {
+                mat = SolidColorMaterials.SimpleSolidColorMaterial(key);
+                _materialCache[key] = mat;
+            }
+            return mat;
         }
 
         private static Color ParseColor(string? colorName)

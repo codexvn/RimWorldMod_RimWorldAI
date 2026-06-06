@@ -79,6 +79,7 @@
     <ItemGroup>
       <LangFiles Include="$(MSBuildProjectDirectory)\resource\Languages\**\*" />
     </ItemGroup>
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\Symbols.json" DestinationFolder="..\publish\RimWorldMCP\resource" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\About\About.xml" DestinationFolder="..\publish\RimWorldMCP\About" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\About\Preview.png" DestinationFolder="..\publish\RimWorldMCP\About" Condition="Exists('$(MSBuildProjectDirectory)\resource\About\Preview.png')" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\resource\About\PublishedFileId.txt" DestinationFolder="..\publish\RimWorldMCP\About" Condition="Exists('$(MSBuildProjectDirectory)\resource\About\PublishedFileId.txt')" />
