@@ -18,8 +18,8 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "起始 X 坐标（左上角）" },
-                pos_y = new { type = "integer", description = "起始 Y 坐标（Z轴，左上角）" },
+                pos_x = new { type = "integer", description = "起始 X 坐标（左下角）" },
+                pos_y = new { type = "integer", description = "起始 Y 坐标（Z轴，左下角）" },
                 end_x = new { type = "integer", description = "结束 X 坐标（可选，不提供则单格）" },
                 end_y = new { type = "integer", description = "结束 Y 坐标（可选，不提供则单格）" },
                 color = new { type = "string", description = "只删除指定颜色的规划（可选）", @enum = new[] { "白","红","绿","蓝","黄","紫","青","橙","灰","棕" } },

@@ -23,10 +23,10 @@ namespace RimWorldMCP.Tools
             properties = new
             {
                 chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")，优先于坐标参数" },
-                pos_x = new { type = "integer", description = "左上 X 坐标（chunk_id 未提供时需要）" },
-                pos_y = new { type = "integer", description = "左上 Y 坐标（chunk_id 未提供时需要）" },
-                end_x = new { type = "integer", description = "右下 X 坐标（可选，不提供则只查单格）" },
-                end_y = new { type = "integer", description = "右下 Y 坐标（可选，不提供则只查单格）" }
+                pos_x = new { type = "integer", description = "左下 X 坐标（chunk_id 未提供时需要）" },
+                pos_y = new { type = "integer", description = "左下 Y 坐标（chunk_id 未提供时需要）" },
+                end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只查单格）" },
+                end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只查单格）" }
             },
             required = new[] { "pos_x", "pos_y" }
         });
@@ -222,7 +222,7 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             if (args.Value.TryGetProperty("end_x", out var jEX) && jEX.TryGetInt32(out var endX)
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
-                return (posX, posY, endX, endY);
+                return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
         }
     }

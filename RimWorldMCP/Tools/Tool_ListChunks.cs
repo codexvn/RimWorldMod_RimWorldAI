@@ -16,10 +16,10 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上 X 坐标" },
-                pos_y = new { type = "integer", description = "左上 Y 坐标" },
-                end_x = new { type = "integer", description = "右下 X 坐标（可选，默认=pos_x）" },
-                end_y = new { type = "integer", description = "右下 Y 坐标（可选，默认=pos_y）" }
+                pos_x = new { type = "integer", description = "左下 X 坐标" },
+                pos_y = new { type = "integer", description = "左下 Y 坐标" },
+                end_x = new { type = "integer", description = "右上 X 坐标（可选，默认=pos_x）" },
+                end_y = new { type = "integer", description = "右上 Y 坐标（可选，默认=pos_y）" }
             },
             required = new[] { "pos_x", "pos_y" }
         });

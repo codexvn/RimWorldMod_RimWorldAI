@@ -15,16 +15,16 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignateRoom : ITool
     {
         public string Name => "designate_room";
-        public string Description => "快速建造一个矩形房间。指定左上角和右下角坐标，在矩形边界放置墙体。已有墙体的格子会自动跳过（可共用墙），不会重复建造。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "快速建造一个矩形房间。指定左下角和右上角坐标，在矩形边界放置墙体。已有墙体的格子会自动跳过（可共用墙），不会重复建造。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上角 X 坐标" },
-                pos_y = new { type = "integer", description = "左上角 Y 坐标" },
-                end_x = new { type = "integer", description = "右下角 X 坐标" },
-                end_y = new { type = "integer", description = "右下角 Y 坐标" },
+                pos_x = new { type = "integer", description = "左下角 X 坐标" },
+                pos_y = new { type = "integer", description = "左下角 Y 坐标" },
+                end_x = new { type = "integer", description = "右上角 X 坐标" },
+                end_y = new { type = "integer", description = "右上角 Y 坐标" },
                 wall_stuff = new { type = "string", description = "墙体材料 DefName（可选，默认 Steel），先用 search_thing_def(keyword=\"花岗岩\", flags=\"stuff\") 查可用材料" },
                 door_positions = new { type = "string", description = "门的位置，多个用逗号分隔。可选: top, bottom, left, right, center_top, center_bottom, center_left, center_right" },
                 door_defName = new { type = "string", description = "门的 DefName，默认 Door", @default = "Door" },
@@ -84,8 +84,8 @@ namespace RimWorldMCP.Tools
             var wallPositions = new List<(int x, int y)>();
             for (int x = minX; x <= maxX; x++)
             {
-                wallPositions.Add((x, minZ)); // 上边
-                wallPositions.Add((x, maxZ)); // 下边
+                wallPositions.Add((x, minZ)); // 下边（南）
+                wallPositions.Add((x, maxZ)); // 上边（北）
             }
             for (int z = minZ + 1; z < maxZ; z++)
             {
@@ -106,12 +106,12 @@ namespace RimWorldMCP.Tools
                     string trimmed = posStr.Trim();
                     (int x, int y)? doorPoint = trimmed switch
                     {
-                        "top" => (midX, minZ),
-                        "bottom" => (midX, maxZ),
+                        "top" => (midX, maxZ),
+                        "bottom" => (midX, minZ),
                         "left" => (minX, midZ),
                         "right" => (maxX, midZ),
-                        "center_top" => (midX, minZ),
-                        "center_bottom" => (midX, maxZ),
+                        "center_top" => (midX, maxZ),
+                        "center_bottom" => (midX, minZ),
                         "center_left" => (minX, midZ),
                         "center_right" => (maxX, midZ),
                         _ => null
@@ -403,7 +403,7 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             if (args.Value.TryGetProperty("end_x", out var jEX) && jEX.TryGetInt32(out var endX)
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
-                return (posX, posY, endX, endY);
+                return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
         }
     }

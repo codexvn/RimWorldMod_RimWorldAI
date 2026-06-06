@@ -105,7 +105,7 @@ namespace RimWorldMCP.Tools
             int originY = cy - total / 2;
 
             var rooms = new List<(int row, int col, int px, int py, int ex, int ey, string doors, string label)>();
-            string[,] labels = { { "左上", "上中", "右上" }, { "左中", "中心", "右中" }, { "左下", "下中", "右下" } };
+            string[,] labels = { { "左下", "下中", "右下" }, { "左中", "中心", "右中" }, { "左上", "上中", "右上" } };
 
             for (int row = 0; row < 3; row++)
             {
@@ -118,7 +118,7 @@ namespace RimWorldMCP.Tools
 
                     // Door suggestions: outer-facing sides + center room connects to all
                     var doorList = new List<string>();
-                    bool isTop = row == 0, isBottom = row == 2;
+                    bool isTop = row == 2, isBottom = row == 0;
                     bool isLeft = col == 0, isRight = col == 2;
                     bool isCenter = row == 1 && col == 1;
 
@@ -190,7 +190,7 @@ namespace RimWorldMCP.Tools
 
             // Inner rooms (same as nine_grid)
             var rooms = new List<(int row, int col, int px, int py, int ex, int ey, string doors, string label)>();
-            string[,] labels = { { "左上", "上中", "右上" }, { "左中", "中心", "右中" }, { "左下", "下中", "右下" } };
+            string[,] labels = { { "左下", "下中", "右下" }, { "左中", "中心", "右中" }, { "左上", "上中", "右上" } };
 
             for (int row = 0; row < 3; row++)
             {
@@ -202,7 +202,7 @@ namespace RimWorldMCP.Tools
                     int ey = py + internalSize + 1;
 
                     var doorList = new List<string>();
-                    bool isTop = row == 0, isBottom = row == 2;
+                    bool isTop = row == 2, isBottom = row == 0;
                     bool isLeft = col == 0, isRight = col == 2;
                     bool isCenter = row == 1 && col == 1;
 
@@ -246,9 +246,9 @@ namespace RimWorldMCP.Tools
             sb.AppendLine("### 外围防御墙 (4段)");
             sb.AppendLine("用 designate_room 建造（不设门和地板，纯墙体）:");
             sb.AppendLine(
-                $"- 北墙: pos=({wallStartX},{wallStartY}) end=({wallEndX},{wallStartY + wallThickness - 1})");
+                $"- 南墙: pos=({wallStartX},{wallStartY}) end=({wallEndX},{wallStartY + wallThickness - 1})");
             sb.AppendLine(
-                $"- 南墙: pos=({wallStartX},{wallEndY - wallThickness + 1}) end=({wallEndX},{wallEndY})");
+                $"- 北墙: pos=({wallStartX},{wallEndY - wallThickness + 1}) end=({wallEndX},{wallEndY})");
             sb.AppendLine(
                 $"- 西墙: pos=({wallStartX},{wallStartY + wallThickness}) end=({wallStartX + wallThickness - 1},{wallEndY - wallThickness})");
             sb.AppendLine(

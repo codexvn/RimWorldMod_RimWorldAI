@@ -19,10 +19,10 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上 X 坐标" },
-                pos_y = new { type = "integer", description = "左上 Y 坐标" },
-                end_x = new { type = "integer", description = "右下 X 坐标（可选，与 end_y 配对划定矩形范围）" },
-                end_y = new { type = "integer", description = "右下 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
+                pos_x = new { type = "integer", description = "左下 X 坐标" },
+                pos_y = new { type = "integer", description = "左下 Y 坐标" },
+                end_x = new { type = "integer", description = "右上 X 坐标（可选，与 end_y 配对划定矩形范围）" },
+                end_y = new { type = "integer", description = "右上 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
                 preset = new
                 {
                     type = "string",
@@ -221,7 +221,7 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             if (args.Value.TryGetProperty("end_x", out var jEX) && jEX.TryGetInt32(out var endX)
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
-                return (posX, posY, endX, endY);
+                return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
         }
 

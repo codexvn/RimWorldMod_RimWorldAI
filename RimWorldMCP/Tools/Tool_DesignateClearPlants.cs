@@ -121,7 +121,7 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             if (args.Value.TryGetProperty("end_x", out var jEX) && jEX.TryGetInt32(out var endX)
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
-                return (posX, posY, endX, endY);
+                return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
         }
     }

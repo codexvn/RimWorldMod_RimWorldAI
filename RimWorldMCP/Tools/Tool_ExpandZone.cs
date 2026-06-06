@@ -20,10 +20,10 @@ namespace RimWorldMCP.Tools
             {
                 zone_pos_x = new { type = "integer", description = "区域内任意一格的 X 坐标（用于定位目标区域）" },
                 zone_pos_y = new { type = "integer", description = "区域内任意一格的 Y 坐标（用于定位目标区域）" },
-                pos_x = new { type = "integer", description = "扩展范围左上角 X" },
-                pos_y = new { type = "integer", description = "扩展范围左上角 Y" },
-                end_x = new { type = "integer", description = "扩展范围右下角 X（不传则仅扩展单个格子）" },
-                end_y = new { type = "integer", description = "扩展范围右下角 Y（不传则仅扩展单个格子）" },
+                pos_x = new { type = "integer", description = "扩展范围左下角 X" },
+                pos_y = new { type = "integer", description = "扩展范围左下角 Y" },
+                end_x = new { type = "integer", description = "扩展范围右上角 X（不传则仅扩展单个格子）" },
+                end_y = new { type = "integer", description = "扩展范围右上角 Y（不传则仅扩展单个格子）" },
                 skip_room_check = new { type = "boolean", description = "跳过房间校验（默认 false，储存区扩展要求目标范围在室内）" }
             },
             required = new[] { "zone_pos_x", "zone_pos_y", "pos_x", "pos_y" }

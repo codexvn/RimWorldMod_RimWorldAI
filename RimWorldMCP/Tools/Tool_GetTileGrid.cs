@@ -12,7 +12,7 @@ namespace RimWorldMCP.Tools
     public class Tool_GetTileGrid : ITool
     {
         public string Name => "get_tile_grid";
-        public string Description => "获取指定区域的文本化网格地图（支持 Chunk 或坐标两种查询模式）。";
+        public string Description => "获取指定区域的文本化网格地图（支持 Chunk 或坐标两种查询模式）。坐标范围为闭区间（两端坐标均包含）。地图坐标系: 左下角为原点(0,0)，x向东、z向北。网格上北下南、左西右东。";
 
         private const int MaxGridWidth = 80;
         private const int MaxGridHeight = 60;
@@ -41,10 +41,10 @@ namespace RimWorldMCP.Tools
                         type = "object",
                         properties = new
                         {
-                            pos_x = new { type = "integer", description = "左上角 X 坐标" },
-                            pos_y = new { type = "integer", description = "左上角 Y 坐标" },
-                            end_x = new { type = "integer", description = "右下角 X 坐标（可选，默认=pos_x）" },
-                            end_y = new { type = "integer", description = "右下角 Y 坐标（可选，默认=pos_y）" }
+                            pos_x = new { type = "integer", description = "左下角 X 坐标（闭区间，含此坐标）" },
+                            pos_y = new { type = "integer", description = "左下角 Y 坐标（闭区间，含此坐标）" },
+                            end_x = new { type = "integer", description = "右上角 X 坐标（可选，闭区间，含此坐标）" },
+                            end_y = new { type = "integer", description = "右上角 Y 坐标（可选，闭区间，含此坐标）" }
                         },
                         required = new[] { "pos_x", "pos_y" }
                     });
@@ -98,10 +98,11 @@ namespace RimWorldMCP.Tools
                         }
 
                         chunk.IsAllFog = allFog;
+                        Array.Reverse(rows); // 翻转行序：高z（北）先输出
                         chunk.CompressedData = compressor.Compress(rows, (chunk.XIndex, chunk.ZIndex));
 
                         var sb = new StringBuilder();
-                        sb.AppendLine($"## {Name}  Chunk({chunk.XIndex},{chunk.ZIndex})  世界({chunk.MinX},{chunk.MinZ})-({chunk.MaxX},{chunk.MaxZ})  [{chunk.Width}x{chunk.Height}]");
+                        sb.AppendLine($"## {Name}  Chunk({chunk.XIndex},{chunk.ZIndex})  x∈[{chunk.MinX},{chunk.MaxX}] z∈[{chunk.MinZ},{chunk.MaxZ}]  {chunk.Width}×{chunk.Height}");
                         sb.AppendLine($"## 压缩: {compressor.Name}  字典Hash: {SymbolDictionary.DictHash}");
                         if (allFog) sb.AppendLine("## 全迷雾");
                         sb.AppendLine();
@@ -144,12 +145,12 @@ namespace RimWorldMCP.Tools
                         var result = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ, CellCharProviders.ForTileGrid);
 
                         var sb = new StringBuilder();
-                        sb.AppendLine($"## {Name}  世界({minX},{minZ})-({maxX},{maxZ})  [{w}x{h}]");
+                        sb.AppendLine($"## {Name}  x∈[{minX},{maxX}] z∈[{minZ},{maxZ}]  {w}×{h}");
                         sb.AppendLine($"## 字典Hash: {SymbolDictionary.DictHash}");
                         if (result.AllFog) sb.AppendLine("## 全迷雾");
                         sb.AppendLine();
 
-                        for (int z = 0; z < h; z++)
+                        for (int z = h - 1; z >= 0; z--)
                         {
                             sb.Append($"z{minZ + z}: ");
                             sb.AppendLine(new string(result.Rows[z]));

@@ -21,10 +21,10 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上角 X 坐标" },
-                pos_y = new { type = "integer", description = "左上角 Y 坐标" },
-                end_x = new { type = "integer", description = "右下角 X 坐标（可选，默认=pos_x）" },
-                end_y = new { type = "integer", description = "右下角 Y 坐标（可选，默认=pos_y）" },
+                pos_x = new { type = "integer", description = "左下角 X 坐标" },
+                pos_y = new { type = "integer", description = "左下角 Y 坐标" },
+                end_x = new { type = "integer", description = "右上角 X 坐标（可选，默认=pos_x）" },
+                end_y = new { type = "integer", description = "右上角 Y 坐标（可选，默认=pos_y）" },
                 label = new { type = "string", description = "标记标签（可选），如\"钢铁矿脉\"" },
                 color = new
                 {

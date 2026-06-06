@@ -12,17 +12,17 @@ namespace RimWorldMCP.Tools
     public class Tool_CreateGrowingZone : ITool
     {
         public string Name => "create_growing_zone";
-        public string Description => "在指定矩形区域创建种植区并设置要种植的植物。坐标使用左上→右下模式,不提供 end 则只操作单格。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "在指定矩形区域创建种植区并设置要种植的植物。坐标使用左下→右上模式,不提供 end 则只操作单格。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上角 X 坐标" },
-                pos_y = new { type = "integer", description = "左上角 Y 坐标（映射到网格垂直轴 Z）" },
-                end_x = new { type = "integer", description = "右下角 X 坐标（可选，与 end_y 配对划定矩形范围）" },
-                end_y = new { type = "integer", description = "右下角 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
+                pos_x = new { type = "integer", description = "左下角 X 坐标" },
+                pos_y = new { type = "integer", description = "左下角 Y 坐标（映射到网格垂直轴 Z）" },
+                end_x = new { type = "integer", description = "右上角 X 坐标（可选，与 end_y 配对划定矩形范围）" },
+                end_y = new { type = "integer", description = "右上角 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" },
                 plant_defName = new
                 {
@@ -174,7 +174,7 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             if (args.Value.TryGetProperty("end_x", out var jEX) && jEX.TryGetInt32(out var endX)
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
-                return (posX, posY, endX, endY);
+                return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
         }
     }

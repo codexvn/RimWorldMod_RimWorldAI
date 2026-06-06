@@ -55,12 +55,29 @@ RimWorldMCP/
 
 ### IntVec3 坐标系统
 
-RimWorld 的 `IntVec3(x, y, z)` 字段含义：
-- `x` = 水平网格轴（东西方向）
-- `y` = **海拔高度层**（地面=0，多层建筑用）
-- `z` = **垂直网格轴**（南北方向）
+RimWorld 的 `IntVec3(x, y, z)` 字段含义（源码 `IntVec3.cs`, `CellRect.cs`, `Rot4.cs`）：
 
-2D 地图的有效网格范围是 `(x: 0 ~ map.Size.x-1, z: 0 ~ map.Size.z-1)`。
+| 字段 | 方向 | 游戏语义 |
+|------|------|---------|
+| `x` | 东(+1) / 西(-1) | 屏幕右侧/左侧 |
+| `y` | 海拔高度 | 地面=0，多层建筑用 |
+| `z` | 北(+1) / 南(-1) | 屏幕上方/下方 |
+
+```
+        ↑ 北 (+z)
+        │
+ 西 ←──┼──→ 东 (+x)
+ (-x)  │
+        ↓ 南 (-z)
+```
+
+- **`(0, 0)` = 左下角（西南角）**（源码 `CellRect.BL = (minX, 0, minZ)`）
+- **`(mapW-1, mapH-1)` = 右上角（东北角）**
+- **z 越大越靠屏幕上方**（`SplitVertical`：小 z = `"bottom"`，大 z = `"up"`）
+
+2D 地图的有效网格范围是 `x: [0, map.Size.x-1], z: [0, map.Size.z-1]`。
+
+**字符网格输出**：行序按 z 倒序——高 z（北）在第一行，低 z（南）在最后一行。行首标注 z 世界坐标。
 
 **Tool 参数映射规则**：MCP 用户的 `pos_x`/`pos_y`（2D 网格坐标）必须映射为 `new IntVec3(posX, 0, posY)`。
 - `pos_y`（用户 Y 坐标）→ `IntVec3.z`（网格垂直轴）
@@ -485,7 +502,7 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 
 **2. 坐标参数统一左上→右下**
 
-所有 MCP Tool 的区域坐标参数使用 `pos_x/pos_y`（左上角）→ `end_x/end_y`（右下角）模式，禁止使用中心点+半径/宽高向外扩展的 API 设计。参考 `designate_mine` 的实现。
+所有 MCP Tool 的区域坐标参数使用 `pos_x/pos_y`（左下角）→ `end_x/end_y`（右上角）模式，禁止使用中心点+半径/宽高向外扩展的 API 设计。参考 `designate_mine` 的实现。游戏坐标系: 左下角为原点(0,0)，x向东(+)、z向北(+)。
 - `pos_x`/`pos_y` — 必填，区域起始角
 - `end_x`/`end_y` — 可选，区域结束角（不提供则只操作单格）
 

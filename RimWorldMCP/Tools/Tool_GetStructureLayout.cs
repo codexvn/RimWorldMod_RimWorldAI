@@ -18,10 +18,10 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "查询区域左上角 X（可选，默认0）" },
-                pos_y = new { type = "integer", description = "查询区域左上角 Y（可选，默认0）" },
-                end_x = new { type = "integer", description = "查询区域右下角 X（可选，默认地图右边界）" },
-                end_y = new { type = "integer", description = "查询区域右下角 Y（可选，默认地图下边界）" },
+                pos_x = new { type = "integer", description = "查询区域左下角 X（可选，默认0）" },
+                pos_y = new { type = "integer", description = "查询区域左下角 Y（可选，默认0）" },
+                end_x = new { type = "integer", description = "查询区域右上角 X（可选，默认地图右边界）" },
+                end_y = new { type = "integer", description = "查询区域右上角 Y（可选，默认地图下边界）" },
                 include_natural_rock = new { type = "boolean", description = "是否包含天然岩壁（默认false，过滤山体/岩壁RLE减少噪音）" }
             }
         });
@@ -95,23 +95,23 @@ namespace RimWorldMCP.Tools
                     int mapW = map.Size.x;
                     int mapH = map.Size.z;
 
-                    int minX = 0, minY = 0;
-                    int maxX = mapW - 1, maxY = mapH - 1;
+                    int minX = 0, minZ = 0;
+                    int maxX = mapW - 1, maxZ = mapH - 1;
 
                     if (args != null)
                     {
                         if (args.Value.TryGetProperty("pos_x", out var jX) && jX.TryGetInt32(out var px))
                             minX = px;
                         if (args.Value.TryGetProperty("pos_y", out var jY) && jY.TryGetInt32(out var py))
-                            minY = py;
+                            minZ = py;
                         if (args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out var ex))
                             maxX = ex;
                         if (args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out var ey))
-                            maxY = ey;
+                            maxZ = ey;
                     }
 
                     if (minX > maxX) { int t = minX; minX = maxX; maxX = t; }
-                    if (minY > maxY) { int t = minY; minY = maxY; maxY = t; }
+                    if (minZ > maxZ) { int t = minZ; minZ = maxZ; maxZ = t; }
 
                     bool includeNaturalRock = false;
                     if (args != null && args.Value.TryGetProperty("include_natural_rock", out var jNR))
@@ -119,15 +119,15 @@ namespace RimWorldMCP.Tools
 
                     minX = Math.Max(0, Math.Min(minX, mapW - 1));
                     maxX = Math.Max(0, Math.Min(maxX, mapW - 1));
-                    minY = Math.Max(0, Math.Min(minY, mapH - 1));
-                    maxY = Math.Max(0, Math.Min(maxY, mapH - 1));
+                    minZ = Math.Max(0, Math.Min(minZ, mapH - 1));
+                    maxZ = Math.Max(0, Math.Min(maxZ, mapH - 1));
 
                     int w = maxX - minX + 1;
-                    int h = maxY - minY + 1;
+                    int h = maxZ - minZ + 1;
                     bool showGrid = w <= MaxGridWidth && h <= MaxGridHeight;
 
                     var sb = new StringBuilder();
-                    sb.AppendLine($"## 建筑结构布局 ({minX},{minY}) ~ ({maxX},{maxY})  [{w}x{h}]");
+                    sb.AppendLine($"## 建筑结构布局 ({minX},{minZ}) ~ ({maxX},{maxZ})  [{w}x{h}]");
 
                     if (!showGrid)
                         sb.AppendLine($"> 全图模式：字符网格已省略（范围 {w}x{h} 超过 {MaxGridWidth}x{MaxGridHeight} 上限），使用墙组件+房间+门+区域表达结构。");
@@ -139,26 +139,26 @@ namespace RimWorldMCP.Tools
                     Dictionary<char, string> legendEntries = new();
                     if (showGrid)
                     {
-                        var gridResult = BuildGrid(sb, minX, minY, maxX, maxY, map, includeNaturalRock);
+                        var gridResult = BuildGrid(sb, minX, minZ, maxX, maxZ, map, includeNaturalRock);
                         usedSymbols = gridResult.Used;
                         legendEntries = gridResult.Legend;
                         sb.AppendLine();
                     }
 
                     // 2. 房间
-                    int roomCount = BuildRoomList(sb, minX, minY, maxX, maxY, map);
+                    int roomCount = BuildRoomList(sb, minX, minZ, maxX, maxZ, map);
                     if (roomCount > 0) sb.AppendLine();
 
                     // 3. 门
-                    int doorCount = BuildDoorList(sb, minX, minY, maxX, maxY, map);
+                    int doorCount = BuildDoorList(sb, minX, minZ, maxX, maxZ, map);
                     if (doorCount > 0) sb.AppendLine();
 
                     // 4. 区域（种植区/储存区）
-                    int zoneCount = BuildZoneList(sb, minX, minY, maxX, maxY, map);
+                    int zoneCount = BuildZoneList(sb, minX, minZ, maxX, maxZ, map);
                     if (zoneCount > 0) sb.AppendLine();
 
                     // 5. 墙（连通分量）
-                    BuildWallComponents(sb, minX, minY, maxX, maxY, map, includeNaturalRock);
+                    BuildWallComponents(sb, minX, minZ, maxX, maxZ, map, includeNaturalRock);
 
                     // 6. 图例（仅小范围模式）
                     if (showGrid)
@@ -254,7 +254,7 @@ namespace RimWorldMCP.Tools
         }
 
         private static (HashSet<char> Used, Dictionary<char, string> Legend) BuildGrid(
-            StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map, bool includeNaturalRock)
+            StringBuilder sb, int minX, int minZ, int maxX, int maxZ, Map map, bool includeNaturalRock)
         {
             var used = new HashSet<char>();
             var legend = new Dictionary<char, string>();
@@ -270,7 +270,7 @@ namespace RimWorldMCP.Tools
 
             sb.AppendLine("### 空间网格");
 
-            for (int z = minY; z <= maxY; z++)
+            for (int z = maxZ; z >= minZ; z--)
             {
                 sb.Append($"z{z}: ");
                 for (int x = minX; x <= maxX; x++)
@@ -301,7 +301,7 @@ namespace RimWorldMCP.Tools
                 sb.AppendLine(string.Join("  ", parts));
         }
 
-        private static int BuildRoomList(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map)
+        private static int BuildRoomList(StringBuilder sb, int minX, int minZ, int maxX, int maxZ, Map map)
         {
             var regionGrid = map.regionGrid;
             if (regionGrid == null) return 0;
@@ -324,7 +324,7 @@ namespace RimWorldMCP.Tools
                 }
 
                 // 仅对室内房间做精确范围交集检测
-                if (!RoomIntersectsRange(room, minX, minY, maxX, maxY))
+                if (!RoomIntersectsRange(room, minX, minZ, maxX, maxZ))
                     continue;
 
                 // 跳过完全在迷雾中的房间（取首尾两格抽样判断）
@@ -373,28 +373,28 @@ namespace RimWorldMCP.Tools
             return shown;
         }
 
-        private static bool RoomIntersectsRange(Room room, int minX, int minY, int maxX, int maxY)
+        private static bool RoomIntersectsRange(Room room, int minX, int minZ, int maxX, int maxZ)
         {
             // 快速检测：用 ExtentsClose 边界框
             var ext = room.ExtentsClose;
-            if (ext.maxX < minX || ext.minX > maxX || ext.maxZ < minY || ext.minZ > maxY)
+            if (ext.maxX < minX || ext.minX > maxX || ext.maxZ < minZ || ext.minZ > maxZ)
                 return false;
 
             // 精确检测：遍历 Cells（房间格数通常不大）
             foreach (var cell in room.Cells)
             {
-                if (cell.x >= minX && cell.x <= maxX && cell.z >= minY && cell.z <= maxY)
+                if (cell.x >= minX && cell.x <= maxX && cell.z >= minZ && cell.z <= maxZ)
                     return true;
             }
 
             return false;
         }
 
-        private static int BuildDoorList(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map)
+        private static int BuildDoorList(StringBuilder sb, int minX, int minZ, int maxX, int maxZ, Map map)
         {
             var doors = new List<Building_Door>();
 
-            for (int z = minY; z <= maxY; z++)
+            for (int z = minZ; z <= maxZ; z++)
             {
                 for (int x = minX; x <= maxX; x++)
                 {
@@ -420,7 +420,7 @@ namespace RimWorldMCP.Tools
             return doors.Count;
         }
 
-        private static int BuildZoneList(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map)
+        private static int BuildZoneList(StringBuilder sb, int minX, int minZ, int maxX, int maxZ, Map map)
         {
             var zoneManager = map.zoneManager;
             if (zoneManager == null) return 0;
@@ -444,7 +444,7 @@ namespace RimWorldMCP.Tools
                     zMaxX = Math.Max(zMaxX, cell.x);
                     zMaxZ = Math.Max(zMaxZ, cell.z);
                     cellCount++;
-                    if (cell.x >= minX && cell.x <= maxX && cell.z >= minY && cell.z <= maxY)
+                    if (cell.x >= minX && cell.x <= maxX && cell.z >= minZ && cell.z <= maxZ)
                     {
                         inRange++;
                         intersects = true;
@@ -478,14 +478,14 @@ namespace RimWorldMCP.Tools
             public int CellCount;
         }
 
-        private static int BuildWallComponents(StringBuilder sb, int minX, int minY, int maxX, int maxY, Map map,
+        private static int BuildWallComponents(StringBuilder sb, int minX, int minZ, int maxX, int maxZ, Map map,
             bool includeNaturalRock)
         {
             var visited = new HashSet<IntVec3>();
             var components = new List<WallComponent>();
             int globalId = 0;
 
-            for (int z = minY; z <= maxY; z++)
+            for (int z = minZ; z <= maxZ; z++)
             {
                 for (int x = minX; x <= maxX; x++)
                 {
@@ -522,7 +522,7 @@ namespace RimWorldMCP.Tools
                         {
                             var nb = cur + dir;
                             if (visited.Contains(nb)) continue;
-                            if (nb.x < minX || nb.x > maxX || nb.z < minY || nb.z > maxY) continue;
+                            if (nb.x < minX || nb.x > maxX || nb.z < minZ || nb.z > maxZ) continue;
                             var nbEd = nb.GetEdifice(map);
                             if (nbEd == null || !IsWallCell(nbEd, out bool nbNatural)) continue;
                             if (nbNatural != isNatural) continue;
@@ -567,7 +567,7 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             if (args.Value.TryGetProperty("end_x", out var jEX) && jEX.TryGetInt32(out var endX)
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
-                return (posX, posY, endX, endY);
+                return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
         }
     }

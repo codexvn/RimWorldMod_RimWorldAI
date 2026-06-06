@@ -23,10 +23,10 @@ namespace RimWorldMCP.Tools
             type = "object",
             properties = new
             {
-                pos_x = new { type = "integer", description = "左上 X 坐标" },
-                pos_y = new { type = "integer", description = "左上 Y 坐标" },
-                end_x = new { type = "integer", description = "右下 X 坐标（可选，不提供则只取消单格）" },
-                end_y = new { type = "integer", description = "右下 Y 坐标（可选，不提供则只取消单格）" },
+                pos_x = new { type = "integer", description = "左下 X 坐标" },
+                pos_y = new { type = "integer", description = "左下 Y 坐标" },
+                end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只取消单格）" },
+                end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只取消单格）" },
                 cancel_blueprints = new { type = "boolean", description = "是否取消建造蓝图（默认 true）", @default = true },
                 cancel_frames = new { type = "boolean", description = "是否取消建造框架（默认 true）", @default = true },
                 cancel_designations = new { type = "boolean", description = "是否取消标记（采矿/砍伐/收割/拆除等，默认 true）", @default = true }
