@@ -94,7 +94,7 @@ while (_queue.TryDequeue(out var cmd))
 ## Tool 开发规范
 
 1. **先查游戏源码**：到 `F:\RiderProjects\Assembly-CSharp\` 追踪完整链路，复用原版 Designator/Job/Bill 逻辑
-2. **坐标参数统一左上→右下**：`pos_x/pos_y` → `end_x/end_y`，禁止中心点+半径 API
+2. **坐标参数统一左下→右上**：`pos_x/pos_y`（左下角）→ `end_x/end_y`（右上角），禁止中心点+半径 API。游戏坐标系: 左下角为原点(0,0)，x向东(+)、z向北(+)。
 3. **所有 Tool 实现 GetTargetRange**：坐标类返回矩形范围，ID 类通过 `CameraHelper.FindPawnById/FindThingById` 查找位置，信息查询类返回 `null`
 4. **用 thingIDNumber 精确定位**：禁止名称字符串匹配
 5. **List 工具必须分页**：数据 >20 条的工具提供 `page`/`page_size` 参数，默认每页 10

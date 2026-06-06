@@ -500,7 +500,7 @@ Skill 是领域知识文件（Markdown + YAML frontmatter），存放在 `Skills
 
 开发任何新 Tool 时，第一步是到 `F:\RiderProjects\Assembly-CSharp\` 反编译源码中追踪完整链路：用户在游戏界面点击 → Designator/Command → JobGiver/JobDriver → 游戏执行。理解原版如何处理输入验证、资源检查、失败路径，然后尽量复用游戏原有逻辑（Designator、Job、Bill 等），不要凭空造轮子。
 
-**2. 坐标参数统一左上→右下**
+**2. 坐标参数统一左下→右上**
 
 所有 MCP Tool 的区域坐标参数使用 `pos_x/pos_y`（左下角）→ `end_x/end_y`（右上角）模式，禁止使用中心点+半径/宽高向外扩展的 API 设计。参考 `designate_mine` 的实现。游戏坐标系: 左下角为原点(0,0)，x向东(+)、z向北(+)。
 - `pos_x`/`pos_y` — 必填，区域起始角
