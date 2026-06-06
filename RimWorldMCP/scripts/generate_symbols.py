@@ -15,7 +15,7 @@ generate_symbols.py
   2. 跳过抽象定义（isAbstract=true）
   3. 按 defName 字母序从 Unicode 符号池分配独立字符
   4. 维护一对一映射：一个字符 = 一个 def
-  5. def 有游戏内文本标签（label）时写入 label 字段，无标签时省略
+  5. 每个条目包含 char（映射字符）和 group（分类标签）
 
 生成后由 AI 润色:
   脚本分配的字符是纯机械的 — 按字母序依次从池中取，没有语义关联。
@@ -184,7 +184,7 @@ def extract_defs(rimworld_dir: str, dlcs: list[str]) -> dict[str, dict]:
     处理逻辑:
       - 只匹配成对的 <ThingDef>...</ThingDef> / <TerrainDef>...</TerrainDef>
       - 跳过 isAbstract=true 的模板定义（不会在游戏中实际生成）
-      - 提取 defName（必须）和 label（可选）
+      - 提取 defName（必须）和分类
       - 根据父目录名调用 classify() 推断分组
 
     参数:
@@ -192,8 +192,7 @@ def extract_defs(rimworld_dir: str, dlcs: list[str]) -> dict[str, dict]:
       dlcs: DLC 目录名列表
 
     返回:
-      {defName: {"label": str|None, "group": str}, ...}
-      label 为 None 表示游戏 XML 中未定义 <label> 标签
+      {defName: {"group": str}, ...}
     """
     defs = {}
 
@@ -240,17 +239,13 @@ def extract_defs(rimworld_dir: str, dlcs: list[str]) -> dict[str, dict]:
                         continue
                     name = m_name.group(1)
 
-                    # label 是可选字段 — 大部分 def 都有本地化显示名
-                    m_label = re.search(r"<label>(.*?)</label>", block)
-                    label = m_label.group(1) if m_label else None
-
                     # 根据父目录推断分类
                     parent_dir = os.path.basename(os.path.dirname(path))
                     cat = classify(name, tag_open, parent_dir)
 
                     # 第一次遇到的 defName 为准（后续同名 def 忽略）
                     if name not in defs:
-                        defs[name] = {"label": label, "group": cat}
+                        defs[name] = {"group": cat}
 
     return defs
 
@@ -309,11 +304,8 @@ def main():
             ch = chr(0xE000 + (i - len(pool)))
             overflow += 1
 
-        # 组装条目 — label 仅在有值时写入
-        entry = {"char": ch, "group": info["group"]}
-        if info["label"] is not None:
-            entry["label"] = info["label"]
-        symbols[name] = entry
+        # 组装条目
+        symbols[name] = {"char": ch, "group": info["group"]}
 
     # ----- 4. 序列化写入 -----
     output = {"version": 1, "symbols": symbols}
@@ -324,16 +316,13 @@ def main():
         json.dump(output, f, ensure_ascii=False, indent=2)
 
     # ----- 5. 统计输出 -----
-    with_label = sum(1 for v in symbols.values() if "label" in v)
-    without_label = len(symbols) - with_label
-
     groups = {}
     for v in symbols.values():
         g = v["group"]
         groups[g] = groups.get(g, 0) + 1
 
     print(f"输出: {output_path}")
-    print(f"条目: {len(symbols)}（有label: {with_label}, 无label: {without_label}, 溢出: {overflow}）")
+    print(f"条目: {len(symbols)}（溢出: {overflow}）")
     print(f"分类: {dict(groups)}")
     print()
     print("下一步: 由 AI 对重要 def 手工润色字符映射，使语义匹配。")
