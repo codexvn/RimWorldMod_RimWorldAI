@@ -19,9 +19,11 @@ namespace RimWorldMCP.MapRendering
         {
             public Plan Plan;
             public int ExpireTick;
+            public float ExpireRealTime; // 暂停时走实时钟兜底
         }
 
         private static readonly Dictionary<Map, List<Observation>> _active = new Dictionary<Map, List<Observation>>();
+        private const float RealTimeFallbackSec = 10f; // 暂停超过此时长强制执行游戏 tick 清理
 
         /// <summary>
         /// 在地图上显示 AI 观察标记，expireTicks 后自动删除。
@@ -54,30 +56,37 @@ namespace RimWorldMCP.MapRendering
             _active[map].Add(new Observation
             {
                 Plan = plan,
-                ExpireTick = Find.TickManager.TicksGame + Math.Max(1, expireTicks)
+                ExpireTick = Find.TickManager.TicksGame + Math.Max(1, expireTicks),
+                ExpireRealTime = UnityEngine.Time.realtimeSinceStartup + RealTimeFallbackSec
             });
         }
 
-        /// <summary>每帧调用，清理过期的观察标记</summary>
+        /// <summary>每帧调用，清理过期的观察标记（游戏 tick 优先，暂停时走实时钟兜底）</summary>
         public static void Tick(Map? map)
         {
             if (map == null) return;
             if (!_active.TryGetValue(map, out var list)) return;
 
             var tick = Find.TickManager.TicksGame;
+            var nowReal = UnityEngine.Time.realtimeSinceStartup;
             for (int i = list.Count - 1; i >= 0; i--)
             {
-                if (tick < list[i].ExpireTick) continue;
+                var obs = list[i];
+                // 游戏 tick 到期，或暂停超时（实时钟兜底）
+                if (tick < obs.ExpireTick && nowReal < obs.ExpireRealTime) continue;
+
+                // 只在暂停导致的实时钟清理时才打日志
+                if (tick < obs.ExpireTick && nowReal >= obs.ExpireRealTime)
+                    McpLog.Info($"[AiObservationOverlay] 暂停中实时清理: {obs.Plan.RenamableLabel}");
 
                 // 清理：逐格移除 → 最后一格触发 Deregister
                 try
                 {
-                    // 先收集所有格子再逐一移除（避免枚举中修改集合）
                     var cells = new List<IntVec3>();
-                    foreach (var c in list[i].Plan)
+                    foreach (var c in obs.Plan)
                         cells.Add(c);
                     foreach (var c in cells)
-                        list[i].Plan.RemoveCell(c);
+                        obs.Plan.RemoveCell(c);
                 }
                 catch (Exception ex)
                 {
