@@ -72,7 +72,7 @@ namespace RimWorldMCP.Tools
                     if (map == null) return ToolResult.Error("当前没有可用地图。");
 
                     var rect = CellRect.FromLimits(minX, minZ, maxX, maxZ);
-                    AiObservationOverlay.Show(map, rect, label, color, expireTicks);
+                    AiObservationOverlay.Show(map, rect, label, color);
 
                     var size = $"{rect.Width}x{rect.Height}";
                     var labelStr = string.IsNullOrEmpty(label) ? "" : $" \"{label}\"";
