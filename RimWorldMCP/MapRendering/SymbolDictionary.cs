@@ -25,7 +25,27 @@ namespace RimWorldMCP.MapRendering
 
         public static void Initialize()
         {
-            Rebuild();
+            try
+            {
+                var asmDir = Path.GetDirectoryName(typeof(SymbolDictionary).Assembly.Location);
+                var path = Path.Combine(asmDir ?? "", "Symbols.json");
+                if (!File.Exists(path))
+                {
+                    McpLog.Error($"[SymbolDictionary] 词表文件不存在: {path}");
+                    McpLog.Error($"[SymbolDictionary] DLL 路径: {typeof(SymbolDictionary).Assembly.Location}");
+                    McpLog.Error($"[SymbolDictionary] 请确认 Symbols.json 已复制到 DLL 同目录下");
+                    return;
+                }
+                McpLog.Info($"[SymbolDictionary] 开始加载词表: {path} ({new FileInfo(path).Length} bytes)");
+                Rebuild();
+            }
+            catch (Exception ex)
+            {
+                McpLog.Error($"[SymbolDictionary] 初始化失败: {ex.GetType().Name} - {ex.Message}");
+                McpLog.Error($"[SymbolDictionary] 堆栈: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                    McpLog.Error($"[SymbolDictionary] 内部异常: {ex.InnerException.Message}");
+            }
         }
 
         /// <summary>
@@ -34,17 +54,30 @@ namespace RimWorldMCP.MapRendering
         /// </summary>
         private static (Dictionary<string,char> symbols, List<char> pool)? LoadCuratedTable()
         {
-            // 词表与 DLL 同目录: Mod/1.6/Assemblies/Symbols.json
             var asmDir = Path.GetDirectoryName(typeof(SymbolDictionary).Assembly.Location);
             var path = Path.Combine(asmDir ?? ".", "Symbols.json");
 
+            McpLog.Info($"[SymbolDictionary] 查找词表: {path}");
+
             if (!File.Exists(path))
             {
+                // 列出同目录文件辅助诊断
+                try
+                {
+                    var dir = asmDir ?? ".";
+                    var files = Directory.GetFiles(dir, "*.*").Take(20);
+                    McpLog.Info($"[SymbolDictionary] 目录 {dir} 内容: {string.Join(", ", files.Select(f => Path.GetFileName(f)))}");
+                }
+                catch { }
+
                 throw new FileNotFoundException(
                     $"[SymbolDictionary] 未找到词表文件: {path}\n" +
                     $"词表应与 DLL 同目录 (Mod/1.6/Assemblies/Symbols.json)。\n" +
                     $"请运行 scripts/generate_symbols.py 生成。");
             }
+
+            var fileSize = new FileInfo(path).Length;
+            McpLog.Info($"[SymbolDictionary] 读取词表: {path} ({fileSize} bytes)");
 
             string json = File.ReadAllText(path, Encoding.UTF8);
             using var doc = JsonDocument.Parse(json);
