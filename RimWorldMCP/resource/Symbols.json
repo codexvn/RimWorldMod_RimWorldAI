@@ -1,6 +1,5 @@
 {
   "version": 1,
-  "description": "RimWorldMCP 词表文件 — defName 到显示字符的映射。由 generate_symbols.py 从游戏 XML 自动生成。生成后应由 AI 对重要 def 手工润色字符（保持一对一、语义匹配）。修改后重启 RimWorld生效。",
   "symbols": {
     "AIPersonaCore": {
       "char": "㆐",
