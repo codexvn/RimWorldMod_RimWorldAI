@@ -61,5 +61,25 @@ namespace RimWorldAgent.Core.Data
         /// <summary>UTC 时间戳</summary>
         [JsonPropertyName("timestamp")]
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        /// <summary>游戏内天数（GameTick / 60000）</summary>
+        [JsonPropertyName("game_day")]
+        public int GameDay { get; set; }
+    }
+
+    /// <summary>每日工具调用统计 — 按游戏内天数 + 工具名聚合</summary>
+    public class ToolCallDailyStat
+    {
+        /// <summary>游戏内天数</summary>
+        [JsonPropertyName("game_day")]
+        public int GameDay { get; set; }
+
+        /// <summary>工具名</summary>
+        [JsonPropertyName("tool_name")]
+        public string ToolName { get; set; } = "";
+
+        /// <summary>调用次数</summary>
+        [JsonPropertyName("call_count")]
+        public int CallCount { get; set; }
     }
 }

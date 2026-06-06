@@ -84,7 +84,8 @@
 
 ### 治疗注意事项
 - **患者必须静止不动才能被治疗**：被治疗的目标不能移动（战斗中奔跑的殖民者无法被治疗）
-- 受伤后立即用 `set_work_priority` 将患者 **Patient = 1、PatientBedRest = 1**。设置后游戏 WorkGiver 系统会自动驱动殖民者前往医疗床卧床休养（`restUntilHealed`），无需手动指派
+- **临时强制卧床**：使用 `force_bed_rest` 立即让指定殖民者前往病床休养至痊愈（一次性任务，痊愈后自动起身，不修改工作优先级）
+- **长期策略**：用 `set_work_priority` 将患者 **Patient = 1、PatientBedRest = 1**，游戏 WorkGiver 系统会长期自动驱动殖民者卧床休养
 - Patient 控制受伤后主动就医，PatientBedRest 控制卧床休养至痊愈
 - 确保有殖民者 Doctor 优先级 ≥ 2 才能自动执行治疗任务
 - 紧急情况可征召医生使用 `tend_now` 优先治疗（优先级最高，无视工作列表）
@@ -245,6 +246,7 @@
 | get_recommended_apparel | 按评分排名推荐衣物 |
 | get_recommended_weapon | 按科技等级排名推荐武器（远程/近战） |
 | schedule_operation | 安排手术 |
+| force_bed_rest | 强制殖民者卧床休养（一次性，痊愈自动起身） |
 | plan_add / plan_list / plan_remove | 规划画板：画草图→查看→确认布局→真正建造 |
 | get_tile_grid | 文本网格地图 |
 | get_tile_detail | 坐标范围详情 |

@@ -97,6 +97,9 @@ namespace RimWorldAgent.Core
         /// <summary>新客户端连接，(socket)</summary>
         public static event Action<IWebSocketConnection>? OnClientConnected;
 
+        /// <summary>客户端请求工具调用统计，(socket, fromDay, toDay)</summary>
+        public static event Action<IWebSocketConnection, int, int>? OnToolStats;
+
         public static void RaiseChat(string text, ChatThinking? thinking = null) => OnChat?.Invoke(text, thinking);
         public static void RaiseAbort() => OnAbort?.Invoke();
         public static void RaiseAssistantContent(string text, string thinking, string runId, string agentType)
@@ -160,6 +163,13 @@ namespace RimWorldAgent.Core
                                 OnHistoryBefore?.Invoke(socket, beforeId, nb);
                                 break;
                             }
+                            case "tool_stats":
+                            {
+                                var fromDay = root.TryGetProperty("from_day", out var fd) && fd.TryGetInt32(out var fv) ? fv : 0;
+                                var toDay = root.TryGetProperty("to_day", out var td) && td.TryGetInt32(out var tv) ? tv : int.MaxValue;
+                                OnToolStats?.Invoke(socket, fromDay, toDay);
+                                break;
+                            }
                         }
                     }
                     catch (Exception ex) { CoreLog.Info($"[UIMessageBus] 消息解析失败: {ex.Message}"); }
@@ -179,6 +189,7 @@ namespace RimWorldAgent.Core
             OnToolCallRecorded = null;
             OnToolResultRecorded = null;
             OnClientConnected = null;
+            OnToolStats = null;
             if (_server == null) return;
             foreach (var kv in _clients) { try { kv.Value.Close(); } catch (Exception ex) { CoreLog.Info($"[UIMessageBus] 关闭客户端连接失败: {ex.Message}"); } }
             _clients.Clear();

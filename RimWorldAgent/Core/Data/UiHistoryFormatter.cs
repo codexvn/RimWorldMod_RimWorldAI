@@ -31,6 +31,18 @@ namespace RimWorldAgent.Core.Data
             return JsonSerializer.Serialize(doc, Options);
         }
 
+        /// <summary>将工具统计格式化为 WS tool_stats_response JSON 字符串</summary>
+        public static string FormatToolStatsResponse(IReadOnlyList<ToolCallDailyStat> stats, int gameDay)
+        {
+            var doc = new
+            {
+                type = "tool_stats_response",
+                game_day = gameDay,
+                stats = stats
+            };
+            return JsonSerializer.Serialize(doc, Options);
+        }
+
         private static object BuildResponseDocument(IReadOnlyList<ConversationEntry> entries, string responseType)
         {
             var messages = new List<object>(entries.Count);

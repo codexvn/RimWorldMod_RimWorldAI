@@ -46,7 +46,7 @@
   }
   #app {
     display: grid;
-    grid-template-columns: 90px 1fr minmax(400px, 700px) 1fr 220px;
+    grid-template-columns: 120px 1fr minmax(400px, 700px) 1fr 220px;
     height: 100dvh; width: 100%;
   }
   #sidebar { grid-column: 1; }
@@ -70,22 +70,25 @@
     overflow-y: auto;
     font-size: 12px; font-family: var(--mono);
   }
-  .sb-stat {
-    text-align: center; padding: 6px 4px;
+  .sb-hdr {
+    text-align: center; padding: 8px 4px;
+    font-size: 12px; font-weight: 700; color: var(--text-strong);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .sb-cat {
+    padding: 3px 6px; margin: 1px 0;
     border-radius: var(--radius-sm);
-    background: var(--surface);
-    overflow-wrap: break-word; word-break: break-word;
+    cursor: default;
+    font-size: 11px; line-height: 1.4;
   }
-  .sb-stat .sb-val {
-    font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
-    color: var(--text-strong); line-height: 1.3;
-  }
-  .sb-stat .sb-label {
-    font-size: 10px; color: var(--muted); margin-top: 2px;
-  }
-  .sb-stat .sb-val.danger { color: var(--red); }
-  .sb-stat .sb-val.warning { color: var(--amber); }
-  .sb-stat .sb-val.ok { color: var(--green); }
+  .sb-cat:hover { background: var(--hover); }
+  .sb-cat .sb-cat-name { color: var(--muted); }
+  .sb-cat .sb-cat-count { float: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sb-cat .sb-bar { height: 3px; margin-top: 2px; border-radius: 2px; background: var(--border); }
+  .sb-cat .sb-bar-inner { height: 100%; border-radius: 2px; background: var(--blue); }
+  .sb-cat.warn .sb-bar-inner { background: var(--amber); }
+  .sb-cat.warn .sb-cat-count { color: var(--amber); }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 5px; }
@@ -579,7 +582,7 @@
       flex: 0 0 auto; min-width: 52px;
       padding: 4px 8px; text-align: center;
     }
-    .sb-stat .sb-val { font-size: 13px; }
+    .sb-hdr { font-size: 11px; padding: 6px 2px; }
     .sb-stat .sb-label { font-size: 9px; }
     #main { grid-column: 1; grid-row: 2; }
     #rightbar { display: none; }
@@ -634,9 +637,8 @@
 <div id="app">
   <!-- Sidebar -->
   <div id="sidebar">
-    <div class="sb-stat"><div class="sb-val" id="sb-pawns">--</div><div class="sb-label">Pawns</div></div>
-    <div class="sb-stat"><div class="sb-val" id="sb-mood">--</div><div class="sb-label">Mood</div></div>
-    <div class="sb-stat"><div class="sb-val" id="sb-food">--</div><div class="sb-label">Food</div></div>
+    <div class="sb-hdr">📊 第<span id="sb-day">--</span>天</div>
+    <div id="sb-stats"></div>
   </div>
 
   <!-- Main -->
@@ -920,6 +922,7 @@
       sendBtn.disabled = false;
       hideReading();
       loadHistory();
+      requestToolStats();
     };
 
     ws.onmessage = (event) => {
@@ -1182,6 +1185,10 @@
         var label = sub === 'success' ? '✓ Done' : sub === 'aborted' ? '⏹ Aborted' : '✗ Failed';
         var cls = sub === 'success' ? 'ok' : sub === 'aborted' ? 'warn' : 'error';
         hideReading(); addResult(cls, label);
+        break;
+
+      case 'tool_stats_response':
+        renderToolStats(msg);
         break;
     }
   }
@@ -1761,6 +1768,74 @@
     adjustHeight();
     sendBtn.disabled = !connected || !inputEl.value.trim();
   });
+
+  // ===== Tool Stats（左侧栏） =====
+  var TOOL_CAT = {
+    '地图查询': ['get_tile_grid','get_tile_detail','get_structure_layout','fertility_grid','terrain_grid','temperature_grid','pollution_grid','search_map','find_pawn','find_enemies','find_equipment','get_thing_def','search_thing_def'],
+    '殖民者': ['get_colonists','get_colonist_needs','get_colonist_health','get_work_priorities','set_work_priority'],
+    '设施建造': ['designate_build','designate_room','designate_mine','designate_deconstruct','designate_clear_plants','create_stockpile','create_growing_zone','delete_zone','expand_zone','cancel_build','cancel_task','uninstall_building','install_minified_thing'],
+    '装备战斗': ['equip_pawn','draft_pawn','attack_pawn','force_attack','haul_item','pick_up_item','drop_equipment','strip_pawn','arrest_pawn','rescue_pawn','capture_pawn','force_dress','drop_carried'],
+    '生产研究': ['create_production_bill','list_recipes','get_bills','manage_bill','list_research_projects','set_research_project','get_research_progress']
+  };
+
+  function classifyTool(name) {
+    for (var cat in TOOL_CAT) {
+      if (TOOL_CAT[cat].indexOf(name) >= 0) return cat;
+    }
+    return '其他';
+  }
+
+  function requestToolStats() {
+    if (!ws || !connected) return;
+    ws.send(JSON.stringify({ type: 'tool_stats', from_day: 0, to_day: 2147483647 }));
+  }
+
+  function renderToolStats(msg) {
+    var dayEl = document.getElementById('sb-day');
+    if (dayEl) dayEl.textContent = msg.game_day || '--';
+
+    var stats = msg.stats || [];
+    // 按分类聚合
+    var catMap = {};
+    var grandTotal = 0;
+    for (var i = 0; i < stats.length; i++) {
+      var s = stats[i];
+      var cat = classifyTool(s.tool_name);
+      if (!catMap[cat]) catMap[cat] = 0;
+      catMap[cat] += s.call_count;
+      grandTotal += s.call_count;
+    }
+
+    // 排序：按次数降序，地图查询排第一
+    var order = ['地图查询','设施建造','殖民者','装备战斗','生产研究','其他'];
+    var cats = Object.keys(catMap).sort(function(a, b) {
+      var ai = order.indexOf(a), bi = order.indexOf(b);
+      if (ai < 0) ai = 999; if (bi < 0) bi = 999;
+      if (ai !== bi) return ai - bi;
+      return catMap[b] - catMap[a];
+    });
+
+    var maxCount = 1;
+    for (var k in catMap) { if (catMap[k] > maxCount) maxCount = catMap[k]; }
+
+    var container = document.getElementById('sb-stats');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (var j = 0; j < cats.length; j++) {
+      var c = cats[j];
+      var count = catMap[c];
+      var pct = grandTotal > 0 ? Math.round(count / grandTotal * 100) : 0;
+      var isWarn = c === '地图查询' && pct > 50;
+      var barW = Math.max(2, Math.round(count / maxCount * 100));
+      var div = document.createElement('div');
+      div.className = 'sb-cat' + (isWarn ? ' warn' : '');
+      div.innerHTML =
+        '<div><span class="sb-cat-name">' + esc(c) + '</span><span class="sb-cat-count">' + count + '</span></div>' +
+        '<div class="sb-bar"><div class="sb-bar-inner" style="width:' + barW + '%"></div></div>';
+      container.appendChild(div);
+    }
+  }
 
   // ===== Init =====
   connect();

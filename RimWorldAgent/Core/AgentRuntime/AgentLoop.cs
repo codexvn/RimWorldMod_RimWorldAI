@@ -131,6 +131,24 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
             };
 
+            // 客户端 tool_stats → 返回工具调用统计
+            UIMessageBus.OnToolStats += (socket, fromDay, toDay) =>
+            {
+                try
+                {
+                    var store = ConversationStore;
+                    if (store == null) return;
+                    var stats = store.GetToolDailyStats(fromDay, toDay);
+                    var json = UiHistoryFormatter.FormatToolStatsResponse(stats, AgentOrchestrator.GameDay);
+                    socket.Send(json);
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Warn($"[AgentLoop] 工具统计查询失败: {ex.Message}");
+                    try { socket.Send(UiMessage.Error($"工具统计查询失败: {ex.Message}").ToJson()); } catch { }
+                }
+            };
+
             // SDK assistant 完整内容 → 录制
             UIMessageBus.OnAssistantContent += (text, thinking, runId, agentType) =>
             {

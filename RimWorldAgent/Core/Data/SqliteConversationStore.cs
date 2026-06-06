@@ -24,6 +24,7 @@ namespace RimWorldAgent.Core.Data
                 Directory.CreateDirectory(dir);
 
             _connectionString = $"Data Source={filePath};Version=3;Journal Mode=WAL;";
+            CoreLog.Info($"[SqliteConvStore] DB: {filePath}");
             InitTable();
         }
 
@@ -83,8 +84,8 @@ namespace RimWorldAgent.Core.Data
                 {
                     using var conn = OpenConnection();
                     using var cmd = new SQLiteCommand(
-                        @"INSERT INTO conversation (role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp)
-                          VALUES (@role, @text, @thinking, @runId, @agentType, @toolName, @toolInput, @isToolError, @toolDurationMs, @ts)", conn);
+                        @"INSERT INTO conversation (role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp, game_day)
+                          VALUES (@role, @text, @thinking, @runId, @agentType, @toolName, @toolInput, @isToolError, @toolDurationMs, @ts, @gameDay)", conn);
                     cmd.Parameters.AddWithValue("@role", RoleToString(role));
                     cmd.Parameters.AddWithValue("@text", text ?? "");
                     cmd.Parameters.AddWithValue("@thinking", thinking ?? "");
@@ -95,6 +96,7 @@ namespace RimWorldAgent.Core.Data
                     cmd.Parameters.AddWithValue("@isToolError", isToolError ? 1 : 0);
                     cmd.Parameters.AddWithValue("@toolDurationMs", toolDurationMs);
                     cmd.Parameters.AddWithValue("@ts", DateTime.UtcNow.ToString("o"));
+                    cmd.Parameters.AddWithValue("@gameDay", AgentOrchestrator.GameDay);
                     cmd.ExecuteNonQuery();
                 }
                 catch (Exception ex)
@@ -111,7 +113,7 @@ namespace RimWorldAgent.Core.Data
             {
                 using var conn = OpenConnection();
                 using var cmd = new SQLiteCommand(
-                    "SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp FROM conversation WHERE id = @id", conn);
+                    "SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp, game_day FROM conversation WHERE id = @id", conn);
                 cmd.Parameters.AddWithValue("@id", id);
                 using var reader = cmd.ExecuteReader();
                 if (reader.Read())
@@ -132,7 +134,7 @@ namespace RimWorldAgent.Core.Data
             {
                 using var conn = OpenConnection();
                 using var cmd = new SQLiteCommand(
-                    "SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp FROM conversation ORDER BY id DESC LIMIT @n", conn);
+                    "SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp, game_day FROM conversation ORDER BY id DESC LIMIT @n", conn);
                 cmd.Parameters.AddWithValue("@n", Math.Max(1, n));
                 var list = new List<ConversationEntry>();
                 using var reader = cmd.ExecuteReader();
@@ -156,7 +158,7 @@ namespace RimWorldAgent.Core.Data
             {
                 using var conn = OpenConnection();
                 using var cmd = new SQLiteCommand(
-                    "SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp FROM conversation WHERE id < @beforeId ORDER BY id DESC LIMIT @n", conn);
+                    "SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp, game_day FROM conversation WHERE id < @beforeId ORDER BY id DESC LIMIT @n", conn);
                 cmd.Parameters.AddWithValue("@beforeId", beforeId);
                 cmd.Parameters.AddWithValue("@n", Math.Max(1, n));
                 var list = new List<ConversationEntry>();
@@ -187,7 +189,8 @@ namespace RimWorldAgent.Core.Data
                 ToolInput = reader.GetString(7),
                 IsToolError = reader.GetInt32(8) != 0,
                 ToolDurationMs = reader.GetDouble(9),
-                Timestamp = DateTime.TryParse(reader.GetString(10), out var ts) ? ts : DateTime.UtcNow
+                Timestamp = DateTime.TryParse(reader.GetString(10), out var ts) ? ts : DateTime.UtcNow,
+                GameDay = reader.GetInt32(11)
             };
         }
 
@@ -208,12 +211,12 @@ namespace RimWorldAgent.Core.Data
                         tool_input  TEXT    NOT NULL DEFAULT '',
                         is_tool_error INTEGER NOT NULL DEFAULT 0,
                         tool_duration_ms REAL NOT NULL DEFAULT 0,
-                        timestamp   TEXT    NOT NULL
+                        timestamp   TEXT    NOT NULL,
+                        game_day    INTEGER NOT NULL DEFAULT 0
                     );
-                    CREATE INDEX IF NOT EXISTS idx_timestamp ON conversation(timestamp);", conn);
+                    CREATE INDEX IF NOT EXISTS idx_timestamp ON conversation(timestamp);
+                    CREATE INDEX IF NOT EXISTS idx_game_day ON conversation(game_day);", conn);
                 cmd.ExecuteNonQuery();
-                // 兼容旧表：尝试添加新列（已存在则忽略）
-                MigrateColumns(conn);
             }
             catch (Exception ex)
             {
@@ -249,23 +252,102 @@ namespace RimWorldAgent.Core.Data
             _ => ConvRole.System
         };
 
-        private static void MigrateColumns(SQLiteConnection conn)
+        public IReadOnlyList<ConversationEntry> QueryToolCalls(
+            string? toolName = null, int fromDay = 0, int toDay = int.MaxValue,
+            int limit = 100, long beforeId = long.MaxValue)
         {
+            if (_disposed) return Array.Empty<ConversationEntry>();
             try
             {
-                foreach (var col in new[] { "tool_name", "tool_input", "is_tool_error", "tool_duration_ms" })
-                {
-                    var types = new Dictionary<string, string> {
-                        { "tool_name", "TEXT NOT NULL DEFAULT ''" },
-                        { "tool_input", "TEXT NOT NULL DEFAULT ''" },
-                        { "is_tool_error", "INTEGER NOT NULL DEFAULT 0" },
-                        { "tool_duration_ms", "REAL NOT NULL DEFAULT 0" }
-                    };
-                    using var ac = new SQLiteCommand($"ALTER TABLE conversation ADD COLUMN {col} {types[col]}", conn);
-                    ac.ExecuteNonQuery();
-                }
+                using var conn = OpenConnection();
+                using var cmd = new SQLiteCommand(
+                    @"SELECT id, role, text, thinking, run_id, agent_type, tool_name, tool_input, is_tool_error, tool_duration_ms, timestamp, game_day
+                      FROM conversation
+                      WHERE role = 'tool_call'
+                        AND (@tool IS NULL OR tool_name = @tool)
+                        AND (@fromDay = 0 OR game_day >= @fromDay)
+                        AND (@toDay = 2147483647 OR game_day <= @toDay)
+                        AND id < @beforeId
+                      ORDER BY id DESC
+                      LIMIT @limit", conn);
+                cmd.Parameters.AddWithValue("@tool", (object?)toolName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@fromDay", fromDay);
+                cmd.Parameters.AddWithValue("@toDay", toDay);
+                cmd.Parameters.AddWithValue("@beforeId", beforeId);
+                cmd.Parameters.AddWithValue("@limit", Math.Max(1, limit));
+                var list = new List<ConversationEntry>();
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                    list.Add(ReadEntry(reader));
+                list.Reverse();
+                return list;
             }
-            catch { /* 列已存在则忽略 */ }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"[SqliteConvStore] QueryToolCalls 失败: {ex.Message}");
+                return Array.Empty<ConversationEntry>();
+            }
+        }
+
+        public IReadOnlyList<ToolCallDailyStat> GetToolDailyStats(
+            int fromDay = 0, int toDay = int.MaxValue)
+        {
+            if (_disposed) return Array.Empty<ToolCallDailyStat>();
+            try
+            {
+                using var conn = OpenConnection();
+                using var cmd = new SQLiteCommand(
+                    @"SELECT game_day, tool_name, COUNT(*) AS call_count
+                      FROM conversation
+                      WHERE role = 'tool_call'
+                        AND game_day > 0
+                        AND (@fromDay = 0 OR game_day >= @fromDay)
+                        AND (@toDay = 2147483647 OR game_day <= @toDay)
+                      GROUP BY game_day, tool_name
+                      ORDER BY game_day DESC, call_count DESC", conn);
+                cmd.Parameters.AddWithValue("@fromDay", fromDay);
+                cmd.Parameters.AddWithValue("@toDay", toDay);
+                var list = new List<ToolCallDailyStat>();
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(new ToolCallDailyStat
+                    {
+                        GameDay = reader.GetInt32(0),
+                        ToolName = reader.GetString(1),
+                        CallCount = reader.GetInt32(2)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"[SqliteConvStore] GetToolDailyStats 失败: {ex.Message}");
+                return Array.Empty<ToolCallDailyStat>();
+            }
+        }
+
+        public List<string> GetKnownToolNames()
+        {
+            if (_disposed) return new List<string>();
+            try
+            {
+                using var conn = OpenConnection();
+                using var cmd = new SQLiteCommand(
+                    @"SELECT DISTINCT tool_name FROM conversation
+                      WHERE role = 'tool_call' AND tool_name != ''
+                      ORDER BY tool_name", conn);
+                var list = new List<string>();
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                    list.Add(reader.GetString(0));
+                return list;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"[SqliteConvStore] GetKnownToolNames 失败: {ex.Message}");
+                return new List<string>();
+            }
         }
 
         public void Dispose()

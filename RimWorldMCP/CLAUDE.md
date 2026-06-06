@@ -335,12 +335,13 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `get_work_priorities` | 所有殖民者完整工作优先级表 | `pawn.workSettings.GetPriority()` |
 | `set_work_priority` | 设置工作优先级 | `pawn.workSettings.SetPriority()` (入队) |
 
-### 医疗 (5)
+### 医疗 (6)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `get_colonist_health` | 健康报告 | `pawn.health.hediffSet.hediffs` |
 | `schedule_operation` | 安排手术 | `billStack.AddBill(Bill_Medical)` (入队) |
 | `tend_now` | 立即治疗指定殖民者 | `JobDefOf.TendPatient` (入队) |
+| `force_bed_rest` | 强制殖民者卧床休养（一次性，痊愈自动起身） | `JobDefOf.LayDown` + `restUntilHealed` (入队) |
 | `force_surgery` | 强制执行指定手术 | `Bill_Medical` (入队) |
 | `get_available_surgeries` | 列出可用手术（分页） | `RecipeDefOf` |
 

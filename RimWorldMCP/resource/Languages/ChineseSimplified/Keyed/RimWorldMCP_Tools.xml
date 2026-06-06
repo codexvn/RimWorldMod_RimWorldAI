@@ -115,6 +115,7 @@
 
   <!-- 医疗 -->
   <RimWorldMCP_Tool_tend_now>立即治疗</RimWorldMCP_Tool_tend_now>
+  <RimWorldMCP_Tool_force_bed_rest>强制卧床</RimWorldMCP_Tool_force_bed_rest>
   <RimWorldMCP_Tool_force_surgery>强制手术</RimWorldMCP_Tool_force_surgery>
   <RimWorldMCP_Tool_get_available_surgeries>可用手术（分页）</RimWorldMCP_Tool_get_available_surgeries>
 

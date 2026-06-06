@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RimWorldAgent.Core.AgentRuntime;
 
 namespace RimWorldAgent.Core.Data
 {
@@ -26,7 +27,8 @@ namespace RimWorldAgent.Core.Data
                 Id = GetNextId(),
                 Role = ConvRole.User,
                 Text = text ?? "",
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                GameDay = AgentOrchestrator.GameDay
             };
             lock (_lock) _entries.Add(entry);
         }
@@ -41,7 +43,8 @@ namespace RimWorldAgent.Core.Data
                 Thinking = thinking ?? "",
                 RunId = runId ?? "",
                 AgentType = agentType ?? "",
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                GameDay = AgentOrchestrator.GameDay
             };
             lock (_lock) _entries.Add(entry);
         }
@@ -53,7 +56,8 @@ namespace RimWorldAgent.Core.Data
                 Id = GetNextId(),
                 Role = ConvRole.System,
                 Text = text ?? "",
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                GameDay = AgentOrchestrator.GameDay
             };
             lock (_lock) _entries.Add(entry);
         }
@@ -67,7 +71,8 @@ namespace RimWorldAgent.Core.Data
                 RunId = toolId ?? "",
                 ToolName = name ?? "",
                 ToolInput = input ?? "",
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                GameDay = AgentOrchestrator.GameDay
             };
             lock (_lock) _entries.Add(entry);
         }
@@ -82,7 +87,8 @@ namespace RimWorldAgent.Core.Data
                 Text = output ?? "",
                 IsToolError = isError,
                 ToolDurationMs = durationMs,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                GameDay = AgentOrchestrator.GameDay
             };
             lock (_lock) _entries.Add(entry);
         }
@@ -113,6 +119,59 @@ namespace RimWorldAgent.Core.Data
                 if (idx <= 0) return new List<ConversationEntry>();
                 var start = Math.Max(0, idx - n);
                 return _entries.GetRange(start, idx - start);
+            }
+        }
+
+        public IReadOnlyList<ConversationEntry> QueryToolCalls(
+            string? toolName = null, int fromDay = 0, int toDay = int.MaxValue,
+            int limit = 100, long beforeId = long.MaxValue)
+        {
+            lock (_lock)
+            {
+                var query = _entries.Where(e =>
+                    e.Role == ConvRole.ToolCall
+                    && e.Id < beforeId
+                    && (fromDay == 0 || e.GameDay >= fromDay)
+                    && (toDay == int.MaxValue || e.GameDay <= toDay));
+                if (toolName != null)
+                    query = query.Where(e => e.ToolName == toolName);
+                return query.OrderByDescending(e => e.Id).Take(limit).Reverse().ToList();
+            }
+        }
+
+        public IReadOnlyList<ToolCallDailyStat> GetToolDailyStats(
+            int fromDay = 0, int toDay = int.MaxValue)
+        {
+            lock (_lock)
+            {
+                return _entries
+                    .Where(e => e.Role == ConvRole.ToolCall
+                        && e.GameDay > 0
+                        && (fromDay == 0 || e.GameDay >= fromDay)
+                        && (toDay == int.MaxValue || e.GameDay <= toDay))
+                    .GroupBy(e => new { e.GameDay, e.ToolName })
+                    .Select(g => new ToolCallDailyStat
+                    {
+                        GameDay = g.Key.GameDay,
+                        ToolName = g.Key.ToolName,
+                        CallCount = g.Count()
+                    })
+                    .OrderByDescending(s => s.GameDay)
+                    .ThenByDescending(s => s.CallCount)
+                    .ToList();
+            }
+        }
+
+        public List<string> GetKnownToolNames()
+        {
+            lock (_lock)
+            {
+                return _entries
+                    .Where(e => e.Role == ConvRole.ToolCall && !string.IsNullOrEmpty(e.ToolName))
+                    .Select(e => e.ToolName!)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
             }
         }
 
