@@ -15,21 +15,26 @@ RimWorldAI/
 │   ├── Tools/                112 个游戏 Tool
 │   ├── MCP Server :9877      SSE + Streamable HTTP
 │   ├── Harmony/              事件拦截 → NotificationBus
+│   ├── resource/About/       MOD 元数据 + Steam BBCode
 │   └── Transport/
 
 ├── RimWorldAgent/             ← Agent Runtime (net472)
 │   ├── Core/
 │   │   ├── AgentRuntime/     AgentLoop + AgentOrchestrator + ContextBuilder + ToolDispatcher
-│   │   ├── CcbManager/       CCB 子进程 + CcbWebSocket
-│   │   ├── UIMessageBus.cs   ★ UI 总线 — Fleck WS :19999，UiMessage 广播 + 客户端消息 → CCB
-│   │   ├── models/           SdkMessage / UiMessage / ChatChannel 类型定义     
+│   │   ├── CcbManager/       CCB 子进程 + CcbWebSocket + TokenUsageTracker
+│   │   ├── UIMessageBus.cs   ★ UI 总线 — Fleck WS :19999
+│   │   ├── models/           SdkMessage / UiMessage / ChatChannel
 │   │   ├── Mcp/              MCP 客户端 + Agent MCP Server :9878
-│   │   └── Data/             ★ IDbStore + IConversationStore — JSON+SQLite (EXE) / Scribe+MEM (MOD)
-│   ├── Mod/                  GameComponent + UI + Harmony Hooks
+│   │   └── Data/             ★ IDbStore + IConversationStore
+│   ├── Mod/                  GameComponent + 设置 UI + Harmony Hooks
 │   ├── Exe/                  独立 EXE 入口
-│   ├── resource/WebUI/       Web 前端静态文件
-│   └── cc-companion/         Node.js SDK 桥接 (纯 WS, ~358行)
-│
+│   ├── resource/             Skills + About (元数据 + BBCode)
+│   └── cc-companion/         Node.js SDK 桥接 (~358行)
+
+├── RimWorldAgentUI/           ← Web UI Mod
+│   ├── WebUI/HttpServer.cs    HTTP :19997
+│   └── resource/              WebUI (index.html/v2) + About (元数据 + BBCode)
+
 └── RimWorldAgent.Tests/      C# 测试
 
 四者关系：RimWorldMCP ↔ RimWorldAgent 通过 MCP 协议通信（互不引用）。

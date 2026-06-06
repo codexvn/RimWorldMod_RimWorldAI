@@ -13,6 +13,7 @@ RimWorldMCP/
 ├── CLAUDE.md
 ├── resource/                  ← MOD 元数据（构建时复制到根 publish）
 │   ├── About/About.xml
+│   ├── About/*.bbcode          ← Steam 创意工坊描述
 │   ├── Languages/
 │   └── Symbols.json           ← 开发源文件，构建时复制到 Assemblies（与 DLL 同目录）
 ├── scripts/                   ← 开发脚本

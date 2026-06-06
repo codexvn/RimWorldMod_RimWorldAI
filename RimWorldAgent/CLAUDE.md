@@ -16,6 +16,7 @@ RimWorldAgent/
 ├── README.md
 ├── resource/                  ← MOD 元数据（构建时复制到根 publish）
 │   ├── About/About.xml
+│   ├── About/*.bbcode          ← Steam 创意工坊描述
 │   └── Skills/*.md (13个)
 ├── Core/                      ← 共享逻辑
 │   ├── AgentRuntime/
