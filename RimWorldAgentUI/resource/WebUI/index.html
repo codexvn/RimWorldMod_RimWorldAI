@@ -29,7 +29,7 @@
     --amber-border: rgba(196,137,12,0.18);
     --red: #d93d3d;
     --cyan: #188585;
-    --mono: "Cascadia Code","Fira Code","JetBrains Mono","Consolas",monospace;
+    --mono: "Cascadia Code","Fira Code","JetBrains Mono","Noto Sans Mono","Consolas","Segoe UI Symbol",monospace;
     --font: system-ui,-apple-system,"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
     --radius-sm: 6px;
     --radius: 10px;
@@ -289,6 +289,7 @@
   #messages {
     flex: 1; overflow-y: auto; padding: 14px 20px;
     display: flex; flex-direction: column; gap: 10px;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Base message */
@@ -398,7 +399,7 @@
   .msg-thinking .th-body {
     border-left: 2px solid var(--border-strong);
     margin-left: 11px; padding: 4px 0 8px 12px;
-    font-size: 12px; line-height: 1.6;
+    font-family: var(--mono); font-size: 12px; line-height: 1.6;
     color: var(--muted); font-style: italic;
     white-space: pre-wrap; word-wrap: break-word;
     display: none;
