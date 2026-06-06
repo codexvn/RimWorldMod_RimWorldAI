@@ -16,6 +16,7 @@ namespace RimWorldMCP
         // 工具行为
         public bool AutoMoveCamera = true;
         public bool AutoTrackColonists = true;
+        public bool AutoObserveOverlay = true;
 
         // OSS
         public bool OssEnabled;
@@ -44,6 +45,7 @@ namespace RimWorldMCP
             LogLevel = (LogLevel)logLevelInt;
             Scribe_Values.Look(ref AutoMoveCamera, "autoMoveCamera", true);
             Scribe_Values.Look(ref AutoTrackColonists, "autoTrackColonists", true);
+            Scribe_Values.Look(ref AutoObserveOverlay, "autoObserveOverlay", true);
             Scribe_Values.Look(ref OssEnabled, "ossEnabled", false);
             Scribe_Values.Look(ref OssServiceUrl, "ossServiceUrl", "");
             Scribe_Values.Look(ref OssBucketName, "ossBucketName", "");

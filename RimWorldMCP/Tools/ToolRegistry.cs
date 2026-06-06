@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using RimWorldMCP.Harmony;
+using RimWorldMCP.MapRendering;
 using SimpleMspServer.Mcp;
 using Verse;
 
@@ -154,12 +155,15 @@ namespace RimWorldMCP.Tools
                         };
                     }
 
-                    // 自动移动视角 — 工具自身返回目标区域，开关打开则移动+自动缩放
-                    if (RimWorldMCPMod.Instance?.Settings?.AutoMoveCamera == true)
+                    // 自动移动视角 + 观察覆盖层 — 工具自身返回目标区域
+                    var targetRange = tool.GetTargetRange(args);
+                    if (targetRange != null)
                     {
-                        var range = tool.GetTargetRange(args);
-                        if (range != null)
-                            await CameraHelper.MoveToRange(range.Value.minX, range.Value.minZ, range.Value.maxX, range.Value.maxZ);
+                        var settings = RimWorldMCPMod.Instance?.Settings;
+                        if (settings?.AutoMoveCamera == true)
+                            await CameraHelper.MoveToRange(targetRange.Value.minX, targetRange.Value.minZ, targetRange.Value.maxX, targetRange.Value.maxZ);
+                        if (settings?.AutoObserveOverlay == true)
+                            AiObservationOverlay.Show(Find.CurrentMap, CellRect.FromLimits(targetRange.Value.minX, targetRange.Value.minZ, targetRange.Value.maxX, targetRange.Value.maxZ), tool.Name);
                     }
 
                     var result = await tool.ExecuteAsync(args);

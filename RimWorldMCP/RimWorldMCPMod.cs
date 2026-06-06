@@ -102,6 +102,8 @@ namespace RimWorldMCP
                     ? $"\n\n支持自动移动的工具（{cameraTools.Count} 个）：\n" + string.Join(", ", cameraTools)
                     : "");
             listing.CheckboxLabeled("调用工具时自动移动视角", ref Settings.AutoMoveCamera, tooltip);
+            listing.CheckboxLabeled("AI 查询时显示观察覆盖层", ref Settings.AutoObserveOverlay,
+                "AI 调用搜索/网格等查询工具时，在地图上短暂显示彩色半透明标记，指示 AI 正在关注的区域。");
 
             // ==================== MCP 服务器 ====================
             DrawSectionHeader(listing, "MCP 服务器");
