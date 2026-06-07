@@ -207,9 +207,13 @@ L01=#1.14D1.14#1
 | `allow_item` | 允许区域内物品 |
 | `claim_item` | 占有物品/建筑为玩家派系 |
 
-### 区域/设施 (4)
+### 区域/设施 (8)
 | `set_bed_owner_type` | 设置床位类型（医疗/囚犯/殖民者） |
 | `set_temp_control` | 设置温度控制设备 |
+| `list_devices` | 列出/搜索地图设备和可用操作 |
+| `get_device_info` | 获取设备状态、组件和 UI/Gizmo 操作 ID |
+| `execute_device_action` | 按 action_id 执行设备 UI/Gizmo 或 adapter 操作 |
+| `manage_transporter_load` | 查看/清空/取消运输器装载 |
 | `list_base_templates` | 列出可用基地模板 |
 | `apply_base_template` | 应用基地模板到地图 |
 

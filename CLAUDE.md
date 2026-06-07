@@ -117,6 +117,7 @@ dotnet build RimWorldAI.sln
 | 文档 | 内容 |
 |------|------|
 | `design/camera-system.md` | 摄像头自动移动 |
+| `RimWorldMCP/design/device-ui-gizmo-tools.md` | 设备 UI/Gizmo 信息查询与通用操作工具 |
 | `design/bridge-lifecycle.md` | CCB 生命周期 |
 | `design/tool-system.md` | Tool 系统 |
 | `design/event-system.md` | 事件系统 |

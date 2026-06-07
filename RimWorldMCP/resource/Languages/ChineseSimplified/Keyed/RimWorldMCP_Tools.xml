@@ -97,6 +97,10 @@
   <RimWorldMCP_Tool_search_thing_def>Wiki搜索</RimWorldMCP_Tool_search_thing_def>
   <RimWorldMCP_Tool_get_structure_layout>建筑布局</RimWorldMCP_Tool_get_structure_layout>
   <RimWorldMCP_Tool_get_construction_status>建造进度</RimWorldMCP_Tool_get_construction_status>
+  <RimWorldMCP_Tool_get_device_info>设备信息</RimWorldMCP_Tool_get_device_info>
+  <RimWorldMCP_Tool_execute_device_action>设备操作</RimWorldMCP_Tool_execute_device_action>
+  <RimWorldMCP_Tool_list_devices>设备列表</RimWorldMCP_Tool_list_devices>
+  <RimWorldMCP_Tool_manage_transporter_load>运输器装载</RimWorldMCP_Tool_manage_transporter_load>
 
   <!-- 战斗 -->
   <RimWorldMCP_Tool_shooting_position_grid>射击位评分</RimWorldMCP_Tool_shooting_position_grid>

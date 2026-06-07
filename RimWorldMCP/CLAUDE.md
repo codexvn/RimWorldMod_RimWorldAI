@@ -249,7 +249,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 
 ## Tool 清单（含 I18N 中文名 + 可达性检测）
 
-中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 101 个工具。
+中文名称参见 `publish/Languages/ChineseSimplified/Keyed/RimWorldMCP_Tools.xml`。以下为全部 105 个工具。
 
 ### 通用查询 (6)
 | Tool | 说明 | 数据源 |
@@ -429,11 +429,15 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `allow_item` | 允许区域内物品（精确范围版） | `t.SetForbidden(false)` (入队) |
 | `claim_item` | 占有区域内物品/建筑为玩家派系 | `t.SetFaction(Faction.OfPlayer)` (入队) |
 
-### 区域管理 (2)
+### 区域管理 (6)
 | Tool | 说明 | 数据源/操作 |
 |------|------|------------|
 | `set_bed_owner_type` | 设置床位类型（医疗/囚犯/殖民者） | `Building_Bed.Medical`, `CompAssignableToPawn` (入队) |
 | `set_temp_control` | 设置温度控制设备 | `CompTempControl` (入队) |
+| `list_devices` | 列出/搜索地图设备和可用操作 | `map.listerThings.AllThings`, `ThingComp`, `Thing.GetGizmos` |
+| `get_device_info` | 获取设备/设备组状态、组件和 UI/Gizmo 操作 ID | `Thing.GetGizmos`, `ThingComp` (入队) |
+| `execute_device_action` | 按 action_id 执行设备 UI/Gizmo Toggle 或 adapter 操作，支持 force_partial | `Command_Toggle`, `Comp*` adapter (入队) |
+| `manage_transporter_load` | 查看/清空/取消运输器装载 | `CompTransporter`, `TransporterUtility` (入队) |
 
 ### 基地模板 (2)
 | Tool | 说明 | 数据源/操作 |
