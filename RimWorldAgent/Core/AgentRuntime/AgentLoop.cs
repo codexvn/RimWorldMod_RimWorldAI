@@ -281,6 +281,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>MCP 游戏事件 → 按级别分流：Critical 中断，Warning/Info/Silent 仅 suffix</summary>
         public static void WireEvents(McpClient mcp)
         {
+            if (mcp == null)
+                throw new ArgumentNullException(nameof(mcp));
+
             // tick 事件 → 更新游戏 tick
             mcp.OnGameTick += tick => AgentOrchestrator.GameTick = tick;
 

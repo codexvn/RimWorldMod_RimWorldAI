@@ -67,6 +67,8 @@ namespace RimWorldAgent.Core.AgentRuntime
         private int _pauseStartMs;
         private int _lastPauseRemindMs;
         private SimpleMspServer.McpServiceHost? _agentHost;
+        private bool _initializing;
+        private bool _disposed;
 
         public CcbWebSocket? CcbWs => _ccbWs;
         public McpClient? McpClient => _mcp;
@@ -88,7 +90,16 @@ namespace RimWorldAgent.Core.AgentRuntime
         public async Task<bool> InitAsync()
         {
             if (_initialized) return true;
-            _initialized = true;
+            if (_disposed) return false;
+            if (_initializing)
+            {
+                _logWarn("[AgentEngine] InitAsync 已在运行，跳过重复初始化");
+                return false;
+            }
+
+            _initializing = true;
+            try
+            {
 
             CoreLog.OnInfo = _logInfo;
             CoreLog.OnError = _logError;
@@ -119,22 +130,36 @@ namespace RimWorldAgent.Core.AgentRuntime
             _mcp = new McpClient(_cfg.McpUrl);
 
             _logInfo("[AgentEngine] 等待游戏 MCP 服务就绪...");
-            while (true)
+            var mcp = _mcp;
+            if (mcp == null)
+                throw new InvalidOperationException("McpClient 创建失败。");
+
+            while (!_disposed)
             {
                 try
                 {
-                    var tools = await _mcp.ListToolsAsync();
+                    var tools = await mcp.ListToolsAsync();
+                    if (_disposed) return false;
                     _logInfo($"[AgentEngine] 游戏 MCP 已连接 ({tools.Count} 工具)");
                     break;
                 }
-                catch (Exception ex) { _logDebug($"[AgentEngine] MCP 就绪检查失败: {ex.GetType().Name}: {ex.Message}"); if (ex.InnerException != null) _logDebug($"[AgentEngine] MCP InnerException: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}"); _logInfo("[AgentEngine] 游戏 MCP 尚未就绪，3s 后重试..."); await Task.Delay(3000); }
+                catch (Exception ex)
+                {
+                    if (_disposed) return false;
+                    _logDebug($"[AgentEngine] MCP 就绪检查失败: {ex.GetType().Name}: {ex.Message}");
+                    if (ex.InnerException != null) _logDebug($"[AgentEngine] MCP InnerException: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+                    _logInfo("[AgentEngine] 游戏 MCP 尚未就绪，3s 后重试...");
+                    await Task.Delay(3000);
+                }
             }
+            if (_disposed) return false;
 
             // 游戏事件订阅 + 游戏工具代理 → Agent MCP（必须在 CCB 之前完成）
-            AgentLoop.WireEvents(_mcp);
+            AgentLoop.WireEvents(mcp);
             _logInfo("[AgentEngine] 开始代理游戏工具...");
-            var proxy = new ProxyToolProvider(_mcp);
+            var proxy = new ProxyToolProvider(mcp);
             await proxy.RefreshToolsAsync();
+            if (_disposed) return false;
             _agentHost.RegisterProvider(proxy);
             _logInfo("[AgentEngine] 游戏工具代理已注册");
 
@@ -204,9 +229,15 @@ namespace RimWorldAgent.Core.AgentRuntime
             if (!ccbReady) _logInfo("[AgentEngine] CCB: 未就绪 (事件转发不可用)");
 
             GamePaceController.PlanSpeed = _cfg.PlanSpeed;
-            _ctx = new ContextBuilder(_mcp);
+            _ctx = new ContextBuilder(mcp);
 
+            _initialized = true;
             return ccbReady;
+            }
+            finally
+            {
+                _initializing = false;
+            }
         }
 
         /// <summary>同步维护：CCB 崩溃重启 + WS 重连。MOD 每帧调用，EXE 循环中调用。</summary>
@@ -371,6 +402,8 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         public void Dispose()
         {
+            _disposed = true;
+            _initialized = false;
             _ccbWs?.Dispose();
             _ccbWs = null;
             _ccb?.Dispose();

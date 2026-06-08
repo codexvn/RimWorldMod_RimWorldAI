@@ -16,6 +16,7 @@ namespace RimWorldAgent
         private ScribeDbStore? _dbStore;
         private IConversationStore? _convStore;
         private bool _initialized;
+        private bool _initializing;
         private int _lastTick;
         private bool _agentTickRunning;
 
@@ -26,6 +27,13 @@ namespace RimWorldAgent
 
         private async void InitAgentRuntime()
         {
+            if (_initializing)
+            {
+                SafeLog.Warning("[agent-mod] Agent Runtime 正在初始化，跳过重复触发");
+                return;
+            }
+
+            _initializing = true;
             try
             {
                 ShutdownEngine();
@@ -36,7 +44,6 @@ namespace RimWorldAgent
                     CoreLog.Info("[agent-mod] AgentAutoRun=false，跳过初始化");
                     return;
                 }
-                _initialized = true;
 
                 ToolDispatcher.ResetTaskCount();
 
@@ -98,11 +105,12 @@ namespace RimWorldAgent
                     LogSdkMessages = settings?.LogSdkMessages ?? false,
                 };
 
-                _engine = new AgentEngine(cfg, dbStore, gameState,
+                var engine = new AgentEngine(cfg, dbStore, gameState,
                     logInfo: msg => SafeLog.Info($"[agent-core] {msg}"),
                     logError: msg => SafeLog.Error($"[agent-core] {msg}"),
                     logDebug: msg => SafeLog.Info($"[agent-core] {msg}"),
                     logWarn: msg => SafeLog.Warning($"[agent-core] {msg}"));
+                _engine = engine;
 
                 // 先启动 UIMessageBus，确保 InitAsync 触发 Token 推送时 WS 已就绪
                 if (settings?.BridgeHost != "disabled")
@@ -112,11 +120,16 @@ namespace RimWorldAgent
                     UIMessageBus.Start(bridgeHost, bridgePort);
                 }
 
-                await _engine.InitAsync();
+                await engine.InitAsync();
+                if (!ReferenceEquals(_engine, engine))
+                {
+                    SafeLog.Warning("[agent-mod] 初始化期间 AgentEngine 已被替换或关闭，停止本次初始化");
+                    return;
+                }
                 CoreLog.Info($"[agent-mod] 内部工具已注册 ({InternalToolRegistry.Instance.All.Count}): {string.Join(", ", InternalToolRegistry.Instance.All.Select(t => t.Name))}");
 
                 // 通过 MCP 获取存档 sessionId，创建 SQLite 持久化存储
-                var mcp = _engine.McpClient;
+                var mcp = engine.McpClient;
                 if (mcp == null)
                     throw new InvalidOperationException("McpClient 不可用，无法获取会话 ID");
 
@@ -135,11 +148,11 @@ namespace RimWorldAgent
 
                 _dbStore = dbStore;
 
-                if (_engine.CcbWs != null)
+                if (engine.CcbWs != null)
                 {
                     if (settings?.LogCcbWsMessages == true)
                         CcbWebSocket.WsLogFilePath = Path.Combine(projectPath!, "ccb-ws-log.txt");
-                    AgentLoop.WireUIMessageBus(_engine.CcbWs);
+                    AgentLoop.WireUIMessageBus(engine.CcbWs);
                 }
                 else
                 {
@@ -147,6 +160,7 @@ namespace RimWorldAgent
                 }
 
                 _lastTick = 0;
+                _initialized = true;
                 SafeLog.Info("[agent-mod] Agent Runtime 初始化完成");
             }
             catch (Exception ex)
@@ -157,6 +171,10 @@ namespace RimWorldAgent
                     sb.AppendLine($"  [{e.GetType().Name}] {e.Message}\n{e.StackTrace}");
                 SafeLog.Error(sb.ToString());
                 _initialized = false;
+            }
+            finally
+            {
+                _initializing = false;
             }
         }
 
