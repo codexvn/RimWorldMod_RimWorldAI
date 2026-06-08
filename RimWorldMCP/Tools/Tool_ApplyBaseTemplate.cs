@@ -20,7 +20,7 @@ namespace RimWorldMCP.Tools
                 template_name = new { type = "string", description = "模板名称: single_room, nine_grid, nine_grid_walled, bedroom_row" },
                 center_x = new { type = "integer", description = "基地中心 X 坐标" },
                 center_y = new { type = "integer", description = "基地中心 Y 坐标" },
-                internal_size = new { type = "integer", description = "房间内径（默认 13，13=13x13内径/15x15外径）", @default = 13 },
+                external_size = new { type = "integer", description = "房间外径/墙体占地（默认 13，13=墙体范围13x13/内部11x11）", @default = 13 },
                 options = new { type = "string", description = "模板特定选项，JSON 格式字符串。single_room: {\"door_sides\":\"bottom\"}; bedroom_row: {\"count\":5,\"internal_width\":5,\"internal_height\":5}; nine_grid_walled: {\"wall_thickness\":2}" }
             },
             required = new[] { "template_name", "center_x", "center_y" }
@@ -38,9 +38,11 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("center_y", out var jCy) || !jCy.TryGetInt32(out var centerY))
                 return Task.FromResult(ToolResult.Error("缺少必填参数: center_y"));
 
-            int internalSize = 13;
-            if (args.Value.TryGetProperty("internal_size", out var jIs) && jIs.TryGetInt32(out var isVal))
-                internalSize = isVal;
+            int externalSize = 13;
+            if (args.Value.TryGetProperty("external_size", out var jEs) && jEs.TryGetInt32(out var esVal))
+                externalSize = esVal;
+            if (externalSize < 3) externalSize = 3;
+            int internalSize = externalSize - 2;
 
             JsonElement? options = null;
             if (args.Value.TryGetProperty("options", out var jOpt) && jOpt.ValueKind == JsonValueKind.String)

@@ -59,21 +59,34 @@ namespace RimWorldMCP.Harmony
         {
             static void Prefix(Message msg)
             {
-                if (msg == null || string.IsNullOrEmpty(msg.text)) return;
-                string id = ((ILoadReferenceable)msg).GetUniqueLoadID();
-                if (NotificationBus.IsMessageNotified(id)) return;
-                NotificationBus.MarkMessageNotified(id);
-
-                string text = msg.text;
-                if (text.Length > 300) text = text.Substring(0, 297) + "...";
-
-                NotificationBus.Enqueue(new Notification
+                try
                 {
-                    Type = NotificationType.Message,
-                    Text = text,
-                    DangerLabel = ClassifyMessage(msg.def),
-                    Tick = Find.TickManager?.TicksGame ?? 0
-                });
+                    if (msg == null || string.IsNullOrEmpty(msg.text)) return;
+                    string id;
+                    var loadRef = msg as ILoadReferenceable;
+                    if (loadRef != null)
+                        id = loadRef.GetUniqueLoadID();
+                    else
+                        id = $"{msg.def?.defName ?? "message"}:{msg.text.GetHashCode()}";
+                    if (string.IsNullOrEmpty(id)) id = $"{msg.def?.defName ?? "message"}:{msg.text.GetHashCode()}";
+                    if (NotificationBus.IsMessageNotified(id)) return;
+                    NotificationBus.MarkMessageNotified(id);
+
+                    string text = msg.text;
+                    if (text.Length > 300) text = text.Substring(0, 297) + "...";
+
+                    NotificationBus.Enqueue(new Notification
+                    {
+                        Type = NotificationType.Message,
+                        Text = text,
+                        DangerLabel = ClassifyMessage(msg.def),
+                        Tick = Find.TickManager?.TicksGame ?? 0
+                    });
+                }
+                catch (Exception ex)
+                {
+                    McpLog.Warn($"[Hook_Notification] Message hook failed: {ex.GetType().Name}: {ex.Message}");
+                }
             }
         }
 
@@ -210,7 +223,7 @@ namespace RimWorldMCP.Harmony
 
         // ========== 分类辅助 ==========
 
-        private static string ClassifyMessage(MessageTypeDef def)
+        private static string ClassifyMessage(MessageTypeDef? def)
         {
             if (def == MessageTypeDefOf.ThreatBig) return "大威胁";
             if (def == MessageTypeDefOf.ThreatSmall) return "小威胁";

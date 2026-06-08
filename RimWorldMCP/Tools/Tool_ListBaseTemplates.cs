@@ -27,16 +27,16 @@ namespace RimWorldMCP.Tools
             // single_room
             sb.AppendLine("### single_room — 单房间");
             sb.AppendLine("标准矩形房间，四面墙体，可选门和地板。");
-            sb.AppendLine("参数: internal_size=13 (内径), door_sides=bottom");
-            sb.AppendLine("占地: (internal_size+2)×(internal_size+2) — 如内径13则外径15x15");
+            sb.AppendLine("参数: external_size=13 (外径/墙体占地), door_sides=bottom");
+            sb.AppendLine("占地: external_size×external_size — 如外径13则内部11x11");
             sb.AppendLine("适用: 独立建筑、工坊、厨房、研究室、初期避难所");
             sb.AppendLine();
 
             // nine_grid
             sb.AppendLine("### nine_grid — 九宫格（3×3 房间矩阵）");
             sb.AppendLine("3行×3列共9个房间，相邻房间共用墙壁。中心房间四通八达，角房间两面向外。");
-            sb.AppendLine("参数: internal_size=13 (每间内径)");
-            sb.AppendLine("占地: 43×43（内径13时）");
+            sb.AppendLine("参数: external_size=13 (每间外径/墙体占地)");
+            sb.AppendLine("占地: 37×37（外径13时；相邻房间共用墙）");
             sb.AppendLine("建议: 中心作餐厅/娱乐室，外围作工坊/卧室/厨房/研究室/牢房/冷库/医院/仓库");
             sb.AppendLine("适用: 综合性基地核心区，紧凑高效");
             sb.AppendLine();
@@ -44,8 +44,8 @@ namespace RimWorldMCP.Tools
             // nine_grid_walled
             sb.AppendLine("### nine_grid_walled — 带围墙九宫格");
             sb.AppendLine("在 nine_grid 外加一圈外围防御墙（厚2格，默认花岗岩），墙与房间间留2格缓冲带。");
-            sb.AppendLine("参数: internal_size=13 (每间内径), wall_thickness=2 (围墙厚度)");
-            sb.AppendLine("占地: 51×51（内径13时）");
+            sb.AppendLine("参数: external_size=13 (每间外径/墙体占地), wall_thickness=2 (围墙厚度)");
+            sb.AppendLine("占地: 45×45（外径13时）");
             sb.AppendLine("适用: 有防御需求的综合基地，适合中期建设");
             sb.AppendLine();
 

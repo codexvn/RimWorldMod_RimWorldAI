@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using RimWorld;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.Skills;
 using UnityEngine;
@@ -21,6 +20,8 @@ namespace RimWorldAgent
         private string _editDescription = "";
         private string _editContent = "";
         private bool _editingNew;
+        private string _statusText = "";
+        private bool _statusIsError;
 
         public override Vector2 InitialSize => new Vector2(980f, 720f);
 
@@ -191,6 +192,15 @@ namespace RimWorldAgent
                 ReloadAndReselect(_editingNew ? _editName : _selectedName);
             if (Widgets.ButtonText(new Rect(rect.xMax - 106f, rect.y, 106f, rect.height), "打开目录"))
                 OpenUserSkillsDir();
+
+            if (!string.IsNullOrEmpty(_statusText))
+            {
+                GUI.color = _statusIsError ? new Color(1f, 0.45f, 0.35f, 1f) : new Color(0.45f, 0.85f, 0.55f, 1f);
+                Text.Font = GameFont.Tiny;
+                Widgets.Label(new Rect(rect.x + 270f, rect.y + 8f, rect.width - 492f, 20f), _statusText);
+                Text.Font = GameFont.Small;
+                GUI.color = Color.white;
+            }
         }
 
         private void BeginNewSkill()
@@ -231,13 +241,13 @@ namespace RimWorldAgent
             var result = _store.SaveUserSkill(normalizedName, _editDescription, _editContent, overwrite);
             if (!result.Success)
             {
-                Messages.Message(result.Message, MessageTypeDefOf.RejectInput, false);
+                SetStatus(result.Message, isError: true);
                 return;
             }
 
             ReloadActiveRegistry();
             ReloadAndReselect(normalizedName);
-            Messages.Message($"Skill 已保存并热加载: {normalizedName}", MessageTypeDefOf.TaskCompletion, false);
+            SetStatus($"Skill 已保存并热加载: {normalizedName}", isError: false);
         }
 
         private void DeleteCurrentUserSkill()
@@ -246,13 +256,13 @@ namespace RimWorldAgent
             var result = _store.DeleteUserSkill(name);
             if (!result.Success)
             {
-                Messages.Message(result.Message, MessageTypeDefOf.RejectInput, false);
+                SetStatus(result.Message, isError: true);
                 return;
             }
 
             ReloadActiveRegistry();
             ReloadAndReselect(name);
-            Messages.Message($"已删除 Skills.d 中的 Skill: {name}", MessageTypeDefOf.TaskCompletion, false);
+            SetStatus($"已删除 Skills.d 中的 Skill: {name}", isError: false);
         }
 
         private void ReloadAndReselect(string name)
@@ -324,8 +334,14 @@ namespace RimWorldAgent
             }
             catch (Exception ex)
             {
-                Messages.Message($"打开目录失败: {ex.Message}", MessageTypeDefOf.RejectInput, false);
+                SetStatus($"打开目录失败: {ex.Message}", isError: true);
             }
+        }
+
+        private void SetStatus(string text, bool isError)
+        {
+            _statusText = Truncate(text, 80);
+            _statusIsError = isError;
         }
 
         private static string Truncate(string text, int maxLength)
