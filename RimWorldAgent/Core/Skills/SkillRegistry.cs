@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,18 +8,55 @@ namespace RimWorldAgent.Core.Skills
 {
     public class SkillRegistry
     {
-        private readonly Dictionary<string, SkillInfo> _skills = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, SkillInfo> _skills = new Dictionary<string, SkillInfo>(StringComparer.OrdinalIgnoreCase);
+        private readonly List<SkillDirectory> _skillDirs = new List<SkillDirectory>();
 
         public IReadOnlyList<SkillInfo> Skills => _skills.Values.ToList().AsReadOnly();
+        public string BuiltinSkillsDir { get; private set; } = "";
+        public string UserSkillsDir { get; private set; } = "";
 
         public void LoadFromDirectory(string skillsDir)
         {
-            _skills.Clear();
+            LoadFromDirectories(skillsDir, SkillStore.GetDefaultUserSkillsDir(skillsDir));
+        }
 
-            CoreLog.Info($"[skills] LoadFromDirectory 接收路径: {skillsDir}");
+        public void LoadFromDirectories(string builtinSkillsDir, string userSkillsDir)
+        {
+            BuiltinSkillsDir = Path.GetFullPath(builtinSkillsDir);
+            UserSkillsDir = Path.GetFullPath(userSkillsDir);
+            Directory.CreateDirectory(UserSkillsDir);
+
+            _skillDirs.Clear();
+            _skillDirs.Add(new SkillDirectory(BuiltinSkillsDir, "builtin"));
+            _skillDirs.Add(new SkillDirectory(UserSkillsDir, "user"));
+
+            Reload();
+        }
+
+        public void Reload()
+        {
+            _skills.Clear();
+            foreach (var dir in _skillDirs)
+                LoadDirectoryIntoRegistry(dir);
+
+            CoreLog.Info($"[skills] 共加载 {_skills.Count} 个 Skill");
+        }
+
+        public SkillInfo? Get(string name)
+        {
+            _skills.TryGetValue(name, out var skill);
+            return skill;
+        }
+
+        public List<SkillInfo> GetAll() => _skills.Values.OrderBy(s => s.Name).ToList();
+
+        private void LoadDirectoryIntoRegistry(SkillDirectory dir)
+        {
+            var skillsDir = dir.Path;
+            CoreLog.Info($"[skills] LoadDirectory 接收路径: {skillsDir} source={dir.Source}");
             if (!Directory.Exists(skillsDir))
             {
-                CoreLog.Error($"[skills] Skills 目录不存在: {skillsDir}");
+                CoreLog.Warn($"[skills] Skills 目录不存在: {skillsDir}");
                 return;
             }
 
@@ -38,6 +75,8 @@ namespace RimWorldAgent.Core.Skills
                     var skill = ParseSkillFile(file);
                     if (skill != null)
                     {
+                        skill.Source = dir.Source;
+                        skill.IsOverride = dir.Source == "user" && _skills.ContainsKey(skill.Name);
                         _skills[skill.Name] = skill;
                         CoreLog.Info($"[skills] 已加载 Skill: {skill.Name} ({file})");
                     }
@@ -48,20 +87,10 @@ namespace RimWorldAgent.Core.Skills
                 }
                 catch (Exception ex)
                 {
-                    CoreLog.Error($"[skills] 加载 Skill 异常 ({file}): {ex.Message}");
+                    CoreLog.Error($"[skills] 加载 Skill 异常 ({file}): {ex.GetType().Name}: {ex.Message}");
                 }
             }
-
-            CoreLog.Info($"[skills] 共加载 {_skills.Count} 个 Skill");
         }
-
-        public SkillInfo? Get(string name)
-        {
-            _skills.TryGetValue(name, out var skill);
-            return skill;
-        }
-
-        public List<SkillInfo> GetAll() => _skills.Values.ToList();
 
         private static SkillInfo? ParseSkillFile(string filePath)
         {
@@ -121,5 +150,16 @@ namespace RimWorldAgent.Core.Skills
             };
         }
 
+        private sealed class SkillDirectory
+        {
+            public SkillDirectory(string path, string source)
+            {
+                Path = path;
+                Source = source;
+            }
+
+            public string Path { get; }
+            public string Source { get; }
+        }
     }
 }

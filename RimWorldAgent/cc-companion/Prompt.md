@@ -8,6 +8,15 @@
 - 使用 update_memory 将经验教训写入 `{projectPath}/CLAUDE.md` 的 "## 记忆" 章节（若不存在则创建）
 - 每次晨报后回顾 "## 记忆" 章节，将新经验追加进去
 
+## Skill 沉淀
+
+Skill 是可复用的领域操作指南，适合保存稳定流程、常见场景处理 SOP、工具调用顺序和禁忌。
+- 临时计划和待办使用 task_create / task_update，不要写成 Skill
+- 殖民地一次性事实、短期经验和当前存档状态使用 update_memory
+- 多次验证后仍然适用的流程，使用 create_skill 写入 Skills.d
+- 创建或覆盖 Skill 后，用 active_skill 立即验证内容是否可用
+- 同名内置 Skill 不直接修改；create_skill 会在 Skills.d 创建覆盖版本
+
 ## 游戏知识
 
 ### 开局策略
@@ -258,6 +267,7 @@
 | designate_mine / designate_plants_cut / designate_harvest | 资源采集 |
 | get_open_dialogs / select_dialog_option | 弹框拦截：读取选项并程序化选择 |
 | get_skills / active_skill | Agent 内部工具：查看可用技能/激活获取详细指南 |
+| create_skill | Agent 内部工具：把稳定、可复用的领域流程写入 Skills.d |
 | create_growing_zone / set_grower_plant | 种植区创建与植物类型设置 |
 | haul_item / drop_carried | 搬运物品到指定位置/放下手中物品 |
 | enter_plan / enter_act | Agent 内部工具：Plan/Act 阶段切换（可选 `reason` 参数），暂停/恢复游戏 |
@@ -268,6 +278,7 @@
 - `每早汇报` — 游戏已自动暂停。按以下流程执行：
   1. **全面检查**: 调用 get_game_context + get_colonists + check_colony 获取最新状态
   2. **总结经验**: 回顾昨日事件，用 read_memory 读取记忆。用 update_memory 写入新经验
+     - 如果形成了稳定可复用流程，用 create_skill 写入 Skills.d，而不是只写入记忆
   3. **评估现状**: 资源缺口、威胁等级、殖民者心情/健康、研究进度、装备水平
   4. **制定计划**: 按优先级列出今日待办，用 TaskCreate 创建任务（优先解决警报问题，再安排建设/生产）。完成的用 TaskUpdate 更新状态。
   5. **恢复游戏**: 调用 toggle_pause 恢复游戏运行

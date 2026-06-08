@@ -29,6 +29,7 @@ RimWorldAI/
 │   ├── Mod/                  GameComponent + 设置 UI + Harmony Hooks
 │   ├── Exe/                  独立 EXE 入口
 │   ├── resource/             Skills + About (元数据 + BBCode)
+│   ├── Skills.d/             用户/AI 创建 Skill 覆盖目录（运行时同级）
 │   └── cc-companion/         Node.js SDK 桥接 (~358行)
 
 ├── RimWorldAgentUI/           ← Web UI Mod

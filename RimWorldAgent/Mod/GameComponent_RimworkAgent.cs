@@ -50,6 +50,7 @@ namespace RimWorldAgent
                 var skillsDir = !string.IsNullOrEmpty(settings?.SkillsDir)
                     ? Path.Combine(modRoot, settings!.SkillsDir)
                     : Path.GetFullPath(Path.Combine(modRoot, "Skills"));
+                var userSkillsDir = Path.GetFullPath(Path.Combine(modRoot, "Skills.d"));
 
                 var asmDir = Path.GetDirectoryName(
                     typeof(GameComponent_RimWorldAgent).Assembly.Location) ?? ".";
@@ -78,6 +79,7 @@ namespace RimWorldAgent
                 {
                     ProjectPath = projectPath,
                     SkillsDir = skillsDir,
+                    UserSkillsDir = userSkillsDir,
                     McpUrl = $"http://{gameHost}:{gamePort}",
                     McpPort = gamePort,
                     AgentMcpPort = settings?.AgentMcpPort ?? 9878,

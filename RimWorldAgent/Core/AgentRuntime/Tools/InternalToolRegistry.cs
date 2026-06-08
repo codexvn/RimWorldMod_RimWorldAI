@@ -13,6 +13,7 @@ namespace RimWorldAgent.Core.AgentRuntime
     {
         public static InternalToolRegistry Instance { get; } = new InternalToolRegistry();
         internal static SkillRegistry? SkillRegistry { get; private set; }
+        internal static SkillStore? SkillStore { get; private set; }
 
         /// <summary>内部工具请求退出会话时触发（exit=true）</summary>
         public static event Action? OnExitRequested;
@@ -27,6 +28,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             Register(new Tool_EnterAct());
             Register(new Tool_GetSkills());
             Register(new Tool_ActiveSkill());
+            Register(new Tool_CreateSkill());
             Register(new Tool_ReadMemory());
             Register(new Tool_UpdateMemory());
             Register(new Tool_TaskCreate());
@@ -39,8 +41,14 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>初始化 Skill 注册表，由 Loader 在启动时调用</summary>
         public void LoadSkills(string skillsDir)
         {
+            LoadSkills(skillsDir, RimWorldAgent.Core.Skills.SkillStore.GetDefaultUserSkillsDir(skillsDir));
+        }
+
+        public void LoadSkills(string builtinSkillsDir, string userSkillsDir)
+        {
+            SkillStore = new SkillStore(builtinSkillsDir, userSkillsDir);
             SkillRegistry = new SkillRegistry();
-            SkillRegistry.LoadFromDirectory(skillsDir);
+            SkillRegistry.LoadFromDirectories(SkillStore.BuiltinSkillsDir, SkillStore.UserSkillsDir);
         }
 
         public void Register(IInternalTool tool) => _tools[tool.Name] = tool;

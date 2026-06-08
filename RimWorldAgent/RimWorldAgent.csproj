@@ -103,13 +103,14 @@
       <SkillMdFiles Include="$(MSBuildProjectDirectory)\resource\Skills\*.md" />
     </ItemGroup>
     <!-- Skills → bin + publish (和 DLL 同级) -->
+    <MakeDir Directories="$(OutputPath)Skills.d;..\publish\RimWorldAgent\1.6\Assemblies\Skills.d" />
     <Copy SourceFiles="@(SkillMdFiles)" DestinationFolder="$(OutputPath)Skills" />
     <Copy SourceFiles="@(SkillMdFiles)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\Skills" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md" DestinationFolder="..\publish\RimWorldAgent" Condition="Exists('$(MSBuildProjectDirectory)\README.md')" />
     <!-- cc-companion → bin + publish (与 DLL 同级) -->
     <MakeDir Directories="$(OutputPath)cc-companion" />
     <Exec Command="xcopy /S /Y /I /EXCLUDE:$(MSBuildProjectDirectory)\cc-companion\.copyignore &quot;$(MSBuildProjectDirectory)\cc-companion\*&quot; &quot;$(OutputPath)cc-companion\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\cc-companion')" IgnoreExitCode="true" />
-    <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies\cc-companion;..\publish\RimWorldAgent\1.6\Assemblies\Skills" />
+    <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies\cc-companion;..\publish\RimWorldAgent\1.6\Assemblies\Skills;..\publish\RimWorldAgent\1.6\Assemblies\Skills.d" />
     <Exec Command="xcopy /S /Y /I /EXCLUDE:$(MSBuildProjectDirectory)\cc-companion\.copyignore &quot;$(MSBuildProjectDirectory)\cc-companion\*&quot; &quot;..\publish\RimWorldAgent\1.6\Assemblies\cc-companion\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\cc-companion')" IgnoreExitCode="true" />
     <Copy SourceFiles="@(SkillMdFiles)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\Skills" />
   </Target>

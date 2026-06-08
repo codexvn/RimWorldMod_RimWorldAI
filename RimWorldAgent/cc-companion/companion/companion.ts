@@ -66,7 +66,7 @@ async function main() {
     streamAborted = false;
     // 回放缓冲消息到新 stream
     if (pendingMessages.length > 0) {
-      log(`[CCGUI_DEBUG] 回放缓冲消息 count=${pendingMessages.length}`);
+      log(`回放缓冲消息 count=${pendingMessages.length}`);
       for (const m of pendingMessages) inputStream.enqueue(m);
       pendingMessages = [];
     }
@@ -101,18 +101,18 @@ async function main() {
   };
 
   wss.on('connection', (ws: WebSocket) => {
-    log(`[CCGUI_DEBUG] 新 WS 连接, token=${CONFIG.token ? 'required' : 'none'}`);
+    log(`新 WS 连接, auth=${CONFIG.token ? 'required' : 'none'}`);
     let authenticated = !CONFIG.token;
 
     ws.on('message', (data: Buffer) => {
       let raw: any;
       try { raw = JSON.parse(data.toString().trim()); }
       catch {
-        log(`[CCGUI_DEBUG] 无效 JSON: ${data.toString().substring(0, 200)}`);
+        log(`无效 JSON: ${data.toString().substring(0, 200)}`);
         return;
       }
       const msg = raw as any;
-      log(`[CCGUI_DEBUG] 收到消息 type=${msg.type} token=${msg.auth?.token || '(none)'}`);
+      log(`收到消息 type=${msg.type} auth=${msg.auth?.token ? 'provided' : 'none'}`);
 
       // auth
       if (msg.type === 'hello') {
@@ -121,13 +121,13 @@ async function main() {
             authenticated = true;
           } else {
             sendJson(ws, { type: 'error', error: 'auth failed' });
-            log(`[CCGUI_DEBUG] auth 失败: msg.token='${msg.auth?.token}' config.token='${CONFIG.token}'`);
+            log(`auth 失败: provided=${msg.auth?.token ? 'yes' : 'no'} expected=${CONFIG.token ? 'yes' : 'no'}`);
             ws.close();
             return;
           }
         }
         sendJson(ws, { type: 'hello-ok' });
-        log(`[CCGUI_DEBUG] hello-ok 已发送${!CONFIG.token ? ' (无认证)' : ''}`);
+        log(`hello-ok 已发送${!CONFIG.token ? ' (无认证)' : ''}`);
         return;
       }
       if (!authenticated) return;
@@ -136,11 +136,11 @@ async function main() {
       switch (msg.type) {
         case 'chat': {
           applyThinking(msg.thinking);
-          log(`[CCGUI_DEBUG] chat session=${msg.session} len=${msg.text.length} buffering=${buffering} streamAborted=${streamAborted}`);
+          log(`chat session=${msg.session} len=${msg.text.length} buffering=${buffering} streamAborted=${streamAborted}`);
           const userMsg = { type: 'user', message: { role: 'user', content: msg.text } };
           sdkLog('→', JSON.stringify(userMsg));
           if (buffering) {
-            log(`[CCGUI_DEBUG] chat 缓冲中...`);
+            log(`chat 缓冲中...`);
             pendingMessages.push(userMsg);
           } else {
             inputStream.enqueue(userMsg);
@@ -148,11 +148,11 @@ async function main() {
           break;
         }
         case 'abort':
-          log('[CCGUI_DEBUG] 收到 abort, buffering=true');
+          log('收到 abort, buffering=true');
           buffering = true;
           streamAborted = true;  // 旧 stream 不可写
           abortController.abort();
-          log('[CCGUI_DEBUG] abortController.abort() done, startNewSession...');
+          log('abortController.abort() done, startNewSession...');
           startNewSession();
           break;
       }

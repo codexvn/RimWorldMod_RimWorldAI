@@ -61,7 +61,7 @@ export function createSession(sdk: any, abortController?: AbortController) {
   const skills = CONFIG.skills || [];
   let skillsSection = '';
   if (skills.length > 0) {
-    skillsSection = '\n## 可用领域知识 (Skills)\n以下是可使用 active_skill 工具加载的领域知识。处理相关任务前先激活对应 skill 获取详细指导。\n\n' +
+    skillsSection = '\n## 可用领域知识 (Skills)\n以下是可使用 active_skill 工具加载的领域知识。处理相关任务前先激活对应 skill 获取详细指导。若形成稳定、可复用的流程，可使用 create_skill 写入 Skills.d；临时任务仍使用 task 工具，当前存档记忆使用 update_memory。\n\n' +
       skills.map(s => `- **${s.split(':')[0]}**: ${s.substring(s.indexOf(':') + 1).trim()}`).join('\n');
   }
 
@@ -112,7 +112,7 @@ export function createResponseProcessor(
     } catch (err: any) {
       // AbortError 是正常中断，不打印错误
       if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
-        console.log(`[bridge] [CCGUI_DEBUG] process AbortError: name=${err?.name} msg=${err?.message}`);
+        console.log(`[bridge] process AbortError: name=${err?.name} msg=${err?.message}`);
         return;
       }
       console.error(`SDK 处理错误: ${err.message} name=${err?.name} stack=${err?.stack}`);

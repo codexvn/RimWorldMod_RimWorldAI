@@ -28,6 +28,7 @@ namespace RimWorldAgent.Core.AgentRuntime
     {
         public string ProjectPath { get; set; } = "";
         public string? SkillsDir { get; set; }
+        public string? UserSkillsDir { get; set; }
         public string McpUrl { get; set; } = "http://localhost:9877";
         public int McpPort { get; set; } = 9877;
         public int AgentMcpPort { get; set; } = 9878;
@@ -104,7 +105,8 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             // Skills
             var skillsDir = _cfg.SkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
-            InternalToolRegistry.Instance.LoadSkills(skillsDir);
+            var userSkillsDir = _cfg.UserSkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills.d");
+            InternalToolRegistry.Instance.LoadSkills(skillsDir, userSkillsDir);
 
             // Agent MCP Server
             _agentHost = new SimpleMspServer.McpServiceHost(_cfg.AgentMcpPort,

@@ -381,6 +381,8 @@ namespace RimWorldAgent
 
             listing.Label("Skills 目录 (留空用默认)");
             Settings.SkillsDir = listing.TextEntry(Settings.SkillsDir);
+            if (listing.ButtonText("管理 Skills / Skills.d"))
+                Find.WindowStack.Add(new Dialog_SkillManager());
 
             listing.Label("Project 目录 (留空用默认)");
             Settings.ProjectPath = listing.TextEntry(Settings.ProjectPath);

@@ -23,7 +23,12 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             var sb = new StringBuilder();
             sb.AppendLine("## 可用领域知识");
             foreach (var s in registry.GetAll())
-                sb.AppendLine($"- **{s.Name}**: {s.Description}");
+            {
+                var source = s.Source == "user"
+                    ? (s.IsOverride ? "Skills.d 覆盖" : "Skills.d 自定义")
+                    : "内置";
+                sb.AppendLine($"- **{s.Name}** ({source}): {s.Description}");
+            }
             return Task.FromResult((sb.ToString().TrimEnd(), false));
         }
     }

@@ -781,7 +781,6 @@
     for (var i = 0; i < sdkTasks.length; i++) {
       if (sdkTasks[i].status !== 'completed') pending++;
     }
-    console.log('[CCGUI_DEBUG] renderSdkTasks 任务数=' + sdkTasks.length + ' 进行中=' + pending + ' 列表=' + JSON.stringify(sdkTasks));
     taskCountEl.textContent = pending;
     sdkTaskListEl.innerHTML = '';
     // 已完成排最后
@@ -1103,7 +1102,6 @@
         break;
 
       case 'sdk-tasks':
-        console.log('[CCGUI_DEBUG] 收到 sdk-tasks 消息 tasks=' + JSON.stringify(msg.tasks));
         sdkTasks = msg.tasks || [];
         renderSdkTasks();
         break;
@@ -1117,7 +1115,6 @@
         break;
 
       case 'user':
-        console.log('[CCGUI_DEBUG] WebUI user echo text=' + msg.text?.substring(0, 60));
         hideReading(); setAbort(false);
         addMessage(false, msg.text, '');
         break;
