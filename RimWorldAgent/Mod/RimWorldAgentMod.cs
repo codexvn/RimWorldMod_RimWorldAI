@@ -7,6 +7,9 @@ namespace RimWorldAgent
 {
     public class RimWorldAgentMod : Mod
     {
+        private const float HttpMcpServerCardHeight = 280f;
+        private const float StdioMcpServerCardHeight = 450f;
+
         public static RimWorldAgentMod Instance { get; private set; } = null!;
         public AgentModSettings Settings { get; private set; }
         private Vector2 _scrollPos;
@@ -127,7 +130,7 @@ namespace RimWorldAgent
         private static float GetCustomMcpServerCardHeight(CustomMcpServerSetting server)
         {
             var isStdio = server != null && IsStdioMcpServer(server);
-            var height = isStdio ? 390f : 260f;
+            var height = isStdio ? StdioMcpServerCardHeight : HttpMcpServerCardHeight;
             if (server == null) return height;
             if (!IsCustomMcpServerNameValid(server.Name ?? "")) height += 24f;
             if (server.Enabled && !isStdio && !IsHttpUrl(server.Url ?? ""))
