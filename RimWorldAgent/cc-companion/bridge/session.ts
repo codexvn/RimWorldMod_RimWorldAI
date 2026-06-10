@@ -76,7 +76,7 @@ export function createSession(sdk: any, abortController?: AbortController) {
     includePartialMessages: true,
     settingSources: CONFIG.settingSources as any,
     claudeMdExcludes,
-    systemPrompt: [buildSystemPrompt(CONFIG.projectPath), skillsSection, SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
+    systemPrompt: [buildSystemPrompt(CONFIG.projectPath), SYSTEM_PROMPT_DYNAMIC_BOUNDARY, skillsSection],
     stderr: (data: string | Buffer) => {
       process.stderr.write(`[sdk] ${typeof data === 'string' ? data : data.toString()}`);
     },
