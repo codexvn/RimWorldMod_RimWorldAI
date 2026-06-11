@@ -110,12 +110,6 @@ namespace RimWorldAgent.Core.CcbManager
                 psi.Environment["CCB_TOKEN_BUDGET_ACTION"] = _budgetAction;
                 if (!string.IsNullOrEmpty(_ccbToken))
                     psi.Environment["CCB_AUTH_TOKEN"] = _ccbToken;
-                var skills = InternalToolRegistry.SkillRegistry?.GetAll();
-                if (skills != null && skills.Count > 0)
-                {
-                    var skillEntries = skills.Select(s => $"{s.Name}: {s.Description}");
-                    psi.Environment["CCB_SKILLS"] = System.Text.Json.JsonSerializer.Serialize(skillEntries);
-                }
 
                 _ready = false;
                 _process = Process.Start(psi);

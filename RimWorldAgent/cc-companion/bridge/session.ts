@@ -58,13 +58,6 @@ export function createSession(sdk: any, abortController?: AbortController) {
   }
   addExclude(join(homedir(), '.claude', 'CLAUDE.md'));
 
-  const skills = CONFIG.skills || [];
-  let skillsSection = '';
-  if (skills.length > 0) {
-    skillsSection = '\n## 可用领域知识 (Skills)\n以下是可使用 active_skill 工具加载的领域知识。处理相关任务前先激活对应 skill 获取详细指导。若形成稳定、可复用的流程，可使用 create_skill 写入 Skills.d；临时任务仍使用 task 工具，当前存档记忆使用 update_memory。\n\n' +
-      skills.map(s => `- **${s.split(':')[0]}**: ${s.substring(s.indexOf(':') + 1).trim()}`).join('\n');
-  }
-
   const options = {
     cwd: CONFIG.projectPath,
     model: CONFIG.modelName || undefined,
@@ -76,7 +69,7 @@ export function createSession(sdk: any, abortController?: AbortController) {
     includePartialMessages: true,
     settingSources: CONFIG.settingSources as any,
     claudeMdExcludes,
-    systemPrompt: [buildSystemPrompt(CONFIG.projectPath), SYSTEM_PROMPT_DYNAMIC_BOUNDARY, skillsSection],
+    systemPrompt: [buildSystemPrompt(CONFIG.projectPath), SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
     stderr: (data: string | Buffer) => {
       process.stderr.write(`[sdk] ${typeof data === 'string' ? data : data.toString()}`);
     },
