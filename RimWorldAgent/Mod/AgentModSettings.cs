@@ -52,6 +52,10 @@ namespace RimWorldAgent
         public string SkillsDir = "";
         public string ProjectPath = "";
 
+        // API 配置（写入 ProjectPath/.claude/settings.local.json）
+        public string ApiKey = "";
+        public string ApiUrl = "";
+
         // CC Companion 依赖
         public bool CcbAutoInstall = true;
 
@@ -80,6 +84,8 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref PlanSpeed, "planSpeed", "paused");
             Scribe_Values.Look(ref SkillsDir, "skillsDir", "");
             Scribe_Values.Look(ref ProjectPath, "projectPath", "");
+            Scribe_Values.Look(ref ApiKey, "apiKey", "");
+            Scribe_Values.Look(ref ApiUrl, "apiUrl", "");
             Scribe_Values.Look(ref CcbAutoInstall, "ccbAutoInstall", true);
             Scribe_Values.Look(ref BridgeHost, "bridgeHost", "127.0.0.1");
             Scribe_Values.Look(ref BridgePort, "bridgePort", 19999);

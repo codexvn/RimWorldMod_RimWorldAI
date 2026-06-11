@@ -109,6 +109,40 @@ namespace RimWorldAgent
             return Widgets.TextArea(rect, text ?? "");
         }
 
+        private string _apiKeyEditBuffer = "";
+        private bool _apiKeyEditing;
+
+        private void DrawPasswordEntry(Listing_Standard listing, ref string currentValue)
+        {
+            var rowRect = listing.GetRect(Text.LineHeight);
+            var btnWidth = 48f;
+            var gap = 4f;
+            var fieldRect = new Rect(rowRect.x, rowRect.y, rowRect.width - btnWidth - gap, rowRect.height);
+            var btnRect = new Rect(fieldRect.xMax + gap, rowRect.y, btnWidth, rowRect.height);
+
+            if (_apiKeyEditing)
+            {
+                _apiKeyEditBuffer = Widgets.TextField(fieldRect, _apiKeyEditBuffer);
+                if (Widgets.ButtonText(btnRect, "保存"))
+                {
+                    _apiKeyEditing = false;
+                    currentValue = _apiKeyEditBuffer;
+                }
+            }
+            else
+            {
+                var display = string.IsNullOrEmpty(currentValue) ? "（未设置）" : new string('•', 16);
+                GUI.color = string.IsNullOrEmpty(currentValue) ? new Color(0.5f, 0.5f, 0.5f, 1f) : Color.white;
+                Widgets.Label(fieldRect, display);
+                GUI.color = Color.white;
+                if (Widgets.ButtonText(btnRect, "编辑"))
+                {
+                    _apiKeyEditing = true;
+                    _apiKeyEditBuffer = currentValue;
+                }
+            }
+        }
+
         private static string TruncateText(string text, int maxLength)
         {
             if (string.IsNullOrEmpty(text) || text.Length <= maxLength) return text ?? "";
@@ -283,7 +317,7 @@ namespace RimWorldAgent
             var customHeight = 0f;
             foreach (var server in Settings.CustomMcpServers)
                 customHeight += GetCustomMcpServerCardHeight(server) + 10f;
-            var h = 1120f + customHeight;
+            var h = 1220f + customHeight;
             Rect viewRect = new Rect(0f, 0f, inRect.width - 16f, h);
             Widgets.BeginScrollView(inRect, ref _scrollPos, viewRect);
             var listing = new Listing_Standard();
@@ -296,6 +330,25 @@ namespace RimWorldAgent
                 GUI.color = Color.white;
                 listing.Gap(8f);
             }
+
+            // ==================== API 配置 ====================
+            DrawSectionHeader(listing, "API 配置");
+            GUI.color = new Color(0.6f, 0.65f, 0.75f, 1f);
+            listing.Label("这些配置会写入 ProjectPath/.claude/settings.local.json，SDK 启动时自动读取。");
+            listing.Label("留空则使用全局 ~/.claude/settings.json 中的配置。");
+            GUI.color = Color.white;
+            listing.Gap(4f);
+
+            listing.Label("API Key");
+            DrawPasswordEntry(listing, ref Settings.ApiKey);
+            listing.Gap(2f);
+
+            listing.Label("API URL（如 https://api.anthropic.com）");
+            Settings.ApiUrl = listing.TextEntry(Settings.ApiUrl);
+            listing.Gap(2f);
+
+            listing.Label("模型名称");
+            Settings.ModelName = listing.TextEntry(Settings.ModelName);
 
             // ==================== MCP 服务 ====================
             DrawSectionHeader(listing, "MCP 服务");
@@ -317,9 +370,6 @@ namespace RimWorldAgent
 
             // ==================== 模型与思考 ====================
             DrawSectionHeader(listing, "模型与思考");
-
-            listing.Label("模型名称 (如 claude-sonnet-4-6)");
-            Settings.ModelName = listing.TextEntry(Settings.ModelName);
 
             var modeLabels = new[] { "adaptive (引导深度)", "disabled (禁用思考)" };
             var modeValues = new[] { "adaptive", "disabled" };

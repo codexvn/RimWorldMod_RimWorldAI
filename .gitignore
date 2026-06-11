@@ -9,5 +9,5 @@ claude-sessions/
 .mcp.json
 __pycache__/
 *.txt
-.claude/worktrees
+.claude/
 .playwright-mcp/

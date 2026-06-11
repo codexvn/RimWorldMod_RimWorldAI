@@ -103,6 +103,8 @@ namespace RimWorldAgent
                     ThinkingMode = settings?.ThinkingMode ?? "adaptive",
                     ThinkingEffort = settings?.ThinkingEffort ?? "high",
                     LogSdkMessages = settings?.LogSdkMessages ?? false,
+                    ApiKey = settings?.ApiKey,
+                    ApiUrl = settings?.ApiUrl,
                 };
 
                 var engine = new AgentEngine(cfg, dbStore, gameState,

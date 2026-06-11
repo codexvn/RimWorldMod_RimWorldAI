@@ -41,7 +41,7 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
         }
 
         public static string GetMemoryPath() =>
-            Path.Combine(SessionStore.ProjectPath, "CLAUDE.md");
+            Path.Combine(SessionStore.ProjectPath, "MEMORY.md");
 
         private static string? ExtractSection(string content, string sectionName)
         {

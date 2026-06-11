@@ -27,6 +27,8 @@ namespace RimWorldAgent.Core.CcbManager
         private readonly string _budgetAction;
         private readonly bool _logSdk;
         private readonly List<CustomMcpServerConfig> _customMcpServers;
+        private readonly string? _apiKey;
+        private readonly string? _apiUrl;
         private const string ManagedMcpServerNamesFile = ".rimworld-agent-managed-mcp.json";
         private bool _ready;
         private IntPtr _jobHandle = IntPtr.Zero;
@@ -38,7 +40,7 @@ namespace RimWorldAgent.Core.CcbManager
         /// <summary>TickAndRestart 重启了 companion 进程时为 true，调用方检查后应清除</summary>
         public bool WasRestarted { get; set; }
 
-        public CcbManager(string companionDir, string projectPath, int ccbPort = 19998, int mcpPort = 9877, int agentMcpPort = 9878, string? nodeExe = null, string? ccbToken = null, string? modelName = null, long budgetLimit = 0, string budgetAction = "Block", bool logSdk = false, IEnumerable<CustomMcpServerConfig>? customMcpServers = null)
+        public CcbManager(string companionDir, string projectPath, int ccbPort = 19998, int mcpPort = 9877, int agentMcpPort = 9878, string? nodeExe = null, string? ccbToken = null, string? modelName = null, long budgetLimit = 0, string budgetAction = "Block", bool logSdk = false, IEnumerable<CustomMcpServerConfig>? customMcpServers = null, string? apiKey = null, string? apiUrl = null)
         {
             _companionDir = companionDir;
             _projectPath = projectPath;
@@ -52,6 +54,8 @@ namespace RimWorldAgent.Core.CcbManager
             _logSdk = logSdk;
             _customMcpServers = customMcpServers?.ToList() ?? new List<CustomMcpServerConfig>();
             _nodeExe = nodeExe ?? CompanionInstaller.FindNodeExe();
+            _apiKey = apiKey;
+            _apiUrl = apiUrl;
         }
 
         public bool Start()
@@ -79,6 +83,8 @@ namespace RimWorldAgent.Core.CcbManager
             System.Threading.Thread.Sleep(500);
 
             Directory.CreateDirectory(_projectPath);
+
+            WriteSettingsLocalJson();
 
             var mcpJsonPath = Path.Combine(_projectPath, ".mcp.json");
             WriteMergedMcpJson(mcpJsonPath);
@@ -665,6 +671,37 @@ namespace RimWorldAgent.Core.CcbManager
             for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
                 message += $" ← {inner.GetType().Name}: {inner.Message}";
             return message;
+        }
+
+        private void WriteSettingsLocalJson()
+        {
+            if (string.IsNullOrEmpty(_apiKey) && string.IsNullOrEmpty(_apiUrl)) return;
+
+            var settingsPath = Path.Combine(_projectPath, ".claude", "settings.local.json");
+            var dir = Path.GetDirectoryName(settingsPath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+            try
+            {
+                var root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                var env = new Dictionary<string, string>();
+
+                if (!string.IsNullOrEmpty(_apiKey))
+                    env["ANTHROPIC_AUTH_TOKEN"] = _apiKey;
+                if (!string.IsNullOrEmpty(_apiUrl))
+                    env["ANTHROPIC_BASE_URL"] = _apiUrl;
+
+                if (env.Count > 0)
+                    root["env"] = env;
+
+                var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(settingsPath, json);
+                CoreLog.Info($"[CcbManager] 已写入 SDK 本地配置: {settingsPath}");
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                CoreLog.Warn($"[CcbManager] 写入 settings.local.json 失败: {FormatExceptionChain(ex)}");
+            }
         }
 
         public async Task<bool> WaitReadyAsync(int waitMs = 15000)
