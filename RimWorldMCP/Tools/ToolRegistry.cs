@@ -153,15 +153,20 @@ namespace RimWorldMCP.Tools
                         };
                     }
 
-                    // 自动移动视角 + 观察覆盖层 — 工具自身返回目标区域
-                    var targetRange = tool.GetTargetRange(args);
+                    // 自动移动视角 + 观察覆盖层 — 必须 Dispatch 到主线程（GetTargetRange 访问游戏数据）
+                    var targetRange = tool is INoMapRequired ? null
+                        : await McpCommandQueue.DispatchAsync(() => tool.GetTargetRange(args));
                     if (targetRange != null)
                     {
                         var settings = RimWorldMCPMod.Instance?.Settings;
                         if (settings?.AutoMoveCamera == true)
                             await CameraHelper.MoveToRange(targetRange.Value.minX, targetRange.Value.minZ, targetRange.Value.maxX, targetRange.Value.maxZ);
                         if (settings?.AutoObserveOverlay == true)
-                            AiObservationOverlay.Show(Find.CurrentMap, CellRect.FromLimits(targetRange.Value.minX, targetRange.Value.minZ, targetRange.Value.maxX, targetRange.Value.maxZ), tool.Name);
+                            await McpCommandQueue.DispatchAsync(() =>
+                            {
+                                AiObservationOverlay.Show(Find.CurrentMap, CellRect.FromLimits(targetRange.Value.minX, targetRange.Value.minZ, targetRange.Value.maxX, targetRange.Value.maxZ), tool.Name);
+                                return true;
+                            });
                     }
 
                     var result = await tool.ExecuteAsync(args);
