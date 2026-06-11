@@ -26,13 +26,8 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
                 speed = speedEl.GetString() ?? "paused";
             var reason = args?.TryGetProperty("reason", out var reasonEl) == true ? reasonEl.GetString() ?? "" : "";
 
-            var deadline = DateTime.UtcNow.AddSeconds(3);
-            while (AgentOrchestrator.PaceController == null || AgentOrchestrator.SessionMcp == null)
-            {
-                if (DateTime.UtcNow > deadline)
-                    return ("无法进入 Plan 阶段：会话状态未就绪，请稍后重试。", false);
-                await Task.Delay(100);
-            }
+            if (AgentOrchestrator.PaceController == null || AgentOrchestrator.SessionMcp == null)
+                return ("无法进入 Plan 阶段：内部会话状态异常（PaceController/SessionMcp 未就绪），请稍后重试或检查 Agent 日志。", false);
 
             AgentOrchestrator.EnterPlanPhase();
             await AgentOrchestrator.PaceController.PauseForPlanning(AgentOrchestrator.SessionMcp, speed);

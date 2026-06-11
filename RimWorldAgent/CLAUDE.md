@@ -506,7 +506,7 @@ Skill 加载顺序：`Skills/*.md`（内置，只读）→ `Skills.d/*.md`（用
 - `CcbManager` 写入 `.mcp.json` 时始终保留内置 `agent` 端点，并合并 `RimWorldAgent` 设置页中的 HTTP/SSE/STDIO 自定义 MCP 服务
 - SDK 调用游戏工具仍走 `mcp__agent__*`，自定义 MCP 服务由 SDK 作为额外 MCP server 直连；STDIO 服务写出为 `type=stdio`、`command`、可选 `args` 数组和可选 `env`，可用 `npx/docker/python/uvx` 等命令启动，旧 `type=npx` 兼容为 `stdio`，环境变量会落盘到 `ProjectPath\.mcp.json`；`ProjectPath\.rimworld-agent-managed-mcp.json` 记录设置页写入过的服务名，用于删除时清理且不误删手工服务
 - 每个工具结果末尾注入 `BuildModeSuffixAsync()` 后缀
-- SDK `disallowedTools` 已加 `Write`/`Edit`，AI 用 `update_memory` 代替；`WebFetch` 不禁用，外部资料查询按 Prompt 约束优先使用灰机 Wiki
+- SDK `disallowedTools` 已加 `Write`/`Edit`，AI 用 `update_memory` 代替；`WebFetch` 不禁用，外部资料查询优先使用 Playwright MCP 直连 Wiki（`browser_navigate`/`browser_snapshot`/`browser_evaluate`），详见 Prompt.md 和 `rimworld-wiki-search` Skill
 
 ### 中断机制
 

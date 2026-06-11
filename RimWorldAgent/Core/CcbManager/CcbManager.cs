@@ -594,8 +594,8 @@ namespace RimWorldAgent.Core.CcbManager
                     error = $"缺少 '=': {line}";
                     return false;
                 }
-                var key = line.Substring(0, separator).Trim();
-                var value = line.Substring(separator + 1).Trim();
+                var key = StripQuotes(line.Substring(0, separator).Trim());
+                var value = StripQuotes(line.Substring(separator + 1).Trim());
                 if (!IsValidEnvKey(key))
                 {
                     error = $"环境变量名无效: {key}";
@@ -609,6 +609,19 @@ namespace RimWorldAgent.Core.CcbManager
                 env[key] = value;
             }
             return true;
+        }
+
+        private static string StripQuotes(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            if (text.Length >= 2)
+            {
+                var first = text[0];
+                var last = text[text.Length - 1];
+                if ((first == '"' && last == '"') || (first == '\'' && last == '\''))
+                    return text.Substring(1, text.Length - 2);
+            }
+            return text;
         }
 
         private static bool IsValidEnvKey(string key)

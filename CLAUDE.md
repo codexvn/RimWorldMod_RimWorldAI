@@ -77,6 +77,14 @@ SimpleMspServer 被两者共同引用。Agent ↔ companion 通过 WS :19998，A
 | `:19999` | UIMessageBus（UI 总线） | WebSocket | RimWorldAgent |
 | `:19997` | WebUI HTTP | HTTP | RimWorldAgentUI |
 
+**外部 MCP**（`.mcp.json`）：
+
+| 名称 | 类型 | 用途 |
+|------|------|------|
+| `playwright` | STDIO (`@playwright/mcp@latest`) | 网页浏览 — 直连 RimWorld Wiki（绕过 Cloudflare），提取数据表/机制说明 |
+| `vision` | 内置 | 图片分析 — 描述游戏截图、战术示意图 |
+| `server-*` | streamable-http | Rider IDE 集成 — 构建/运行/代码分析 |
+
 **关键设计**：
 - **CC Companion** 是纯 SDK 桥接——收 `chat`/`abort` 两种消息，吐 SDK 流式消息
 - **CcbWebSocket ↔ companion 协议**：仅 4 种消息（C#→comp: `chat`/`abort`；comp→C#: `hello-ok`/SDK 消息）
