@@ -24,7 +24,7 @@ export const CONFIG: CompanionConfig = {
   modelName: process.env.CCB_MODEL_NAME || '',
   settingSources: process.env.CCB_SETTING_SOURCES
     ? process.env.CCB_SETTING_SOURCES.split(',').map(s => s.trim())
-    : ['local'],
+    : ['project', 'local'],
   logSdk: process.env.CCB_LOG_SDK === '1' || process.env.CCB_LOG_SDK === 'true',
 };
 

@@ -357,7 +357,7 @@ SdkMessage (abstract)
 ├── SdkAssistantMessage   { ParentToolUseId, Error, Content[], Usage?, Model, StopReason, StopSequence }
 ├── SdkStreamEventMessage  { ParentToolUseId, Index, Event }
 ├── SdkResultMessage       { Subtype, StopReason, IsError, NumTurns, DurationMs, DurationApiMs, Result, TotalCostUsd, Usage? }
-├── SdkSystemMessage       { Subtype } ★ abstract — 15 种子类型按 subtype 分发，见下表
+├── SdkSystemMessage       { Subtype } ★ abstract — 16 种子类型按 subtype 分发，见下表
 ├── SdkUserMessage         { ParentToolUseId, IsSynthetic, Priority, Content[] }
 ├── SdkAbortedMessage      { }
 ├── SdkHelloOkMessage      { }
@@ -419,6 +419,7 @@ SdkMessage (abstract)
 | `files_persisted` | `SdkFilesPersistedMessage` | Files[], Failed[], ProcessedAt | **未消费** |
 | `local_command_output` | `SdkLocalCommandOutputMessage` | Content | **未消费** |
 | `elicitation_complete` | `SdkElicitationCompleteMessage` | McpServerName, ElicitationId | **未消费** |
+| `thinking_tokens` | `SdkSystemThinkingTokensMessage` | EstimatedTokens, EstimatedTokensDelta | **未消费** |
 | 其他未知 | `SdkSystemFallbackMessage` | RawBody (原始 JSON) + `[JsonExtensionData]` | WARN 日志 |
 
 **SdkUserMessage** — SDK 回显的用户消息。

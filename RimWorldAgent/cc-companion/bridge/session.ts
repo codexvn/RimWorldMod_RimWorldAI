@@ -1,7 +1,5 @@
 /** SDK 会话 — AsyncStream + query + onMessage 回调 */
 
-import { join, resolve, dirname } from 'path';
-import { homedir } from 'os';
 import { CONFIG, Thinking } from '../companion/config.js';
 import { buildSystemPrompt } from '../rimworld/context.js';
 import { Options, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agent-sdk';
@@ -42,33 +40,16 @@ export class AsyncStream<T = any> {
 export function createSession(sdk: any, abortController?: AbortController) {
   const inputStream = new AsyncStream<any>();
 
-  const claudeMdExcludes: string[] = [];
-  const addExclude = (p: string) => {
-    const n = p.replaceAll('\\', '/');
-    claudeMdExcludes.push(n);
-    const lower = n.toLowerCase();
-    if (lower !== n) claudeMdExcludes.push(lower);
-  };
-  let cursor = resolve(CONFIG.projectPath);
-  while (true) {
-    const parent = dirname(cursor);
-    if (parent === cursor) break;
-    cursor = parent;
-    addExclude(join(cursor, 'CLAUDE.md'));
-  }
-  addExclude(join(homedir(), '.claude', 'CLAUDE.md'));
-
   const options = {
     cwd: CONFIG.projectPath,
     model: CONFIG.modelName || undefined,
     abortController,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
-    disallowedTools: ['Bash', 'Write', 'Edit', 'NotebookEdit', 'EnterWorktree', 'ExitWorktree', 'CronCreate', 'CronDelete', 'CronList', 'ScheduleWakeup', 'AskUserQuestion', 'EnterPlanMode', 'ExitPlanMode', 'Skill', 'Task', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet', 'TaskOutput', 'TaskStop', 'Glob', 'Grep', 'Read'],
+    disallowedTools: ['Bash', 'Write', 'Edit', 'NotebookEdit', 'EnterWorktree', 'ExitWorktree', 'CronCreate', 'CronDelete', 'CronList', 'ScheduleWakeup', 'AskUserQuestion', 'EnterPlanMode', 'ExitPlanMode', 'Skill', 'Task', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet', 'TaskOutput', 'TaskStop', 'Glob', 'Grep', 'Read', 'Workflow', 'Agent'],
     autoCompactEnabled: true,
     includePartialMessages: true,
     settingSources: CONFIG.settingSources as any,
-    claudeMdExcludes,
     systemPrompt: [buildSystemPrompt(CONFIG.projectPath), SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
     stderr: (data: string | Buffer) => {
       process.stderr.write(`[sdk] ${typeof data === 'string' ? data : data.toString()}`);

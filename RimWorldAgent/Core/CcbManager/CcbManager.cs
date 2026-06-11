@@ -29,7 +29,6 @@ namespace RimWorldAgent.Core.CcbManager
         private readonly List<CustomMcpServerConfig> _customMcpServers;
         private readonly string? _apiKey;
         private readonly string? _apiUrl;
-        private const string ManagedMcpServerNamesFile = ".rimworld-agent-managed-mcp.json";
         private bool _ready;
         private IntPtr _jobHandle = IntPtr.Zero;
         private bool _starting; // 防止 Start() 重入
@@ -84,10 +83,10 @@ namespace RimWorldAgent.Core.CcbManager
 
             Directory.CreateDirectory(_projectPath);
 
-            WriteSettingsLocalJson();
-
             var mcpJsonPath = Path.Combine(_projectPath, ".mcp.json");
             WriteMergedMcpJson(mcpJsonPath);
+
+            WriteSettingsLocalJson();
 
             var args = $"--import tsx/esm companion/companion.ts"
                 + $" --idle-timeout 30000"
@@ -181,12 +180,6 @@ namespace RimWorldAgent.Core.CcbManager
             }
         }
 
-        private sealed class McpJsonState
-        {
-            public readonly Dictionary<string, JsonElement> RootFields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
-            public readonly Dictionary<string, JsonElement> Servers = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
-        }
-
         private sealed class McpServerOutput
         {
             public string Type = "http";
@@ -199,123 +192,40 @@ namespace RimWorldAgent.Core.CcbManager
 
         private void WriteMergedMcpJson(string mcpJsonPath)
         {
-            var state = ReadExistingMcpJson(mcpJsonPath);
             var customServers = BuildCustomMcpServerMap();
-            var previouslyWrittenNames = ReadManagedMcpServerNames();
 
-            foreach (var managedName in previouslyWrittenNames)
-            {
-                var name = NormalizeMcpServerName(managedName);
-                if (!IsValidCustomMcpServerName(name)) continue;
-                if (!customServers.ContainsKey(name))
-                    state.Servers.Remove(name);
-            }
+            var root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var mcpServers = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
-            using var stream = new MemoryStream();
-            using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
+            mcpServers["agent"] = new Dictionary<string, object>
             {
-                writer.WriteStartObject();
-                foreach (var field in state.RootFields)
+                ["type"] = "http",
+                ["url"] = $"http://localhost:{_agentMcpPort}/mcp",
+                ["timeout"] = 300000
+            };
+
+            foreach (var kv in customServers)
+            {
+                var srv = new Dictionary<string, object>();
+                srv["type"] = kv.Value.Type;
+                srv["timeout"] = kv.Value.Timeout;
+                if (kv.Value.Type == "stdio")
                 {
-                    if (string.Equals(field.Key, "mcpServers", StringComparison.OrdinalIgnoreCase)) continue;
-                    writer.WritePropertyName(field.Key);
-                    field.Value.WriteTo(writer);
+                    srv["command"] = kv.Value.Command;
+                    if (kv.Value.Args.Count > 0) srv["args"] = kv.Value.Args;
+                    if (kv.Value.Env.Count > 0) srv["env"] = kv.Value.Env;
                 }
-
-                writer.WritePropertyName("mcpServers");
-                writer.WriteStartObject();
-                WriteMcpServer(writer, "agent", new McpServerOutput
+                else
                 {
-                    Type = "http",
-                    Url = $"http://localhost:{_agentMcpPort}/mcp",
-                    Timeout = 300000
-                });
-
-                foreach (var server in state.Servers)
-                {
-                    if (string.Equals(server.Key, "agent", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (customServers.ContainsKey(server.Key)) continue;
-                    writer.WritePropertyName(server.Key);
-                    server.Value.WriteTo(writer);
+                    srv["url"] = kv.Value.Url;
                 }
-
-                foreach (var server in customServers)
-                {
-                    state.Servers.TryGetValue(server.Key, out var existing);
-                    WriteMcpServer(writer, server.Key, server.Value, existing);
-                }
-
-                writer.WriteEndObject();
-                writer.WriteEndObject();
-            }
-            File.WriteAllBytes(mcpJsonPath, stream.ToArray());
-            WriteManagedMcpServerNames(customServers.Keys);
-        }
-
-        private List<string> ReadManagedMcpServerNames()
-        {
-            var path = Path.Combine(_projectPath, ManagedMcpServerNamesFile);
-            if (!File.Exists(path)) return new List<string>();
-            try
-            {
-                return JsonSerializer.Deserialize<List<string>>(File.ReadAllText(path)) ?? new List<string>();
-            }
-            catch (Exception ex) when (ex is JsonException || ex is IOException || ex is UnauthorizedAccessException)
-            {
-                CoreLog.Warn($"[CcbManager] 读取托管 MCP 服务名失败: {FormatExceptionChain(ex)}");
-                return new List<string>();
-            }
-        }
-
-        private void WriteManagedMcpServerNames(IEnumerable<string> names)
-        {
-            var path = Path.Combine(_projectPath, ManagedMcpServerNamesFile);
-            try
-            {
-                var normalized = names
-                    .Select(NormalizeMcpServerName)
-                    .Where(IsValidCustomMcpServerName)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                File.WriteAllText(path, JsonSerializer.Serialize(normalized, new JsonSerializerOptions { WriteIndented = true }));
-            }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-            {
-                CoreLog.Warn($"[CcbManager] 写入托管 MCP 服务名失败: {FormatExceptionChain(ex)}");
-            }
-        }
-
-        private McpJsonState ReadExistingMcpJson(string mcpJsonPath)
-        {
-            var state = new McpJsonState();
-            if (!File.Exists(mcpJsonPath)) return state;
-
-            try
-            {
-                using var doc = JsonDocument.Parse(File.ReadAllText(mcpJsonPath));
-                if (doc.RootElement.ValueKind != JsonValueKind.Object) return state;
-
-                foreach (var field in doc.RootElement.EnumerateObject())
-                {
-                    if (string.Equals(field.Name, "mcpServers", StringComparison.OrdinalIgnoreCase)
-                        && field.Value.ValueKind == JsonValueKind.Object)
-                    {
-                        foreach (var server in field.Value.EnumerateObject())
-                            state.Servers[server.Name] = server.Value.Clone();
-                    }
-                    else
-                    {
-                        state.RootFields[field.Name] = field.Value.Clone();
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is JsonException || ex is IOException || ex is UnauthorizedAccessException)
-            {
-                CoreLog.Error($"[CcbManager] .mcp.json 解析失败，将重新生成: {FormatExceptionChain(ex)}");
+                mcpServers[kv.Key] = srv;
             }
 
-            return state;
+            root["mcpServers"] = mcpServers;
+
+            var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(mcpJsonPath, json);
         }
 
         private Dictionary<string, McpServerOutput> BuildCustomMcpServerMap()
@@ -401,63 +311,6 @@ namespace RimWorldAgent.Core.CcbManager
                 Env = env,
                 Timeout = server.Timeout > 0 ? server.Timeout : 300000
             };
-        }
-
-        private static void WriteMcpServer(Utf8JsonWriter writer, string name, McpServerOutput server, JsonElement? existing = null)
-        {
-            writer.WritePropertyName(name);
-            writer.WriteStartObject();
-
-            if (existing.HasValue && existing.Value.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var field in existing.Value.EnumerateObject())
-                {
-                    if (IsControlledMcpServerField(field.Name)) continue;
-                    writer.WritePropertyName(field.Name);
-                    field.Value.WriteTo(writer);
-                }
-            }
-
-            if (server.Type == "stdio")
-            {
-                writer.WriteString("type", "stdio");
-                writer.WriteString("command", server.Command);
-                if (server.Args.Count > 0)
-                {
-                    writer.WritePropertyName("args");
-                    writer.WriteStartArray();
-                    foreach (var arg in server.Args)
-                        writer.WriteStringValue(arg);
-                    writer.WriteEndArray();
-                }
-                if (server.Env.Count > 0)
-                {
-                    writer.WritePropertyName("env");
-                    writer.WriteStartObject();
-                    foreach (var item in server.Env)
-                        writer.WriteString(item.Key, item.Value);
-                    writer.WriteEndObject();
-                }
-                writer.WriteNumber("timeout", server.Timeout);
-            }
-            else
-            {
-                writer.WriteString("type", server.Type);
-                writer.WriteString("url", server.Url);
-                writer.WriteNumber("timeout", server.Timeout);
-            }
-
-            writer.WriteEndObject();
-        }
-
-        private static bool IsControlledMcpServerField(string name)
-        {
-            return string.Equals(name, "type", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "url", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "command", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "args", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "env", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "timeout", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string NormalizeMcpServerName(string? name) => (name ?? "").Trim();
@@ -675,8 +528,6 @@ namespace RimWorldAgent.Core.CcbManager
 
         private void WriteSettingsLocalJson()
         {
-            if (string.IsNullOrEmpty(_apiKey) && string.IsNullOrEmpty(_apiUrl)) return;
-
             var settingsPath = Path.Combine(_projectPath, ".claude", "settings.local.json");
             var dir = Path.GetDirectoryName(settingsPath);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
@@ -686,13 +537,21 @@ namespace RimWorldAgent.Core.CcbManager
                 var root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 var env = new Dictionary<string, string>();
 
+                env["CLAUDE_CODE_ATTRIBUTION_HEADER"] = "0";
+                env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1";
+                env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1";
+
                 if (!string.IsNullOrEmpty(_apiKey))
                     env["ANTHROPIC_AUTH_TOKEN"] = _apiKey;
                 if (!string.IsNullOrEmpty(_apiUrl))
                     env["ANTHROPIC_BASE_URL"] = _apiUrl;
 
-                if (env.Count > 0)
-                    root["env"] = env;
+                root["env"] = env;
+
+                // claudeMdExcludes — 排除所有文件系统上 CLAUDE.md（SDK 从 cwd 向上遍历）
+
+                root["claudeMdExcludes"] = new List<string> { "**/CLAUDE.md" };
+                CoreLog.Info($"[CcbManager] claudeMdExcludes: **/CLAUDE.md, autoMemory: off");
 
                 var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(settingsPath, json);

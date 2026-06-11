@@ -40,6 +40,7 @@ namespace RimWorldAgent.Core.CcbManager
                 "files_persisted" => JsonSerializer.Deserialize<SdkFilesPersistedMessage>(bodyJson, SdkMessageSerializer.Options),
                 "local_command_output" => JsonSerializer.Deserialize<SdkLocalCommandOutputMessage>(bodyJson, SdkMessageSerializer.Options),
                 "elicitation_complete" => JsonSerializer.Deserialize<SdkElicitationCompleteMessage>(bodyJson, SdkMessageSerializer.Options),
+                "thinking_tokens" => JsonSerializer.Deserialize<SdkSystemThinkingTokensMessage>(bodyJson, SdkMessageSerializer.Options),
                 _ => (SdkSystemMessage?)JsonSerializer.Deserialize<SdkSystemFallbackMessage>(bodyJson, SdkMessageSerializer.Options),
             };
             msg ??= new SdkSystemFallbackMessage(bodyJson, subtype);
@@ -229,6 +230,15 @@ namespace RimWorldAgent.Core.CcbManager
     {
         [JsonPropertyName("mcp_server_name")] public string McpServerName { get; set; } = "";
         [JsonPropertyName("elicitation_id")] public string ElicitationId { get; set; } = "";
+    }
+
+    // ===== thinking_tokens — 思考 token 估算 =====
+
+    /// <summary>system.thinking_tokens — SDK 实时报告思考 token 用量估算。</summary>
+    public class SdkSystemThinkingTokensMessage : SdkSystemMessage
+    {
+        [JsonPropertyName("estimated_tokens")] public long? EstimatedTokens { get; set; }
+        [JsonPropertyName("estimated_tokens_delta")] public long? EstimatedTokensDelta { get; set; }
     }
 
     // ===== fallback — 未知 subtype 兜底 =====

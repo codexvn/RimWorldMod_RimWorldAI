@@ -10,8 +10,8 @@ namespace RimWorldAgent.Core.AgentRuntime
     {
         /// <summary>中断通知模板 — 送入 SDK 的 prompt 格式</summary>
         public const string InterruptPromptPrefix = "## 事件通知";
-        public const string InterruptPromptSuffix = "以上是游戏内发生的新事件，请关注并根据当前优先级自行决定处理时机。如需暂停游戏可使用 toggle_pause。现在继续: ";
-        /// <summary>中断时注入的 Skill 提示</summary>
+        public const string InterruptPromptSuffix = "以上是游戏内发生的新事件，请关注并根据当前优先级自行决定处理时机。\n\n<system-reminder>\n在处理前，请先使用 get_skills 查看可用领域知识，必要时用 active_skill 激活相关 Skill 获取详细指导。\n</system-reminder>\n现在继续: ";
+        /// <summary>中断时注入的 Skill 提示（已合并到 InterruptPromptSuffix，保留供 OnChat 打断消息使用）</summary>
         public const string InterruptSkillHint = "\n\n<system-reminder>\n在处理前，请先使用 get_skills 查看可用领域知识，必要时用 active_skill 激活相关 Skill 获取详细指导。\n</system-reminder>";
 
         /// <summary>真实游戏 TicksGame，由 SSE tick 事件自动更新</summary>
@@ -106,7 +106,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 _ = CcbWs.SendAbort();
                 // abort 后立即发送通知到 SDK（companion 缓冲 → 新 session 回放）
-                var prompt = $"{InterruptPromptPrefix}\n{summary}\n{InterruptPromptSuffix}{InterruptSkillHint}";
+                var prompt = $"{InterruptPromptPrefix}\n{summary}\n{InterruptPromptSuffix}";
                 _ = CcbWs.SendChat(ChatChannel.Bus, prompt);
             }
         }
