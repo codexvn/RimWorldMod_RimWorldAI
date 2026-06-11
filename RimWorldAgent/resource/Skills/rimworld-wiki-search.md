@@ -1,10 +1,10 @@
 ---
 name: rimworld-wiki-search
-description: RimWorld 灰机 Wiki 检索指南。在需要查询游戏机制、物品数值、建筑条件、研究前置或事件规则时激活。
+description: RimWorld Wiki 检索指南（Playwright MCP）。在需要查询游戏机制、物品数值、建筑条件、研究前置或事件规则时激活。
 tags: ["概念/基础/学习助手"]
 ---
 
-# RimWorld 灰机 Wiki 检索指南
+# RimWorld Wiki 检索指南（Playwright）
 
 ## 适用场景
 
@@ -15,35 +15,73 @@ tags: ["概念/基础/学习助手"]
 
 ## 检索原则
 
-优先使用当前工具列表中可用的联网搜索或网页检索 MCP 工具。查询必须限制到灰机 Wiki：
+**使用 Playwright MCP 直连 Wiki**，不经过搜索引擎或 WebFetch。
+Playwright 是真实 Chromium 浏览器，能自动执行 Cloudflare JS 验证。
 
-`site:rimworld.huijiwiki.com 关键词`
+### 站点选择
 
-常用查询写法：
+| 站点 | URL | 特点 |
+|------|-----|------|
+| 中文灰机 Wiki | `https://rimworld.huijiwiki.com/wiki/页面名` | 中文内容，优先使用 |
+| 英文官方 Wiki | `https://rimworldwiki.com/wiki/PageName` | 数据更完整，补充查询 |
 
-- `site:rimworld.huijiwiki.com 囚犯 招募 抵抗 意志`
-- `site:rimworld.huijiwiki.com 转化 意识形态 囚犯`
-- `site:rimworld.huijiwiki.com 冷库 空调 温度`
-- `site:rimworld.huijiwiki.com 射程 掩体 命中率`
-- `site:rimworld.huijiwiki.com 研究 电池 前置`
+### 标准流程
+
+```
+1. browser_navigate → Wiki URL（Cloudflare 自动通过）
+2. browser_snapshot → 获取页面结构化文本
+3. browser_evaluate → 提取表格数据为 JSON（可选）
+4. 总结结论 → 转换为殖民地操作建议
+```
+
+### 常用页面
+
+| 需求 | 中文 URL | 英文 URL |
+|------|---------|---------|
+| 战斗机制 | `/wiki/战斗` | `/wiki/Combat` |
+| 武器数据 | `/wiki/武器` | `/wiki/Weapons` |
+| 护甲数据 | `/wiki/护甲` | `/wiki/Armor` |
+| 伤害类型 | `/wiki/伤害` | `/wiki/Damage` |
+| 掩体 | `/wiki/掩护` | `/wiki/Cover` |
+| 防御战术 | — | `/wiki/Defense_tactics` |
+| 囚犯 | `/wiki/囚犯` | `/wiki/Prisoner` |
+| 招募 | `/wiki/招募` | `/wiki/Recruitment` |
+| 研究 | `/wiki/研究` | `/wiki/Research` |
+| 作物 | `/wiki/作物` | `/wiki/Plants` |
+| 温度 | `/wiki/温度` | `/wiki/Temperature` |
+
+### 提取表格数据示例
+
+```js
+// browser_evaluate: 提取 wiki 表格
+() => {
+  const tables = document.querySelectorAll('table.wikitable, table.sortable');
+  return Array.from(tables).map(t => {
+    const rows = t.querySelectorAll('tr');
+    return Array.from(rows).map(r =>
+      Array.from(r.querySelectorAll('th,td')).map(c => c.textContent.trim())
+    );
+  });
+}
+```
 
 ## 信息处理流程
 
-1. 先用游戏内 Tool 获取当前状态，明确问题发生在当前存档的哪个对象或场景。
-2. 用限定站点查询灰机 Wiki，优先读取页面标题、摘要、章节名和关键结论。
-3. 将外部资料转换为当前殖民地可执行的操作建议。
-4. 决策时以游戏内 Tool 返回为准；Wiki 只用于解释机制和补足背景。
-5. 如果搜索结果不足或互相冲突，说明不确定点，并采用保守策略。
+1. 先用游戏内 Tool 获取当前状态，明确问题发生在哪个对象/场景
+2. 用 Playwright 打开对应 Wiki 页面，读取章节标题、表格、结论
+3. 将外部资料转换为可执行的操作建议
+4. 决策以游戏内 Tool 返回为准；Wiki 仅用于解释机制和补足背景
+5. 若中英文 Wiki 冲突，以英文 Wiki + 游戏内实际数据为准
 
 ## 禁忌
 
-- 不使用 Bash、curl、wget 或手写 HTTP 请求访问网页。
-- 不把搜索摘要当成完整规则；关键数值必须尽量二次确认。
-- 不在战斗、火灾、医疗抢救等实时危机场景中等待联网搜索；先处理当前威胁。
-- 不复制长篇 Wiki 原文，只提炼与决策有关的结论。
+- **不使用 WebFetch / WebSearch / Bash curl** → 这些工具无法通过 Cloudflare
+- 不在战斗、火灾、医疗抢救等实时危机中等待 Wiki 查询
+- 不复制长篇 Wiki 原文，只提炼决策相关结论
+- 不把搜索摘要当完整规则；关键数值必须读到完整表格
 
 ## 与知识库结合
 
-- 多次验证稳定的规则，写入长期记忆或沉淀为 Skill。
-- 只属于当前存档的判断，例如某个囚犯是否值得招募，写入记忆而不是 Skill。
-- 查询过的外部结论要保留来源站点名称，便于后续复查。
+- 多次验证稳定的规则，写入记忆或沉淀为 Skill
+- 只属于当前存档的判断（如某囚犯是否招募）写入记忆
+- 查询过的外部结论保留来源 URL，便于复查

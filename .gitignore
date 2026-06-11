@@ -10,3 +10,4 @@ claude-sessions/
 __pycache__/
 *.txt
 .claude/worktrees
+.playwright-mcp/
