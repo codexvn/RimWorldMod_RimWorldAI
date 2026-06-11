@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using RimWorldAgent.Core.AgentRuntime;
 
 namespace RimWorldAgent.Core.Skills
@@ -105,6 +106,7 @@ namespace RimWorldAgent.Core.Skills
 
             string? name = null;
             string? description = null;
+            var tags = new List<string>();
             int contentStart = -1;
 
             for (int i = 1; i < lines.Length; i++)
@@ -126,6 +128,17 @@ namespace RimWorldAgent.Core.Skills
                     {
                         case "name": name = value; break;
                         case "description": description = value; break;
+                        case "tags":
+                            if (value.StartsWith("["))
+                            {
+                                try { tags = JsonSerializer.Deserialize<List<string>>(value) ?? new List<string>(); }
+                                catch { tags = ParseCommaTags(value.Trim('[', ']')); }
+                            }
+                            else
+                            {
+                                tags = ParseCommaTags(value);
+                            }
+                            break;
                     }
                 }
             }
@@ -146,8 +159,17 @@ namespace RimWorldAgent.Core.Skills
                 Name = name!,
                 Description = description ?? name!,
                 Content = content,
-                FilePath = filePath
+                FilePath = filePath,
+                Tags = tags
             };
+        }
+
+        private static List<string> ParseCommaTags(string raw)
+        {
+            return (raw ?? "").Split(',')
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .ToList();
         }
 
         private sealed class SkillDirectory

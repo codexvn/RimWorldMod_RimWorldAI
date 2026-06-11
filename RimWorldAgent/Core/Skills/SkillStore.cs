@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using RimWorldAgent.Core.AgentRuntime;
 
 namespace RimWorldAgent.Core.Skills
@@ -24,7 +26,8 @@ namespace RimWorldAgent.Core.Skills
             return Path.Combine(parent, "Skills.d");
         }
 
-        public SkillWriteResult SaveUserSkill(string name, string description, string content, bool overwrite)
+        public SkillWriteResult SaveUserSkill(string name, string description, string content, bool overwrite,
+            List<string>? tags = null)
         {
             var normalized = NormalizeName(name);
             if (!IsValidName(normalized))
@@ -39,7 +42,7 @@ namespace RimWorldAgent.Core.Skills
             if (File.Exists(path) && !overwrite)
                 return SkillWriteResult.Fail($"Skill 已存在于 Skills.d: {normalized}。如需覆盖请设置 overwrite=true。");
 
-            var text = BuildMarkdown(normalized, description.Trim(), StripFrontmatter(content).Trim());
+            var text = BuildMarkdown(normalized, description.Trim(), StripFrontmatter(content).Trim(), tags);
             try
             {
                 File.WriteAllText(path, text, new UTF8Encoding(false));
@@ -107,14 +110,18 @@ namespace RimWorldAgent.Core.Skills
             return !name.StartsWith("-") && !name.EndsWith("-") && !name.Contains("--");
         }
 
-        private static string BuildMarkdown(string name, string description, string content)
+        private static string BuildMarkdown(string name, string description, string content, List<string>? tags = null)
         {
-            return "---\n"
-                + $"name: {name}\n"
-                + $"description: {description.Replace("\r", " ").Replace("\n", " ").Trim()}\n"
-                + "---\n\n"
-                + content.Trim()
-                + "\n";
+            var sb = new StringBuilder();
+            sb.AppendLine("---");
+            sb.AppendLine($"name: {name}");
+            sb.AppendLine($"description: {description.Replace("\r", " ").Replace("\n", " ").Trim()}");
+            if (tags != null && tags.Count > 0)
+                sb.AppendLine($"tags: {JsonSerializer.Serialize(tags)}");
+            sb.AppendLine("---");
+            sb.AppendLine();
+            sb.AppendLine(content.Trim());
+            return sb.ToString();
         }
 
         private static string StripFrontmatter(string content)

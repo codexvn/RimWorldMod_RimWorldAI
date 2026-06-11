@@ -1,6 +1,7 @@
 ---
 name: research-management
 description: 科技研究策略。在决定研究顺序、分配研究资源时激活。
+tags: ["概念/玩法/研究", "物品/科技"]
 ---
 
 # 科技研究策略指南

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.Skills;
@@ -17,6 +18,7 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
                 name = new { type = "string", description = "Skill 名称。小写字母、数字、短横线，例如 cold-snap-response。" },
                 description = new { type = "string", description = "Skill 触发描述。说明何时应该使用该 Skill。" },
                 content = new { type = "string", description = "Skill Markdown 正文，不需要包含 YAML frontmatter。" },
+                tags = new { type = "array", items = new { type = "string" }, description = "可选，三级标签数组如 [\"概念/战斗/战术\",\"物品/装备/武器\"]，与 RimWorld Wiki 分类对齐。" },
                 overwrite = new { type = "boolean", description = "是否覆盖已有同名 Skill 或创建同名内置 Skill 的 Skills.d 覆盖版本。默认 false。" }
             },
             required = new[] { "name", "description", "content" }
@@ -36,6 +38,7 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             var description = root.TryGetProperty("description", out var descEl) ? descEl.GetString() ?? "" : "";
             var content = root.TryGetProperty("content", out var contentEl) ? contentEl.GetString() ?? "" : "";
             var overwrite = root.TryGetProperty("overwrite", out var overwriteEl) && overwriteEl.ValueKind == JsonValueKind.True;
+            var tags = ParseTags(root);
 
             var normalizedName = SkillStore.NormalizeName(name);
             var existing = registry.Get(normalizedName);
@@ -47,14 +50,26 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
                 return Task.FromResult(($"Skill 已存在: {normalizedName} ({source})。如需覆盖，请设置 overwrite=true。", false));
             }
 
-            var result = store.SaveUserSkill(normalizedName, description, content, overwrite: true);
+            var result = store.SaveUserSkill(normalizedName, description, content, overwrite: true, tags);
             if (!result.Success)
                 return Task.FromResult((result.Message, false));
 
             registry.Reload();
             var mode = existing == null ? "已创建" : "已覆盖";
-            var text = $"{mode} Skill: {normalizedName}\n路径: {result.Path}\n\n已热加载，可立即调用 active_skill(name=\"{normalizedName}\") 使用。\n注意：system prompt 中的 Skill 列表会在 companion 重启后刷新。";
+            var tagsStr = tags != null && tags.Count > 0 ? $", tags=[{string.Join(",", tags)}]" : "";
+            var text = $"{mode} Skill: {normalizedName}{tagsStr}\n路径: {result.Path}\n\n已热加载，可立即调用 active_skill(name=\"{normalizedName}\") 使用。\n注意：system prompt 中的 Skill 列表会在 companion 重启后刷新。";
             return Task.FromResult((text, false));
+        }
+
+        private static List<string>? ParseTags(JsonElement root)
+        {
+            if (!root.TryGetProperty("tags", out var tagsEl)) return null;
+            if (tagsEl.ValueKind != JsonValueKind.Array) return null;
+            var tags = new List<string>();
+            foreach (var item in tagsEl.EnumerateArray())
+                if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+                    tags.Add(item.GetString()!);
+            return tags.Count > 0 ? tags : null;
         }
     }
 }

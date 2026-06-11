@@ -1,6 +1,7 @@
 ---
 name: rimworld-wiki-search
 description: RimWorld 灰机 Wiki 检索指南。在需要查询游戏机制、物品数值、建筑条件、研究前置或事件规则时激活。
+tags: ["概念/基础/学习助手"]
 ---
 
 # RimWorld 灰机 Wiki 检索指南
