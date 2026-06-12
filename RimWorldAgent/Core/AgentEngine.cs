@@ -177,12 +177,16 @@ namespace RimWorldAgent.Core.AgentRuntime
             };
 
             // 从 MCP 获取存档 sessionId → 写 session-id.txt → 供 companion 启动恢复
+            // 先删除旧 session-id.txt 防止旧存档数据串入新存档
+            var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
+            try { if (File.Exists(sidFile)) { File.Delete(sidFile); _logInfo("[AgentEngine] 已删除旧的 session-id.txt"); } }
+            catch (Exception ex) { _logWarn($"[AgentEngine] 删除旧 session-id.txt 失败: {ex.Message}"); }
+
             try
             {
                 var (success, sid) = await mcp.TryCallTool("get_session_id");
                 if (success && !string.IsNullOrEmpty(sid))
                 {
-                    var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
                     File.WriteAllText(sidFile, sid);
                     _logInfo($"[AgentEngine] session-id.txt 已写入: {sid}");
                 }

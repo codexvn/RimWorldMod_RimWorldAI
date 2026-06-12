@@ -13,7 +13,7 @@ namespace RimWorldAgent
     /// <code>
     /// ┌──────────────────────────────────────────────────────────────────────┐
     /// │ RimWorld AI 指挥官                                                   │
-    /// │ 冰盖 · 1年 夏第5天 -- sonnet-4-6   入 12K/200K 6% │ Tok 43K/200K 85% │ 缓存 12K 35% │
+    /// │ 冰盖 · 1年 夏第5天 -- sonnet-4-6   入 12K/13K(35%)    Tok 43K/200K 22% ██░░░░░░░░  │
     /// ├──────────────────────────────────────────────────────────────────────┤
     /// │ ── 对话 ──                     │ ── 工具调用 ──                     │
     /// │ [你] 查看殖民地状态            │ #1 [OK] get_colony (1.2s)          │
@@ -30,7 +30,7 @@ namespace RimWorldAgent
     /// </code>
     /// 左 60%: 对话流 (text_delta / thinking_delta / user / system)。
     /// 右 40%: 上 = 工具卡片 (tool_call / tool_result)，下 = 任务 (TaskCreate / TaskUpdate)。
-    /// header: 殖民地 -- 模型名称 + 三指标 (入 / Tok / 缓存)。底栏: 连接状态 + Agent 阶段 + 压缩指示 + 操作按钮。
+    /// header: 殖民地 -- 模型名称 + 两指标 (入 12K/13K(35%) + Tok 43K/200K 22% ██░░)。底栏: 连接状态 + Agent 阶段 + 压缩指示 + 操作按钮。
     /// </summary>
     public class Dialog_AiChat : Window
     {
