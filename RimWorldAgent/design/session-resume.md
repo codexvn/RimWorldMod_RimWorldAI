@@ -1,112 +1,107 @@
-# 会话历史恢复 — sessionId 持久化 + SDK resume
+# 会话恢复 — sessionId 持久化 + SDK resume
 
 ## 背景
 
-RimWorldAgent 使用 `@anthropic-ai/claude-agent-sdk` 的 `query({ prompt: AsyncStream })` 模式——一个长连接 Stream 接受多条用户消息。但进程重启或 SDK 会话中断后，旧会话历史丢失，AI 不记得之前对话。
+RimWorldAgent 使用 `@anthropic-ai/claude-agent-sdk` 的 `query({ prompt: AsyncStream })` 模式。进程重启或 SDK 会话中断后，通过 `session-id.txt` + SDK `options.resume` 恢复对话历史。
 
 ## 核心 API
 
-SDK 的 `sdk.query()` 接受 `options.resume: "<uuid>"`。SDK 自动从 `~/.claude/projects/<cwd-hash>/<uuid>.jsonl` 加载完整对话历史（包括 tool_call/tool_result），无需手动导入。
+SDK 的 `sdk.query()` 接受 `options.resume: "<uuid>"`。SDK 自动从 `~/.claude/projects/<cwd-hash>/<uuid>.jsonl` 加载完整对话历史。
 
-## 两种 ID
+## 架构：MCP 权威 + session-id.txt 桥梁
 
-| ID | 来源 | 用途 | 生命周期 |
-|----|------|------|----------|
-| **Save ID** | `get_session_id` MCP 工具 | SQLite `save_id` 列隔离不同存档的对话记录 | 同存档不变 |
-| **SDK Session ID** | SDK `system.init` → `session_id` | `options.resume` 恢复对话上下文 | 每次 `sdk.query()` 生成新 UUID，跨存读档复用 |
+```
+MCP (RimWorldMCP)                          Companion (Node.js)
+┌────────────────────────┐                ┌──────────────────────────┐
+│ GameComponent_McpServer│                │ session.ts: 读 sid 文件   │
+│   _sessionId (Scribe)  │                │   → options.resume       │
+│   get_session_id()     │──HTTP──Agent──→│ companion.ts:             │
+│   set_session_id()     │                │   onSdkMessage → 写文件   │
+└────────────────────────┘                │   clear_context → 删文件  │
+                                          └──────────────────────────┘
 
-两个 ID 用途不同，不要混淆。
+Agent (RimWorldAgent)：只做桥梁
+  InitAsync: get_session_id → 写 session-id.txt → 启动 companion
+  system.init: OnSessionIdChanged → set_session_id → Scribe 落盘
+```
 
 ## 数据流
 
 ```
 ═══════════════════════════════════════════════
-  冷启动（无存档 sessionId）
+  冷启动
 ═══════════════════════════════════════════════
 
-CcbManager.StartCore()
-  → node ... --resume-session-id ""
-
-companion 启动
-  → CONFIG.resumeSessionId = "" → 跳过
-  → sdk.query({ options: {} })
-
-SDK → system.init { session_id: "uuid-1" }
-  → companion: onSdkMessage → currentSessionId = "uuid-1"
-  → C# SdkMessageParser → AgentLoop.CcbSessionId = "uuid-1"
-  → GameComponent.ExposeData → Scribe_Values.Look 写入存档
+MCP: _sessionId = ""（Scribe 空）
+Agent InitAsync: get_session_id → 空 → 不写 session-id.txt
+companion: session.ts 读文件 → 不存在 → sdk.query({})
+SDK → system.init { session_id: "A" }
+companion: onSdkMessage → 写 session-id.txt → "A"
+Agent: OnSessionIdChanged → set_session_id("A") → MCP Scribe 落盘
 
 ═══════════════════════════════════════════════
-  存盘 → 读档（有存档 sessionId）
+  读档
 ═══════════════════════════════════════════════
 
-RimWorld LoadedGame → ExposeData → Scribe 读取 _ccSessionId = "uuid-1"
-InitAgentRuntime → AgentEngineConfig.ResumeSessionId = "uuid-1"
-CcbManager.StartCore()
-  → node ... --resume-session-id "uuid-1"
-
-companion 启动
-  → CONFIG.resumeSessionId = "uuid-1"
-  → sdk.query({ options: { resume: "uuid-1" } })
-  → SDK 从 ~/.claude/projects/<hash>/uuid-1.jsonl 加载全部历史 ✅
-
-SDK → system.init { session_id: "uuid-1" }  ← 同一 UUID
-AI 拥有读档前完整上下文 ✅
+MCP LoadedGame: Scribe → _sessionId = "A"
+Agent InitAsync: get_session_id → "A" → 写 session-id.txt → "A" → 启动 companion
+companion: session.ts 读 "A" → sdk.query({ resume: "A" }) ✅
 
 ═══════════════════════════════════════════════
-  用户发消息 / 运行中打断
+  正常 interrupt（abort）
 ═══════════════════════════════════════════════
 
-AgentLoop.OnChat:
-  → SendAbort()                           ← 保持现有逻辑
-  → companion: abort → startNewSession(currentSessionId)
-  → CONFIG.resumeSessionId = "uuid-1"
-  → sdk.query({ options: { resume: "uuid-1" } })
-  → SendChat → SDK 拥有完整上下文 ✅
+abort → startNewSession → session.ts 读 session-id.txt → resume ✅
 
 ═══════════════════════════════════════════════
-  用户清空上下文（UI 清空按钮 → abort）
+  清空上下文（clear_context）
 ═══════════════════════════════════════════════
 
-AgentLoop.OnAbort:
-  → CcbSessionId = null                   ← 清空
-
-companion:
-  → abort → startNewSession()             ← 不传 sessionId
-  → CONFIG.resumeSessionId = ""
-  → currentSessionId = undefined
-  → sdk.query({ options: {} })            ← 全新会话
-  → SDK → system.init { session_id: "uuid-2" }
-  → 下次存档写新 UUID
+WebUI/Dialog → { type: "clear_context" }
+Agent: OnClearContext → CcbSessionId = null → SendAbort(clear=true)
+companion: currentSessionId = undefined → 删 session-id.txt → sdk.query({})
+SDK → init { session_id: "B" }
+companion: 写 session-id.txt → "B"
+Agent: set_session_id("B") → Scribe 写 "B"
 ```
 
 ## 修改文件
 
-### Companion (TypeScript)
+### Companion
 
-| 文件 | 改动 |
+| 文件 | 作用 |
 |------|------|
-| `companion/config.ts` | `CONFIG` 加 `resumeSessionId: string`；`parseArgs` 解析 `--resume-session-id` |
-| `bridge/session.ts` | `createSession` 读 `CONFIG.resumeSessionId` → `options.resume` |
-| `companion/companion.ts` | `startNewSession(resumeSessionId?)` 参数化；`onSdkMessage` 从 `system.init` 捕获 `currentSessionId`；abort 后清空 `currentSessionId` |
+| `bridge/session.ts` | `createSession` 读 `session-id.txt` → `options.resume` |
+| `companion/companion.ts` | session-id.txt 读写+删；`currentSessionId` 捕获；`startNewSession` 无参；clear 时删文件 |
+| `companion/config.ts` | 无 `resumeSessionId` 相关字段 |
 
-### C# Side
+### Agent
 
-| 文件 | 改动 |
+| 文件 | 作用 |
 |------|------|
-| `CcbManager.cs` | 构造函数加 `resumeSessionId` 参数；`StartCore` 加 `--resume-session-id` CLI 参数 |
-| `AgentEngine.cs` | `AgentEngineConfig` 加 `ResumeSessionId` 属性；构造 `CcbManager` 时传入 |
-| `AgentLoop.cs` | 加 `CcbSessionId` 静态属性；`OnAbort` 清除 sessionId |
-| `SdkMessageParser.cs` | `system.init` 时写 `AgentLoop.CcbSessionId` |
-| `GameComponent_RimworkAgent.cs` | `_ccSessionId` 字段；`ExposeData` 用 `Scribe_Values.Look` 持久化；读档时传入 `AgentEngineConfig` |
+| `AgentEngine.cs` | `InitAsync`：MCP 连后 `get_session_id` → 写 `session-id.txt` → 启动 CCB；订阅 `OnSessionIdChanged` |
+| `AgentLoop.cs` | `CcbSessionId` 内存值；`OnClearContext` 发 clear abort；`OnAbort` 只中断不清空 |
+| `SdkMessageParser.cs` | `system.init` → `CcbSessionId` + `RaiseSessionIdChanged` |
+| `GameComponent_RimworkAgent.cs` | 无 sessionId 逻辑（MCP 管理 Scribe） |
+| `UIMessageBus.cs` | 新增 `OnClearContext` 事件 + 解析 `clear_context` |
 
-## 不涉及
+### MCP
 
-- ❌ `ConversationStore` / SQLite — 与我们无关，SDK 自己管理 JSONL
-- ❌ `CcbWebSocket` / WS 协议 — 不走 WS 传 sessionId，走 CLI 参数
-- ❌ 自定义历史文本注入 — SDK `resume` 原生恢复全部结构化历史
+| 文件 | 作用 |
+|------|------|
+| `GameComponent_McpServer.cs` | `_sessionId` 静态字段 + Scribe；`SetSessionId()`；不自动生成 |
+| `Tools/Tool_SetSessionId.cs` | Agent 调用的设置工具 |
+| `Tools/Tool_GetSessionId.cs` | Agent 调用的读取工具 |
+
+### UI
+
+| 文件 | 作用 |
+|------|------|
+| `RimWorldAgentUI/UI/BridgeClient.cs` | `SendClearContext()` |
+| `RimWorldAgentUI/UI/Dialog_AiChat.cs` | "清空"按钮发 `SendClearContext()` |
+| `index.html` / `index-v2.html` | "清空"按钮发 `{"type":"clear_context"}` |
 
 ## 依赖
 
 - `@anthropic-ai/claude-agent-sdk` ≥ 0.3.173（`options.resume` 支持）
-- `Scribe_Values`（RimWorld 存档持久化 API）
+- `Scribe_Values`（MCP 侧存档持久化）
