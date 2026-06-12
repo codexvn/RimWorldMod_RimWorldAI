@@ -158,15 +158,20 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>从网关工具 input JSON 提取内层 action 名；非网关工具直接返回原名。</summary>
         public static string ExtractInnerAction(string toolName, string inputJson)
         {
-            if (!toolName.EndsWith("game_cmd")) return toolName;
-            try
+            // 网关工具：从 input JSON 中提取内层 action 名
+            if (toolName.EndsWith("game_cmd"))
             {
-                using var doc = JsonDocument.Parse(inputJson);
-                if (doc.RootElement.TryGetProperty("action", out var a))
-                    return a.GetString() ?? toolName;
+                try
+                {
+                    using var doc = JsonDocument.Parse(inputJson);
+                    if (doc.RootElement.TryGetProperty("action", out var a))
+                        return a.GetString() ?? toolName;
+                }
+                catch (Exception ex) { CoreLog.Debug($"[ToolDispatcher] ExtractInnerAction JSON 解析失败 ({toolName}): {ex.GetType().Name}: {ex.Message}"); }
+                return toolName;
             }
-            catch (Exception ex) { CoreLog.Debug($"[ToolDispatcher] ExtractInnerAction JSON 解析失败 ({toolName}): {ex.GetType().Name}: {ex.Message}"); }
-            return toolName;
+            // 内部工具：去掉 SDK 前缀 mcp__agent__
+            return toolName.Replace("mcp__agent__", "");
         }
 
         public static void TrackToolUse(string toolName, string inputJson)
