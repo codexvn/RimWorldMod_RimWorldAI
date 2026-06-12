@@ -193,7 +193,7 @@ namespace RimWorldMCP.Tools
                 }
                 catch (Exception ex)
                 {
-                    McpLog.Error($"[ToolRegistry] Tool 执行异常 ({name}): {FormatExceptionChain(ex)}");
+                    McpLog.Warn($"[ToolRegistry] Tool 执行异常 ({name}): {FormatExceptionChain(ex)}");
                     return new ToolCallResult
                     {
                         Content = new List<ContentItem>
