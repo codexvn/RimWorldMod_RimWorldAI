@@ -325,7 +325,7 @@ namespace RimWorldMCP.Tools
                             if (ipos.Fogged(map)) { blockedWalls.Add($"({wx},{wy}) 迷雾中不可见"); continue; }
                             bool isDoorPos = doorPosSet.Contains((wx, wy)) && doorDef != null;
                             // 共用墙跳过
-                            if (!isDoorPos && RoomGenUtility.IsWallAt(ipos, map)) continue;
+                            if (!isDoorPos && HasBuildingAt(ipos, map)) continue;
                             var def = isDoorPos ? doorDef : wallDef;
                             var stuff = isDoorPos ? doorStuff : wallStuff;
                             var accept = GenConstruct.CanPlaceBlueprintAt(def, ipos, Rot4.North, map, false, null, null, stuff);
@@ -356,7 +356,7 @@ namespace RimWorldMCP.Tools
                         bool isDoorPos = doorPosSet.Contains((wx, wy)) && doorDes != null;
 
                         // 非门位置 + 已有墙体 → 共用墙，跳过
-                        if (!isDoorPos && RoomGenUtility.IsWallAt(ipos, map))
+                        if (!isDoorPos && HasBuildingAt(ipos, map))
                         {
                             skippedSharedWalls++;
                             continue;
@@ -447,6 +447,20 @@ namespace RimWorldMCP.Tools
                 && args.Value.TryGetProperty("end_y", out var jEY) && jEY.TryGetInt32(out var endY))
                 return (Math.Min(posX, endX), Math.Min(posY, endY), Math.Max(posX, endX), Math.Max(posY, endY));
             return (posX, posY, posX, posY);
+        }
+
+        /// <summary>检测墙、门、蓝图、框架或岩壁，防止共享墙被重复放置。</summary>
+        private static bool HasBuildingAt(IntVec3 pos, Map map)
+        {
+            var edifice = pos.GetEdifice(map);
+            if (edifice == null) return false;
+            if (edifice.def.IsWall || edifice.def.IsDoor || edifice.def.building?.isNaturalRock == true)
+                return true;
+            // 蓝图或框架也算（同一次会话内多间房竞争共享墙）
+            var targetDef = edifice.def.entityDefToBuild as ThingDef;
+            if (targetDef != null && (targetDef.IsWall || targetDef.IsDoor))
+                return true;
+            return false;
         }
     }
 }
