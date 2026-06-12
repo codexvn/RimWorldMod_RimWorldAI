@@ -158,14 +158,14 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>从网关工具 input JSON 提取内层 action 名；非网关工具直接返回原名。</summary>
         public static string ExtractInnerAction(string toolName, string inputJson)
         {
-            if (toolName != "game_cmd") return toolName;
+            if (!toolName.EndsWith("game_cmd")) return toolName;
             try
             {
                 using var doc = JsonDocument.Parse(inputJson);
                 if (doc.RootElement.TryGetProperty("action", out var a))
                     return a.GetString() ?? toolName;
             }
-            catch { }
+            catch (Exception ex) { CoreLog.Debug($"[ToolDispatcher] ExtractInnerAction JSON 解析失败 ({toolName}): {ex.GetType().Name}: {ex.Message}"); }
             return toolName;
         }
 
