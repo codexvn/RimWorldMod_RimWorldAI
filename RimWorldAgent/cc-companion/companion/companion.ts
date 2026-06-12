@@ -4,12 +4,12 @@
  *
  * WebSocket 协议：
  *   C# → companion:  {"type":"chat", "text":"...", "session":"bus|system", "thinking":{mode,effort,tokens?}}
- *                    {"type":"abort"}
+ *                    {"type":"abort"[, "clear":true]}
  *   companion → C#:  {"type":"hello-ok"}
  *                    SDK 消息 (type: assistant / stream_event / result / system / user / aborted)
  */
 
-import { writeFileSync, unlinkSync, appendFileSync } from 'fs';
+import { writeFileSync, unlinkSync, appendFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -44,6 +44,44 @@ function sdkLog(dir: '→' | '←', data: string) {
   }
 }
 
+// ===== session-id.txt 读写 =====
+
+const sidFile = join(CONFIG.projectPath, 'session-id.txt');
+
+function readSessionId(): string | undefined {
+  try {
+    if (existsSync(sidFile)) {
+      const id = readFileSync(sidFile, 'utf8').trim();
+      return id || undefined;
+    }
+  } catch (err) {
+    log(`读取 session-id.txt 失败: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return undefined;
+}
+
+function writeSessionId(id: string) {
+  try {
+    const old = readSessionId();
+    if (old === id) return; // 幂等：相同不重写
+    writeFileSync(sidFile, id, 'utf8');
+    log(`写 session-id.txt: ${id}`);
+  } catch (err) {
+    log(`写 session-id.txt 失败: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+function deleteSessionIdFile() {
+  try {
+    if (existsSync(sidFile)) {
+      unlinkSync(sidFile);
+      log(`删 session-id.txt`);
+    }
+  } catch (err) {
+    log(`删 session-id.txt 失败: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 async function main() {
   log(`启动 PID=${process.pid} port=${CONFIG.port} model=${CONFIG.modelName || 'default'}`);
 
@@ -61,11 +99,9 @@ async function main() {
   let streamAborted = false;
 
   // 当前 SDK 会话 ID（从 system.init 捕获，用于 abort 后 resume）
-  let currentSessionId: string | undefined = CONFIG.resumeSessionId || undefined;
+  let currentSessionId: string | undefined = readSessionId();
 
-  function startNewSession(resumeSessionId?: string) {
-    CONFIG.resumeSessionId = resumeSessionId || '';
-    currentSessionId = undefined;  // 用完即清，下次 abort 若非 chat 先 resume 则不进旧会话
+  function startNewSession() {
     abortController = new AbortController();
     session = createSession(sdk, abortController);
     inputStream = session.inputStream;
@@ -80,13 +116,14 @@ async function main() {
     buffering = false;
     const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => onSdkMessage(msg)));
     proc.process();
-    log(`新会话已创建${resumeSessionId ? ' (resume=' + resumeSessionId + ')' : ''}`);
+    log(`新会话已创建${currentSessionId ? ' (resume=' + currentSessionId + ')' : ''}`);
   }
 
   function onSdkMessage(msg: any) {
-    // 从 system.init 捕获会话 ID，用于 abort 后 resume
+    // 从 system.init 捕获会话 ID，写入 session-id.txt
     if (msg.type === 'system' && msg.subtype === 'init' && msg.session_id) {
       currentSessionId = msg.session_id;
+      writeSessionId(msg.session_id);
       log(`会话 ID: ${currentSessionId}`);
     }
     busBroadcast(JSON.stringify(msg));
@@ -101,7 +138,7 @@ async function main() {
     // abort 旧 session，防止新旧 processor 同时输出导致消息重复
     abortController.abort();
     buffering = true;
-    startNewSession(currentSessionId);
+    startNewSession();
   }
 
   // ===== WS Server（先于 SDK 启动，避免竞态）=====
@@ -164,13 +201,16 @@ async function main() {
           break;
         }
         case 'abort':
-          if (msg.clear) currentSessionId = undefined;  // C# 明示清空上下文
+          if (msg.clear) {
+            currentSessionId = undefined;
+            deleteSessionIdFile();
+          }
           log(`收到 abort, buffering=true, resume=${currentSessionId || '(新会话)'}`);
           buffering = true;
           streamAborted = true;  // 旧 stream 不可写
           abortController.abort();
           log('abortController.abort() done, startNewSession...');
-          startNewSession(currentSessionId);
+          startNewSession();
           break;
       }
     });

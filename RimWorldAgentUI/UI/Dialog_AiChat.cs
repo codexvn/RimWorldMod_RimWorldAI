@@ -768,7 +768,10 @@ namespace RimWorldAgent
             Rect clearRect = new Rect(continueRect.x - 44f - 4f, y, 44f, actionBtnH);
             GUI.color = Color.white;
             if (Widgets.ButtonText(clearRect, "清空"))
+            {
                 ChatDisplayState.Clear();
+                _ = Bridge?.SendClearContext();
+            }
 
             GUI.color = Color.white;
             Text.Font = GameFont.Small;

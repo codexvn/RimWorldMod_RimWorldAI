@@ -699,6 +699,7 @@
     <textarea id="chat-input" placeholder="输入消息..." rows="1"></textarea>
     <button id="send-btn" disabled>Send</button>
     <button id="abort-btn" title="中断当前 AI 回复">中断</button>
+    <button id="clear-btn" title="清空上下文（新对话）">清空</button>
   </div>
   </div><!-- /#main -->
 
@@ -721,6 +722,7 @@
   const inputEl = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
   const abortBtn = document.getElementById('abort-btn');
+  const clearBtn = document.getElementById('clear-btn');
   const statusDot = document.getElementById('status-dot');
   const newMsgPill = document.getElementById('new-msg-pill');
   // Header meta
@@ -1743,6 +1745,14 @@
     discarding = true;
     abortBtn.disabled = true;
     abortBtn.textContent = '中断中...';
+  });
+
+  clearBtn.addEventListener('click', function() {
+    if (!ws || !connected) return;
+    ws.send(JSON.stringify({ type: 'clear_context' }));
+    // 本地清空消息面板
+    messages = [];
+    renderMessages();
   });
 
   function setAbort(enabled) {

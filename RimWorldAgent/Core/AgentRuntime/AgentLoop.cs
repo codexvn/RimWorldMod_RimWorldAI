@@ -17,8 +17,14 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>会话存储 — 由 EXE/MOD 在 WireUIMessageBus 前注入</summary>
         public static IConversationStore? ConversationStore { get; set; }
 
-        /// <summary>SDK 会话 ID（从 system.init 捕获），用于存档持久化后 resume</summary>
+        /// <summary>SDK 会话 ID（从 system.init 捕获），用于 Scribe 持久化 + session-id.txt</summary>
         public static string? CcbSessionId { get; set; }
+
+        /// <summary>sessionId 变更回调（AgentEngine 订阅以同步到 MCP set_session_id）</summary>
+        public static event Action<string>? OnSessionIdChanged;
+
+        /// <summary>由 SdkMessageParser 调用，触发 MCP 同步</summary>
+        internal static void RaiseSessionIdChanged(string sid) => OnSessionIdChanged?.Invoke(sid);
 
         /// <summary>启动后是否已发送过消息（冷启检测：false 时触发首次问候）</summary>
         public static bool HasEverSent { get; set; }
@@ -82,13 +88,21 @@ namespace RimWorldAgent.Core.AgentRuntime
                 await currentWs.SendChat(ChatChannel.Bus, text, thinking);
             };
 
-            // 客户端 abort → CCB（清空上下文：下一轮不 resume）
+            // 客户端 abort → CCB（只中断，不清空上下文）
             UIMessageBus.OnAbort += async () =>
             {
-                CcbSessionId = null;  // 清空，下次消息将全新会话
                 var currentWs = GetWiredWebSocket();
                 if (currentWs != null && currentWs.IsReady)
-                    await currentWs.SendAbort(clear: true);
+                    await currentWs.SendAbort();
+            };
+
+            // 客户端 clear_context → CCB（清空上下文：companion 删文件 + 新 SDK 会话）
+            UIMessageBus.OnClearContext += () =>
+            {
+                CcbSessionId = null;
+                var currentWs = GetWiredWebSocket();
+                if (currentWs != null && currentWs.IsReady)
+                    _ = currentWs.SendAbort(clear: true);
             };
 
             // 新客户端连接 → 推送初始状态

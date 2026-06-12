@@ -15,7 +15,6 @@ namespace RimWorldAgent
         private AgentEngine? _engine;
         private ScribeDbStore? _dbStore;
         private IConversationStore? _convStore;
-        private string _ccSessionId = "";
         private bool _initialized;
         private bool _initializing;
         private int _lastTick;
@@ -106,7 +105,6 @@ namespace RimWorldAgent
                     LogSdkMessages = settings?.LogSdkMessages ?? false,
                     ApiKey = settings?.ApiKey,
                     ApiUrl = settings?.ApiUrl,
-                    ResumeSessionId = _ccSessionId,
                 };
 
                 var engine = new AgentEngine(cfg, dbStore, gameState,
@@ -220,10 +218,7 @@ namespace RimWorldAgent
 
         public override void ExposeData()
         {
-            // Scribe 前刷新：将 SDK 最新 sessionId 同步到持久化字段
-            _ccSessionId = AgentLoop.CcbSessionId ?? "";
             base.ExposeData();
-            Scribe_Values.Look(ref _ccSessionId, "ccSessionId", "");
             _dbStore?.ScribeExpose();
         }
 

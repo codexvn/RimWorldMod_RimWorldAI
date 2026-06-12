@@ -48,7 +48,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         public bool LogSdkMessages { get; set; }
         public string? ApiKey { get; set; }
         public string? ApiUrl { get; set; }
-        public string ResumeSessionId { get; set; } = "";
     }
 
     /// <summary>Agent 引擎 — CCB 生命周期 + WS + MCP + 调度循环。EXE/MOD 共享。</summary>
@@ -166,6 +165,32 @@ namespace RimWorldAgent.Core.AgentRuntime
             _agentHost.RegisterProvider(proxy);
             _logInfo("[AgentEngine] 游戏工具代理已注册");
 
+            // SDK session_id 变更时同步到 MCP（Scribe 持久化）
+            AgentLoop.OnSessionIdChanged += sid =>
+            {
+                try
+                {
+                    _ = mcp.CallTool("set_session_id", new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement(sid) });
+                    _logInfo($"[AgentEngine] MCP set_session_id: {sid}");
+                }
+                catch (Exception ex) { _logWarn($"[AgentEngine] MCP set_session_id 失败: {ex.Message}"); }
+            };
+
+            // 从 MCP 获取存档 sessionId → 写 session-id.txt → 供 companion 启动恢复
+            // MCP 连接成功时 LoadedGame/StartedNewGame 已完成，sessionId 立即可用
+            try
+            {
+                var rawId = await mcp.CallTool("get_session_id");
+                var sid = rawId?.Trim();
+                if (!string.IsNullOrEmpty(sid))
+                {
+                    var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
+                    File.WriteAllText(sidFile, sid);
+                    _logInfo($"[AgentEngine] session-id.txt 已写入: {sid}");
+                }
+            }
+            catch (Exception ex) { _logWarn($"[AgentEngine] get_session_id 失败: {ex.Message}"); }
+
             // CCB 子进程 + WS — 在所有 MCP 服务就绪后启动
             var ccbReady = false;
             if (!string.IsNullOrEmpty(_cfg.CcbDir) && Directory.Exists(_cfg.CcbDir))
@@ -186,8 +211,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     budgetLimit: _cfg.TokenBudgetLimit, budgetAction: "Block",
                     logSdk: _cfg.LogSdkMessages,
                     customMcpServers: _cfg.CustomMcpServers,
-                    apiKey: _cfg.ApiKey, apiUrl: _cfg.ApiUrl,
-                    resumeSessionId: _cfg.ResumeSessionId);
+                    apiKey: _cfg.ApiKey, apiUrl: _cfg.ApiUrl);
                 if (_cfg.CcbAutoStart)
                 {
                     _logInfo("[AgentEngine] 调用 _ccb.Start()...");

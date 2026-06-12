@@ -10,7 +10,6 @@ export interface CompanionConfig {
   modelName: string;
   settingSources: string[];
   logSdk: boolean;
-  resumeSessionId: string;
 }
 
 export const Thinking = {
@@ -29,7 +28,6 @@ export const CONFIG: CompanionConfig = {
     ? process.env.CCB_SETTING_SOURCES.split(',').map(s => s.trim())
     : ['project', 'local'],
   logSdk: process.env.CCB_LOG_SDK === '1' || process.env.CCB_LOG_SDK === 'true',
-  resumeSessionId: '',
 };
 
 export function parseArgs(argv: string[]): void {
@@ -43,6 +41,5 @@ export function parseArgs(argv: string[]): void {
     else if (a === '--mcp-servers-path' && argv[i + 1]) CONFIG.mcpServersPath = argv[++i];
     else if (a === '--setting-sources' && argv[i + 1]) CONFIG.settingSources = argv[++i].split(',').map(s => s.trim());
     else if (a === '--log-sdk') CONFIG.logSdk = true;
-    else if (a === '--resume-session-id' && argv[i + 1]) CONFIG.resumeSessionId = argv[++i];
   }
 }

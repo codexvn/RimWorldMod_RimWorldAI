@@ -11,7 +11,7 @@ namespace RimWorldMCP
 {
     public class GameComponent_McpServer : GameComponent
     {
-        private string _sessionId = "";
+        private static string _sessionId = "";
         private int _lastTickPush;
         public static string CurrentSessionId { get; private set; } = "";
 
@@ -44,6 +44,14 @@ namespace RimWorldMCP
         }
 
         private static string GenerateSessionId() => Guid.NewGuid().ToString("N").Substring(0, 12);
+
+        /// <summary>由 Agent 调用，更新 sessionId（如 SDK 生成新 UUID 时）。空字符串表示清空。</summary>
+        public static void SetSessionId(string id)
+        {
+            _sessionId = id ?? "";
+            CurrentSessionId = _sessionId;
+            McpLog.Info($"[session] 外部设置 ID = {_sessionId}");
+        }
 
         public override void GameComponentUpdate()
         {

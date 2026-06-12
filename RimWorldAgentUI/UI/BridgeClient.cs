@@ -60,6 +60,11 @@ namespace RimWorldAgent
             await SendJson(new { type = "abort" });
         }
 
+        public async Task SendClearContext()
+        {
+            await SendJson(new { type = "clear_context" });
+        }
+
         private async Task ReceiveLoop(CancellationToken ct)
         {
             var buf = new byte[8192];

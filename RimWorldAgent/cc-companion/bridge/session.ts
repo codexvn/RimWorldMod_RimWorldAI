@@ -1,6 +1,7 @@
 /** SDK 会话 — AsyncStream + query + onMessage 回调 */
 
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { CONFIG, Thinking } from '../companion/config.js';
 import { buildSystemPrompt } from '../rimworld/context.js';
 import { Options, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agent-sdk';
@@ -71,9 +72,18 @@ export function createSession(sdk: any, abortController?: AbortController) {
     },
   } as Options;
 
-  if (CONFIG.resumeSessionId) {
-    (options as any).resume = CONFIG.resumeSessionId;
-    console.log(`[session] 恢复会话: ${CONFIG.resumeSessionId}`);
+  // 从 session-id.txt 读取上次会话 ID 用于恢复
+  const sidFile = join(CONFIG.projectPath, 'session-id.txt');
+  if (existsSync(sidFile)) {
+    try {
+      const sid = readFileSync(sidFile, 'utf8').trim();
+      if (sid) {
+        (options as any).resume = sid;
+        console.log(`[session] 恢复会话: ${sid}`);
+      }
+    } catch (err: any) {
+      console.error(`[session] 读取 session-id.txt 失败: ${err.message}`);
+    }
   }
 
   const tm = Thinking.mode;

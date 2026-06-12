@@ -78,6 +78,8 @@ namespace RimWorldAgent.Core
 
         public static event Action<string, ChatThinking?>? OnChat;
         public static event Action? OnAbort;
+        /// <summary>客户端清空上下文（删 session-id.txt + 全新 SDK 会话）</summary>
+        public static event Action? OnClearContext;
 
         /// <summary>客户端请求历史记录，(socket, 请求条数 n)</summary>
         public static event Action<IWebSocketConnection, int>? OnHistory;
@@ -149,6 +151,9 @@ namespace RimWorldAgent.Core
                                 break;
                             case "abort":
                                 OnAbort?.Invoke();
+                                break;
+                            case "clear_context":
+                                OnClearContext?.Invoke();
                                 break;
                             case "history":
                             {

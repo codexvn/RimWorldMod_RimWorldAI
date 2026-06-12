@@ -336,6 +336,7 @@
         @keydown.enter.prevent="if(!$event.shiftKey) send()"></textarea>
       <button id="send-btn" @click="send()" :disabled="!connected || !inputText">Send</button>
       <button id="abort-btn" @click="abort()" :class="{ enabled: abortEnabled }" :disabled="!abortEnabled" title="中断当前 AI 回复">中断</button>
+      <button id="clear-btn" @click="clearContext()" title="清空上下文（新对话）">清空</button>
     </div>
   </div>
 
@@ -481,6 +482,12 @@ function app() {
       if (!this.connected || this.discarding) return;
       ws.send(JSON.stringify({ type: 'abort' }));
       this.discarding = true;
+    },
+
+    clearContext() {
+      if (!this.connected) return;
+      ws.send(JSON.stringify({ type: 'clear_context' }));
+      this.clearMessages();
     },
 
     adjustHeight() {
