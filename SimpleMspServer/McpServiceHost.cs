@@ -164,8 +164,8 @@ namespace SimpleMspServer
                 session = CreateSession();
                 _sessions[session.SessionId] = session;
                 newSid = session.SessionId;
-                if (!string.IsNullOrEmpty(existingSid)) _log.Info($"会话已迁移: {existingSid} → {newSid}");
-                else _log.Info($"新会话: {newSid}");
+                if (!string.IsNullOrEmpty(existingSid)) _log.Info($"[SSE] MCP 传输层会话已恢复: {newSid}");
+                else _log.Info($"[SSE] MCP 传输层会话已建立: {newSid}");
             }
 
             using var ms = new MemoryStream();
