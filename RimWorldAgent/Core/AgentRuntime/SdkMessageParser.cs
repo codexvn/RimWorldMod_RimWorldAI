@@ -84,8 +84,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                 }
                 else if (block is SdkToolUseBlock tu)
                 {
-                    outList.Add(UiMessage.ToolCall(tu.Id, tu.Name, tu.Input));
-                    UIMessageBus.RaiseToolCallRecorded(tu.Id, tu.Name, tu.Input);
+                    var displayName = ToolDispatcher.ExtractInnerAction(tu.Name, tu.Input);
+                    outList.Add(UiMessage.ToolCall(tu.Id, displayName, tu.Input));
+                    UIMessageBus.RaiseToolCallRecorded(tu.Id, displayName, tu.Input);
                 }
             }
 
