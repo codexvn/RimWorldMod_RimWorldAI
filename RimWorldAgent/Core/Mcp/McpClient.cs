@@ -95,6 +95,33 @@ namespace RimWorldAgent.Core.Mcp
             return sb.ToString().TrimEnd();
         }
 
+        /// <summary>调用工具并返回成功/失败 + 文本，不抛异常</summary>
+        public async Task<(bool success, string text)> TryCallTool(string name, Dictionary<string, JsonElement>? args = null)
+        {
+            try
+            {
+                var client = await GetClientAsync();
+                IReadOnlyDictionary<string, object?>? sdkArgs = null;
+                if (args != null)
+                {
+                    var dict = new Dictionary<string, object?>();
+                    foreach (var kv in args) dict[kv.Key] = kv.Value;
+                    sdkArgs = dict;
+                }
+                var result = await client.CallToolAsync(name, sdkArgs);
+
+                var sb = new StringBuilder();
+                foreach (var c in result.Content)
+                {
+                    if (c is TextContentBlock txt)
+                        sb.AppendLine(txt.Text);
+                }
+                var txtResult = sb.ToString().TrimEnd();
+                return (!(result.IsError ?? false), txtResult);
+            }
+            catch (Exception ex) { return (false, ex.Message); }
+        }
+
         public async Task<string> CallTool(string name, Dictionary<string, JsonElement>? args = null)
             => await CallToolAsync(name, args);
 

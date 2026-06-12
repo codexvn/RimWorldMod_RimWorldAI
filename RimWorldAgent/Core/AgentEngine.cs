@@ -177,19 +177,21 @@ namespace RimWorldAgent.Core.AgentRuntime
             };
 
             // 从 MCP 获取存档 sessionId → 写 session-id.txt → 供 companion 启动恢复
-            // MCP 连接成功时 LoadedGame/StartedNewGame 已完成，sessionId 立即可用
             try
             {
-                var rawId = await mcp.CallTool("get_session_id");
-                var sid = rawId?.Trim();
-                if (!string.IsNullOrEmpty(sid))
+                var (success, sid) = await mcp.TryCallTool("get_session_id");
+                if (success && !string.IsNullOrEmpty(sid))
                 {
                     var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
                     File.WriteAllText(sidFile, sid);
                     _logInfo($"[AgentEngine] session-id.txt 已写入: {sid}");
                 }
+                else
+                {
+                    _logInfo($"[AgentEngine] sessionId 尚未就绪（MCP 返回失败或为空），跳过 session-id.txt");
+                }
             }
-            catch (Exception ex) { _logWarn($"[AgentEngine] get_session_id 失败: {ex.Message}"); }
+            catch (Exception ex) { _logWarn($"[AgentEngine] get_session_id 异常: {ex.Message}"); }
 
             // CCB 子进程 + WS — 在所有 MCP 服务就绪后启动
             var ccbReady = false;
