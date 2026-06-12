@@ -184,10 +184,11 @@ namespace RimWorldAgent.Core.AgentRuntime
                 ConversationStore?.RecordAssistantMessage(text, thinking, runId, agentType);
             };
 
-            // SDK 工具调用/结果 → 录制
+            // SDK 工具调用/结果 → 录制（网关工具提取内层 action 名）
             UIMessageBus.OnToolCallRecorded += (toolId, name, input) =>
             {
-                ConversationStore?.RecordToolCall(toolId, name, input);
+                var innerName = ToolDispatcher.ExtractInnerAction(name, input);
+                ConversationStore?.RecordToolCall(toolId, innerName, input);
             };
             // tool_result 录制 — 合并 OnToolUse 耗时 + SDK echo 输出
             UIMessageBus.OnToolResultRecorded += (toolId, isError, content) =>

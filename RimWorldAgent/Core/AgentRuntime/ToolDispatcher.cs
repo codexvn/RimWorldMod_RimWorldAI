@@ -155,10 +155,27 @@ namespace RimWorldAgent.Core.AgentRuntime
                 _notifRemind, _taskRemind, _taskToolRemind, _toolOutputRemind, _worldSummaryRemind, _windowOpenRemind });
         }
 
+        /// <summary>从网关工具 input JSON 提取内层 action 名；非网关工具直接返回原名。</summary>
+        public static string ExtractInnerAction(string toolName, string inputJson)
+        {
+            if (toolName != "game_cmd") return toolName;
+            try
+            {
+                using var doc = JsonDocument.Parse(inputJson);
+                if (doc.RootElement.TryGetProperty("action", out var a))
+                    return a.GetString() ?? toolName;
+            }
+            catch { }
+            return toolName;
+        }
+
         public static void TrackToolUse(string toolName, string inputJson)
         {
             try
             {
+                // 网关工具：提取内层 action 名
+                toolName = ExtractInnerAction(toolName, inputJson);
+
                 // 内部任务工具使用 → 重置提醒计数器（实际任务操作由 TaskStore 处理）
                 if (toolName is "task_create" or "task_update" or "task_list" or "task_get")
                     _taskToolRemind!.Count = 0;
@@ -178,10 +195,13 @@ namespace RimWorldAgent.Core.AgentRuntime
             CcbWebSocket ccbWs,
             string toolId, string toolName, string input)
         {
-            if (toolName is "get_notifications" or "dismiss_notification")
+            // 网关工具：提取内层 action 名用于追踪
+            var effectiveName = ExtractInnerAction(toolName, input);
+
+            if (effectiveName is "get_notifications" or "dismiss_notification")
                 _notifReceivedCount = 0;
 
-            TrackToolUse(toolName, input);
+            TrackToolUse(effectiveName, input);
         }
 
         /// <summary>添加通知 suffix（本地操作，无 MCP 往返）</summary>

@@ -324,37 +324,44 @@ sequenceDiagram
 - 详细作物数据和肥力公式用 `active_skill resource-logistics`
 
 ## 核心工具
+
+游戏操作通过 **game_cmd { action, params }** 统一调用。game_cmd 的 action 参数 description 列出了全部可用命令及简述。
+
+高频命令速查：
+| action | 用途 | 关键参数 |
+|--------|------|----------|
+| get_game_context | 全局快照 | 无 |
+| get_colonists | 殖民者详情 | name(可选) |
+| check_colony | 问题提醒 | 无 |
+| get_work_todos | 待办工作列表 | 无 |
+| get_world_summary | 殖民地概况 | 无 |
+| move_pawn | 移动殖民者 | pawn_id, x, z |
+| draft_pawn | 征召/解除 | colonist_ids, drafted |
+| set_work_priority | 工作优先级 | colonist_id, work_type, priority |
+| designate_build | 放置蓝图 | thing_def, x1, z1, x2, z2 |
+| designate_room | 造标准间 | designate_room 相关参数 |
+| create_stockpile | 创建储藏区 | 见参数文档 |
+| schedule_operation | 安排手术 | colonist_id, operation |
+| get_tile_detail | 坐标范围详情 | x1, z1, x2, z2 |
+| search_map | 全图搜索 | query |
+| get_device_info | 设备详情 | thing_id |
+| get_colonist_health | 健康报告 | colonist_id |
+| find_pawn | 查找单位 | name, kind |
+| get_open_dialogs / select_dialog_option | 弹框处理 | 见参数文档 |
+| toggle_pause / set_game_speed | 游戏控制 | 见参数文档 |
+| get_resources | 资源查询 | 无 |
+| get_notifications | 通知列表 | 无 |
+
+参数不确定时先直接调用，参数错误时会返回该命令的完整参数 Schema 和示例，修正后重试。
+
+Agent 内部工具（直接调用，不走 game_cmd）：
 | 工具 | 用途 |
 |------|------|
-| get_game_context | 全局快照 |
-| check_colony | 问题提醒 |
-| get_work_todos | 当前待办工作列表 |
-| get_colonists | 殖民者详情 |
-| set_work_priority | 工作优先级 |
-| designate_room | 造标准间。⚠ 先用plan_add/plan_list画草图确认布局，再用apply_base_template获取精确坐标。 |
-| designate_build | 放置蓝图。⚠ 先plan_add画草图→plan_list确认→再建造 |
-| create_stockpile | 创建储藏区。⚠ 先调用get_structure_layout了解现有存储区位置 |
-| list_recipes / create_production_bill | 管理生产 |
-| draft_pawn / equip_pawn | 战斗准备 |
-| get_recommended_apparel | 按评分排名推荐衣物 |
-| get_recommended_weapon | 按科技等级排名推荐武器（远程/近战） |
-| schedule_operation | 安排手术 |
-| shooting_position_grid | 射击位评分排名（Top N，含掩体信息） |
-| defend_position | 防御位 set/list/remove/clear |
-| force_bed_rest | 强制殖民者卧床休养（一次性，痊愈自动起身） |
-| plan_add / plan_list / plan_remove | 规划画板：画草图→查看→确认布局→真正建造 |
-| get_tile_grid | 文本网格地图 |
-| get_tile_detail | 坐标范围详情 |
-| list_chunks | Chunk列表 |
-| fertility_grid / terrain_grid / temperature_grid / pollution_grid | 专项网格 |
-| designate_mine / designate_plants_cut / designate_harvest | 资源采集 |
-| get_open_dialogs / select_dialog_option | 弹框拦截：读取选项并程序化选择 |
-| get_skills / active_skill | Agent 内部工具：查看可用技能/激活获取详细指南 |
-| create_skill | Agent 内部工具：把稳定、可复用的领域流程写入 Skills.d |
-| create_growing_zone / set_grower_plant | 种植区创建与植物类型设置 |
-| haul_item / drop_carried | 搬运物品到指定位置/放下手中物品 |
-| enter_plan / enter_act | Agent 内部工具：Plan/Act 阶段切换（可选 `reason` 参数），暂停/恢复游戏 |
-| read_memory / update_memory | Agent 内部工具：读取/更新殖民地记忆文件 |
+| get_skills / active_skill | 查看可用技能/激活获取详细指南 |
+| create_skill | 把稳定可复用流程写入 Skills.d |
+| enter_plan / enter_act | Plan/Act 阶段切换 |
+| read_memory / update_memory | 读取/更新殖民地记忆 |
+| task_create / task_update / task_list / task_get | 任务管理 |
 
 ## 推送消息响应
 - `弹框提示` — 立即调 get_open_dialogs 查看选项并做出选择

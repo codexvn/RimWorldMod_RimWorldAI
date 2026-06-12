@@ -269,7 +269,7 @@ SdkMessage (abstract)
 | 游戏 → Agent | SSE `GET /sse` | `game/tick` 推送 + `game/notification` 事件 |
 | SDK → Agent | HTTP POST `:9878/mcp` | SDK `tools/call` → Agent MCP → ProxyToolProvider → 游戏 MCP |
 
-SDK 工具调用不经过 companion。
+SDK 工具调用不经过 companion。MCP 服务器隔离：C# 写出 `mcp-servers.json`（`--mcp-servers-path` 传参），TS `session.ts` 显式传入 SDK `mcpServers` + `strictMcpConfig: true`，阻止 SDK 扫描父目录 `.mcp.json`。
 
 ---
 
@@ -576,10 +576,10 @@ Skill 加载顺序：`Skills/*.md`（内置，只读）→ `Skills.d/*.md`（用
 
 ### Proxy 工具代理
 
-`ProxyToolProvider`（`Core/AgentRuntime/ProxyToolProvider.cs`）实现 `SimpleMspServer.Mcp.IToolProvider`，将 100+ 游戏 MCP 工具代理到 Agent MCP Server (:9878)。
+`ProxyToolProvider`（`Core/AgentRuntime/Tools/ProxyToolProvider.cs`）实现 `SimpleMspServer.Mcp.IToolProvider`，将 121 个游戏 MCP 工具通过**网关模式**代理到 Agent MCP Server (:9878)：暴露单一 `game_cmd` 工具，LLM 通过 `action` 参数指定命令名、`params` 传递参数，内部路由到 McpClient 调用游戏 MCP。参数错误时自动附带该工具的完整参数文档。
 
-- `CcbManager` 写入 `.mcp.json` 时始终保留内置 `agent` 端点，并合并 `RimWorldAgent` 设置页中的 HTTP/SSE/STDIO 自定义 MCP 服务
-- SDK 调用游戏工具仍走 `mcp__agent__*`，自定义 MCP 服务由 SDK 作为额外 MCP server 直连；STDIO 服务写出为 `type=stdio`、`command`、可选 `args` 数组和可选 `env`，可用 `npx/docker/python/uvx` 等命令启动，旧 `type=npx` 兼容为 `stdio`，环境变量会落盘到 `ProjectPath\.mcp.json`；`ProjectPath\.rimworld-agent-managed-mcp.json` 记录设置页写入过的服务名，用于删除时清理且不误删手工服务
+- `CcbManager` 写入 `mcp-servers.json`（非 `.mcp.json`），路径通过 `--mcp-servers-path` CLI 参数传入 companion。TS `session.ts` 读取后显式传入 SDK `mcpServers` option，配合 `strictMcpConfig: true` 阻止 SDK 自动扫描父目录的 `.mcp.json`，彻底隔离 Rider IDE 等无关 MCP 服务器；`settingSources: ['local']` 保留本地配置文件
+- SDK 调用游戏工具仍走 `mcp__agent__*`，自定义 MCP 服务由 SDK 作为额外 MCP server 直连；STDIO 服务写出为 `type=stdio`、`command`、可选 `args` 数组和可选 `env`，可用 `npx/docker/python/uvx` 等命令启动，旧 `type=npx` 兼容为 `stdio`
 - 每个工具结果末尾注入 `BuildModeSuffixAsync()` 后缀
 - SDK `disallowedTools` 已加 `Write`/`Edit`，AI 用 `update_memory` 代替；`WebFetch` 不禁用，外部资料查询优先使用 Playwright MCP 直连 Wiki（`browser_navigate`/`browser_snapshot`/`browser_evaluate`），详见 Prompt.md 和 `rimworld-wiki-search` Skill
 

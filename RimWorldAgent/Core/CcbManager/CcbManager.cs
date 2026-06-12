@@ -83,14 +83,15 @@ namespace RimWorldAgent.Core.CcbManager
 
             Directory.CreateDirectory(_projectPath);
 
-            var mcpJsonPath = Path.Combine(_projectPath, ".mcp.json");
+            var mcpJsonPath = Path.Combine(_projectPath, "mcp-servers.json");
             WriteMergedMcpJson(mcpJsonPath);
 
             WriteSettingsLocalJson();
 
             var args = $"--import tsx/esm companion/companion.ts"
                 + $" --idle-timeout 30000"
-                + $" --project-path \"{_projectPath}\"";
+                + $" --project-path \"{_projectPath}\""
+                + $" --mcp-servers-path \"{mcpJsonPath}\"";
             if (!string.IsNullOrEmpty(_modelName))
                 args += $" --model-name \"{_modelName}\"";
             if (_logSdk)
@@ -549,7 +550,6 @@ namespace RimWorldAgent.Core.CcbManager
                 root["env"] = env;
 
                 // claudeMdExcludes — 排除所有文件系统上 CLAUDE.md（SDK 从 cwd 向上遍历）
-
                 root["claudeMdExcludes"] = new List<string> { "**/CLAUDE.md" };
                 CoreLog.Info($"[CcbManager] claudeMdExcludes: **/CLAUDE.md, autoMemory: off");
 

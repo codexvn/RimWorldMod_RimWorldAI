@@ -1,5 +1,6 @@
 /** SDK 会话 — AsyncStream + query + onMessage 回调 */
 
+import { readFileSync } from 'fs';
 import { CONFIG, Thinking } from '../companion/config.js';
 import { buildSystemPrompt } from '../rimworld/context.js';
 import { Options, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agent-sdk';
@@ -40,6 +41,18 @@ export class AsyncStream<T = any> {
 export function createSession(sdk: any, abortController?: AbortController) {
   const inputStream = new AsyncStream<any>();
 
+  // 从 C# 写入的 mcp-servers.json 加载 MCP 服务器配置
+  let mcpServers: Record<string, any> | undefined;
+  if (CONFIG.mcpServersPath) {
+    try {
+      const raw = readFileSync(CONFIG.mcpServersPath, 'utf8');
+      mcpServers = JSON.parse(raw).mcpServers;
+      console.log(`[session] 加载 MCP 服务器: ${Object.keys(mcpServers || {}).join(', ')}`);
+    } catch (err: any) {
+      console.error(`[session] 读取 mcp-servers.json 失败: ${err.message}`);
+    }
+  }
+
   const options = {
     cwd: CONFIG.projectPath,
     model: CONFIG.modelName || undefined,
@@ -49,7 +62,9 @@ export function createSession(sdk: any, abortController?: AbortController) {
     disallowedTools: ['Bash', 'Write', 'Edit', 'NotebookEdit', 'EnterWorktree', 'ExitWorktree', 'CronCreate', 'CronDelete', 'CronList', 'ScheduleWakeup', 'AskUserQuestion', 'EnterPlanMode', 'ExitPlanMode', 'Skill', 'Task', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet', 'TaskOutput', 'TaskStop', 'Glob', 'Grep', 'Read', 'Workflow', 'Agent'],
     autoCompactEnabled: true,
     includePartialMessages: true,
-    settingSources: CONFIG.settingSources as any,
+    mcpServers: mcpServers || {},
+    strictMcpConfig: true,
+    settingSources: ['local'] as string[],
     systemPrompt: [buildSystemPrompt(CONFIG.projectPath), SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
     stderr: (data: string | Buffer) => {
       process.stderr.write(`[sdk] ${typeof data === 'string' ? data : data.toString()}`);
