@@ -49,9 +49,6 @@ namespace RimWorldAgent
         public static string SessionId = "";
         public static string AgentStatus = "";
         public static bool CompactionActive;
-        public static long ContextWindow;
-        public static long CurrentInputTokens;
-
         private static readonly List<ChatEntry> _entries = new();
         private static readonly List<ToolCallInfo> _toolCalls = new();
         private static readonly List<SdkTaskItem> _sdkTasks = new();
@@ -335,16 +332,9 @@ namespace RimWorldAgent
                         break;
                     }
                     case "result":
-                    {
-                        var subtype = root.TryGetProperty("subtype", out var srs) ? srs.GetString() ?? "" : "";
-                        var used = root.TryGetProperty("used", out var u) ? u.GetInt64() : 0;
-                        var limit = root.TryGetProperty("limit", out var l) ? l.GetInt64() : 0;
-                        var cacheR = root.TryGetProperty("cacheRead", out var cr) ? cr.GetInt64() : 0;
-                        var totalIn = root.TryGetProperty("totalInput", out var ti) ? ti.GetInt64() : 0;
-                        var cacheC = root.TryGetProperty("cacheCreate", out var cc) ? cc.GetInt64() : 0;
-                        EnqueueUiEvent(() => { FinishStreaming(); UpdateBudget(subtype, used, limit, cacheR, totalIn, cacheC); });
+                        // 会话结束的 result 不含 per-turn 缓存字段，仅需 finish streaming
+                        EnqueueUiEvent(() => FinishStreaming());
                         break;
-                    }
                     case "aborted":
                         EnqueueUiEvent(() => MarkLastAborted());
                         break;
@@ -383,17 +373,11 @@ namespace RimWorldAgent
                     {
                         var used = root.TryGetProperty("used", out var bu) ? bu.GetInt64() : 0;
                         var limit = root.TryGetProperty("limit", out var bl) ? bl.GetInt64() : 0;
-                        var cacheR = root.TryGetProperty("cacheRead", out var cr) ? cr.GetInt64() : 0;
-                        var totalIn = root.TryGetProperty("totalInput", out var ti) ? ti.GetInt64() : 0;
-                        var cacheC = root.TryGetProperty("cacheCreate", out var cc) ? cc.GetInt64() : 0;
-                        var ctxWin = root.TryGetProperty("contextWindow", out var cw) ? cw.GetInt64() : 0;
                         var inTok = root.TryGetProperty("inputTokens", out var it) ? it.GetInt64() : 0;
-                        EnqueueUiEvent(() =>
-                        {
-                            ContextWindow = ctxWin;
-                            CurrentInputTokens = inTok;
-                            UpdateBudget("", used, limit, cacheR, totalIn, cacheC, inTok);
-                        });
+                        var curCacheR = root.TryGetProperty("currentCacheRead", out var ccr) ? ccr.GetInt64() : 0;
+                        var curCacheC = root.TryGetProperty("currentCacheCreate", out var ccc) ? ccc.GetInt64() : 0;
+                        var totalIn = root.TryGetProperty("totalInput", out var ti) ? ti.GetInt64() : 0;
+                        EnqueueUiEvent(() => UpdateBudget(used, limit, inTok, curCacheR, curCacheC, totalIn));
                         break;
                     }
                     case "agent-status":
@@ -437,29 +421,22 @@ namespace RimWorldAgent
             }
         }
 
-        private static void UpdateBudget(string ubtype, long used, long limit, long cacheRead = 0, long totalInput = 0, long cacheCreate = 0, long inputTokens = 0)
+        private static void UpdateBudget(long used, long limit, long inputTokens, long currentCacheRead, long currentCacheCreate, long totalInput)
         {
             static string Fmt(long v) => v >= 1_000_000 ? $"{v / 1_000_000f:F1}M" : v >= 1000 ? $"{v / 1000f:F0}K" : v.ToString();
 
             var parts = new System.Text.StringBuilder();
 
-            // ① 输入用量: 入 12K 或 入 12K/200K 6%
-            if (inputTokens > 0)
+            // 入 12K/13K(35%) — 非缓存 / 总输入(缓存命中率)
+            var totalPerTurn = inputTokens + currentCacheRead;
+            if (totalPerTurn > 0)
             {
-                long ctxWin = ContextWindow;
-                if (ctxWin > 0)
-                {
-                    double ctxPct = (double)inputTokens / ctxWin * 100.0;
-                    parts.Append($"入 {Fmt(inputTokens)}/{Fmt(ctxWin)} {ctxPct:F0}%");
-                }
-                else
-                {
-                    parts.Append($"入 {Fmt(inputTokens)}");
-                }
+                var hitRate = (double)currentCacheRead / totalPerTurn * 100.0;
+                parts.Append($"入 {Fmt(inputTokens)}/{Fmt(totalPerTurn)}({hitRate:F0}%)");
             }
 
-            // ② Token 预算: Tok 43K/200K 85%
-            if (parts.Length > 0) parts.Append("  │  ");
+            // Tok 43K/200K 22% ██░░
+            if (parts.Length > 0) parts.Append("    ");
             parts.Append("Tok ");
             parts.Append(Fmt(used));
             parts.Append("/");
@@ -467,20 +444,15 @@ namespace RimWorldAgent
             if (limit > 0 && used > 0)
             {
                 CurrentBudgetPercent = (float)((double)used / limit * 100.0);
-                parts.Append($" {CurrentBudgetPercent:F0}%");
+                var pct = CurrentBudgetPercent;
+                var blocks = (int)(pct / 10.0);
+                if (blocks > 10) blocks = 10;
+                var bar = new string('█', blocks) + new string('░', 10 - blocks);
+                parts.Append($" {pct:F0}% {bar}");
                 CurrentBudgetStatus = used >= limit ? BudgetStatus.Exceeded
-                    : CurrentBudgetPercent >= 95f ? BudgetStatus.Critical
-                    : CurrentBudgetPercent >= 80f ? BudgetStatus.Warning
+                    : pct >= 95f ? BudgetStatus.Critical
+                    : pct >= 80f ? BudgetStatus.Warning
                     : BudgetStatus.Ok;
-            }
-
-            // ③ 缓存命中: 缓存 12K 35%
-            long totalInWithCache = totalInput + cacheRead + cacheCreate;
-            if (totalInWithCache > 0)
-            {
-                double cachePct = (double)cacheRead / totalInWithCache * 100.0;
-                if (parts.Length > 0) parts.Append("  │  ");
-                parts.Append($"缓存 {Fmt(cacheRead)} {cachePct:F0}%");
             }
 
             CurrentBudgetText = parts.ToString();
