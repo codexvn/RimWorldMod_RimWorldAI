@@ -39,6 +39,10 @@ namespace RimWorldAgent
         public static long CurrentContextWindow { get; set; }
         /// <summary>最近一次请求的输入 token 数（反映当前上下文实际用量）</summary>
         public static long CurrentInputTokens { get; set; }
+        /// <summary>最近一次请求的缓存命中 token 数（用于计算 per-turn 命中率）</summary>
+        public static long CurrentCacheReadTokens { get; set; }
+        /// <summary>最近一次请求的缓存新建 token 数</summary>
+        public static long CurrentCacheCreateTokens { get; set; }
 
         public static void Record(string model, long inputTokens, long outputTokens,
             long cacheRead, long cacheCreate, long durationMs)
@@ -130,10 +134,10 @@ namespace RimWorldAgent
             string fmt(long v) => v >= 1_000_000 ? $"{v / 1_000_000f:F1}M" :
                                   v >= 1_000 ? $"{v / 1_000f:F0}K" : v.ToString();
 
-            long totalInputWithCache = db.TotalInputTokens + db.TotalCacheReadTokens;
-            long totalOutput = db.TotalOutputTokens;
-            double cacheHitRate = totalInputWithCache > 0
-                ? (double)db.TotalCacheReadTokens / totalInputWithCache * 100.0
+            // 本轮输入 = thisTurnInput + thisTurnCacheRead
+            long thisTurnInput = CurrentInputTokens + CurrentCacheReadTokens;
+            double thisTurnHitRate = thisTurnInput > 0
+                ? (double)CurrentCacheReadTokens / thisTurnInput * 100.0
                 : 0.0;
 
             int totalCalls = db.TotalToolSuccess + db.TotalToolFailure;
@@ -148,12 +152,11 @@ namespace RimWorldAgent
                 int blocks = (int)(pct / 10.0);
                 if (blocks > 10) blocks = 10;
                 string bar = new string('█', blocks) + new string('░', 10 - blocks);
-                tokenPart = $"入 {fmt(totalInputWithCache)}({cacheHitRate:F0}%) | {fmt(db.TotalAllTokens)}/{fmt(budgetLimit)} ({pct:F0}%)";
-                if (pct < 80) tokenPart += $" {bar}";
+                tokenPart = $"入 {fmt(thisTurnInput)}({thisTurnHitRate:F0}%) | 总计 {fmt(db.TotalAllTokens)}/{fmt(budgetLimit)}({pct:F0}%) {bar}";
             }
             else
             {
-                tokenPart = $"入 {fmt(totalInputWithCache)}({cacheHitRate:F0}%) | {fmt(db.TotalAllTokens)}";
+                tokenPart = $"入 {fmt(thisTurnInput)}({thisTurnHitRate:F0}%) | 总计 {fmt(db.TotalAllTokens)}";
             }
 
             return $"{tokenPart} | {toolStr}{db.TotalRequests}轮";

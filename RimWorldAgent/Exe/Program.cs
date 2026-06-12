@@ -99,9 +99,10 @@ namespace RimWorldAgent
             // 初始化完成后显式推送一次预算状态
             UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                 TokenUsageTracker.TotalAllTokens, AgentLoop.BudgetLimit, "Idle",
-                TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens,
+                TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens,
                 TokenUsageTracker.TotalCacheCreateTokens, 0,
-                TokenUsageTracker.CurrentInputTokens));
+                TokenUsageTracker.CurrentInputTokens,
+                TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens));
 
             Console.WriteLine("Agent Main Loop 启动 (Ctrl+C 退出)");
 

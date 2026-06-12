@@ -120,7 +120,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                         TokenUsageTracker.TotalAllTokens, BudgetLimit, "Idle",
                         TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens,
                         TokenUsageTracker.TotalCacheCreateTokens, TokenUsageTracker.CurrentContextWindow,
-                        TokenUsageTracker.CurrentInputTokens).ToJson());
+                        TokenUsageTracker.CurrentInputTokens,
+                        TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens).ToJson());
                 }
                 catch (Exception ex) { CoreLog.Warn($"[AgentLoop] 推送 budget_status 失败: {ex.GetType().Name}: {ex.Message}"); }
                 try
@@ -223,7 +224,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                 UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                     TokenUsageTracker.TotalAllTokens, BudgetLimit, "Block",
                     TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalCacheCreateTokens,
-                    0, TokenUsageTracker.CurrentInputTokens));
+                    0, TokenUsageTracker.CurrentInputTokens,
+                    TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens));
             };
 
             // 初始推送：budget 起始状态
@@ -286,7 +288,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                 db.TotalAllTokens, BudgetLimit, "Idle",
                 db.TotalCacheReadTokens, db.TotalInputTokens,
-                db.TotalCacheCreateTokens, 0, TokenUsageTracker.CurrentInputTokens));
+                db.TotalCacheCreateTokens, 0, TokenUsageTracker.CurrentInputTokens,
+                TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens));
         }
 
         private static string FormatExceptionChain(Exception ex)

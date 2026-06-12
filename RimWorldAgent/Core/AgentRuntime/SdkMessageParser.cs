@@ -125,6 +125,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                     if (evt.Usage != null)
                     {
                         TokenUsageTracker.CurrentInputTokens = evt.Usage.InputTokens;
+                        TokenUsageTracker.CurrentCacheReadTokens = evt.Usage.CacheReadInputTokens ?? 0;
+                        TokenUsageTracker.CurrentCacheCreateTokens = evt.Usage.CacheCreationInputTokens ?? 0;
                         TokenUsageTracker.Record(evt.Usage.InputTokens, evt.Usage.OutputTokens,
                             evt.Usage.CacheReadInputTokens ?? 0, evt.Usage.CacheCreationInputTokens ?? 0, 0);
                     }
