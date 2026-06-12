@@ -118,7 +118,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 {
                     socket.Send(UiMessage.BudgetStatus(
                         TokenUsageTracker.TotalAllTokens, BudgetLimit, "Idle",
-                        TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens,
+                        TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens,
                         TokenUsageTracker.TotalCacheCreateTokens, TokenUsageTracker.CurrentContextWindow,
                         TokenUsageTracker.CurrentInputTokens).ToJson());
                 }
@@ -222,7 +222,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                     TokenUsageTracker.TotalAllTokens, BudgetLimit, "Block",
-                    TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens, TokenUsageTracker.TotalCacheCreateTokens,
+                    TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalCacheCreateTokens,
                     0, TokenUsageTracker.CurrentInputTokens));
             };
 

@@ -95,7 +95,7 @@ namespace RimWorldAgent
             var sb = new StringBuilder();
             long totalTokens = db.TotalInputTokens + db.TotalOutputTokens;
             double avgDurationSec = db.TotalDurationMs / (double)db.TotalRequests / 1000.0;
-            long totalInputWithCache = db.TotalInputTokens;
+            long totalInputWithCache = db.TotalInputTokens + db.TotalCacheReadTokens;
             double cacheHitRate = totalInputWithCache > 0
                 ? (double)db.TotalCacheReadTokens / totalInputWithCache * 100.0
                 : 0.0;
@@ -130,8 +130,8 @@ namespace RimWorldAgent
             string fmt(long v) => v >= 1_000_000 ? $"{v / 1_000_000f:F1}M" :
                                   v >= 1_000 ? $"{v / 1_000f:F0}K" : v.ToString();
 
-            long totalTokens = db.TotalInputTokens + db.TotalOutputTokens;
-            long totalInputWithCache = db.TotalInputTokens;
+            long totalInputWithCache = db.TotalInputTokens + db.TotalCacheReadTokens;
+            long totalOutput = db.TotalOutputTokens;
             double cacheHitRate = totalInputWithCache > 0
                 ? (double)db.TotalCacheReadTokens / totalInputWithCache * 100.0
                 : 0.0;
@@ -148,14 +148,15 @@ namespace RimWorldAgent
                 int blocks = (int)(pct / 10.0);
                 if (blocks > 10) blocks = 10;
                 string bar = new string('█', blocks) + new string('░', 10 - blocks);
-                tokenPart = $"Token: {fmt(db.TotalAllTokens)}/{fmt(budgetLimit)} ({pct:F0}%) {bar}";
+                tokenPart = $"入 {fmt(totalInputWithCache)}({cacheHitRate:F0}%) | {fmt(db.TotalAllTokens)}/{fmt(budgetLimit)} ({pct:F0}%)";
+                if (pct < 80) tokenPart += $" {bar}";
             }
             else
             {
-                tokenPart = $"Token: {fmt(totalTokens)}";
+                tokenPart = $"入 {fmt(totalInputWithCache)}({cacheHitRate:F0}%) | {fmt(db.TotalAllTokens)}";
             }
 
-            return $"{tokenPart} | 缓存 {fmt(db.TotalCacheReadTokens)}({cacheHitRate:F0}%) | {toolStr}{db.TotalRequests}轮";
+            return $"{tokenPart} | {toolStr}{db.TotalRequests}轮";
         }
     }
 }
