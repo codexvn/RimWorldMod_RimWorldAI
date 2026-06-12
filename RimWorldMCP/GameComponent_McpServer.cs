@@ -20,7 +20,7 @@ namespace RimWorldMCP
         public override void StartedNewGame()
         {
             base.StartedNewGame();
-            _sessionId = GenerateSessionId();
+            // sessionId 由 Agent 通过 set_session_id 设置，不主动生成
             CurrentSessionId = _sessionId;
             DeteriorationTracker.Reset();
             TrappedColonistTracker.Reset();
@@ -30,7 +30,7 @@ namespace RimWorldMCP
         public override void LoadedGame()
         {
             base.LoadedGame();
-            if (string.IsNullOrEmpty(_sessionId)) _sessionId = GenerateSessionId();
+            // sessionId 由 Scribe 从存档读取，或由 Agent set_session_id 设置
             CurrentSessionId = _sessionId;
             DeteriorationTracker.Reset();
             TrappedColonistTracker.Reset();
@@ -42,8 +42,6 @@ namespace RimWorldMCP
             base.ExposeData();
             Scribe_Values.Look(ref _sessionId, "mcpSessionId", "");
         }
-
-        private static string GenerateSessionId() => Guid.NewGuid().ToString();
 
         /// <summary>由 Agent 调用，更新 sessionId（如 SDK 生成新 UUID 时）。空字符串表示清空。</summary>
         public static void SetSessionId(string id)
