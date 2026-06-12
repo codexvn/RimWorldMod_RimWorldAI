@@ -22,8 +22,10 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static void ResetNotifCount() => _notifReceivedCount = 0;
         public static void ResetActPauseCount()
         {
+            /* _actPauseRemind 和 _actTurnRemind 已关闭
             _actPauseRemind!.Count = 0;
             _actTurnRemind!.Count = 0;
+            */
             _taskToolRemind!.Count = 0;
             _toolOutputRemind!.Count = 0;
         }
@@ -84,9 +86,11 @@ namespace RimWorldAgent.Core.AgentRuntime
         private static int _lastWindowsOpen;
         private static string? _lastWindowsNames;
         private static string? _lastSpeedLabel;
+        /* 节奏提醒已关闭
         private static Reminder? _actPauseRemind;
         private static Reminder? _actTurnRemind;
         private static Reminder? _planStayRemind;
+        */
         private static Reminder? _taskRemind;
         private static Reminder? _taskToolRemind;
         private static Reminder? _toolOutputRemind;
@@ -96,6 +100,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         static ToolDispatcher()
         {
+            /* 节奏提醒已关闭
             _actPauseRemind = new Reminder("ACT 暂停", ActPauseThreshold,
                 () => "\n\n<system-reminder>\n⚠️ 游戏仍处于暂停状态！你在 ACT 阶段但游戏时间不推进。请立即调用 enter_act() 恢复游戏。\n</system-reminder>",
                 () => AgentOrchestrator.CurrentPhase == GamePhase.Act && _lastIsPaused);
@@ -107,6 +112,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             _planStayRemind = new Reminder("PLAN 停留过久", PlanStayThreshold,
                 () => "\n\n<system-reminder>\n⚠️ 你已在 PLAN 阶段停留较久，游戏已长时间冻结。请尽快制定计划并调用 enter_act() 恢复游戏。\n</system-reminder>",
                 () => AgentOrchestrator.CurrentPhase == GamePhase.Plan);
+            */
 
             _notifRemind = new Reminder("通知堆积", NotifThreshold,
                 () => "\n\n<system-reminder>\n⚠️ 你有未处理的通知堆积。请立即用 get_notifications 查看，用 dismiss_notification 关闭不需要的通知。\n</system-reminder>",
@@ -143,7 +149,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 () => "\n\n<system-reminder>\n⚠️ 距上次获取殖民地概况已有一段时间。请调用 get_world_summary 刷新全局状态，确保决策基于最新信息。\n</system-reminder>",
                 () => true);
 
-            _reminders.AddRange(new[] { _actPauseRemind, _actTurnRemind, _planStayRemind,
+            _reminders.AddRange(new[] { /* _actPauseRemind, _actTurnRemind, _planStayRemind 已关闭, */
                 _notifRemind, _taskRemind, _taskToolRemind, _toolOutputRemind, _worldSummaryRemind, _windowOpenRemind });
         }
 

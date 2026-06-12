@@ -455,11 +455,85 @@ SdkMessage (abstract)
 | 压缩通知 | system(status) | status="compacting" | 仅 known，不处理 |
 
 
-### Plan/Act 阶段
+### Plan/Act 循环 — AI 操作节律
 
-- `enter_plan(speed?, reason?)` — 暂停游戏，进入 PLAN
-- `enter_act(speed?, reason?)` — 恢复游戏，进入 ACT
-- `GamePaceController`：`toggle_pause` 幂等，直接调 MCP，不维护本地暂停缓存
+AI 指挥官每次介入遵循**三段循环**，类比"写代码→运行→调试"的开发节奏：先设计架构，再修改代码，最后编译运行看结果。
+
+```mermaid
+sequenceDiagram
+    participant AI as 🤖 AI 指挥官
+    participant MCP as 🎮 游戏 MCP
+    participant Game as ⏱️ RimWorld
+
+    Note over AI,Game: 🔁 循环入口（事件触发 / 晨报 / 定时唤醒）
+
+    rect rgb(240, 248, 255)
+        Note over AI,Game: ① PLAN · 规划阶段（暂停）
+        AI->>MCP: enter_plan()
+        MCP->>Game: toggle_pause(speed=paused)
+        Game-->>MCP: ✅ 已暂停
+        AI->>MCP: get_skills()
+        AI->>MCP: active_skill(name)
+        Note over AI: 加载领域知识，分析殖民地现状
+        AI->>MCP: get_game_context()
+        AI->>MCP: task_create(任务清单)
+        Note over AI: 制定执行计划
+    end
+
+    AI->>MCP: enter_act()
+    MCP->>Game: toggle_pause(speed=paused)
+    Note over AI,Game: 进入 ACT（游戏保持暂停）
+
+    rect rgb(255, 248, 240)
+        Note over AI,Game: ② ACT · 执行阶段（暂停）
+        AI->>MCP: designate_build(蓝图)
+        AI->>MCP: equip_pawn(装备)
+        AI->>MCP: draft_pawn(征召)
+        AI->>MCP: set_work_priority(工作)
+        AI->>MCP: create_bill(单据)
+        AI->>MCP: create_stockpile(区域)
+        Note over AI: 批量下达建造/装备/战斗指令
+    end
+
+    AI->>MCP: advance_tick(hours=2)
+    MCP->>Game: CurTimeSpeed = Ultrafast
+    Note over AI,Game: 进入 ADVANCE（游戏运行）
+
+    rect rgb(240, 255, 240)
+        Note over AI,Game: ③ ADVANCE · 推进观察（运行）
+        Note over Game: 游戏时间推进，殖民者自动执行任务
+        Game-->>MCP: advance_tick 返回
+        MCP-->>AI: 状态: 殖民者 / 敌人 / 警告
+        AI->>MCP: check_colony()
+        AI->>MCP: get_colonists()
+        Note over AI: 诊断: 缺材料? 路径阻断? 优先级不对?
+    end
+
+    alt 结果达标
+        Note over AI: ✅ 继续下一任务
+    else 需要调整
+        Note over AI: 🔄 enter_plan() 下一轮循环
+    else 紧急事件触发
+        Note over AI: 🚨 跳过 PLAN 直接 ACT
+    end
+```
+
+**阶段职责与约束**：
+
+| 阶段 | 游戏状态 | AI 行为 | 关键工具 | C# 入口 |
+|------|---------|--------|---------|---------|
+| **PLAN** | 暂停 (paused) | 观察、分析、规划 | `enter_plan`, `get_skills`, `active_skill`, `task_create` | `AgentOrchestrator.EnterPlanPhase()` + `GamePaceController.PauseForPlanning()` |
+| **ACT** | 可暂停 (paused) | 下达建造/装备/战斗/工作指令 | `enter_act`, `designate_*`, `equip_pawn`, `draft_pawn`, `set_work_priority`, `create_bill` | `AgentOrchestrator.EnterActPhase()` + `GamePaceController.ResumeForAction()` |
+| **ADVANCE** | 运行 (ultrafast) | 推进时间、观察结果、诊断问题 | `advance_tick`, `toggle_pause`, `check_colony`, `get_colonists` | `Tool_AdvanceTick.ExecuteAsync()` → `Find.TickManager.CurTimeSpeed = Ultrafast` |
+
+**阶段约束**（详见 `Prompt.md`）：
+- **PLAN** 下禁止：建造/拆除、征召/装备、`advance_tick`、创建单据/存储区/种植区
+- **ACT** 下连续执行 10+ 轮工具调用会触发系统提醒：暂停游戏、审视进度、更新计划
+- **ADVANCE** 完成前不重复下达相同命令；任务无进展先诊断原因再调整
+
+**紧急分支**：Critical 事件（袭击/火灾/疯动物）可跳过 PLAN 直接进入 ACT，在 1 倍速下指挥战斗。详见[中断机制](#中断机制)。
+
+**隐喻**：PLAN = 写代码前设计架构 → ACT = 实际修改代码 → ADVANCE = 编译运行看结果。
 
 ### 工具耗时
 

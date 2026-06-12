@@ -224,7 +224,10 @@ namespace RimWorldMCP.Tools
         internal static string GetCompSummary(Thing thing)
         {
             var parts = new List<string>();
-            if (thing.TryGetComp<CompPowerTrader>() != null) parts.Add("电力");
+            // 细分电源类型
+            if (thing.TryGetComp<CompPowerPlantWind>() != null) parts.Add("风力");
+            else if (thing.TryGetComp<CompPowerPlantSolar>() != null) parts.Add("太阳能");
+            else if (thing.TryGetComp<CompPowerTrader>() != null) parts.Add("电力");
             if (thing.TryGetComp<CompTempControl>() != null) parts.Add("温控");
             if (thing.TryGetComp<CompRefuelable>() != null) parts.Add("燃料");
             if (thing.TryGetComp<CompFlickable>() != null) parts.Add("开关");
@@ -232,6 +235,8 @@ namespace RimWorldMCP.Tools
             if (thing.TryGetComp<CompLaunchable>() != null) parts.Add("发射");
             if (thing.TryGetComp<CompShuttle>() != null) parts.Add("穿梭机");
             if (thing is Building_PodLauncher) parts.Add("发射台");
+            if (thing.TryGetComp<CompAutoCutWindTurbine>() != null) parts.Add("自动砍树");
+            if (thing.TryGetComp<CompStunnable>() != null) parts.Add("可眩晕");
             return parts.Count == 0 ? "建筑" : string.Join(",", parts);
         }
 
@@ -468,50 +473,77 @@ namespace RimWorldMCP.Tools
             else
                 sb.AppendLine("- 全部 Comp: (无)");
 
-            var power = thing.TryGetComp<CompPowerTrader>();
-            if (power != null)
-                sb.AppendLine($"- 电力: PowerOn={YesNo(power.PowerOn)}, Off={YesNo(power.Off)}, PowerOutput={power.PowerOutput:F0}W");
-
-            var temp = thing.TryGetComp<CompTempControl>();
-            if (temp != null)
-                sb.AppendLine($"- 温控: 目标 {temp.TargetTemperature:F0}°C，高功耗={YesNo(temp.operatingAtHighPower)}");
-
-            var fuel = thing.TryGetComp<CompRefuelable>();
-            if (fuel != null)
+            // ★ 游戏 UI 等价检测信息 — 复用 ThingWithComps.GetInspectString() 链
+            var inspectStr = thing.GetInspectString();
+            if (!string.IsNullOrEmpty(inspectStr))
             {
-                var canEject = fuel.CanEjectFuel();
-                sb.AppendLine($"- 燃料: {fuel.Fuel:F0}/{fuel.Props.fuelCapacity:F0}，目标 {fuel.TargetFuelLevel:F0}，有燃料={YesNo(fuel.HasFuel)}，已满={YesNo(fuel.IsFull)}，自动添加={YesNo(fuel.allowAutoRefuel)}，可排出={YesNo(canEject.Accepted)}{(canEject.Accepted ? "" : $" ({canEject.Reason})")}");
+                foreach (var line in inspectStr.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    sb.AppendLine($"- {Escape(line.TrimEnd('\r'))}");
             }
 
-            var flickable = thing.TryGetComp<CompFlickable>();
-            if (flickable != null)
-                sb.AppendLine($"- 开关: 当前={YesNo(flickable.SwitchIsOn)}，待拨动={YesNo(flickable.WantsFlick())}");
+            // ★ 设备作用范围 — 使用游戏 UI 绘制覆盖层同源 API
+            AppendRangeInfo(sb, thing);
+        }
 
-            var battery = thing.TryGetComp<CompPowerBattery>();
-            if (battery != null)
-                sb.AppendLine($"- 电池: {battery.StoredEnergy:F0}/{battery.Props.storedEnergyMax:F0} Wd ({battery.StoredEnergyPct * 100f:F0}%)");
-
-            var breakdown = thing.TryGetComp<CompBreakdownable>();
-            if (breakdown != null)
-                sb.AppendLine($"- 故障: {YesNo(breakdown.BrokenDown)}");
-
-            var transporter = thing.TryGetComp<CompTransporter>();
-            if (transporter != null)
+        /// <summary>获取设备作用范围，数据源与 DrawExtraSelectionOverlays / PlaceWorker.DrawGhost 同源。</summary>
+        private static void AppendRangeInfo(StringBuilder sb, Thing thing)
+        {
+            // 风道范围 — PlaceWorker_WindTurbine.DrawGhost 用 WindTurbineUtility.CalculateWindCells
+            if (thing.TryGetComp<CompPowerPlantWind>() != null)
             {
-                sb.AppendLine($"- 运输器: 装载/待发射={YesNo(transporter.LoadingInProgressOrReadyToLaunch)}，剩余装载={YesNo(transporter.AnythingLeftToLoad)}，质量 {transporter.MassUsage:F1}/{transporter.MassCapacity:F1}kg，组ID={transporter.groupID}，容器物品={transporter.innerContainer.Count}");
-                sb.Append(FormatTransporterDetails(transporter));
+                var cells = WindTurbineUtility.CalculateWindCells(
+                    thing.Position, thing.Rotation, thing.def.size).ToList();
+                sb.AppendLine($"- 风道范围: {cells.Count} cells");
             }
 
-            var launchable = thing.TryGetComp<CompLaunchable>();
-            if (launchable != null)
-                sb.AppendLine($"- 发射: 燃料 {launchable.FuelLevel:F0}/{launchable.MaxFuelLevel:F0}，可发射={YesNo(launchable.CanLaunch(null).Accepted)}");
+            // 炮塔射程 — Building_TurretGun.DrawExtraSelectionOverlays 用 AttackVerb
+            var turret = thing as Building_TurretGun;
+            if (turret != null)
+            {
+                var verb = turret.AttackVerb;
+                if (verb != null)
+                {
+                    float max = verb.EffectiveRange;
+                    float min = verb.verbProps.EffectiveMinRange(true);
+                    sb.Append($"- 射程: {max:F1}");
+                    if (min > 0.1f) sb.Append($", 最小射程: {min:F1}");
+                    sb.AppendLine();
+                }
+            }
 
-            var shuttle = thing.TryGetComp<CompShuttle>();
-            if (shuttle != null)
-                sb.AppendLine($"- 穿梭机: 自动装载={YesNo(shuttle.Autoload)}，显示装载按钮={YesNo(shuttle.ShowLoadingGizmos)}，运输器组={shuttle.TransportersInGroup.Count}");
+            // 太阳灯 — Thing.DrawExtraSelectionOverlays 用 def.specialDisplayRadius
+            if (thing.def.defName == "SunLamp")
+            {
+                var glower = thing.TryGetComp<CompGlower>();
+                if (glower != null)
+                    sb.AppendLine($"- 光照半径: {glower.GlowRadius:F1}");
+                if (thing.def.specialDisplayRadius > 0.1f)
+                    sb.AppendLine($"- 种植半径: {thing.def.specialDisplayRadius:F1}");
+            }
 
-            if (thing is Building_PodLauncher launcher)
-                sb.AppendLine($"- 运输舱发射台: 自动建造运输舱={YesNo(launcher.autoPlacePods)}");
+            // 贸易信标 — PlaceWorker_ShowTradeBeaconRadius.DrawGhost 用 TradeableCellsAround
+            var beacon = thing as Building_OrbitalTradeBeacon;
+            if (beacon != null && thing.Map != null)
+            {
+                var cells = Building_OrbitalTradeBeacon.TradeableCellsAround(thing.Position, thing.Map);
+                sb.AppendLine($"- 贸易范围: 半径 7.9, 覆盖 {cells.Count} cells");
+            }
+
+            // 噪声源 — CompNoiseSource.PostDrawExtraSelectionOverlays 用 Props.radius
+            var noise = thing.TryGetComp<CompNoiseSource>();
+            if (noise != null)
+                sb.AppendLine($"- 噪声半径: {noise.Props.radius:F1}");
+
+            // 植物杀手 — PlaceWorker_ShowPlantHarmRadius.DrawGhost 用 CurrentRadius
+            var plantHarm = thing.TryGetComp<CompPlantHarmRadius>();
+            if (plantHarm != null)
+                sb.AppendLine($"- 植物杀伤半径: {plantHarm.CurrentRadius:F1}");
+
+            // 地形泵 (CompTerrainPump) 和地形改造器 (CompTerraformer) 范围由 GetInspectString 覆盖
+
+            // 通用: specialDisplayRadius 覆盖层 — Thing.DrawExtraSelectionOverlays 基类
+            if (thing.def.specialDisplayRadius > 0.1f && thing.def.defName != "SunLamp")
+                sb.AppendLine($"- 作用半径: {thing.def.specialDisplayRadius:F1}");
         }
 
         internal static string YesNo(bool value) => value ? "是" : "否";
