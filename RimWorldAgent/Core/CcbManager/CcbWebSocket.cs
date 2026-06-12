@@ -144,11 +144,11 @@ public class CcbWebSocket : IDisposable
         await SendJson(new { type = "chat", text, session, thinking = new { mode, effort } });
     }
 
-    /// <summary>发送中断请求，中止当前 AI 回复</summary>
-    public async Task SendAbort()
+    /// <summary>发送中断请求，中止当前 AI 回复。clear=true 表示清空上下文不复用旧会话。</summary>
+    public async Task SendAbort(bool clear = false)
     {
-        await SendJson(new { type = "abort" });
-        CoreLog.Info("[CcbWS] 已发送中断请求");
+        await SendJson(new { type = "abort", clear });
+        CoreLog.Info($"[CcbWS] 已发送中断请求 (clear={clear})");
     }
 
     // ========== 内部 ==========

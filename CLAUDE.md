@@ -135,6 +135,7 @@ dotnet build RimWorldAI.sln
 | `design/mcp-server-integration.md` | MCP Server 集成 |
 | `design/agent-runtime.md` | Agent Runtime |
 | `design/conversation-history.md` | 会话历史持久化（SQLite + WS 协议） |
+| `RimWorldAgent/design/session-resume.md` | 会话恢复 — sessionId Scribe 持久化 + SDK resume |
 
 ### 提交
 

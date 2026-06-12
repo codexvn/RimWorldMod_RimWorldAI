@@ -71,6 +71,11 @@ export function createSession(sdk: any, abortController?: AbortController) {
     },
   } as Options;
 
+  if (CONFIG.resumeSessionId) {
+    (options as any).resume = CONFIG.resumeSessionId;
+    console.log(`[session] 恢复会话: ${CONFIG.resumeSessionId}`);
+  }
+
   const tm = Thinking.mode;
   if (tm === 'disabled') {
     options.thinking = { type: 'disabled' };

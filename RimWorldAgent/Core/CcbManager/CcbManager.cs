@@ -29,6 +29,7 @@ namespace RimWorldAgent.Core.CcbManager
         private readonly List<CustomMcpServerConfig> _customMcpServers;
         private readonly string? _apiKey;
         private readonly string? _apiUrl;
+        private readonly string _resumeSessionId;
         private bool _ready;
         private IntPtr _jobHandle = IntPtr.Zero;
         private bool _starting; // 防止 Start() 重入
@@ -39,7 +40,7 @@ namespace RimWorldAgent.Core.CcbManager
         /// <summary>TickAndRestart 重启了 companion 进程时为 true，调用方检查后应清除</summary>
         public bool WasRestarted { get; set; }
 
-        public CcbManager(string companionDir, string projectPath, int ccbPort = 19998, int mcpPort = 9877, int agentMcpPort = 9878, string? nodeExe = null, string? ccbToken = null, string? modelName = null, long budgetLimit = 0, string budgetAction = "Block", bool logSdk = false, IEnumerable<CustomMcpServerConfig>? customMcpServers = null, string? apiKey = null, string? apiUrl = null)
+        public CcbManager(string companionDir, string projectPath, int ccbPort = 19998, int mcpPort = 9877, int agentMcpPort = 9878, string? nodeExe = null, string? ccbToken = null, string? modelName = null, long budgetLimit = 0, string budgetAction = "Block", bool logSdk = false, IEnumerable<CustomMcpServerConfig>? customMcpServers = null, string? apiKey = null, string? apiUrl = null, string resumeSessionId = "")
         {
             _companionDir = companionDir;
             _projectPath = projectPath;
@@ -55,6 +56,7 @@ namespace RimWorldAgent.Core.CcbManager
             _nodeExe = nodeExe ?? CompanionInstaller.FindNodeExe();
             _apiKey = apiKey;
             _apiUrl = apiUrl;
+            _resumeSessionId = resumeSessionId ?? "";
         }
 
         public bool Start()
@@ -96,6 +98,8 @@ namespace RimWorldAgent.Core.CcbManager
                 args += $" --model-name \"{_modelName}\"";
             if (_logSdk)
                 args += " --log-sdk";
+            if (!string.IsNullOrEmpty(_resumeSessionId))
+                args += $" --resume-session-id \"{_resumeSessionId}\"";
 
             try
             {

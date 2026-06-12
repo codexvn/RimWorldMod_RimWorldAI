@@ -48,6 +48,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public bool LogSdkMessages { get; set; }
         public string? ApiKey { get; set; }
         public string? ApiUrl { get; set; }
+        public string ResumeSessionId { get; set; } = "";
     }
 
     /// <summary>Agent 引擎 — CCB 生命周期 + WS + MCP + 调度循环。EXE/MOD 共享。</summary>
@@ -185,7 +186,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                     budgetLimit: _cfg.TokenBudgetLimit, budgetAction: "Block",
                     logSdk: _cfg.LogSdkMessages,
                     customMcpServers: _cfg.CustomMcpServers,
-                    apiKey: _cfg.ApiKey, apiUrl: _cfg.ApiUrl);
+                    apiKey: _cfg.ApiKey, apiUrl: _cfg.ApiUrl,
+                    resumeSessionId: _cfg.ResumeSessionId);
                 if (_cfg.CcbAutoStart)
                 {
                     _logInfo("[AgentEngine] 调用 _ccb.Start()...");

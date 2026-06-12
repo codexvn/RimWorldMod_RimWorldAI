@@ -31,6 +31,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                             TokenUsageTracker.AddDuration(rm.DurationMs.Value);
                         break;
                     case SdkSystemInitMessage init:
+                        AgentLoop.CcbSessionId = init.SessionId;  // 持久化用
                         result.Add(UiMessage.SystemInit(init.Model, init.SessionId,
                             init.ClaudeCodeVersion, init.PermissionMode,
                             init.McpServers.Select(m => new UiMcpServerRef(m.Name, m.Status)).ToList(),

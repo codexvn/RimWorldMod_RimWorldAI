@@ -17,6 +17,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>会话存储 — 由 EXE/MOD 在 WireUIMessageBus 前注入</summary>
         public static IConversationStore? ConversationStore { get; set; }
 
+        /// <summary>SDK 会话 ID（从 system.init 捕获），用于存档持久化后 resume</summary>
+        public static string? CcbSessionId { get; set; }
+
         /// <summary>启动后是否已发送过消息（冷启检测：false 时触发首次问候）</summary>
         public static bool HasEverSent { get; set; }
 
@@ -79,12 +82,13 @@ namespace RimWorldAgent.Core.AgentRuntime
                 await currentWs.SendChat(ChatChannel.Bus, text, thinking);
             };
 
-            // 客户端 abort → CCB
+            // 客户端 abort → CCB（清空上下文：下一轮不 resume）
             UIMessageBus.OnAbort += async () =>
             {
+                CcbSessionId = null;  // 清空，下次消息将全新会话
                 var currentWs = GetWiredWebSocket();
                 if (currentWs != null && currentWs.IsReady)
-                    await currentWs.SendAbort();
+                    await currentWs.SendAbort(clear: true);
             };
 
             // 新客户端连接 → 推送初始状态

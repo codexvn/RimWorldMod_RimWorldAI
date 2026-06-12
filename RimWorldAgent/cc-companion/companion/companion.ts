@@ -60,7 +60,12 @@ async function main() {
   // stream 是否已 abort（防 chat 写入已关闭 stream）
   let streamAborted = false;
 
-  function startNewSession() {
+  // 当前 SDK 会话 ID（从 system.init 捕获，用于 abort 后 resume）
+  let currentSessionId: string | undefined = CONFIG.resumeSessionId || undefined;
+
+  function startNewSession(resumeSessionId?: string) {
+    CONFIG.resumeSessionId = resumeSessionId || '';
+    currentSessionId = undefined;  // 用完即清，下次 abort 若非 chat 先 resume 则不进旧会话
     abortController = new AbortController();
     session = createSession(sdk, abortController);
     inputStream = session.inputStream;
@@ -73,9 +78,18 @@ async function main() {
       pendingMessages = [];
     }
     buffering = false;
-    const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => busBroadcast(JSON.stringify(msg))));
+    const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => onSdkMessage(msg)));
     proc.process();
-    log('新会话已创建');
+    log(`新会话已创建${resumeSessionId ? ' (resume=' + resumeSessionId + ')' : ''}`);
+  }
+
+  function onSdkMessage(msg: any) {
+    // 从 system.init 捕获会话 ID，用于 abort 后 resume
+    if (msg.type === 'system' && msg.subtype === 'init' && msg.session_id) {
+      currentSessionId = msg.session_id;
+      log(`会话 ID: ${currentSessionId}`);
+    }
+    busBroadcast(JSON.stringify(msg));
   }
 
   function applyThinking(cfg?: ThinkingConfig) {
@@ -87,7 +101,7 @@ async function main() {
     // abort 旧 session，防止新旧 processor 同时输出导致消息重复
     abortController.abort();
     buffering = true;
-    startNewSession();
+    startNewSession(currentSessionId);
   }
 
   // ===== WS Server（先于 SDK 启动，避免竞态）=====
@@ -150,19 +164,20 @@ async function main() {
           break;
         }
         case 'abort':
-          log('收到 abort, buffering=true');
+          if (msg.clear) currentSessionId = undefined;  // C# 明示清空上下文
+          log(`收到 abort, buffering=true, resume=${currentSessionId || '(新会话)'}`);
           buffering = true;
           streamAborted = true;  // 旧 stream 不可写
           abortController.abort();
           log('abortController.abort() done, startNewSession...');
-          startNewSession();
+          startNewSession(currentSessionId);
           break;
       }
     });
   });
 
   // WS server 就绪后启动 SDK 消息处理
-  const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => busBroadcast(JSON.stringify(msg))));
+  const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => onSdkMessage(msg)));
   proc.process().catch((err: any) => log(`SDK 处理异常: ${err.message}`));
 
   // ===== PID 文件 + 清理 =====

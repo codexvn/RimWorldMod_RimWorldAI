@@ -158,6 +158,8 @@ SyncGameStatusAsync() → 刷新 tick + paused
 
 C# 侧：`CcbWebSocket.ReceiveLoop` → `SdkMessage.FromJson` → `OnSdkMessage` 事件 → `SdkMessageParser` → `UiMessage`。
 
+**会话恢复**：Companion 启动时通过 CLI 参数 `--resume-session-id <uuid>` 传入上次 SDK 会话 ID，`session.ts` 设置 `options.resume`，SDK 自动从 `~/.claude/projects/` JSONL 恢复完整对话历史。sessionId 由 C# `SdkMessageParser` 从 `system.init` 捕获 → 写 `AgentLoop.CcbSessionId` → `GameComponent_RimworkAgent.ExposeData` 通过 `Scribe_Values` 持久化到存档。
+
 ---
 
 #### 层 2：UIMessageBus (WS :19999)
@@ -682,6 +684,7 @@ publish/RimWorldAgent/1.6/Assemblies/
 |------|------|
 | `design/agent-runtime.md` | Agent Runtime 架构 |
 | `design/conversation-history.md` | 会话历史持久化 — SQLite 表结构 + WS 协议 + 线程安全 + 向上滚动分页 |
+| `design/session-resume.md` | 会话恢复 — sessionId Scribe 持久化 + CLI 参数 resume |
 
 ## 运行
 
