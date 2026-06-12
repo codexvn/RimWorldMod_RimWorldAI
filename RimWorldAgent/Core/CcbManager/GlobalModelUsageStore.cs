@@ -13,7 +13,7 @@ namespace RimWorldAgent
         public long CacheReadTokens { get; set; }
         public long CacheCreateTokens { get; set; }
         public int RequestCount { get; set; }
-        public long TotalTokens => InputTokens + OutputTokens;
+        public long TotalTokens => InputTokens + CacheReadTokens + OutputTokens;
     }
 
     /// <summary>全局模型用量汇总，跨存档累加，JSON 文件持久化</summary>

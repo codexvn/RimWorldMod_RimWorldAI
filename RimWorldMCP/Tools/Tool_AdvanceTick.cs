@@ -25,8 +25,8 @@ namespace RimWorldMCP.Tools
             required = new[] { "hours" }
         });
 
-        // pending: targetTick → (TCS, savedSpeed)
-        private static readonly Dictionary<int, (TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed)> _pending = new();
+        // pending: targetTick → (TCS, savedSpeed, initialIdleIds)
+        private static readonly Dictionary<int, (TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> initialIdleIds)> _pending = new();
         private static readonly object _lock = new();
 
         /// <summary>是否有等待中的 tick advance（AutoPauseGuard 据此跳过自动暂停）</summary>
@@ -38,17 +38,17 @@ namespace RimWorldMCP.Tools
         /// <summary>取消所有等待中的 advance_tick（中断按钮 / 玩家手动暂停触发）</summary>
         public static void CancelAll()
         {
-            List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed)> cancelled;
+            List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)> cancelled;
             lock (_lock)
             {
-                cancelled = new List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed)>(_pending.Values);
+                cancelled = new List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)>(_pending.Values);
                 _pending.Clear();
             }
             var tm = Find.TickManager;
             // 恢复到最早保存的速度，没有则用 3 倍速
             var restoreSpeed = cancelled.Count > 0 ? cancelled[0].savedSpeed : TimeSpeed.Superfast;
             if (tm != null) tm.CurTimeSpeed = restoreSpeed;
-            foreach (var (tcs, _) in cancelled)
+            foreach (var (tcs, _, _) in cancelled)
                 tcs.TrySetResult(ToolResult.Success("advance_tick 已被中断，已恢复原速度。"));
         }
 
@@ -59,7 +59,7 @@ namespace RimWorldMCP.Tools
             if (tickManager == null) return;
             int current = tickManager.TicksGame;
 
-            List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed)>? completed = null;
+            List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)>? completed = null;
             bool playerPaused = false;
             TimeSpeed? savedSpeed = null;
 
@@ -67,15 +67,20 @@ namespace RimWorldMCP.Tools
             bool highDanger = NotificationBus.HighDangerPending;
             if (highDanger) NotificationBus.HighDangerPending = false;
 
-            // 殖民者空闲 → 提前退出（参照 Alert_ColonistsIdle 逻辑）
+            // 殖民者空闲 → 提前退出（仅新增空闲，初始已有的不算）
             bool colonistsIdle = false;
             if (!highDanger && !tickManager.Paused)
             {
                 var map = Find.CurrentMap;
                 if (map != null && map.IsPlayerHome)
                 {
+                    // 收集所有 pending 的初始空闲 ID 并集
+                    var seenIds = new HashSet<int>();
+                    foreach (var kv in _pending)
+                        seenIds.UnionWith(kv.Value.initialIdleIds);
                     colonistsIdle = map.mapPawns.FreeColonistsSpawned
-                        .Any(p => p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted);
+                        .Any(p => p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted
+                            && !seenIds.Contains(p.thingIDNumber));
                 }
             }
 
@@ -87,13 +92,13 @@ namespace RimWorldMCP.Tools
                 if (tickManager.Paused)
                 {
                     playerPaused = true;
-                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed)).ToList();
+                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
                 else if (highDanger || colonistsIdle)
                 {
-                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed)).ToList();
+                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
@@ -103,13 +108,13 @@ namespace RimWorldMCP.Tools
                     {
                         if (current >= kv.Key)
                         {
-                            completed ??= new List<(int, TaskCompletionSource<ToolResult>, TimeSpeed)>();
-                            completed.Add((kv.Key, kv.Value.tcs, kv.Value.savedSpeed));
+                            completed ??= new List<(int, TaskCompletionSource<ToolResult>, TimeSpeed, HashSet<int>)>();
+                            completed.Add((kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds));
                         }
                     }
                     if (completed != null)
                     {
-                        foreach (var (target, _, _) in completed)
+                        foreach (var (target, _, _, _) in completed)
                             _pending.Remove(target);
                         if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     }
@@ -122,7 +127,7 @@ namespace RimWorldMCP.Tools
 
                 if (playerPaused)
                 {
-                    foreach (var (_, tcs, _) in completed)
+                    foreach (var (_, tcs, _, _) in completed)
                         tcs.TrySetResult(ToolResult.Success("advance_tick 已被中断（玩家暂停），已恢复原速度。"));
                 }
                 else if (highDanger)
@@ -133,7 +138,7 @@ namespace RimWorldMCP.Tools
                     foreach (var n in dangerList)
                         sb.AppendLine($"- {n.Label}");
                     var result = ToolResult.Success(sb.ToString());
-                    foreach (var (_, tcs, _) in completed)
+                    foreach (var (_, tcs, _, _) in completed)
                         tcs.TrySetResult(result);
                 }
                 else if (colonistsIdle)
@@ -149,13 +154,13 @@ namespace RimWorldMCP.Tools
                         sb.AppendLine($"- {name}");
                     sb.AppendLine();
                     sb.Append(BuildGameStatus());
-                    foreach (var (_, tcs, _) in completed)
+                    foreach (var (_, tcs, _, _) in completed)
                         tcs.TrySetResult(ToolResult.Success(sb.ToString()));
                 }
                 else
                 {
                     var status = BuildGameStatus();
-                    foreach (var (_, tcs, _) in completed)
+                    foreach (var (_, tcs, _, _) in completed)
                         tcs.TrySetResult(ToolResult.Success(status));
                 }
             }
@@ -258,7 +263,16 @@ namespace RimWorldMCP.Tools
                 }
                 int target = tm.TicksGame + ticks;
                 var savedSpeed = tm.CurTimeSpeed;
-                lock (_lock) { _pending[target] = (tcs, savedSpeed); }
+                // 快照初始空闲殖民者（推进过程中新出现的空闲才算）
+                var idleIds = new HashSet<int>();
+                var currentMap = Find.CurrentMap;
+                if (currentMap != null)
+                {
+                    foreach (var p in currentMap.mapPawns.FreeColonistsSpawned)
+                        if (p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted)
+                            idleIds.Add(p.thingIDNumber);
+                }
+                lock (_lock) { _pending[target] = (tcs, savedSpeed, idleIds); }
                 tm.CurTimeSpeed = TimeSpeed.Ultrafast;
                 return null!;
             });
