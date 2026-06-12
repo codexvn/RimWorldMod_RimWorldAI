@@ -230,6 +230,21 @@ namespace RimWorldAgent
             OnChanged?.Invoke();
         }
 
+        private static string GetDisplayToolName(string toolName, string meta)
+        {
+            if (!string.IsNullOrEmpty(meta) && toolName.EndsWith("game_cmd"))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(meta);
+                    if (doc.RootElement.TryGetProperty("action", out var a))
+                        return a.GetString() ?? toolName;
+                }
+                catch { }
+            }
+            return toolName;
+        }
+
         // ===== 工具调用 =====
 
         public static void AddToolCall(string toolId, string toolName, string meta)
@@ -241,14 +256,17 @@ namespace RimWorldAgent
                 if (existing != null)
                 {
                     if (!string.IsNullOrEmpty(meta) && (string.IsNullOrEmpty(existing.Meta) || existing.Meta == "{}"))
+                    {
                         existing.Meta = meta;
+                        existing.Name = GetDisplayToolName(toolName, meta);
+                    }
                 }
                 else
                 {
                     _toolCalls.Add(new ToolCallInfo
                     {
                         ItemId = toolId,
-                        Name = toolName.Replace("mcp__agent__", "").Replace("mcp__rimworld__", ""),
+                        Name = GetDisplayToolName(toolName, meta),
                         Meta = meta,
                         Status = ToolStatus.Running,
                     });
