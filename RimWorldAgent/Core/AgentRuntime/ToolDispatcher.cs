@@ -86,6 +86,8 @@ namespace RimWorldAgent.Core.AgentRuntime
         private static int _lastWindowsOpen;
         private static string? _lastWindowsNames;
         private static string? _lastSpeedLabel;
+        private static int _lastIdleCount;
+        private static int _lastSleepingCount;
         /* 节奏提醒已关闭
         private static Reminder? _actPauseRemind;
         private static Reminder? _actTurnRemind;
@@ -222,6 +224,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                             _lastWindowsOpen = root.TryGetProperty("windows_open", out var wo) ? wo.GetInt32() : 0;
                             _lastWindowsNames = root.TryGetProperty("windows_names", out var wn) ? wn.GetString() : null;
                             _lastSpeedLabel = root.TryGetProperty("speed", out var sp) ? sp.GetString() : null;
+                            _lastIdleCount = root.TryGetProperty("idle_count", out var ic) ? ic.GetInt32() : 0;
+                            _lastSleepingCount = root.TryGetProperty("sleeping_count", out var sc) ? sc.GetInt32() : 0;
                         }
                         catch (JsonException)
                         {
@@ -247,6 +251,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             suffix.Append($"\n\n---\n当前模式: {phase}");
             if (!string.IsNullOrEmpty(_lastSpeedLabel))
                 suffix.Append($" | {_lastSpeedLabel}");
+            if (_lastIdleCount > 0 || _lastSleepingCount > 0)
+                suffix.Append($" | 空闲{_lastIdleCount}人 睡眠{_lastSleepingCount}人");
             foreach (var r in _reminders)
             {
                 var text = r.GetSuffix();

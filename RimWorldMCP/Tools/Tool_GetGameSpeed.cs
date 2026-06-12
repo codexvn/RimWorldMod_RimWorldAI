@@ -78,6 +78,20 @@ namespace RimWorldMCP.Tools
                         windowsNames = string.Join(", ", dialogs.Take(3).Select(w => w.GetType().Name));
                 }
 
+                // 空闲/睡眠计数（参照 Alert_ColonistsIdle 逻辑）
+                int idleCount = 0, sleepingCount = 0;
+                var map = Find.CurrentMap;
+                if (map != null)
+                {
+                    foreach (var c in map.mapPawns.FreeColonistsSpawned)
+                    {
+                        if (c.mindState.IsIdle && !c.IsQuestLodger())
+                            idleCount++;
+                        if (!c.Awake())
+                            sleepingCount++;
+                    }
+                }
+
                 var json = JsonSerializer.Serialize(new
                 {
                     paused,
@@ -85,7 +99,9 @@ namespace RimWorldMCP.Tools
                     tick,
                     day,
                     windows_open = windowsOpen,
-                    windows_names = windowsNames
+                    windows_names = windowsNames,
+                    idle_count = idleCount,
+                    sleeping_count = sleepingCount
                 });
                 return ToolResult.Success(json);
             });

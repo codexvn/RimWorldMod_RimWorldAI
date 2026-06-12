@@ -67,6 +67,18 @@ namespace RimWorldMCP.Tools
             bool highDanger = NotificationBus.HighDangerPending;
             if (highDanger) NotificationBus.HighDangerPending = false;
 
+            // 殖民者空闲 → 提前退出（参照 Alert_ColonistsIdle 逻辑）
+            bool colonistsIdle = false;
+            if (!highDanger && !tickManager.Paused)
+            {
+                var map = Find.CurrentMap;
+                if (map != null && map.IsPlayerHome)
+                {
+                    colonistsIdle = map.mapPawns.FreeColonistsSpawned
+                        .Any(p => p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted);
+                }
+            }
+
             lock (_lock)
             {
                 if (_pending.Count == 0) return;
@@ -79,7 +91,7 @@ namespace RimWorldMCP.Tools
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
-                else if (highDanger)
+                else if (highDanger || colonistsIdle)
                 {
                     completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
@@ -124,6 +136,22 @@ namespace RimWorldMCP.Tools
                     foreach (var (_, tcs, _) in completed)
                         tcs.TrySetResult(result);
                 }
+                else if (colonistsIdle)
+                {
+                    var map = Find.CurrentMap;
+                    var idlePawns = map?.mapPawns.FreeColonistsSpawned
+                        .Where(p => p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted)
+                        .Select(p => p.NameShortColored.Resolve())
+                        .ToList() ?? new List<string>();
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"## 有 {idlePawns.Count} 名殖民者空闲，advance_tick 提前退出");
+                    foreach (var name in idlePawns)
+                        sb.AppendLine($"- {name}");
+                    sb.AppendLine();
+                    sb.Append(BuildGameStatus());
+                    foreach (var (_, tcs, _) in completed)
+                        tcs.TrySetResult(ToolResult.Success(sb.ToString()));
+                }
                 else
                 {
                     var status = BuildGameStatus();
@@ -147,10 +175,14 @@ namespace RimWorldMCP.Tools
             int enemies = map.mapPawns.AllPawnsSpawned.Count(p => p.HostileTo(Faction.OfPlayer) && !p.Fogged());
             if (enemies > 0) sb.AppendLine($"- 敌人: {enemies}");
 
-            int idle = 0;
+            int idle = 0, sleeping = 0;
             foreach (var c in colonists)
+            {
                 if (c.mindState.IsIdle) idle++;
+                if (!c.Awake()) sleeping++;
+            }
             if (idle > 0) sb.AppendLine($"- 空闲: {idle} 人");
+            if (sleeping > 0) sb.AppendLine($"- 睡眠: {sleeping} 人");
 
             return sb.ToString();
         }

@@ -76,6 +76,14 @@ namespace RimWorldMCP.Tools
             // 清除已解除的被困状态
             _activeTrapped.RemoveWhere(k => !currentKeys.Contains(k));
 
+            // 密封房间检测（与 PathBlocked 并行）
+            var newSealed = CheckSealedRooms(map, colonists);
+            foreach (var s in newSealed)
+            {
+                newDetections.Add(s);
+                _activeTrapped.Add($"{s.PawnId}:{s.TrapType}");
+            }
+
             // 更新当前被困列表
             _currentTrapped.Clear();
             _currentTrapped.AddRange(newDetections);
@@ -107,6 +115,99 @@ namespace RimWorldMCP.Tools
             _currentTrapped.Clear();
             _lastScanTick = -200;
             _lastNotifyTick = -3000;
+        }
+
+        // ========== 密封房间检测 ==========
+
+        private static List<TrappedColonistInfo> CheckSealedRooms(Map map, List<Pawn> colonists)
+        {
+            var results = new List<TrappedColonistInfo>();
+            int tick = Find.TickManager?.TicksGame ?? 0;
+
+            // 收集候选房间: 有床/工作台/存储区的 ProperRoom
+            var candidateRooms = new HashSet<Room>();
+            foreach (var bed in map.listerBuildings.AllBuildingsColonistOfClass<Building_Bed>())
+            {
+                var room = bed.GetRoom(RegionType.Set_All);
+                if (room != null && room.ProperRoom && !room.IsHuge && !room.TouchesMapEdge)
+                    candidateRooms.Add(room);
+            }
+            foreach (var bench in map.listerBuildings.AllBuildingsColonistOfClass<Building_WorkTable>())
+            {
+                var room = bench.GetRoom(RegionType.Set_All);
+                if (room != null && room.ProperRoom && !room.IsHuge && !room.TouchesMapEdge)
+                    candidateRooms.Add(room);
+            }
+            foreach (var zone in map.zoneManager.AllZones)
+            {
+                if (zone is Zone_Stockpile || zone is Zone_Growing)
+                {
+                    var room = zone.Cells.FirstOrDefault().GetRoom(map);
+                    if (room != null && room.ProperRoom && !room.IsHuge && !room.TouchesMapEdge)
+                        candidateRooms.Add(room);
+                }
+            }
+
+            foreach (var room in candidateRooms)
+            {
+                var cells = room.Cells.ToList();
+                if (cells.Count == 0) continue;
+
+                bool accessible = false;
+                foreach (var c in colonists)
+                {
+                    if (c.Map != map) continue;
+                    if (c.Downed || c.InMentalState) continue;
+                    if (c.CanReach(cells[0], PathEndMode.OnCell, Danger.Some))
+                    {
+                        accessible = true;
+                        break;
+                    }
+                }
+                if (accessible) continue;
+
+                var center = cells[cells.Count / 2];
+                string contents = BuildRoomContents(room, map);
+                string key = $"Room:{center.x},{center.z}:SealedRoom";
+                if (_activeTrapped.Contains(key)) continue;
+
+                results.Add(new TrappedColonistInfo
+                {
+                    PawnId = room.ID,
+                    Name = $"密封房间 ({center.x},{center.z})",
+                    TrapType = "SealedRoom",
+                    Detail = $"在({center.x},{center.z})周围，{contents}，无殖民者可到达的入口",
+                    PosX = center.x,
+                    PosZ = center.z,
+                    DetectedTick = tick
+                });
+            }
+            return results;
+        }
+
+        private static string BuildRoomContents(Room room, Map map)
+        {
+            var parts = new List<string>();
+            int bedCount = 0, benchCount = 0, stockpileCount = 0, growingCount = 0;
+
+            foreach (var bed in map.listerBuildings.AllBuildingsColonistOfClass<Building_Bed>())
+                if (bed.GetRoom(RegionType.Set_All) == room) bedCount++;
+            foreach (var bench in map.listerBuildings.AllBuildingsColonistOfClass<Building_WorkTable>())
+                if (bench.GetRoom(RegionType.Set_All) == room) benchCount++;
+            foreach (var zone in map.zoneManager.AllZones)
+            {
+                if (zone.Cells.Any(c => c.GetRoom(map) == room))
+                {
+                    if (zone is Zone_Stockpile) stockpileCount++;
+                    else if (zone is Zone_Growing) growingCount++;
+                }
+            }
+
+            if (bedCount > 0) parts.Add($"床×{bedCount}");
+            if (benchCount > 0) parts.Add($"工作台×{benchCount}");
+            if (stockpileCount > 0) parts.Add($"存储区×{stockpileCount}");
+            if (growingCount > 0) parts.Add($"种植区×{growingCount}");
+            return parts.Count > 0 ? string.Join(", ", parts) : "内容物";
         }
 
         // ========== 路径阻断检测 ==========
