@@ -43,7 +43,7 @@ namespace RimWorldMCP
             Scribe_Values.Look(ref _sessionId, "mcpSessionId", "");
         }
 
-        private static string GenerateSessionId() => Guid.NewGuid().ToString("N").Substring(0, 12);
+        private static string GenerateSessionId() => Guid.NewGuid().ToString();
 
         /// <summary>由 Agent 调用，更新 sessionId（如 SDK 生成新 UUID 时）。空字符串表示清空。</summary>
         public static void SetSessionId(string id)
