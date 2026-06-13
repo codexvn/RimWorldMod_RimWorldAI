@@ -437,7 +437,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `set_prisoner_policy` | 设置囚犯政策（劝导并招募、同化并招募、释放、处决等），默认补典狱工作 | `Pawn_GuestTracker.SetExclusiveInteraction` (入队) |
 | `set_temp_control` | 设置温度控制设备 | `CompTempControl` (入队) |
 | `list_devices` | 列出/搜索地图设备和可用操作 | `map.listerThings.AllThings`, `ThingComp`, `Thing.GetGizmos` |
-| `get_device_info` | 获取设备/设备组状态、组件和 UI/Gizmo 操作 ID | `Thing.GetGizmos`, `ThingComp` (入队) |
+| `get_device_info` | 获取设备/设备组状态、组件、UI/Gizmo 操作 ID 和覆盖层规则 | `Thing.GetGizmos`, `ThingComp`, `Thing.DrawExtraSelectionOverlays` (入队) |
 | `execute_device_action` | 按 action_id 执行设备 UI/Gizmo Toggle、安全 Command_Action 或 adapter 操作，支持 force_partial | `Command_Toggle`, `Command_Action` allowlist, `Comp*` adapter (入队) |
 | `manage_transporter_load` | 查看/清空/取消运输器装载 | `CompTransporter`, `TransporterUtility` (入队) |
 

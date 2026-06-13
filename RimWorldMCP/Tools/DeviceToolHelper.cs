@@ -481,69 +481,266 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine($"- {Escape(line.TrimEnd('\r'))}");
             }
 
-            // ★ 设备作用范围 — 使用游戏 UI 绘制覆盖层同源 API
-            AppendRangeInfo(sb, thing);
+            // ★ 设备覆盖层规则 — 使用游戏 UI 绘制覆盖层同源 API（几何 + 硬编码语义）
+            BuildOverlayRules(sb, thing);
         }
 
-        /// <summary>获取设备作用范围，数据源与 DrawExtraSelectionOverlays / PlaceWorker.DrawGhost 同源。</summary>
-        private static void AppendRangeInfo(StringBuilder sb, Thing thing)
+        // ============== 覆盖层规则查询（get_device_overlay 专用）==============
+        //
+        // 设计要点：
+        // - 覆盖层是纯绘制抽象，无运行时语义元数据。effect 字段为本工具硬编码的语义知识库
+        //   （非游戏读取），按"类型→语义"映射表分发。未知类型降级为 unknown。
+        // - 规则优先于坐标：Room.Cells 可能数十到上百格，只输出 anchor/offset/radius/room_id/
+        //   cell_count，让 LLM 按需用 get_tile_grid 查具体布局。
+        // - 数据源与游戏绘制同源：Thing.DrawExtraSelectionOverlays / PlaceWorker.DrawGhost。
+
+        /// <summary>构建设备覆盖层的原生计算规则（几何 + 硬编码语义），数据源与 DrawExtraSelectionOverlays / PlaceWorker.DrawGhost 同源。</summary>
+        internal static void BuildOverlayRules(StringBuilder sb, Thing thing)
         {
-            // 风道范围 — PlaceWorker_WindTurbine.DrawGhost 用 WindTurbineUtility.CalculateWindCells
-            if (thing.TryGetComp<CompPowerPlantWind>() != null)
+            var map = thing.Map;
+            if (map == null)
             {
-                var cells = WindTurbineUtility.CalculateWindCells(
-                    thing.Position, thing.Rotation, thing.def.size).ToList();
-                sb.AppendLine($"- 风道范围: {cells.Count} cells");
+                sb.AppendLine("- (设备未 Spawn，无覆盖层)");
+                return;
+            }
+            var pos = thing.Position;
+            var rot = thing.Rotation;
+            int rotInt = rot.AsInt;
+            var facing = IntVec3.North.RotatedBy(rot); // 箭头朝向（= 制热侧 offset）
+            string facingDesc = facing.z > 0 ? "+z(北)"
+                : facing.z < 0 ? "-z(南)"
+                : facing.x > 0 ? "+x(东)"
+                : "-x(西)";
+            int idx = 0;
+
+            // 1. 温度控制 — Building_Cooler（有向，两侧房间）
+            //    源码 Building_Cooler.cs:17-18 + PlaceWorker_Cooler.cs:26-43
+            if (thing is Building_Cooler)
+            {
+                sb.AppendLine($"- rotation: {rotInt} ({RotName(rotInt)})，箭头朝向: {facingDesc}");
+                sb.AppendLine("- 一句话规则: 制热侧 = 箭头同方向相邻格 → 该格所在房间；制冷侧 = 箭头反方向相邻格 → 该格所在房间");
+
+                var coldOffset = IntVec3.South.RotatedBy(rot); // = -FacingCell = 制冷侧
+                var hotOffset = facing;                         // = +FacingCell = 制热侧
+                var coldCell = pos + coldOffset;
+                var hotCell = pos + hotOffset;
+                var coldRoom = coldCell.GetRoom(map);
+                var hotRoom = hotCell.GetRoom(map);
+
+                AppendTempRoomBlock(sb, ref idx, "制冷侧（蓝色，吸热）", "cool（降温）",
+                    coldCell, coldOffset, "箭头反方向", coldRoom);
+                AppendTempRoomBlock(sb, ref idx, "制热侧（红色，放热）", "heat（放热，能量 = 制冷能量 × 1.25）",
+                    hotCell, hotOffset, "箭头同方向", hotRoom);
+
+                if (coldRoom != null && hotRoom != null
+                    && coldRoom.ID == hotRoom.ID
+                    && !coldRoom.UsesOutdoorTemperature)
+                {
+                    int sharedRoomId = coldRoom.ID;
+                    sb.AppendLine($"- same_room_warning: 是（两侧 anchor 同处密闭房间 room_id={sharedRoomId}，冷却无效、热直接回流，游戏画黄色警告）");
+                }
+                else
+                {
+                    string coldId = RoomIdOr(coldRoom);
+                    string hotId = RoomIdOr(hotRoom);
+                    sb.AppendLine($"- same_room_warning: 否（cold.room_id={coldId} ≠ hot.room_id={hotId}）");
+                }
+            }
+            // 2. Building_Heater（无向，整房间加热）— 源码 PlaceWorker_Heater.cs:14-18
+            else if (thing is Building_Heater)
+            {
+                AppendTempRoomBlock(sb, ref idx, "加热（红色，整房间）", "heat（整房间加热）",
+                    pos, IntVec3.Zero, "设备自身所在房间", pos.GetRoom(map));
+            }
+            // 3. 单侧制冷 PlaceWorker_CoolerSimple（设备自身房间）— 源码 PlaceWorker_CoolerSimple.cs:14-19
+            else if (HasPlaceWorker(thing, "PlaceWorker_CoolerSimple"))
+            {
+                AppendTempRoomBlock(sb, ref idx, "制冷（蓝色，整房间）", "cool（整房间冷却）",
+                    pos, IntVec3.Zero, "设备自身所在房间", pos.GetRoom(map));
             }
 
-            // 炮塔射程 — Building_TurretGun.DrawExtraSelectionOverlays 用 AttackVerb
-            var turret = thing as Building_TurretGun;
-            if (turret != null)
+            // 4. 轨道贸易信标（圆形半径 7.9 + 区域连通）— 源码 Building_OrbitalTradeBeacon.cs:55-79
+            if (thing is Building_OrbitalTradeBeacon)
+            {
+                sb.AppendLine($"### 覆盖层 #{++idx}: 贸易投送区（白色圆形）");
+                sb.AppendLine("- type: trade_radius");
+                sb.AppendLine("- effect: trade（轨道贸易可投送货物的格子，物品须在此范围内才能被贸易识别）");
+                sb.AppendLine($"- geometry: center=({pos.x},{pos.z}), radius=7.9 格");
+                sb.AppendLine("- shape: 以信标为圆心、水平距离 ≤ 7.9 的圆形区域；且必须与信标所在 Region 连通（遇门阻断，最大深度 16）");
+                sb.AppendLine("- source: Building_OrbitalTradeBeacon.TradeableCellsAround");
+            }
+
+            // 5. 半径环 def.specialDisplayRadius（太阳灯等）— Thing.DrawExtraSelectionOverlays 基类
+            if (thing.def.specialDisplayRadius > 0.1f)
+            {
+                sb.AppendLine($"### 覆盖层 #{++idx}: 作用半径环");
+                sb.AppendLine("- type: radius_ring");
+                string effect = thing.def.defName == "SunLamp"
+                    ? "grow（提供光照用于植物生长，圈内为有效种植照明区）"
+                    : "display_radius（通用作用半径环，语义参考 def 设计意图）";
+                sb.AppendLine($"- effect: {effect}");
+                sb.AppendLine($"- geometry: center=({pos.x},{pos.z}), radius={thing.def.specialDisplayRadius:F1} 格");
+                sb.AppendLine("- shape: 圆形（水平距离 ≤ radius 的所有 cell）");
+                sb.AppendLine("- source: Thing.DrawExtraSelectionOverlays 基类 + def.specialDisplayRadius");
+            }
+
+            // 6. CompGlower 光照半径（仅参考，非覆盖层本身）
+            var glower = thing.TryGetComp<CompGlower>();
+            if (glower != null)
+            {
+                sb.AppendLine($"### 覆盖层 #{++idx}: 光照范围（参考）");
+                sb.AppendLine("- type: light_radius");
+                sb.AppendLine("- effect: light（声明光照半径，影响 map.glowGrid 光照强度；非覆盖层本身）");
+                sb.AppendLine($"- geometry: center=({pos.x},{pos.z}), radius={glower.GlowRadius:F1} 格");
+                sb.AppendLine("- note: 玩家选中看到的覆盖环通常是 specialDisplayRadius 种植环，不是此值；GlowGrid 是全局累积渲染值，混合多光源无法归因到单设备");
+            }
+
+            // 7. 炮塔射程圆环 — 源码 Building_TurretGun.cs:585-597
+            if (thing is Building_TurretGun turret)
             {
                 var verb = turret.AttackVerb;
                 if (verb != null)
                 {
                     float max = verb.EffectiveRange;
                     float min = verb.verbProps.EffectiveMinRange(true);
-                    sb.Append($"- 射程: {max:F1}");
-                    if (min > 0.1f) sb.Append($", 最小射程: {min:F1}");
-                    sb.AppendLine();
+                    sb.AppendLine($"### 覆盖层 #{++idx}: 射程圆环");
+                    sb.AppendLine("- type: attack_range");
+                    sb.AppendLine("- effect: attack_range（炮塔可攻击的目标区域）");
+                    sb.AppendLine($"- geometry: center=({pos.x},{pos.z}), min_range={min:F1}, max_range={max:F1}");
+                    sb.AppendLine(min > 0.1f
+                        ? "- shape: 环形（min_range ≤ 水平距离 ≤ max_range）；内圈为射击死角安全区"
+                        : "- shape: 圆形（水平距离 ≤ max_range）");
+                    sb.AppendLine("- source: Building_TurretGun.DrawExtraSelectionOverlays → GenDraw.DrawRadiusRing × 2");
                 }
             }
 
-            // 太阳灯 — Thing.DrawExtraSelectionOverlays 用 def.specialDisplayRadius
-            if (thing.def.defName == "SunLamp")
-            {
-                var glower = thing.TryGetComp<CompGlower>();
-                if (glower != null)
-                    sb.AppendLine($"- 光照半径: {glower.GlowRadius:F1}");
-                if (thing.def.specialDisplayRadius > 0.1f)
-                    sb.AppendLine($"- 种植半径: {thing.def.specialDisplayRadius:F1}");
-            }
-
-            // 贸易信标 — PlaceWorker_ShowTradeBeaconRadius.DrawGhost 用 TradeableCellsAround
-            var beacon = thing as Building_OrbitalTradeBeacon;
-            if (beacon != null && thing.Map != null)
-            {
-                var cells = Building_OrbitalTradeBeacon.TradeableCellsAround(thing.Position, thing.Map);
-                sb.AppendLine($"- 贸易范围: 半径 7.9, 覆盖 {cells.Count} cells");
-            }
-
-            // 噪声源 — CompNoiseSource.PostDrawExtraSelectionOverlays 用 Props.radius
+            // 8. 噪声半径 — CompNoiseSource.PostDrawExtraSelectionOverlays
             var noise = thing.TryGetComp<CompNoiseSource>();
             if (noise != null)
-                sb.AppendLine($"- 噪声半径: {noise.Props.radius:F1}");
+            {
+                sb.AppendLine($"### 覆盖层 #{++idx}: 噪声半径");
+                sb.AppendLine("- type: noise_radius");
+                sb.AppendLine("- effect: noise（噪声影响周边殖民者心情/睡眠）");
+                sb.AppendLine($"- geometry: center=({pos.x},{pos.z}), radius={noise.Props.radius:F1} 格");
+                sb.AppendLine("- source: CompNoiseSource.PostDrawExtraSelectionOverlays");
+            }
 
-            // 植物杀手 — PlaceWorker_ShowPlantHarmRadius.DrawGhost 用 CurrentRadius
+            // 9. 植物杀伤半径（动态扩大）— CompPlantHarmRadius.CurrentRadius
             var plantHarm = thing.TryGetComp<CompPlantHarmRadius>();
             if (plantHarm != null)
-                sb.AppendLine($"- 植物杀伤半径: {plantHarm.CurrentRadius:F1}");
+            {
+                sb.AppendLine($"### 覆盖层 #{++idx}: 植物杀伤半径（动态）");
+                sb.AppendLine("- type: plant_harm_radius");
+                sb.AppendLine("- effect: plant_harm（杀死范围内的植物）");
+                sb.AppendLine($"- geometry: center=({pos.x},{pos.z}), current_radius={plantHarm.CurrentRadius:F1} 格");
+                sb.AppendLine("- shape: 圆形，半径随 AgeDays 按 radiusPerDayCurve 动态扩大");
+                sb.AppendLine("- source: CompPlantHarmRadius.CurrentRadius");
+            }
 
-            // 地形泵 (CompTerrainPump) 和地形改造器 (CompTerraformer) 范围由 GetInspectString 覆盖
+            // 10. 风道风力机 — WindTurbineUtility.CalculateWindCells
+            if (thing.TryGetComp<CompPowerPlantWind>() != null)
+            {
+                AppendWindTurbineBlock(sb, ref idx, thing);
+            }
 
-            // 通用: specialDisplayRadius 覆盖层 — Thing.DrawExtraSelectionOverlays 基类
-            if (thing.def.specialDisplayRadius > 0.1f && thing.def.defName != "SunLamp")
-                sb.AppendLine($"- 作用半径: {thing.def.specialDisplayRadius:F1}");
+            if (idx == 0)
+            {
+                sb.AppendLine("- (本设备没有任何原版覆盖层，可对齐 Thing.DrawExtraSelectionOverlays / PlaceWorker.DrawGhost)");
+            }
+        }
+
+        private static string RotName(int rotInt)
+        {
+            switch (rotInt)
+            {
+                case 0: return "North";
+                case 1: return "East";
+                case 2: return "South";
+                case 3: return "West";
+                default: return "Unknown(" + rotInt.ToString(CultureInfo.InvariantCulture) + ")";
+            }
+        }
+
+        private static string RoomIdOr(Room? room) =>
+            room == null ? "null" : room.ID.ToString(CultureInfo.InvariantCulture);
+
+        private static string RoomDesc(Room? room)
+        {
+            if (room == null) return "null";
+            bool outdoor = room.UsesOutdoorTemperature;
+            return $"room_id={room.ID.ToString(CultureInfo.InvariantCulture)}, cell_count={room.CellCount.ToString(CultureInfo.InvariantCulture)}, is_outdoor={(outdoor ? "是（触及地图边缘或 ≥25% 露天，不画房间级覆盖）" : "否")}";
+        }
+
+        private static bool HasPlaceWorker(Thing thing, string placeWorkerTypeName)
+        {
+            var workers = thing.def.PlaceWorkers;
+            if (workers == null) return false;
+            for (int i = 0; i < workers.Count; i++)
+            {
+                var pw = workers[i];
+                if (pw != null && pw.GetType().Name == placeWorkerTypeName) return true;
+            }
+            return false;
+        }
+
+        private static void AppendTempRoomBlock(StringBuilder sb, ref int idx, string title, string effect,
+            IntVec3 anchor, IntVec3 offset, string directionDesc, Room? room)
+        {
+            sb.AppendLine($"### 覆盖层 #{++idx}: {title}");
+            sb.AppendLine("- type: temp_room");
+            sb.AppendLine($"- effect: {effect}");
+            sb.AppendLine($"- geometry: anchor=({anchor.x.ToString(CultureInfo.InvariantCulture)},{anchor.z.ToString(CultureInfo.InvariantCulture)}), offset=({offset.x.ToString(CultureInfo.InvariantCulture)},{offset.z.ToString(CultureInfo.InvariantCulture)})={directionDesc}；范围 = anchor 所在 Room 全部 cells（非固定矩形，是整个房间）");
+            sb.AppendLine($"- room: {RoomDesc(room)}");
+        }
+
+        private static void AppendWindTurbineBlock(StringBuilder sb, ref int idx, Thing thing)
+        {
+            var pos = thing.Position;
+            var rot = thing.Rotation;
+            // 直接调用原版绘制同源 API 取真实 cell 列表，按轴向左/右分组算包围盒，不列坐标
+            var cells = WindTurbineUtility.CalculateWindCells(pos, rot, thing.def.size).ToList();
+            if (cells.Count == 0) return;
+
+            bool horiz = rot.IsHorizontal;
+            List<IntVec3> sideA, sideB;
+            string axisNameA, axisNameB;
+            if (horiz)
+            {
+                sideA = cells.Where(c => c.x > pos.x).ToList();
+                sideB = cells.Where(c => c.x < pos.x).ToList();
+                axisNameA = "+x(东)"; axisNameB = "-x(西)";
+            }
+            else
+            {
+                sideA = cells.Where(c => c.z > pos.z).ToList();
+                sideB = cells.Where(c => c.z < pos.z).ToList();
+                axisNameA = "+z(北)"; axisNameB = "-z(南)";
+            }
+
+            sb.AppendLine($"### 覆盖层 #{++idx}: 风道风力区");
+            sb.AppendLine("- type: wind_tunnel");
+            sb.AppendLine("- effect: wind（矩形内的遮挡物如树/墙/山会降低实际发电效率）");
+            sb.AppendLine($"- rotation: {rot.AsInt.ToString(CultureInfo.InvariantCulture)} ({RotName(rot.AsInt)}) [{(horiz ? "水平朝向" : "垂直朝向")}]");
+            sb.AppendLine($"- 总风道格数: {cells.Count.ToString(CultureInfo.InvariantCulture)}");
+            AppendWindSideRect(sb, axisNameA, sideA);
+            AppendWindSideRect(sb, axisNameB, sideB);
+            sb.AppendLine("- source: WindTurbineUtility.CalculateWindCells");
+        }
+
+        private static void AppendWindSideRect(StringBuilder sb, string axisName, List<IntVec3> side)
+        {
+            if (side.Count == 0)
+            {
+                sb.AppendLine($"- 侧（{axisName}）: 无");
+                return;
+            }
+            int minX = side.Min(c => c.x);
+            int maxX = side.Max(c => c.x);
+            int minZ = side.Min(c => c.z);
+            int maxZ = side.Max(c => c.z);
+            int w = maxX - minX + 1;
+            int h = maxZ - minZ + 1;
+            sb.AppendLine($"- 侧（{axisName}）: 包围盒 minX={minX.ToString(CultureInfo.InvariantCulture)},maxX={maxX.ToString(CultureInfo.InvariantCulture)} / minZ={minZ.ToString(CultureInfo.InvariantCulture)},maxZ={maxZ.ToString(CultureInfo.InvariantCulture)}（{w.ToString(CultureInfo.InvariantCulture)}×{h.ToString(CultureInfo.InvariantCulture)} 格，共 {side.Count.ToString(CultureInfo.InvariantCulture)} 格）");
         }
 
         internal static string YesNo(bool value) => value ? "是" : "否";

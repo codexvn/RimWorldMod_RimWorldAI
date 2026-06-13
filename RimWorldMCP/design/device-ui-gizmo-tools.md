@@ -86,6 +86,63 @@
 
 `thing_ids` 混合设备时，执行 adapter 默认要求所有设备都支持该 action；否则返回支持/不支持列表。传 `force_partial=true` 时，只对支持的设备执行，并在结果里列出跳过的设备。
 
+## 覆盖层规则（`get_device_info` 组件状态区）
+
+### 背景
+
+选中建筑后游戏会画彩色覆盖层（空调蓝/红两端、太阳灯种植环、贸易信标投送区、炮塔射程、风力机风道）。覆盖层规则整合进 `get_device_info` 的「组件状态」区（由 `DeviceToolHelper.BuildOverlayRules` 生成，替代了原先残缺的数值版 `AppendRangeInfo`），原数值版只返回半径/计数且完全遗漏温度设备，现已用规则版替换。
+
+### 设计原则：规则优先于坐标
+
+- **不返回坐标列表**：Room.Cells 可能数十到上百格，列坐标会 token 爆炸。只输出 anchor/offset/radius/room_id/cell_count，让 LLM 按需用 `get_tile_grid` 查布局。
+- 单设备输出 < 400 token，不受房间大小影响。
+
+### 重要限制：覆盖层语义无法通用读取
+
+覆盖层是**纯绘制抽象，没有运行时语义元数据**（源码验证）：
+- `PlaceWorker.DrawGhost(ThingDef, IntVec3, Rot4, Color, Thing)` 是绘制唯一入口，签名无 effect/label 字段。
+- `Thing.DrawExtraSelectionOverlays()` 只循环调 `PlaceWorker.DrawGhost`，不感知内容含义。
+- 颜色常量 `ColorRoomHot/Cold` 只是 `Color` 结构体（rgba），"红=热蓝=冷"是人类约定。
+
+**能力分层**：
+
+| 能力 | 能否通用读取 | 数据源 |
+|------|-------------|--------|
+| 哪些设备有覆盖层 | ✅ 能 | `def.specialDisplayRadius`、`def.drawPlaceWorkersWhileSelected`、`def.PlaceWorkers` 类型枚举 |
+| 几何（坐标/半径/范围） | ⚠️ 能，每种 PlaceWorker 算法须各自复刻 | 各 PlaceWorker/Comp 源码算法 |
+| **语义（制热/制冷/种植/投送/射程）** | ❌ 不能 | 必须硬编码"类型→语义"映射表 |
+
+**应对**：`effect` 字段诚实声明为本工具硬编码的语义知识库（非游戏读取），按"类型→语义"映射表分发。扩展 = 往表加一行。
+
+### Cooler 方向规则（核心）
+
+源码 `Building_Cooler.cs:17-18` + `IntVec3Utility.RotatedBy`：
+
+- **制冷侧（蓝）** cell = `pos + IntVec3.South.RotatedBy(rot)` = **箭头反方向**相邻格 → 该格所在 Room 全部 cells
+- **制热侧（红）** cell = `pos + IntVec3.North.RotatedBy(rot)` = **箭头同方向**相邻格 → 该格所在 Room 全部 cells
+- 制热量 = 制冷能量 × 1.25
+- **同房警告**：两 anchor 同处一密闭房间（`room==room2 && !UsesOutdoorTemperature`）→ 游戏画黄色警告（冷却无效）
+- **室外房间**：anchor 在室外（`UsesOutdoorTemperature=true`）→ 不画房间级覆盖，但 cell 级热交换仍生效
+
+输出三重表达覆盖 LLM 不同推理路径：`rotation(0-3)` + 方向名(North/East/South/West) + cell offset(dx,dz) + 一句话总结。
+
+### 覆盖的 type 枚举
+
+| type | effect | 几何 | 数据源 |
+|------|--------|------|--------|
+| `temp_room` | cool/heat | anchor + offset，扩展到 Room 全部 cells | `PlaceWorker_Cooler`/`_Heater`/`_CoolerSimple` |
+| `trade_radius` | trade | 圆心+半径 7.9 + 区域连通(BFS,maxDepth=16) | `Building_OrbitalTradeBeacon.TradeableCellsAround` |
+| `radius_ring` | grow/display_radius | 圆心 + `def.specialDisplayRadius` | `Thing.DrawExtraSelectionOverlays` 基类 |
+| `light_radius` | light | 圆心 + `CompGlower.GlowRadius`（仅参考） | `CompGlower` |
+| `attack_range` | attack_range | 环形 `[min_range, max_range]` | `Building_TurretGun.DrawExtraSelectionOverlays` |
+| `noise_radius` | noise | 圆心 + `CompNoiseSource.Props.radius` | `CompNoiseSource` |
+| `plant_harm_radius` | plant_harm | 圆心 + `CompPlantHarmRadius.CurrentRadius`（动态） | `CompPlantHarmRadius` |
+| `wind_tunnel` | wind | 双侧矩形风道包围盒 | `WindTurbineUtility.CalculateWindCells` |
+
+### GlowGrid 澄清
+
+`GlowGrid.GroundGlowAt(cell)` 可读任意格当前光照，但是**全局累积渲染值**（混合太阳灯+其他灯+天空光+火堆，无法归因到单设备）。太阳灯选中看到的覆盖环是 `specialDisplayRadius` 种植环，不是 `GlowRadius`。故太阳灯输出两圈并标注：种植环(`specialDisplayRadius`, effect=grow, 覆盖层本身) + 光照声明半径(`GlowRadius`, 仅参考)。
+
 ## 文档与验证
 
 实现后同步：
@@ -98,5 +155,5 @@
 验证：
 
 1. `dotnet build RimWorldAI.sln`
-2. 工具列表包含 `list_devices` / `get_device_info` / `execute_device_action` / `manage_transporter_load`
+2. 工具列表包含 `list_devices` / `get_device_info` / `execute_device_action` / `manage_transporter_load`；`get_device_info` 对有覆盖层设备的输出含覆盖层规则块
 3. 在游戏内验证冰箱/空调温度、燃料设备目标燃料和排出燃料、发射台自动建舱、穿梭机自动装载 Toggle、运输器状态与清空/取消装载。
