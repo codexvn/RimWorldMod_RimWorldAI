@@ -126,12 +126,12 @@ SyncGameStatusAsync() → 刷新 tick + paused
 ├─ 优先 0: 冷启动检测 — HasEverSent=false 时 get_game_speed 检查游戏就绪 → RunAgent
 ├─ 弹框扫描 (2500 tick)
 ├─ 状态检测 (120 tick, 仅空闲)
-│   ├─ 暂停提醒 (>30s / 每 60s)
+│   ├─ 暂停提醒 (>30s / 每 60s)（仅提示，不自动恢复）
 │   └─ 早报防抖 (GameHour>=6, 每天只发一次)
 ├─ 优先 1: 中断处理 → 等待 AgentLoop 中 SendAbort
 ├─ 优先 2: 中断 + 空闲 → 立即启动新会话
-├─ 优先 3: 每日 PLAN (ShouldMorningReport) → EnterPlanPhase + PauseForPlanning → RunAgent
-└─ 优先 4: 定期 ACT (ShouldWake) → RunAgent
+├─ 优先 3: 每日 PLAN (ShouldMorningReport) → EnterPlanPhase + PauseForPlanning → RunAgent(isPlan:true)
+└─ 优先 4: 定期 ACT (ShouldWake) → RunAgent(isPlan:false)
 ```
 
 ### 协议 (Protocol)
@@ -183,7 +183,7 @@ C# 侧：`CcbWebSocket.ReceiveLoop` → `SdkMessage.FromJson` → `OnSdkMessage`
 ├────────────────────────────────────────────────────────────────────────────────────────────┤
 │ > 查看所有殖民者的健康状态______________ [发送]                                                            │
 ├────────────────────────────────────────────────────────────────────────────────────────────┤
-│ * 已连接 | ACT / 运行 | [压缩中] | 透明 [-] [+] | 清空 继续 中断                                           │
+│ * 已连接 | ACT / 暂停 | [压缩中] | 透明 [-] [+] | 清空 继续 中断                                           │
 └────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -199,7 +199,7 @@ C# 侧：`CcbWebSocket.ReceiveLoop` → `SdkMessage.FromJson` → `OnSdkMessage`
 | `user` | `UiUser` | `text` | 左栏·新建 [你] 条目 |
 | `system` | `UiSystem` | `text` | 左栏·[系统] 条目 |
 | `budget_status` | `UiBudgetStatus` | `used`, `limit`, `action`, `cacheRead`, `totalInput`, `cacheCreate`, `contextWindow`, `inputTokens` | header 三指标 |
-| `agent-status` | `UiAgentStatus` | `role` | 底栏 "ACT / 运行" |
+| `agent-status` | `UiAgentStatus` | `phase` | 底栏状态文本 |
 | `compaction-status` | `UiCompactionStatus` | `active` | 底栏 "[压缩中]" |
 
 ##### UI → Agent（客户端消息）
@@ -614,7 +614,7 @@ Skill 加载顺序：`Skills/*.md`（内置，只读）→ `Skills.d/*.md`（用
 | Info(1) | ❌ | ✅ | ❌ | 正面、来人、成长、任务、仪式成功、AlertEnd |
 | Silent(0) | ❌ | ✅ | ❌ | 静默、拒绝、选择角色、游戏结束 |
 
-`InterruptPromptPrefix = "## 事件通知"`, `InterruptPromptSuffix = "以上是游戏内发生的新事件，请关注并根据当前优先级自行决定处理时机。如需暂停游戏可使用 toggle_pause。现在继续: "` 为 `AgentOrchestrator` 常量。
+`InterruptPromptPrefix = "## 事件通知"`, `InterruptPromptSuffix = "以上是游戏内发生的新事件，请关注并根据当前优先级自行决定处理时机。现在继续: "` 为 `AgentOrchestrator` 常量。
 Companion abort 采用**消息缓冲**：abort 触发 `buffering=true`，`startNewSession` 重建 session 后回放缓冲消息。
 MCP 侧 `EventLevel` 枚举（`NotificationBus.cs`）与 Agent 侧 `EventLevel` 枚举（`AgentOrchestrator.cs`）值对齐，通过 SSE `level` 字段传递。
 

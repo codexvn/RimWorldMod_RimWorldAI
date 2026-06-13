@@ -260,7 +260,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `check_colony` | 殖民地提醒（空闲/崩溃/流血/食物/防御） | `PawnsFinder`, `map.wealthWatcher` |
 | `get_work_todos` | 汇总当前待办工作列表（建造、标记、工作单、医疗、囚犯、研究、搬运、空闲） | `map.listerThings`, `designationManager`, `billStack`, `mapPawns` |
 | `toggle_pause` | 切换游戏暂停状态，恢复时设为最大速度 | `Find.TickManager.CurTimeSpeed` (入队) |
-| `advance_tick` | 让游戏运行指定 tick 数后暂停返回状态，用于观察结果避免过度思考 | `Find.TickManager` (入队) |
+| `advance_tick` | Plan/Act 阶段唯一游戏推进入口，受控推进指定 tick 数后自动冻结 | `Find.TickManager` + `GamePaceEnforcer` (入队) |
 | `get_mcp_latency` | 探查 Agent 与游戏之间的 MCP 延迟 | `McpCommandQueue.DispatchAsync` 排队计时 |
 | `check_map_loaded` | 检查游戏和地图加载状态 | `Current.Game`, `Find.CurrentMap` |
 | `get_game_speed` | 当前游戏速度（含强制减速剩余时间） | `Find.TickManager`, `TimeSlower` |
