@@ -25,6 +25,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         private readonly McpClient _mcp;
         private List<MspToolDef> _cachedDefinitions = new();
 
+        /// <summary>黑名单：不注册、不可调用的游戏工具名集合。在 Refresh 前增删。</summary>
+        public static readonly HashSet<string> ToolBlacklist = new();
+
         public string ProviderName => "GameProxy";
 
         public ProxyToolProvider(McpClient mcp)
@@ -40,7 +43,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 var internalNames = new HashSet<string>(
                     InternalToolRegistry.Instance.All.Select(t => t.Name));
                 _cachedDefinitions = tools
-                    .Where(t => !internalNames.Contains(t.Name))
+                    .Where(t => !internalNames.Contains(t.Name) && !ToolBlacklist.Contains(t.Name))
                     .Select(t => new MspToolDef
                     {
                         Name = t.Name,
@@ -48,8 +51,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                         InputSchema = t.InputSchema
                     })
                     .ToList();
+                var blacklisted = tools.Count(t => ToolBlacklist.Contains(t.Name));
                 CoreLog.Info($"[ProxyToolProvider] meta-tools 模式加载 {_cachedDefinitions.Count} 个游戏工具 " +
-                    $"(排除 {internalNames.Count} 个内部工具)");
+                    $"(排除 {internalNames.Count} 个内部工具" +
+                    (blacklisted > 0 ? $"，{blacklisted} 个黑名单" : "") + ")");
             }
             catch (Exception ex)
             {
@@ -172,6 +177,12 @@ namespace RimWorldAgent.Core.AgentRuntime
                 {
                     sb.AppendLine();
                     sb.AppendLine($"━━━ {actionName} ━━━");
+
+                    if (ToolBlacklist.Contains(actionName))
+                    {
+                        sb.AppendLine($"已禁用: {actionName}");
+                        continue;
+                    }
 
                     var def = _cachedDefinitions.FirstOrDefault(d => d.Name == actionName);
                     if (def == null)
@@ -297,6 +308,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 sw.Stop();
                 return ErrorResult("缺少 action 参数。请指定要执行的游戏命令名。");
+            }
+
+            if (ToolBlacklist.Contains(innerName))
+            {
+                sw.Stop();
+                return ErrorResult($"工具 {innerName} 已在黑名单中，不可调用。");
             }
 
             // advance_tick 标记 — 推进期间守护线程不干预；失败时立即清除

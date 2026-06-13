@@ -162,6 +162,14 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 游戏事件订阅 + 游戏工具代理 → Agent MCP（必须在 CCB 之前完成）
             AgentLoop.WireEvents(mcp);
             _logInfo("[AgentEngine] 开始代理游戏工具...");
+
+            // 黑名单：不允许 LLM 调用的游戏工具
+            // 右键菜单类（殖民者自己会做，AI 调用反而打断工作流）
+            ProxyToolProvider.ToolBlacklist.Add("get_right_click_menu");
+            ProxyToolProvider.ToolBlacklist.Add("select_right_click");
+            // 游戏速度（由系统自动管理，AI 不得手动切换）
+            ProxyToolProvider.ToolBlacklist.Add("toggle_pause");
+
             var proxy = new ProxyToolProvider(mcp);
             await proxy.RefreshToolsAsync();
             if (_disposed) return false;
