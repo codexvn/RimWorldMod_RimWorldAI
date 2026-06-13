@@ -218,7 +218,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 var desc = def.Description ?? "";
                 // 截取第一句或前 40 字符作为简述
-                var tag = RequiresAdvanceTools.Contains(def.Name) ? "【需advance_tick】" : "";
+                var requiresAdvance = def.Annotations?.RequiresAdvanceHint == true;
+                var tag = requiresAdvance ? "【需advance_tick】" : "";
                 var brief = desc.Length > 40 ? desc.Substring(0, 40) + "…" : desc;
                 lines.Add($"- {def.Name}: {brief}");
             }

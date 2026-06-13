@@ -29,6 +29,10 @@ namespace SimpleMspServer.Mcp
 
         [JsonPropertyName("destructiveHint")]
         public bool? DestructiveHint { get; set; }
+
+        [JsonPropertyName("requiresAdvanceHint")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool RequiresAdvanceHint { get; set; }
     }
 
     public class ToolCallResult

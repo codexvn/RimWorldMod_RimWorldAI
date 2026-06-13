@@ -82,17 +82,35 @@ namespace RimWorldMCP.Tools
             }).OrderBy(t => t.Name).ToList();
         }
 
+        // 调用后需要 advance_tick 推进才能看到结果的工具
+        private static readonly HashSet<string> RequiresAdvanceTools = new()
+        {
+            "AcceptQuest", "AllowAllItems", "AllowItem", "ApplyBaseTemplate", "ArrestPawn",
+            "CancelBuild", "CapturePawn", "ClaimItem", "ConvertIdeo", "CreateBill",
+            "CreateGrowingZone", "CreateStockpile", "DefendPosition", "DeleteZone",
+            "DesignateBuild", "DesignateClearPlants", "DesignateDeconstruct", "DesignateHarvest",
+            "DesignateHunt", "DesignateMine", "DesignatePlantsCut", "DesignateRoom",
+            "DesignateSlaughter", "DesignateTame", "DraftPawn", "DropCarried", "DropEquipment",
+            "EquipPawn", "ExecuteDeviceAction", "ExpandZone", "ForbidItem", "ForceAttack",
+            "ForceBedRest", "ForceDress", "ForceSurgery", "HaulItem", "HoldCombatPosition",
+            "IngestItem", "InstallMinifiedThing", "ManageBill", "ManageStockpileFilter",
+            "ManageTransporterLoad", "MovePawn", "PickUpItem", "PlanAdd", "PlanRemove",
+            "RescuePawn", "ScheduleOperation", "SetBedOwnerType", "SetGrowerPlant",
+            "SetPrisonerPolicy", "SetResearchProject", "SetTempControl", "SetWorkPriority",
+            "StopResearch", "StripPawn", "TradeExecute", "UninstallBuilding",
+        };
+
         private static ToolAnnotations? GetAnnotations(string toolName)
         {
-            if (toolName.StartsWith("get_") || toolName.StartsWith("list_"))
+            var readOnly = toolName.StartsWith("get_") || toolName.StartsWith("list_");
+            var destructive = !readOnly;
+            var requiresAdvance = RequiresAdvanceTools.Contains(toolName);
+            return new ToolAnnotations
             {
-                return new ToolAnnotations { ReadOnlyHint = true, DestructiveHint = false };
-            }
-            if (toolName == "schedule_operation")
-            {
-                return new ToolAnnotations { ReadOnlyHint = false, DestructiveHint = true };
-            }
-            return new ToolAnnotations { ReadOnlyHint = false, DestructiveHint = true };
+                ReadOnlyHint = readOnly,
+                DestructiveHint = destructive,
+                RequiresAdvanceHint = requiresAdvance,
+            };
         }
 
         public List<ResourceDefinition> GetResources()
