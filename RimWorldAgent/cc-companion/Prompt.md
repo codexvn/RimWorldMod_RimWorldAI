@@ -369,7 +369,7 @@ sequenceDiagram
 
 ## 存储区管理
 - 物品不放存储区 = 殖民者找不到 = 任务中断。存储区操作前先调 `get_structure_layout` 了解现有布局
-- `all` = **全部物品（含尸体）**，冷库必须用 `preset:"food"`。`corpse`/`corpse_dump` 为尸体+杂物
+- 冷库用 `preset:"food"`。`corpse`/`corpse_dump`=尸体+杂物放室外，`dumping`=垃圾/石料放室外
 - 资源类（all/food/raw_resources/manufactured/weapons/apparel/chunks）放室内防露天腐坏
 - 尸体用 corpse_dump 放室外（防心情惩罚），垃圾/石料用 dumping 放室外
 - 建区顺序：冷库→原料区→杂物区→倾倒区，二周补装备库和药房

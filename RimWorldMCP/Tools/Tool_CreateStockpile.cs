@@ -27,8 +27,8 @@ namespace RimWorldMCP.Tools
                 {
                     type = "string",
                     description = "存储预设类型",
-                    @enum = new[] { "all", "dumping", "corpse", "corpse_dump", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
-                    @default = "all"
+                    @enum = new[] { "dumping", "corpse", "corpse_dump", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
+                    @default = "dumping"
                 },
                 priority = new
                 {
@@ -45,7 +45,6 @@ namespace RimWorldMCP.Tools
 
         private static readonly Dictionary<string, StorageSettingsPreset> PresetMap = new()
         {
-            { "all", StorageSettingsPreset.DefaultStockpile },
             { "dumping", StorageSettingsPreset.DumpingStockpile },
             { "corpse", StorageSettingsPreset.CorpseStockpile },
             { "corpse_dump", StorageSettingsPreset.CorpseStockpile },
@@ -72,7 +71,7 @@ namespace RimWorldMCP.Tools
             bool isRange = args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out endX)
                         && args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out endY);
 
-            string presetStr = "all";
+            string presetStr = "dumping";
             if (args.Value.TryGetProperty("preset", out var jP))
                 presetStr = jP.GetString() ?? "all";
 
@@ -124,7 +123,7 @@ namespace RimWorldMCP.Tools
                     }
                     else
                     {
-                        zone = new Zone_Stockpile(StorageSettingsPreset.DefaultStockpile, map.zoneManager);
+                        zone = new Zone_Stockpile(StorageSettingsPreset.DumpingStockpile, map.zoneManager);
                         ConfigureCustomPreset(zone, presetStr);
                     }
 
