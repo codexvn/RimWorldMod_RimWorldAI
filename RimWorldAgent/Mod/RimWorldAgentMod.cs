@@ -421,16 +421,7 @@ namespace RimWorldAgent
 
             listing.CheckboxLabeled("自动运行 Agent", ref Settings.AgentAutoRun,
                 "开启后加载存档时自动启动。");
-
-            var speedLabels = new[] { "paused (暂停)", "normal (1x)", "fast (2x)", "superfast (3x)", "ultrafast (最快)" };
-            var speedValues = new[] { "paused", "normal", "fast", "superfast", "ultrafast" };
-            var speedIdx = Array.IndexOf(speedValues, Settings.PlanSpeed);
-            if (speedIdx < 0) speedIdx = 0;
-            if (listing.ButtonText($"Plan 阶段速度: {speedLabels[speedIdx]}"))
-            {
-                speedIdx = (speedIdx + 1) % speedValues.Length;
-                Settings.PlanSpeed = speedValues[speedIdx];
-            }
+            // Plan 阶段速度已移除 — Plan/Act 均强制暂停，仅 Advance 可推进
 
             listing.Label("Skills 目录 (留空用默认)");
             Settings.SkillsDir = listing.TextEntry(Settings.SkillsDir);

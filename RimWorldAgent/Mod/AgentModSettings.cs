@@ -48,7 +48,7 @@ namespace RimWorldAgent
 
         // Agent 行为
         public bool AgentAutoRun = true;
-        public string PlanSpeed = "paused";
+        // PlanSpeed 已移除 — Plan/Act 均强制暂停，仅 Advance 可推进
         public string SkillsDir = "";
         public string ProjectPath = "";
 
@@ -81,7 +81,6 @@ namespace RimWorldAgent
             Scribe_Collections.Look(ref CustomMcpServers, "customMcpServers", LookMode.Deep);
             if (CustomMcpServers == null) CustomMcpServers = new List<CustomMcpServerSetting>();
             Scribe_Values.Look(ref AgentAutoRun, "agentAutoRun", true);
-            Scribe_Values.Look(ref PlanSpeed, "planSpeed", "paused");
             Scribe_Values.Look(ref SkillsDir, "skillsDir", "");
             Scribe_Values.Look(ref ProjectPath, "projectPath", "");
             Scribe_Values.Look(ref ApiKey, "apiKey", "");

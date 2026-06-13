@@ -4,7 +4,7 @@ using RimWorldAgent.Core.models;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    public enum GamePhase { None, Plan, Act }
+    public enum GamePhase { None, Plan, Act, Advance }
 
     public static class AgentOrchestrator
     {
@@ -51,7 +51,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static bool IsCompacting { get; set; }
 
         public static string StatusText
-            => CurrentPhase switch { GamePhase.Plan => "PLAN / 暂停", GamePhase.Act => "ACT / 运行", _ => "ACT / 运行" };
+            => CurrentPhase switch { GamePhase.Plan => "PLAN / 暂停", GamePhase.Act => "ACT / 暂停", GamePhase.Advance => "ADVANCE / 运行", _ => "空闲" };
 
         /// <summary>到了晨报/PLAN 时间？（新的一天，用于 EventForwarder 和 AgentEngine 统一调用）</summary>
         public static bool ShouldMorningReport()

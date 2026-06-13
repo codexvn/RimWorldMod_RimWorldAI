@@ -98,7 +98,7 @@ namespace RimWorldAgent
                     CcbAutoStart = true,
                     CcbAutoInstall = settings?.CcbAutoInstall ?? true,
                     CcbDir = ccbDir,
-                    PlanSpeed = settings?.PlanSpeed ?? "paused",
+                    // PlanSpeed 已移除
                     TokenBudgetLimit = settings?.TokenBudgetLimit ?? 0,
                     ThinkingMode = settings?.ThinkingMode ?? "adaptive",
                     ThinkingEffort = settings?.ThinkingEffort ?? "high",

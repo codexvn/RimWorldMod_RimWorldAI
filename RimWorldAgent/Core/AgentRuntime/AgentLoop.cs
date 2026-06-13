@@ -437,10 +437,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                 ccbWs.OnResult -= OnResult;
                 ccbWs.OnToolUse -= OnToolUse;
 
-                // 仅 Act/None 阶段恢复游戏，Plan 阶段保持暂停
+                // 所有阶段均强制暂停，Plan/Act/None 无差别
                 var phase = AgentOrchestrator.CurrentPhase;
                 if (phase == GamePhase.Act || phase == GamePhase.None)
-                    await paceController.EnsureResumed(mcp);
+                    await paceController.EnsurePaused(mcp);
                 // 不清除阶段 — enter_plan/enter_act 设置的状态在会话间保持
                 AgentOrchestrator.PaceController = null;
                 AgentOrchestrator.SessionMcp = null;

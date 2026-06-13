@@ -7,54 +7,51 @@ using RimWorldAgent.Core.Mcp;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    /// <summary>游戏暂停/恢复控制器 — Plan/Act 阶段切换时控制游戏速度</summary>
+    /// <summary>游戏节奏控制器 — Plan/Act 阶段强制暂停，仅 Advance 阶段允许推进</summary>
     public class GamePaceController : IDisposable
     {
         private readonly SemaphoreSlim _opLock = new(1, 1);
 
-        /// <summary>Plan 阶段游戏速度，默认 paused，可选 normal/fast/superfast/ultrafast</summary>
-        public static string PlanSpeed { get; set; } = "paused";
-
         /// <summary>宿主可设置的跳过恢复判断</summary>
         public static Func<bool>? ShouldSkipResume { get; set; }
 
-        /// <summary>进入 Plan 阶段，设置游戏速度（toggle_pause 幂等）</summary>
-        public async Task PauseForPlanning(McpClient mcp, string speed = "paused")
+        /// <summary>进入 Plan 阶段，强制暂停游戏</summary>
+        public async Task PauseForPlanning(McpClient mcp)
         {
             await _opLock.WaitAsync();
             try
             {
-                await CallTogglePause(mcp, speed);
-                CoreLog.Info($"[GamePace] Plan 阶段速度: {speed}");
+                await CallTogglePause(mcp, "paused");
+                CoreLog.Info("[GamePace] Plan 阶段：强制暂停");
             }
             finally { _opLock.Release(); }
         }
 
-        /// <summary>进入 Act 阶段，恢复游戏（toggle_pause 幂等）</summary>
-        public async Task ResumeForAction(McpClient mcp, string speed = "superfast")
+        /// <summary>进入 Act 阶段，同样强制暂停游戏（仅 Advance 可推进）</summary>
+        public async Task PauseForAction(McpClient mcp)
         {
             await _opLock.WaitAsync();
             try
             {
-                await CallTogglePause(mcp, speed);
-                CoreLog.Info($"[GamePace] 已恢复游戏 (Act 阶段, 速度: {speed})");
+                await CallTogglePause(mcp, "paused");
+                CoreLog.Info("[GamePace] Act 阶段：强制暂停");
             }
             finally { _opLock.Release(); }
         }
 
-        /// <summary>确保游戏已恢复（finally 中调用）</summary>
-        public async Task EnsureResumed(McpClient mcp)
+        /// <summary>确保游戏已暂停（finally / 会话结束时调用）</summary>
+        public async Task EnsurePaused(McpClient mcp)
         {
             if (ShouldSkipResume != null && ShouldSkipResume())
             {
-                CoreLog.Info("[GamePace] 跳过恢复（ShouldSkipResume=true）");
+                CoreLog.Info("[GamePace] 跳过强制暂停（ShouldSkipResume=true）");
                 return;
             }
             await _opLock.WaitAsync();
             try
             {
-                await CallTogglePause(mcp, "superfast");
-                CoreLog.Info("[GamePace] 已恢复游戏 (EnsureResumed)");
+                await CallTogglePause(mcp, "paused");
+                CoreLog.Info("[GamePace] 已恢复强制暂停 (EnsurePaused)");
             }
             finally { _opLock.Release(); }
         }

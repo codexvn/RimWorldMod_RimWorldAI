@@ -21,7 +21,6 @@ namespace RimWorldAgent
 
             var mcpUrl = "http://10.126.126.1:9877/";
             var modelName = "";
-            var planSpeed = "paused";
             for (int i = 0; i < args.Length; i++)
             {
                 var arg = args[i];
@@ -31,10 +30,6 @@ namespace RimWorldAgent
                     modelName = arg.Substring("--model=".Length);
                 else if (arg.StartsWith("-m="))
                     modelName = arg.Substring("-m=".Length);
-                else if (arg == "--plan-speed" && i + 1 < args.Length)
-                    planSpeed = args[++i];
-                else if (arg.StartsWith("--plan-speed="))
-                    planSpeed = arg.Substring("--plan-speed=".Length);
                 else if ((arg == "--mcp-url" || arg == "--mcp" || arg == "-u") && i + 1 < args.Length)
                     mcpUrl = args[++i];
                 else if (arg.StartsWith("--mcp-url="))
@@ -47,7 +42,6 @@ namespace RimWorldAgent
                     mcpUrl = arg;
             }
             if (!string.IsNullOrEmpty(modelName)) Console.WriteLine($"  模型: {modelName}");
-            if (planSpeed != "paused") Console.WriteLine($"  Plan 速度: {planSpeed}");
 
             var projectPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session"));
             Directory.CreateDirectory(projectPath);
@@ -64,7 +58,6 @@ namespace RimWorldAgent
                 ProjectPath = projectPath,
                 McpUrl = mcpUrl,
                 ModelName = modelName,
-                PlanSpeed = planSpeed,
                 CcbDir = ccbDir ?? "",
                 WaitForGame = true,
             };

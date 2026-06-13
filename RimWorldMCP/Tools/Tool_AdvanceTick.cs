@@ -14,7 +14,7 @@ namespace RimWorldMCP.Tools
     public class Tool_AdvanceTick : ITool, INoMapRequired
     {
         public string Name => "advance_tick";
-        public string Description => "以最快速度推进游戏指定小时数后恢复原速度。1 游戏小时 = 2500 tick，最快约 0.6 秒。支持小数（如 0.5 = 半小时）。和平时期用 12 小时大步推进。";
+        public string Description => "以最快速度推进游戏指定小时数后恢复原速度。1 游戏小时 = 2500 tick，最快约 0.6 秒。支持小数（如 0.5 = 半小时）。和平时期用 12 小时大步推进。Plan/Act 阶段为受控 Advance 推进（完成后自动恢复强制暂停）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -44,10 +44,17 @@ namespace RimWorldMCP.Tools
                 cancelled = new List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)>(_pending.Values);
                 _pending.Clear();
             }
-            var tm = Find.TickManager;
-            // 恢复到最早保存的速度，没有则用 3 倍速
-            var restoreSpeed = cancelled.Count > 0 ? cancelled[0].savedSpeed : TimeSpeed.Superfast;
-            if (tm != null) tm.CurTimeSpeed = restoreSpeed;
+            // Advance 模式下：恢复暂停
+            if (GamePaceEnforcer.AdvanceTargetTick > 0)
+            {
+                GamePaceEnforcer.CompleteAdvance();
+            }
+            else
+            {
+                var tm = Find.TickManager;
+                var restoreSpeed = cancelled.Count > 0 ? cancelled[0].savedSpeed : TimeSpeed.Superfast;
+                if (tm != null) tm.CurTimeSpeed = restoreSpeed;
+            }
             foreach (var (tcs, _, _) in cancelled)
                 tcs.TrySetResult(ToolResult.Success("advance_tick 已被中断，已恢复原速度。"));
         }
@@ -60,7 +67,8 @@ namespace RimWorldMCP.Tools
             int current = tickManager.TicksGame;
 
             List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)>? completed = null;
-            bool playerPaused = false;
+            bool interrupted = false;
+            string interruptReason = "";
             TimeSpeed? savedSpeed = null;
 
             // 高危事件 → 立即暂停，提前退出
@@ -74,7 +82,6 @@ namespace RimWorldMCP.Tools
                 var map = Find.CurrentMap;
                 if (map != null && map.IsPlayerHome)
                 {
-                    // 收集所有 pending 的初始空闲 ID 并集
                     var seenIds = new HashSet<int>();
                     foreach (var kv in _pending)
                         seenIds.UnionWith(kv.Value.initialIdleIds);
@@ -84,6 +91,27 @@ namespace RimWorldMCP.Tools
                 }
             }
 
+            // 检查 Advance 是否已到达目标
+            if (GamePaceEnforcer.IsAdvanceComplete(current))
+            {
+                lock (_lock)
+                {
+                    if (_pending.Count > 0)
+                    {
+                        completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
+                        if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
+                        _pending.Clear();
+                    }
+                }
+                if (completed != null)
+                {
+                    GamePaceEnforcer.CompleteAdvance();
+                    foreach (var (_, tcs, _, _) in completed)
+                        tcs.TrySetResult(ToolResult.Success(BuildGameStatus() + "\n\nadvance_tick 推进完成。"));
+                }
+                return;
+            }
+
             lock (_lock)
             {
                 if (_pending.Count == 0) return;
@@ -91,78 +119,62 @@ namespace RimWorldMCP.Tools
                 // 玩家按空格暂停 → 中断所有等待
                 if (tickManager.Paused)
                 {
-                    playerPaused = true;
+                    interrupted = true;
+                    interruptReason = "玩家手动暂停";
                     completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
                 else if (highDanger || colonistsIdle)
                 {
+                    interrupted = true;
+                    interruptReason = highDanger ? "高危事件触发" : "殖民者出现空闲";
                     completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
                 else
                 {
+                    // 正常到达目标
+                    var reached = new List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> idleIds)>();
                     foreach (var kv in _pending)
-                    {
                         if (current >= kv.Key)
-                        {
-                            completed ??= new List<(int, TaskCompletionSource<ToolResult>, TimeSpeed, HashSet<int>)>();
-                            completed.Add((kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds));
-                        }
-                    }
-                    if (completed != null)
+                            reached.Add((kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds));
+                    foreach (var r in reached) _pending.Remove(r.target);
+                    if (reached.Count > 0)
                     {
-                        foreach (var (target, _, _, _) in completed)
-                            _pending.Remove(target);
-                        if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
+                        completed = reached;
+                        savedSpeed = reached[0].savedSpeed;
                     }
                 }
             }
 
-            if (completed != null)
-            {
-                tickManager.CurTimeSpeed = savedSpeed ?? TimeSpeed.Superfast;
+            if (completed == null) return;
 
-                if (playerPaused)
+            // 处理完成/中断
+            if (interrupted)
+            {
+                if (GamePaceEnforcer.AdvanceTargetTick > 0)
+                    GamePaceEnforcer.CompleteAdvance();
+                else if (savedSpeed.HasValue)
                 {
-                    foreach (var (_, tcs, _, _) in completed)
-                        tcs.TrySetResult(ToolResult.Success("advance_tick 已被中断（玩家暂停），已恢复原速度。"));
+                    var tm = Find.TickManager;
+                    if (tm != null) tm.CurTimeSpeed = savedSpeed.Value;
                 }
-                else if (highDanger)
+                foreach (var (_, tcs, _, _) in completed)
+                    tcs.TrySetResult(ToolResult.Success($"advance_tick 已中断: {interruptReason}。\n\n{BuildGameStatus()}"));
+            }
+            else
+            {
+                if (GamePaceEnforcer.AdvanceTargetTick > 0)
+                    GamePaceEnforcer.CompleteAdvance();
+                else if (savedSpeed.HasValue)
                 {
-                    var dangerList = NotificationBus.Drain();
-                    var sb = new StringBuilder();
-                    sb.AppendLine("## 紧急事件！advance_tick 提前退出");
-                    foreach (var n in dangerList)
-                        sb.AppendLine($"- {n.Label}");
-                    var result = ToolResult.Success(sb.ToString());
-                    foreach (var (_, tcs, _, _) in completed)
-                        tcs.TrySetResult(result);
+                    var tm = Find.TickManager;
+                    if (tm != null) tm.CurTimeSpeed = savedSpeed.Value;
                 }
-                else if (colonistsIdle)
-                {
-                    var map = Find.CurrentMap;
-                    var idlePawns = map?.mapPawns.FreeColonistsSpawned
-                        .Where(p => p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted)
-                        .Select(p => p.NameShortColored.Resolve())
-                        .ToList() ?? new List<string>();
-                    var sb = new StringBuilder();
-                    sb.AppendLine($"## 有 {idlePawns.Count} 名殖民者空闲，advance_tick 提前退出");
-                    foreach (var name in idlePawns)
-                        sb.AppendLine($"- {name}");
-                    sb.AppendLine();
-                    sb.Append(BuildGameStatus());
-                    foreach (var (_, tcs, _, _) in completed)
-                        tcs.TrySetResult(ToolResult.Success(sb.ToString()));
-                }
-                else
-                {
-                    var status = BuildGameStatus();
-                    foreach (var (_, tcs, _, _) in completed)
-                        tcs.TrySetResult(ToolResult.Success(status));
-                }
+                foreach (var (_, tcs, _, _) in completed)
+                    tcs.TrySetResult(ToolResult.Success(BuildGameStatus() + "\n\nadvance_tick 推进完成。"));
             }
         }
 
@@ -204,7 +216,6 @@ namespace RimWorldMCP.Tools
             var tm = Find.TickManager;
             if (tm == null || tm.Paused || _lowSpeedWarningReady) return;
 
-            // 有敌人时重置计时（战斗场景不应催促加速）
             if (EnemyOnMap()) { _lowSpeedSinceReal = 0; return; }
 
             bool isBelowSuperfast = tm.CurTimeSpeed < TimeSpeed.Superfast;
@@ -247,7 +258,6 @@ namespace RimWorldMCP.Tools
             if (hours > 24) return ToolResult.Error("hours 过大，单次最多 24 小时（1 天）");
             int ticks = (int)Math.Round(hours * 2500);
 
-            // 加载期间主线程不可用，提前返回错误避免 DispatchAsync 超时
             if (LongEventHandler.ForcePause)
                 return ToolResult.Error("游戏正在加载中，主线程暂时不可用，请稍后重试。");
 
@@ -261,9 +271,10 @@ namespace RimWorldMCP.Tools
                     tcs.TrySetResult(ToolResult.Error("TickManager 不可用"));
                     return null!;
                 }
+
                 int target = tm.TicksGame + ticks;
                 var savedSpeed = tm.CurTimeSpeed;
-                // 快照初始空闲殖民者（推进过程中新出现的空闲才算）
+
                 var idleIds = new HashSet<int>();
                 var currentMap = Find.CurrentMap;
                 if (currentMap != null)
@@ -272,6 +283,15 @@ namespace RimWorldMCP.Tools
                         if (p.mindState.IsIdle && !p.IsQuestLodger() && !p.Drafted)
                             idleIds.Add(p.thingIDNumber);
                 }
+
+                // Plan/Act 强制暂停模式 → 走 Advance 受控通道
+                // 如果游戏被暂停（Plan/Act 模式），走 Advance 受控通道
+                if (tm.Paused)
+                {
+                    GamePaceEnforcer.StartAdvance(target, savedSpeed);
+                    tm.TogglePaused();
+                }
+
                 lock (_lock) { _pending[target] = (tcs, savedSpeed, idleIds); }
                 tm.CurTimeSpeed = TimeSpeed.Ultrafast;
                 return null!;

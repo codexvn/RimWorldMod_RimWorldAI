@@ -40,7 +40,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public bool CcbAutoStart { get; set; } = true;
         public bool CcbAutoInstall { get; set; } = true;
         public string CcbDir { get; set; } = "";
-        public string PlanSpeed { get; set; } = "paused";
+        // PlanSpeed 已移除 — Plan/Act 阶段均强制暂停，仅 Advance 可推进
         public bool WaitForGame { get; set; } = false;
         public long TokenBudgetLimit { get; set; }
         public string ThinkingMode { get; set; } = "adaptive";
@@ -263,7 +263,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             if (!ccbReady) _logInfo("[AgentEngine] CCB: 未就绪 (事件转发不可用)");
 
-            GamePaceController.PlanSpeed = _cfg.PlanSpeed;
+            // PlanSpeed 已移除
             _ctx = new ContextBuilder(mcp);
 
             _initialized = true;
@@ -342,7 +342,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                         AgentOrchestrator.EnterPlanPhase();
                         if (AgentOrchestrator.PaceController == null)
                             AgentOrchestrator.PaceController = new GamePaceController();
-                        await AgentOrchestrator.PaceController.PauseForPlanning(_mcp, GamePaceController.PlanSpeed);
+                        await AgentOrchestrator.PaceController.PauseForPlanning(_mcp);
                         await RunAgent(isPlan: true);
                         _logInfo($"[AgentEngine] 冷启动完成 (Day={_gameState.GameDay})");
                         return;
@@ -395,7 +395,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 AgentOrchestrator.EnterPlanPhase();
                 if (AgentOrchestrator.PaceController == null)
                     AgentOrchestrator.PaceController = new GamePaceController();
-                await AgentOrchestrator.PaceController.PauseForPlanning(_mcp, GamePaceController.PlanSpeed);
+                await AgentOrchestrator.PaceController.PauseForPlanning(_mcp);
                 _gameState.MarkMorningReportSent();
                 await RunAgent(isPlan: true);
                 return;
