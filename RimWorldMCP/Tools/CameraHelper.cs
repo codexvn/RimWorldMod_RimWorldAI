@@ -59,19 +59,17 @@ namespace RimWorldMCP.Tools
 
         private static double _lastAutoTrackCheckReal;
         private static double _noColonistVisibleSince;
-        private const double AutoTrackCheckIntervalSec = 5.0;
-        private const double AutoTrackTriggerDelaySec = 3.0;
+        private const double AutoTrackCheckIntervalSec = 2.0;
+        private const double AutoTrackTriggerDelaySec = 1.0;
         private const float ClusterDistance = 20f;
 
         /// <summary>
-        /// 每帧由 GameComponentUpdate 末尾调用。战斗时主动聚焦战斗中的殖民者集群；
-        /// 非战斗时仅当视野长时间无殖民者时回追。
+        /// 每帧由 GameComponentUpdate 末尾调用。战斗时持续追踪战斗集群；
+        /// 非战斗时殖民者离开视野后自动回追。暂停状态下也会跟踪。
         /// </summary>
         public static void AutoTrackColonistsTick()
         {
             if (RimWorldMCPMod.Instance?.Settings?.AutoTrackColonists != true)
-                return;
-            if (Find.TickManager?.Paused == true)
                 return;
 
             var now = Time.realtimeSinceStartupAsDouble;
@@ -94,8 +92,8 @@ namespace RimWorldMCP.Tools
 
             if (combatColonists.Count > 0)
             {
-                // 战斗模式：快速检查间隔（1.5 秒），始终聚焦战斗集群
-                if (now - _lastAutoTrackCheckReal < 1.5)
+                // 战斗模式：快速追踪（0.5 秒），始终跟随战斗集群
+                if (now - _lastAutoTrackCheckReal < 0.5)
                     return;
                 _lastAutoTrackCheckReal = now;
 
@@ -115,25 +113,29 @@ namespace RimWorldMCP.Tools
                 return;
             }
 
-            // 非战斗模式：原逻辑，仅当视野内无殖民者时才追踪
+            // 非战斗模式：大部分殖民者离开屏幕聚焦区域后才跟踪集群中心
             if (now - _lastAutoTrackCheckReal < AutoTrackCheckIntervalSec)
                 return;
             _lastAutoTrackCheckReal = now;
 
             {
                 var viewRect = Find.CameraDriver.CurrentViewRect;
+                // 聚焦区域 = 视野中心的 2/3 范围
+                int focusW = Math.Max(1, viewRect.Width * 2 / 3);
+                int focusH = Math.Max(1, viewRect.Height * 2 / 3);
+                int cx = viewRect.CenterCell.x;
+                int cz = viewRect.CenterCell.z;
+                var focusRect = CellRect.FromLimits(cx - focusW / 2, cz - focusH / 2, cx + focusW / 2, cz + focusH / 2);
 
-                bool anyVisible = false;
+                int inFocus = 0;
                 foreach (var c in colonists)
                 {
-                    if (viewRect.Contains(c.Position))
-                    {
-                        anyVisible = true;
-                        break;
-                    }
+                    if (focusRect.Contains(c.Position))
+                        inFocus++;
                 }
 
-                if (anyVisible)
+                // 超半数的殖民者在聚焦区域 → 不跟踪
+                if (colonists.Count > 0 && (float)inFocus / colonists.Count >= 0.5f)
                 {
                     _noColonistVisibleSince = now;
                     return;

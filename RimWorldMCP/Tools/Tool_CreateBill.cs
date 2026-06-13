@@ -91,14 +91,6 @@ namespace RimWorldMCP.Tools
                     if (targetTable.billStack.Count >= 15)
                         return ToolResult.Error($"{tableLabel} 的单据已满（最多 15 个）。请先删除或暂停其他单据。");
 
-                    // 检查原料库存
-                    var missing = recipe.PotentiallyMissingIngredients(null, map).ToList();
-                    if (missing.Count > 0)
-                    {
-                        var names = missing.Select(d => d.label).ToList();
-                        return ToolResult.Error($"配方 {recipe.label} 缺少原料: {string.Join(", ", names)}");
-                    }
-
                     // 创建单据（使用 MakeNewBill 自动选择正确的单据子类：UFT/Mech/Autonomous/标准）
                     var billBase = recipe.MakeNewBill(null);
                     var bill = (Bill_Production)billBase; // 所有 MakeNewBill 返回类型均继承自 Bill_Production
@@ -136,6 +128,19 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine($"- 配方: {billLabel} ({recipeDefName})");
                     sb.AppendLine($"- 模式: {repeatText}");
                     sb.AppendLine($"- 位置: ({pos.x}, {pos.z})");
+
+                    // 材料不足时附摘要警告（用 filter 摘要，不展开具体 def）
+                    if (recipe.ingredients != null && recipe.ingredients.Count > 0)
+                    {
+                        var missingSummaries = new string[recipe.ingredients.Count];
+                        for (int i = 0; i < recipe.ingredients.Count; i++)
+                        {
+                            var summary = recipe.ingredients[i].filter?.Summary ?? "???";
+                            missingSummaries[i] = $"{summary} x{recipe.ingredients[i].GetBaseCount()}";
+                        }
+                        sb.AppendLine();
+                        sb.Append($"⚠ 所需材料: {string.Join(", ", missingSummaries)}（单据已创建，殖民者会等待材料到位后自动开始）");
+                    }
 
                     return ToolResult.Success(sb.ToString());
                 }

@@ -47,7 +47,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>当前是否有活跃的 AI 会话（AgentEngine 用，防止重复启动）</summary>
         public static volatile bool IsRunning;
 
-        /// <summary>advance_tick 正在推进游戏时间（EnforcePauseAsync 在推进期间跳过）</summary>
+        /// <summary>advance_tick 正在推进游戏时间（守护线程在推进期间跳过）</summary>
         public static volatile bool IsAdvancing;
 
         /// <summary>SDK 是否正在执行上下文压缩（由 CcbWebSocket 在收到 system status 消息时更新）</summary>

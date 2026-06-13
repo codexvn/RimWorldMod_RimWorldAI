@@ -299,8 +299,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 return ErrorResult("缺少 action 参数。请指定要执行的游戏命令名。");
             }
 
-            // advance_tick 标记 — 推进期间 EnforcePauseAsync 不干预
-            // advance_tick 推进期间 EnforcePauseAsync 不干预；失败时立即清除
+            // advance_tick 标记 — 推进期间守护线程不干预；失败时立即清除
             bool isAdvance = innerName == "advance_tick";
             if (isAdvance) AgentOrchestrator.IsAdvancing = true;
             try

@@ -128,7 +128,18 @@ namespace RimWorldMCP.Tools
                         else if (p.InMentalState) stateStr = $", {p.MentalState?.def?.label ?? "精神异常"}";
                         else if (p.Dead) stateStr = ", 已死亡";
 
-                        sb.AppendLine($"- [{p.Position.x},{p.Position.z}] {p.LabelShort} ({p.KindLabel}) ID:{p.thingIDNumber}{factionStr}{stateStr}");
+                        string revengeStr = "";
+                        if (kind == "animal")
+                        {
+                            try
+                            {
+                                var wf = typeof(RaceProperties).GetField("wildness");
+                                if (wf != null && p.RaceProps != null)
+                                    revengeStr = $"，反击概率 {(float)wf.GetValue(p.RaceProps) * 100:F0}%";
+                            }
+                            catch (Exception ex) { McpLog.Info($"[find_pawn] 读取野性失败: {ex.Message}"); }
+                        }
+                        sb.AppendLine($"- [{p.Position.x},{p.Position.z}] {p.LabelShort} ({p.KindLabel}) ID:{p.thingIDNumber}{factionStr}{stateStr}{revengeStr}");
                     }
 
                     int totalPages = (int)Math.Ceiling((double)total / pageSize);

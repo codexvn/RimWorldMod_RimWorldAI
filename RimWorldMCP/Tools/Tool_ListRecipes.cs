@@ -91,8 +91,8 @@ namespace RimWorldMCP.Tools
                 var sb = new StringBuilder();
                 sb.AppendLine($"## 可用配方 ({paged.Count} / {total} 个)");
                 sb.AppendLine();
-                sb.AppendLine("| 配方 | defName | 产物 | 工作台 | 技能要求 | 工作量 | 手术");
-                sb.AppendLine("|------|---------|------|--------|----------|--------|-----|");
+                sb.AppendLine("| 配方 | defName | 产物 | 工作台 | 材料 | 技能要求 | 工作量 | 手术");
+                sb.AppendLine("|------|---------|------|--------|------|----------|--------|-----|");
 
                 foreach (var recipe in paged)
                 {
@@ -135,7 +135,7 @@ namespace RimWorldMCP.Tools
 
                     var workAmount = recipe.workAmount;
 
-                    sb.AppendLine($"| {label} | `{defName}` | {producedThing} | {workbenches} | {skillReq} | {workAmount} | {isSurgery} |");
+                    sb.AppendLine($"| {label} | `{defName}` | {producedThing} | {workbenches} | {materials} | {skillReq} | {workAmount} | {isSurgery} |");
                 }
 
                 sb.AppendLine();

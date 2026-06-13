@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Ccb = RimWorldAgent.Core.CcbManager.CcbManager;
 using RimWorldAgent.Core.CcbManager;
@@ -71,6 +72,8 @@ namespace RimWorldAgent.Core.AgentRuntime
         private SimpleMspServer.McpServiceHost? _agentHost;
         private bool _initializing;
         private bool _disposed;
+        private CancellationTokenSource? _enforceCts;
+        private Task? _enforceTask;
 
         public CcbWebSocket? CcbWs => _ccbWs;
         public McpClient? McpClient => _mcp;
@@ -263,6 +266,9 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             if (!ccbReady) _logInfo("[AgentEngine] CCB: 未就绪 (事件转发不可用)");
 
+            // 启动暂停兜底守护线程
+            StartEnforceLoop();
+
             // PlanSpeed 已移除
             _ctx = new ContextBuilder(mcp);
 
@@ -352,9 +358,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex) { _logInfo($"[AgentEngine] 冷启动检测失败: {ex.Message}"); }
             }
 
-            // 优先级 0.5: 暂停强制 — advance_tick 的配套，确保 PLAN/ACT 下游戏始终暂停
-            await GamePaceController.EnforcePauseAsync(_mcp, _gameState.IsPaused);
-
             // 定期状态检测（每 120 tick ≈ 2s，仅 Agent 空闲时）
             if (!AgentOrchestrator.IsRunning && currentTick - _lastStatusCheckTick >= 120)
             {
@@ -437,10 +440,48 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
         }
 
+        private void StartEnforceLoop()
+        {
+            _enforceCts?.Cancel();
+            _enforceCts = new CancellationTokenSource();
+            var token = _enforceCts.Token;
+            _enforceTask = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(2000, token);
+                        if (token.IsCancellationRequested) break;
+
+                        if (_mcp == null) continue;
+                        if (AgentOrchestrator.IsAdvancing) continue;
+
+                        var speedResult = await _mcp.CallTool("get_game_speed");
+                        if (speedResult != null && !speedResult.Contains("paused"))
+                        {
+                            _logInfo("[AgentEngine] 兜底暂停: 检测到非推进期游戏未暂停，强制暂停");
+                            await _mcp.CallTool("toggle_pause", new Dictionary<string, JsonElement>
+                            {
+                                ["speed"] = JsonSerializer.SerializeToElement("paused")
+                            });
+                        }
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        _logWarn($"[AgentEngine] 暂停兜底异常: {ex.Message}");
+                    }
+                }
+            }, token);
+            _logInfo("[AgentEngine] 暂停兜底守护已启动");
+        }
+
         public void Dispose()
         {
             _disposed = true;
             _initialized = false;
+            try { _enforceCts?.Cancel(); } catch { }
             _ccbWs?.Dispose();
             _ccbWs = null;
             _ccb?.Dispose();

@@ -68,35 +68,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
         }
 
-        /// <summary>
-        /// 后台暂停强制：每 ~2s 由 TickAsync 调用。PLAN/ACT 阶段非推进期游戏必须在暂停状态。
-        /// 设计为 advance_tick 的配套——advance_tick 推进并解锁游戏，本方法兜底确保 PLAN/ACT 下游戏始终暂停。
-        /// toggle_pause(speed:"paused") 已是幂等操作（仅 !tm.Paused 时切换），重复调用无副作用。
-        /// </summary>
-        public static async Task EnforcePauseAsync(McpClient mcp, bool isPaused)
-        {
-            var phase = AgentOrchestrator.CurrentPhase;
-            if (phase != GamePhase.Plan && phase != GamePhase.Act) return;
-
-            // advance_tick 推进中：游戏已暂停=推进完成，清除标记；游戏运行中=推进进行中，跳过
-            if (AgentOrchestrator.IsAdvancing)
-            {
-                if (isPaused) AgentOrchestrator.IsAdvancing = false;
-                return;
-            }
-            try
-            {
-                var pc = AgentOrchestrator.PaceController ?? new GamePaceController();
-                await pc.EnsurePaused(mcp);
-                if (!ReferenceEquals(pc, AgentOrchestrator.PaceController))
-                    pc.Dispose();
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Warn($"[GamePace] 后台暂停强制失败: {ex.Message}");
-            }
-        }
-
         public void Dispose()
         {
             _opLock.Dispose();
