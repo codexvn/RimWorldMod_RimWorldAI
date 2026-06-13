@@ -453,6 +453,6 @@ Agent 内部工具（直接调用，不走 execute_tool）：
 名称和描述已在下方列出，无需调用 `get_skills` 获取列表。
 `get_skills` 用于发现 Skills.d/ 中运行时新增的 Skill。
 
-**重要：遇到与下方任一 Skill 描述相关的场景时，必须使用 active_skill(name="...") 加载完整内容后再行动，无论相关性高低均不可跳过。**
+**强制要求：遇到与下方Skill 描述相关的场景时，必须使用 active_skill(name="...") 加载完整内容后再行动，无论相关性高低均不可跳过。**
 
 {skillsTable}

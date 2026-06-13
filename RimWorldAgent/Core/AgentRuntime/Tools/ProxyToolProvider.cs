@@ -299,7 +299,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                 return ErrorResult("缺少 action 参数。请指定要执行的游戏命令名。");
             }
 
-            // 调用游戏 MCP
+            // advance_tick 标记 — 推进期间 EnforcePauseAsync 不干预
+            // advance_tick 推进期间 EnforcePauseAsync 不干预；失败时立即清除
+            bool isAdvance = innerName == "advance_tick";
+            if (isAdvance) AgentOrchestrator.IsAdvancing = true;
             try
             {
                 var result = await _mcp.CallTool(innerName, innerArgs);
@@ -318,6 +321,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             catch (Exception ex)
             {
+                if (isAdvance) AgentOrchestrator.IsAdvancing = false;
                 sw.Stop();
                 var innerMsg = ex.InnerException != null
                     ? $" | Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}" : "";

@@ -352,6 +352,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex) { _logInfo($"[AgentEngine] 冷启动检测失败: {ex.Message}"); }
             }
 
+            // 优先级 0.5: 暂停强制 — advance_tick 的配套，确保 PLAN/ACT 下游戏始终暂停
+            await GamePaceController.EnforcePauseAsync(_mcp, _gameState.IsPaused);
+
             // 定期状态检测（每 120 tick ≈ 2s，仅 Agent 空闲时）
             if (!AgentOrchestrator.IsRunning && currentTick - _lastStatusCheckTick >= 120)
             {
@@ -419,7 +422,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                 return;
             }
 
-            GamePaceController.ShouldSkipResume = null;
             AgentOrchestrator.BeginSession();
             try
             {
