@@ -458,13 +458,26 @@ namespace RimWorldAgent.Core.AgentRuntime
                         if (AgentOrchestrator.IsAdvancing) continue;
 
                         var speedResult = await _mcp.CallTool("get_game_speed");
-                        if (speedResult != null && !speedResult.Contains("paused"))
+                        if (speedResult != null)
                         {
-                            _logInfo("[AgentEngine] 兜底暂停: 检测到非推进期游戏未暂停，强制暂停");
-                            await _mcp.CallTool("toggle_pause", new Dictionary<string, JsonElement>
+                            // get_game_speed 返回 JSON：{"paused":false,...}
+                            bool isPaused = false;
+                            try
                             {
-                                ["speed"] = JsonSerializer.SerializeToElement("paused")
-                            });
+                                var speedDoc = JsonDocument.Parse(speedResult);
+                                if (speedDoc.RootElement.TryGetProperty("paused", out var pausedEl))
+                                    isPaused = pausedEl.GetBoolean();
+                            }
+                            catch (Exception) { isPaused = false; }
+
+                            if (!isPaused)
+                            {
+                                _logInfo("[AgentEngine] 兜底暂停: 检测到非推进期游戏未暂停，强制暂停");
+                                await _mcp.CallTool("toggle_pause", new Dictionary<string, JsonElement>
+                                {
+                                    ["speed"] = JsonSerializer.SerializeToElement("paused")
+                                });
+                            }
                         }
                     }
                     catch (OperationCanceledException) { break; }

@@ -133,9 +133,9 @@ namespace RimWorldMCP.Tools
                         {
                             try
                             {
-                                var wf = typeof(RaceProperties).GetField("wildness");
-                                if (wf != null && p.RaceProps != null)
-                                    revengeStr = $"，反击概率 {(float)wf.GetValue(p.RaceProps) * 100:F0}%";
+                                float wildness = p.GetStatValue(StatDefOf.Wildness, true, -1);
+                                if (wildness > 0)
+                                    revengeStr = $"，反击概率 {wildness * 100:F0}%";
                             }
                             catch (Exception ex) { McpLog.Info($"[find_pawn] 读取野性失败: {ex.Message}"); }
                         }

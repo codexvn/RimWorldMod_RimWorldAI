@@ -44,7 +44,7 @@ namespace RimWorldMCP.Tools
                 map.designationManager.RemoveAllDesignationsOn(target, false);
                 map.designationManager.AddDesignation(new Designation(target, DesignationDefOf.Hunt));
                 float wildness = 0f;
-                try { var wf = typeof(RaceProperties).GetField("wildness"); if (wf != null && target.RaceProps != null) wildness = (float)wf.GetValue(target.RaceProps); } catch (Exception ex) { McpLog.Info($"[designate_hunt] 读取野性失败: {ex.Message}"); }
+                try { wildness = target.GetStatValue(StatDefOf.Wildness, true, -1); } catch (Exception ex) { McpLog.Info($"[designate_hunt] 读取野性失败: {ex.Message}"); }
                 var risk = wildness > 0 ? $"（反击概率 {wildness * 100:F0}%）" : "";
                 return ToolResult.Success($"已标记 {target.LabelShort}{risk} 为狩猎目标。");
             });
