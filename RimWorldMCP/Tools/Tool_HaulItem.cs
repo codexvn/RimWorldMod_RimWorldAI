@@ -8,7 +8,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_HaulItem : ITool
+    public class Tool_HaulItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "haul_item";
         public string Description => "搬运物品：指定殖民者拾取物品并搬运到目标位置。不提供目标坐标则自动寻找最佳存储区。相当于游戏中的\"优先搬运\"右键操作。";

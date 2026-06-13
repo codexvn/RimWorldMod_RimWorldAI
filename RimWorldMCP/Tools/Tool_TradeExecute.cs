@@ -10,7 +10,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_TradeExecute : ITool
+    public class Tool_TradeExecute : ITool, IRequiresAdvanceTick
     {
         public string Name => "trade_execute";
         public string Description => "派系级虚空交易。传 sell/buy 执行交易，不传则仅预览生成的货物。先用 list_faction_traders 查看可用派系和类型。";

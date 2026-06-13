@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SetWorkPriority : ITool
+    public class Tool_SetWorkPriority : ITool, IRequiresAdvanceTick
     {
         public string Name => "set_work_priority";
         public string Description => "批量设置殖民者的工作优先级 (0-4)。0=不分配，1=最高优先，4=最低优先。";

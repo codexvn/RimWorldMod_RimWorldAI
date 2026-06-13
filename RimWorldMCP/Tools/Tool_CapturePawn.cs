@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_CapturePawn : ITool
+    public class Tool_CapturePawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "capture_pawn";
         public string Description => "俘虏倒地敌人。需要可用的囚犯床。利用游戏 Job 系统（Capture）。";

@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ArrestPawn : ITool
+    public class Tool_ArrestPawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "arrest_pawn";
         public string Description => "逮捕目标殖民者/访客。需要可用的囚犯床。利用游戏 Job 系统（Arrest）。";

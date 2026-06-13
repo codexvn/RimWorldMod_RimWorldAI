@@ -7,7 +7,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_AcceptQuest : ITool
+    public class Tool_AcceptQuest : ITool, IRequiresAdvanceTick
     {
         public string Name => "accept_quest";
         public string Description => "接受指定任务。需要传入任务 ID（来自 list_quests）。可选指定接受者殖民者 ID，不传则自动选第一个可接受的殖民者。";

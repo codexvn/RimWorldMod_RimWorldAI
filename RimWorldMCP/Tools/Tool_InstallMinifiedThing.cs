@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_InstallMinifiedThing : ITool
+    public class Tool_InstallMinifiedThing : ITool, IRequiresAdvanceTick
     {
         public string Name => "install_minified_thing";
         public string Description => "将微缩物品（已拆卸的建筑）安装到指定坐标。放置安装蓝图后殖民者将自动搬运并安装。⚠ 调用前应先使用 get_structure_layout 查看当前布局。";

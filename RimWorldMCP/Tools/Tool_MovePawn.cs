@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_MovePawn : ITool
+    public class Tool_MovePawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "move_pawn";
         public string Description => "批量命令殖民者移动到指定坐标。通过游戏 Job 系统（Goto）让小人自然寻路走过去。";

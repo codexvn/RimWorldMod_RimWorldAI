@@ -8,7 +8,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SetTempControl : ITool
+    public class Tool_SetTempControl : ITool, IRequiresAdvanceTick
     {
         public string Name => "set_temp_control";
         public string Description => "设置温控设备（空调/加热器）的目标温度或开关电源。用 thing_id 或坐标定位设备。";

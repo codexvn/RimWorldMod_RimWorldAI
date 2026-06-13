@@ -22,6 +22,9 @@ namespace RimWorldMCP.Tools
     /// <summary>标记接口：实现此接口的工具在没有加载地图时也能执行</summary>
     public interface INoMapRequired { }
 
+    /// <summary>标记接口：实现此接口的工具调用后需要 advance_tick 推进才能看到结果</summary>
+    public interface IRequiresAdvanceTick { }
+
     public class ToolResult
     {
         public string Text { get; set; } = "";

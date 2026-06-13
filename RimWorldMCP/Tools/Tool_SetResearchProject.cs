@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SetResearchProject : ITool
+    public class Tool_SetResearchProject : ITool, IRequiresAdvanceTick
     {
         public string Name => "set_research_project";
         public string Description => "设置当前研究项目。project_defName 需从枚举中选择（已动态列出所有可用项目）。";

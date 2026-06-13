@@ -8,7 +8,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ForceBedRest : ITool
+    public class Tool_ForceBedRest : ITool, IRequiresAdvanceTick
     {
         public string Name => "force_bed_rest";
         public string Description => "强制殖民者前往病床卧床休养（一次性任务，痊愈后自动起身）。复用游戏 Building_Bed.GetBedRestFloatMenuOption 右键菜单逻辑。";

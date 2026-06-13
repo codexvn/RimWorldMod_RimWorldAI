@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_AllowItem : ITool
+    public class Tool_AllowItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "allow_item";
         public string Description => "允许指定区域的物品，殖民者可以搬运和使用。与 allow_all_items 的区别是可精确到坐标范围。坐标范围为闭区间（两端坐标均包含）。";

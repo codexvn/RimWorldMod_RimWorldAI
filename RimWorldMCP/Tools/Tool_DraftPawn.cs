@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DraftPawn : ITool
+    public class Tool_DraftPawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "draft_pawn";
         public string Description => "征召或解除征召殖民者。征召后殖民者进入战斗状态，中断当前工作。";

@@ -8,7 +8,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DropCarried : ITool
+    public class Tool_DropCarried : ITool, IRequiresAdvanceTick
     {
         public string Name => "drop_carried";
         public string Description => "让殖民者放下手中正在搬运的物品。可指定放下位置（小人会走过去放下）或就地放下。可指定数量只放下部分堆叠。";

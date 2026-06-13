@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_HoldCombatPosition : ITool
+    public class Tool_HoldCombatPosition : ITool, IRequiresAdvanceTick
     {
         public string Name => "hold_combat_position";
         public string Description => "批量命令殖民者前往战斗阵位并进入原版 Wait_Combat 待命。近战守位贴脸自动反击，远程开启 FireAtWill 自动射击可命中目标。";

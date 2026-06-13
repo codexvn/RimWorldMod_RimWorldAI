@@ -6,7 +6,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DeleteZone : ITool
+    public class Tool_DeleteZone : ITool, IRequiresAdvanceTick
     {
         public string Name => "delete_zone";
         public string Description => "删除指定位置的存储区或种植区。删除不可撤销，注意！⚠ 调用前应先使用 get_structure_layout 查看当前布局。";

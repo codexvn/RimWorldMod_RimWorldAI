@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignateTame : ITool
+    public class Tool_DesignateTame : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_tame";
         public string Description => "标记指定区域的野生动物进行驯服。需要有驯兽技能的殖民者执行。坐标范围为闭区间（两端坐标均包含）。";

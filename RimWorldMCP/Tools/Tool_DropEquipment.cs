@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DropEquipment : ITool
+    public class Tool_DropEquipment : ITool, IRequiresAdvanceTick
     {
         public string Name => "drop_equipment";
         public string Description => "强制殖民者丢弃当前装备的主武器。通过 ID 精确定位殖民者。";

@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ForceDress : ITool
+    public class Tool_ForceDress : ITool, IRequiresAdvanceTick
     {
         public string Name => "force_dress";
         public string Description => "批量强制殖民者拿取衣物给另一位殖民者穿上。";

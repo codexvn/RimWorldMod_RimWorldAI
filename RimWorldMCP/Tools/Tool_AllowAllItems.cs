@@ -7,7 +7,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_AllowAllItems : ITool
+    public class Tool_AllowAllItems : ITool, IRequiresAdvanceTick
     {
         public string Name => "allow_all_items";
         public string Description => "允许地图上所有已被禁止的物品，让殖民者可以搬运和使用。";

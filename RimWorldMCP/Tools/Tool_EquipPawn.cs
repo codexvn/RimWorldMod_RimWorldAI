@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_EquipPawn : ITool
+    public class Tool_EquipPawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "equip_pawn";
         public string Description => "批量强制殖民者去拾取并装备武器或衣物。";

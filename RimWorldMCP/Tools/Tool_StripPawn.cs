@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_StripPawn : ITool
+    public class Tool_StripPawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "strip_pawn";
         public string Description => "强制殖民者剥除目标（尸体或活体）的所有衣物和装备。利用游戏 Job 系统（Strip）。";

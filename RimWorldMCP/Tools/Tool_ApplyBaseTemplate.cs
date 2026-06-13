@@ -7,7 +7,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ApplyBaseTemplate : ITool
+    public class Tool_ApplyBaseTemplate : ITool, IRequiresAdvanceTick
     {
         public string Name => "apply_base_template";
         public string Description => "应用基地模板，根据模板名和中心点坐标返回所有房间和墙壁的精确坐标。坐标可直接用于 designate_room。调用前先用 list_base_templates 查看可用模板。坐标范围为闭区间（两端坐标均包含）。";

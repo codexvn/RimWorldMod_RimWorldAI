@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ForbidItem : ITool
+    public class Tool_ForbidItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "forbid_item";
         public string Description => "禁止指定区域的物品，殖民者将不会搬运或使用它们。坐标范围为闭区间（两端坐标均包含）。";

@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ClaimItem : ITool
+    public class Tool_ClaimItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "claim_item";
         public string Description => "占有指定区域的物品或建筑，将其归属为玩家派系。用于战后缴获和占领。坐标范围为闭区间（两端坐标均包含）。";

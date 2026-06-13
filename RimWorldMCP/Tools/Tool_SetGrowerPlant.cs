@@ -7,7 +7,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SetGrowerPlant : ITool
+    public class Tool_SetGrowerPlant : ITool, IRequiresAdvanceTick
     {
         public string Name => "set_grower_plant";
         public string Description => "设置水栽培盆或已有种植区的植物类型。自动识别坐标处的种植器（水栽培盆/种植区）。";

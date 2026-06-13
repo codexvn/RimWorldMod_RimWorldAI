@@ -7,7 +7,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_StopResearch : ITool
+    public class Tool_StopResearch : ITool, IRequiresAdvanceTick
     {
         public string Name => "stop_research";
         public string Description => "停止当前研究项目。停止后可重新分配研究人员到其他工作。";

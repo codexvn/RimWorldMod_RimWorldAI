@@ -9,7 +9,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ExecuteDeviceAction : ITool
+    public class Tool_ExecuteDeviceAction : ITool, IRequiresAdvanceTick
     {
         public string Name => "execute_device_action";
         public string Description => "对设备/设备组执行 action_id。先调用 get_device_info 获取 UI/Gizmo action_id 或 adapter action_id。";

@@ -76,35 +76,17 @@ namespace RimWorldMCP.Tools
                     Name = t.Name,
                     Description = t.Description,
                     InputSchema = t.InputSchema,
-                    Annotations = GetAnnotations(t.Name)
+                    Annotations = GetAnnotations(t)
                 };
                 return def;
             }).OrderBy(t => t.Name).ToList();
         }
 
-        // 调用后需要 advance_tick 推进才能看到结果的工具
-        private static readonly HashSet<string> RequiresAdvanceTools = new()
+        private static ToolAnnotations? GetAnnotations(ITool tool)
         {
-            "AcceptQuest", "AllowAllItems", "AllowItem", "ApplyBaseTemplate", "ArrestPawn",
-            "CancelBuild", "CapturePawn", "ClaimItem", "ConvertIdeo", "CreateBill",
-            "CreateGrowingZone", "CreateStockpile", "DefendPosition", "DeleteZone",
-            "DesignateBuild", "DesignateClearPlants", "DesignateDeconstruct", "DesignateHarvest",
-            "DesignateHunt", "DesignateMine", "DesignatePlantsCut", "DesignateRoom",
-            "DesignateSlaughter", "DesignateTame", "DraftPawn", "DropCarried", "DropEquipment",
-            "EquipPawn", "ExecuteDeviceAction", "ExpandZone", "ForbidItem", "ForceAttack",
-            "ForceBedRest", "ForceDress", "ForceSurgery", "HaulItem", "HoldCombatPosition",
-            "IngestItem", "InstallMinifiedThing", "ManageBill", "ManageStockpileFilter",
-            "ManageTransporterLoad", "MovePawn", "PickUpItem", "PlanAdd", "PlanRemove",
-            "RescuePawn", "ScheduleOperation", "SetBedOwnerType", "SetGrowerPlant",
-            "SetPrisonerPolicy", "SetResearchProject", "SetTempControl", "SetWorkPriority",
-            "StopResearch", "StripPawn", "TradeExecute", "UninstallBuilding",
-        };
-
-        private static ToolAnnotations? GetAnnotations(string toolName)
-        {
-            var readOnly = toolName.StartsWith("get_") || toolName.StartsWith("list_");
+            var readOnly = tool.Name.StartsWith("get_") || tool.Name.StartsWith("list_");
             var destructive = !readOnly;
-            var requiresAdvance = RequiresAdvanceTools.Contains(toolName);
+            var requiresAdvance = tool is IRequiresAdvanceTick;
             return new ToolAnnotations
             {
                 ReadOnlyHint = readOnly,

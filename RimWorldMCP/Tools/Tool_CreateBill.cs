@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_CreateBill : ITool
+    public class Tool_CreateBill : ITool, IRequiresAdvanceTick
     {
         public string Name => "create_production_bill";
         public string Description => "在指定工作台上创建制造（生产）单据。配方名称请先用 list_recipes 查询获取 defName。支持设置制造数量和重复模式。";

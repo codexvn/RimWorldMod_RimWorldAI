@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ScheduleOperation : ITool
+    public class Tool_ScheduleOperation : ITool, IRequiresAdvanceTick
     {
         public string Name => "schedule_operation";
         public string Description => "为殖民者安排手术或医疗操作。注意：手术有失败风险，失败可能导致死亡。";

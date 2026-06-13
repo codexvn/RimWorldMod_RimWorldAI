@@ -10,7 +10,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_CreateStockpile : ITool
+    public class Tool_CreateStockpile : ITool, IRequiresAdvanceTick
     {
         public string Name => "create_stockpile";
         public string Description => "创建物品储藏区并配置筛选规则。支持预设类型和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 资源类存储区需要室内，corpse_dump/dumping 不需要。坐标范围为闭区间（两端坐标均包含）。";

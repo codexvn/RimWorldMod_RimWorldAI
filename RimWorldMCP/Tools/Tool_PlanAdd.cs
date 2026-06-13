@@ -9,7 +9,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_PlanAdd : ITool
+    public class Tool_PlanAdd : ITool, IRequiresAdvanceTick
     {
         public string Name => "plan_add";
         public string Description => "在地图上添加规划标记（彩色半透明方块）。用于建造前画草图查看布局，不生成实际建造蓝图。支持矩形区域（给 end_x/end_y）和单格（不给 end_x/end_y）。坐标范围为闭区间（两端坐标均包含）。";

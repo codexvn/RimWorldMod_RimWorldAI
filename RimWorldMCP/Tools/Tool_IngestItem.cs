@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_IngestItem : ITool
+    public class Tool_IngestItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "ingest_item";
         public string Description => "强制殖民者食用/饮用/服用指定物品（食物、药物、饮料）。利用游戏 Job 系统（Ingest），小人将自动走过去使用。";

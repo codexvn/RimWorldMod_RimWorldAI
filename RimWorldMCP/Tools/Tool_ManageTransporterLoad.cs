@@ -9,7 +9,7 @@ using Verse;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ManageTransporterLoad : ITool
+    public class Tool_ManageTransporterLoad : ITool, IRequiresAdvanceTick
     {
         public string Name => "manage_transporter_load";
         public string Description => "管理运输器/运输舱装载。首版支持 status、clear_left_to_load、cancel_load。支持 thing_id 或 thing_ids。";

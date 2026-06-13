@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignateHarvest : ITool
+    public class Tool_DesignateHarvest : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_harvest";
         public string Description => "标记指定区域已成熟的作物以供收割（仅 harvestTag=\"Standard\" 的作物，如稻米、玉米）。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";

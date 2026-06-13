@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ForceSurgery : ITool
+    public class Tool_ForceSurgery : ITool, IRequiresAdvanceTick
     {
         public string Name => "force_surgery";
         public string Description => "强制为殖民者执行手术，绕过所有正常限制（技能、药物、麻醉、失败率、Bill 系统）。直接调用 ApplyOnPawn。需显式确认 bypass_checks=true。极度危险，仅限紧急情况或 AI 明确判断必须强制执行时使用。";

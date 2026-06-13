@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_PickUpItem : ITool
+    public class Tool_PickUpItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "pick_up_item";
         public string Description => "强制殖民者拾取指定物品到背包。通过游戏 Job 系统（TakeInventory），小人将自动走过去拾取。";

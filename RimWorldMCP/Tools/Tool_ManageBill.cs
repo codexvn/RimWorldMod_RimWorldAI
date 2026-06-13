@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ManageBill : ITool
+    public class Tool_ManageBill : ITool, IRequiresAdvanceTick
     {
         public string Name => "manage_bill";
         public string Description => "管理现有的制造工作单：暂停、恢复、删除、提高/降低优先级。bill_index 从 get_bills 的输出中方括号内获取。";

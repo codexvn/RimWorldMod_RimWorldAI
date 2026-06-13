@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SetPrisonerPolicy : ITool
+    public class Tool_SetPrisonerPolicy : ITool, IRequiresAdvanceTick
     {
         private const int AutoCheckIntervalTicks = 250;
         private static readonly HashSet<int> s_convertThenRecruitTargets = new();

@@ -9,7 +9,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_RescuePawn : ITool
+    public class Tool_RescuePawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "rescue_pawn";
         public string Description => "救援倒地受伤的殖民者/盟友。需要可用的医疗床。利用游戏 Job 系统（Rescue）。";

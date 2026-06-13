@@ -21,7 +21,7 @@ namespace RimWorldMCP.Tools
         public static readonly List<DefendPoint> Points = new List<DefendPoint>();
     }
 
-    public class Tool_DefendPosition : ITool
+    public class Tool_DefendPosition : ITool, IRequiresAdvanceTick
     {
         public string Name => "defend_position";
         public string Description => "设置、查询、清除殖民地防御位置（内存存储）。action: set/list/remove/clear。";

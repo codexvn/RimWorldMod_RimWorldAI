@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_SetBedOwnerType : ITool
+    public class Tool_SetBedOwnerType : ITool, IRequiresAdvanceTick
     {
         public string Name => "set_bed_owner_type";
         public string Description => "设置床的归属类型（殖民者/俘虏/奴隶）。切换为俘虏时会触发同房间级联转换。传 force=true 可跳过安全校验。";

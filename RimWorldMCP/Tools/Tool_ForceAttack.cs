@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ForceAttack : ITool
+    public class Tool_ForceAttack : ITool, IRequiresAdvanceTick
     {
         public string Name => "force_attack";
         public string Description => "批量命令殖民者攻击指定目标。attack_mode 支持 melee（近战追击）、hold_position（原地射击，敌出射程自动停）、auto（根据武器自动选择）。";

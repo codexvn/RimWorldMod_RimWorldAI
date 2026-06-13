@@ -8,7 +8,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_ConvertIdeo : ITool, INoMapRequired
+    public class Tool_ConvertIdeo : ITool, INoMapRequired, IRequiresAdvanceTick
     {
         public string Name => "convert_ideo";
         public string Description => "抽奖式意识形态转换。社交值（ConversionPower）和魅力值（PawnBeauty）越高成功概率越大。直接掷骰判定，成功则目标信仰立即变为执行者信仰。";

@@ -9,7 +9,7 @@ using RimWorld;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignateHunt : ITool
+    public class Tool_DesignateHunt : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_hunt";
         public string Description => "标记野生动物狩猎。支持按坐标区域标记或按 ID 指定单个动物。危险动物（掠食者、狂暴、兽疫）默认跳过。";

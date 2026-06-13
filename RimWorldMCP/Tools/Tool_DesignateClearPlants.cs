@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignateClearPlants : ITool
+    public class Tool_DesignateClearPlants : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_clear_plants";
         public string Description => "标记指定区域的杂草、灌木等非树木植物进行清除（CutPlant 命令）。不处理树木（树木请使用 designate_plants_cut）。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";

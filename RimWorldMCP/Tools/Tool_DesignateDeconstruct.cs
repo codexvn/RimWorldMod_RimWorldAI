@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignateDeconstruct : ITool
+    public class Tool_DesignateDeconstruct : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_deconstruct";
         public string Description => "标记指定区域的建筑/墙体以供拆除。提供 end_x/end_y 可划定矩形范围，不提供则仅拆除单格最上层建筑。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。";

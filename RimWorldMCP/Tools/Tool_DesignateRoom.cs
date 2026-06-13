@@ -12,7 +12,7 @@ using RimWorldMCP.Helpers;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignateRoom : ITool
+    public class Tool_DesignateRoom : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_room";
         public string Description => "快速建造一个矩形房间。指定左下角和右上角坐标，在矩形边界放置墙体。已有墙体的格子会自动跳过（可共用墙），不会重复建造。⚠ 调用前应先使用 get_structure_layout 查看当前布局。坐标范围为闭区间（两端坐标均包含）。\n\n坐标计算：`end - pos + 1 = 外径尺寸`（如 22-10+1=13），推导 `end = pos + 外径 - 1`（如 end=10+13-1=22）。相邻房间共用墙时 B.pos = A.end。";

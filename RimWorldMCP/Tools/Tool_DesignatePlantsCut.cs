@@ -10,7 +10,7 @@ using RimWorldMCP;
 
 namespace RimWorldMCP.Tools
 {
-    public class Tool_DesignatePlantsCut : ITool
+    public class Tool_DesignatePlantsCut : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_plants_cut";
         public string Description => "标记指定区域的树木以供砍伐收获。成熟树木使用收获木材命令（HarvestPlant），未成熟树木通过 include_immature 参数控制是否砍除（CutPlant）。非树木植物请使用 designate_clear_plants。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";
