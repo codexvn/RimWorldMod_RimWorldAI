@@ -27,8 +27,8 @@ namespace RimWorldMCP.Tools
                 {
                     type = "string",
                     description = "存储预设类型",
-                    @enum = new[] { "default", "dumping", "corpse", "corpse_dump", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
-                    @default = "default"
+                    @enum = new[] { "all", "dumping", "corpse", "corpse_dump", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
+                    @default = "all"
                 },
                 priority = new
                 {
@@ -45,7 +45,7 @@ namespace RimWorldMCP.Tools
 
         private static readonly Dictionary<string, StorageSettingsPreset> PresetMap = new()
         {
-            { "default", StorageSettingsPreset.DefaultStockpile },
+            { "all", StorageSettingsPreset.DefaultStockpile },
             { "dumping", StorageSettingsPreset.DumpingStockpile },
             { "corpse", StorageSettingsPreset.CorpseStockpile },
             { "corpse_dump", StorageSettingsPreset.CorpseStockpile },
@@ -72,9 +72,9 @@ namespace RimWorldMCP.Tools
             bool isRange = args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out endX)
                         && args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out endY);
 
-            string presetStr = "default";
+            string presetStr = "all";
             if (args.Value.TryGetProperty("preset", out var jP))
-                presetStr = jP.GetString() ?? "default";
+                presetStr = jP.GetString() ?? "all";
 
             string priorityStr = "normal";
             if (args.Value.TryGetProperty("priority", out var jPr))

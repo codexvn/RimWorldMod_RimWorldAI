@@ -15,6 +15,34 @@ namespace RimWorldAgent.Core.AgentRuntime
         internal static SkillRegistry? SkillRegistry { get; private set; }
         internal static SkillStore? SkillStore { get; private set; }
 
+        /// <summary>skills-desc.txt 输出路径（companion --skills-desc-path 传入）</summary>
+        public static string? SkillsDescPath { get; set; }
+
+        /// <summary>从 SkillRegistry 生成 skills-desc.txt 供 Prompt 占位符替换</summary>
+        public static void UpdateSkillsDesc()
+        {
+            if (SkillsDescPath == null || SkillRegistry == null) return;
+            try
+            {
+                var skills = SkillRegistry.GetAll();
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("| 技能 | 描述 |");
+                sb.AppendLine("|------|------|");
+                foreach (var s in skills)
+                {
+                    var desc = s.Description ?? s.Name;
+                    var source = s.Source == "builtin" ? "" : " [user]";
+                    sb.AppendLine($"| {s.Name}{source} | {desc} |");
+                }
+                System.IO.File.WriteAllText(SkillsDescPath, sb.ToString().TrimEnd(), System.Text.Encoding.UTF8);
+                CoreLog.Info($"[skills] skills-desc.txt 已更新 ({skills.Count} 个 Skill)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error($"[skills] 写入 skills-desc.txt 失败: {ex.Message}");
+            }
+        }
+
         /// <summary>内部工具请求退出会话时触发（exit=true）</summary>
         public static event Action? OnExitRequested;
 
@@ -29,6 +57,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             Register(new Tool_GetSkills());
             Register(new Tool_ActiveSkill());
             Register(new Tool_CreateSkill());
+            Register(new Tool_DeleteSkill());
             Register(new Tool_ReadMemory());
             Register(new Tool_UpdateMemory());
             Register(new Tool_TaskCreate());

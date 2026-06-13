@@ -7,6 +7,7 @@ export interface CompanionConfig {
   token: string;
   projectPath: string;
   mcpServersPath: string;
+  skillsDescPath: string;
   modelName: string;
   settingSources: string[];
   logSdk: boolean;
@@ -23,6 +24,7 @@ export const CONFIG: CompanionConfig = {
   token: process.env.CCB_AUTH_TOKEN || '',
   projectPath: process.env.RIMWORLD_PROJECT_PATH || process.cwd(),
   mcpServersPath: '',
+  skillsDescPath: '',
   modelName: process.env.CCB_MODEL_NAME || '',
   settingSources: process.env.CCB_SETTING_SOURCES
     ? process.env.CCB_SETTING_SOURCES.split(',').map(s => s.trim())
@@ -39,6 +41,7 @@ export function parseArgs(argv: string[]): void {
     else if (a === '--model-name' && argv[i + 1]) CONFIG.modelName = argv[++i];
     else if (a === '--project-path' && argv[i + 1]) CONFIG.projectPath = argv[++i];
     else if (a === '--mcp-servers-path' && argv[i + 1]) CONFIG.mcpServersPath = argv[++i];
+    else if (a === '--skills-desc-path' && argv[i + 1]) CONFIG.skillsDescPath = argv[++i];
     else if (a === '--setting-sources' && argv[i + 1]) CONFIG.settingSources = argv[++i].split(',').map(s => s.trim());
     else if (a === '--log-sdk') CONFIG.logSdk = true;
   }

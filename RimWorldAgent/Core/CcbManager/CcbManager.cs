@@ -86,12 +86,17 @@ namespace RimWorldAgent.Core.CcbManager
             var mcpJsonPath = Path.Combine(_projectPath, "mcp-servers.json");
             WriteMergedMcpJson(mcpJsonPath);
 
+            var skillsDescPath = Path.Combine(_projectPath, "skills-desc.txt");
+            InternalToolRegistry.SkillsDescPath = skillsDescPath;
+            InternalToolRegistry.UpdateSkillsDesc();
+
             WriteSettingsLocalJson();
 
             var args = $"--import tsx/esm companion/companion.ts"
                 + $" --idle-timeout 30000"
                 + $" --project-path \"{_projectPath}\""
-                + $" --mcp-servers-path \"{mcpJsonPath}\"";
+                + $" --mcp-servers-path \"{mcpJsonPath}\""
+                + $" --skills-desc-path \"{skillsDescPath}\"";
             if (!string.IsNullOrEmpty(_modelName))
                 args += $" --model-name \"{_modelName}\"";
             if (_logSdk)

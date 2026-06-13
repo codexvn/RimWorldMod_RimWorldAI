@@ -112,7 +112,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                         outList.Add(UiMessage.TextDelta(""));
                     else if (evt.BlockType == "thinking")
                         outList.Add(UiMessage.ThinkingDelta(""));
-                    else if (evt.BlockType == "tool_use" && evt.ToolName != null && !evt.ToolName.EndsWith("game_cmd"))
+                    else if (evt.BlockType == "tool_use" && evt.ToolName != null && !evt.ToolName.EndsWith("execute_tool"))
                         outList.Add(UiMessage.ToolCall(evt.ToolUseId ?? "", evt.ToolName ?? "", ""));
                     break;
                 case "content_block_delta":

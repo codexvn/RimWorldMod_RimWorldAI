@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
+using RimWorldAgent.Core.CcbManager;
+using RimWorldAgent.Core.models;
 using RimWorldAgent.Core.Skills;
 
 namespace RimWorldAgent.Core.AgentRuntime.Tools
@@ -24,14 +26,14 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             required = new[] { "name", "description", "content" }
         });
 
-        public Task<(string result, bool exit)> ExecuteAsync(JsonElement? args)
+        public async Task<(string result, bool exit)> ExecuteAsync(JsonElement? args)
         {
             var registry = InternalToolRegistry.SkillRegistry;
             var store = InternalToolRegistry.SkillStore;
             if (registry == null || store == null)
-                return Task.FromResult(("Skill 注册表未初始化。", false));
+                return ("Skill 注册表未初始化。", false);
             if (args == null)
-                return Task.FromResult(("参数不能为空。", false));
+                return ("参数不能为空。", false);
 
             var root = args.Value;
             var name = root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "";
@@ -47,18 +49,39 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
                 var source = existing.Source == "user"
                     ? (existing.IsOverride ? "Skills.d 覆盖版本" : "Skills.d 自定义版本")
                     : "内置 Skills 版本";
-                return Task.FromResult(($"Skill 已存在: {normalizedName} ({source})。如需覆盖，请设置 overwrite=true。", false));
+                return ($"Skill 已存在: {normalizedName} ({source})。如需覆盖，请设置 overwrite=true。", false);
             }
 
-            var result = store.SaveUserSkill(normalizedName, description, content, overwrite: true, tags);
-            if (!result.Success)
-                return Task.FromResult((result.Message, false));
+            var saveResult = store.SaveUserSkill(normalizedName, description, content, overwrite: true, tags);
+            if (!saveResult.Success)
+                return (saveResult.Message, false);
 
             registry.Reload();
+            InternalToolRegistry.UpdateSkillsDesc();
+
             var mode = existing == null ? "已创建" : "已覆盖";
             var tagsStr = tags != null && tags.Count > 0 ? $", tags=[{string.Join(",", tags)}]" : "";
-            var text = $"{mode} Skill: {normalizedName}{tagsStr}\n路径: {result.Path}\n\n已热加载，可立即调用 active_skill(name=\"{normalizedName}\") 使用。\n注意：system prompt 中的 Skill 列表会在 companion 重启后刷新。";
-            return Task.FromResult((text, false));
+            var toolResult = $"{mode} Skill: {normalizedName}{tagsStr}\n路径: {saveResult.Path}\n\n已热加载，可立即调用 active_skill(name=\"{normalizedName}\") 使用。";
+
+            // 中断当前会话 + 模拟用户输入，让 LLM 感知 Skill 已创建
+            var ccbWs = AgentOrchestrator.CcbWs;
+            if (AgentOrchestrator.IsRunning && ccbWs != null && ccbWs.IsReady)
+            {
+                try
+                {
+                    var userMsg = $"创建 Skill 成功: {normalizedName} — {description}";
+                    await ccbWs.SendAbort();
+                    UIMessageBus.PushUiMessage(UiMessage.User(userMsg));
+                    await ccbWs.SendChat(ChatChannel.Bus, userMsg);
+                    CoreLog.Info($"[create_skill] 已中断会话并通知 LLM: {userMsg}");
+                }
+                catch (System.Exception ex)
+                {
+                    CoreLog.Warn($"[create_skill] 中断会话失败: {ex.Message}，Skill 已创建但 LLM 未感知，将在下次会话生效");
+                }
+            }
+
+            return (toolResult, false);
         }
 
         private static List<string>? ParseTags(JsonElement root)

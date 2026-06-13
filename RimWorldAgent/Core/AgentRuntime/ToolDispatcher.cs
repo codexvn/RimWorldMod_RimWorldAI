@@ -160,7 +160,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public static string ExtractInnerAction(string toolName, string inputJson)
         {
             // 网关工具：从 input JSON 中提取内层 action 名
-            if (toolName.EndsWith("game_cmd"))
+            if (toolName.EndsWith("execute_tool"))
             {
                 try
                 {

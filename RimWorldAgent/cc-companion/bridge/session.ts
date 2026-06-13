@@ -66,7 +66,7 @@ export function createSession(sdk: any, abortController?: AbortController) {
     mcpServers: mcpServers || {},
     strictMcpConfig: true,
     settingSources: ['local'] as string[],
-    systemPrompt: [buildSystemPrompt(CONFIG.projectPath), SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
+    systemPrompt: [SYSTEM_PROMPT_DYNAMIC_BOUNDARY, buildSystemPrompt(CONFIG.projectPath, CONFIG.skillsDescPath)],
     stderr: (data: string | Buffer) => {
       process.stderr.write(`[sdk] ${typeof data === 'string' ? data : data.toString()}`);
     },
