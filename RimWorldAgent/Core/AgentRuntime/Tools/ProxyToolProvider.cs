@@ -192,6 +192,25 @@ namespace RimWorldAgent.Core.AgentRuntime
         }
 
         /// <summary>构建 action description：逐行列出全部工具名+简述</summary>
+
+        // 调用后需要 advance_tick 推进才能看到结果的工具
+        private static readonly HashSet<string> RequiresAdvanceTools = new()
+        {
+            "AcceptQuest", "AllowAllItems", "AllowItem", "ApplyBaseTemplate", "ArrestPawn",
+            "CancelBuild", "CapturePawn", "ClaimItem", "ConvertIdeo", "CreateBill",
+            "CreateGrowingZone", "CreateStockpile", "DefendPosition", "DeleteZone",
+            "DesignateBuild", "DesignateClearPlants", "DesignateDeconstruct", "DesignateHarvest",
+            "DesignateHunt", "DesignateMine", "DesignatePlantsCut", "DesignateRoom",
+            "DesignateSlaughter", "DesignateTame", "DraftPawn", "DropCarried", "DropEquipment",
+            "EquipPawn", "ExecuteDeviceAction", "ExpandZone", "ForbidItem", "ForceAttack",
+            "ForceBedRest", "ForceDress", "ForceSurgery", "HaulItem", "HoldCombatPosition",
+            "IngestItem", "InstallMinifiedThing", "ManageBill", "ManageStockpileFilter",
+            "ManageTransporterLoad", "MovePawn", "PickUpItem", "PlanAdd", "PlanRemove",
+            "RescuePawn", "ScheduleOperation", "SetBedOwnerType", "SetGrowerPlant",
+            "SetPrisonerPolicy", "SetResearchProject", "SetTempControl", "SetWorkPriority",
+            "StopResearch", "StripPawn", "TradeExecute", "UninstallBuilding",
+        };
+
         private string BuildActionDescription()
         {
             var lines = new List<string> { $"游戏命令名（共 {_cachedDefinitions.Count} 个）：" };
@@ -199,6 +218,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 var desc = def.Description ?? "";
                 // 截取第一句或前 40 字符作为简述
+                var tag = RequiresAdvanceTools.Contains(def.Name) ? "【需advance_tick】" : "";
                 var brief = desc.Length > 40 ? desc.Substring(0, 40) + "…" : desc;
                 lines.Add($"- {def.Name}: {brief}");
             }

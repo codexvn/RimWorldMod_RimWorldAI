@@ -67,14 +67,15 @@ namespace RimWorldAgent.Core.AgentRuntime
         }
 
         // 公共阈值
-        public static int ActPauseThreshold = 5;
+        // ActPauseThreshold 已关闭（Act 本就该暂停）
         public static int PlanStayThreshold = 10;
-        public static int ActTurnThreshold = 10;
+        public static int ActTurnThreshold = 20;
         public static int NotifThreshold = 5;
         public static int TaskCheckInterval = 10;
         public static int TaskToolRemindInterval = 15;
         public static int ToolOutputRemindInterval = 20;
         public static int WorldSummaryRefreshInterval = 30;
+        public static int ActNoAdvanceThreshold = 10;
 
         private static int _notifReceivedCount;
         private static readonly ConcurrentQueue<string> _notifSuffixes = new ConcurrentQueue<string>();
