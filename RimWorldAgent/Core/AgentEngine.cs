@@ -455,6 +455,21 @@ namespace RimWorldAgent.Core.AgentRuntime
             var token = _enforceCts.Token;
             _enforceTask = Task.Run(async () =>
             {
+                // 等待 MCP 就绪（给每次 StartEnforceLoop 留充足等待时间）
+                for (int retry = 0; retry < 30 && !token.IsCancellationRequested; retry++)
+                {
+                    if (_mcp != null)
+                    {
+                        try
+                        {
+                            await _mcp.CallTool("get_game_speed");
+                            break; // 成功即退出等待
+                        }
+                        catch { }
+                    }
+                    try { await Task.Delay(1000, token); } catch (OperationCanceledException) { break; }
+                }
+
                 while (!token.IsCancellationRequested)
                 {
                     try
@@ -468,7 +483,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                         var speedResult = await _mcp.CallTool("get_game_speed");
                         if (speedResult != null)
                         {
-                            // get_game_speed 返回 JSON：{"paused":false,...}
                             bool isPaused = false;
                             try
                             {
@@ -476,7 +490,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                                 if (speedDoc.RootElement.TryGetProperty("paused", out var pausedEl))
                                     isPaused = pausedEl.GetBoolean();
                             }
-                            catch (Exception) { isPaused = false; }
+                            catch (Exception parseEx) { _logDebug($"[AgentEngine] 暂停兜底: 解析 game_speed 结果失败: {parseEx.Message}"); isPaused = false; }
 
                             if (!isPaused)
                             {
