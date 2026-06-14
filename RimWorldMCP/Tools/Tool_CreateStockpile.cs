@@ -132,11 +132,14 @@ namespace RimWorldMCP.Tools
                         }
                     }
 
-                    // 创建存储区：第一个预设初始化，后续预设直接追加分类
+                    // 创建存储区：第一个预设初始化
                     var firstPreset = PresetNameMap.TryGetValue(presetNames[0], out var p) ? p : StorageSettingsPreset.DefaultStockpile;
                     var zone = new Zone_Stockpile(firstPreset, map.zoneManager);
 
-                    // 后续预设：直接用 filter.SetAllow 追加，不走 SetFromPreset（避免非纯追加行为）
+                    zone.settings.Priority = storagePriority;
+                    map.zoneManager.RegisterZone(zone);
+
+                    // 后续预设：RegisterZone 之后再用 filter.SetAllow 追加（避免注册时重置）
                     for (int i = 1; i < presetNames.Count; i++)
                     {
                         switch (presetNames[i])
@@ -164,9 +167,6 @@ namespace RimWorldMCP.Tools
                                 break;
                         }
                     }
-
-                    zone.settings.Priority = storagePriority;
-                    map.zoneManager.RegisterZone(zone);
 
                     int added = 0, skipped = 0;
                     foreach (IntVec3 cell in area)
