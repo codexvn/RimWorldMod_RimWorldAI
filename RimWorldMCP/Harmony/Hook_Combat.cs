@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json;
 using Verse;
 using RimWorld;
@@ -11,11 +10,6 @@ namespace RimWorldMCP.Harmony
     {
         private static readonly HarmonyLib.Harmony _instance = new("com.rimworldmcp.combat");
 
-        [ThreadStatic]
-        private static float _pendingDamage;    // totalDamageDealt from AssociateWithLog
-        [ThreadStatic]
-        private static LogEntry? _pendingLog;   // 对账用——只在同一 entry 时取走
-
         static Hook_Combat()
         {
             _instance.Patch(
@@ -27,41 +21,37 @@ namespace RimWorldMCP.Harmony
             McpLog.Info("[Hook_Combat] BattleLog.Add + AssociateWithLog Hook 已注册");
         }
 
+        /// <summary>AssociateWithLog 持有 log+damage，直接提取+推送。BattleLog.Add 仅负责非伤害事件（状态变更）。</summary>
         public static void AssociateWithLog_Postfix(DamageWorker.DamageResult __instance, LogEntry_DamageResult log)
-        {
-            if (__instance.totalDamageDealt <= 0f) return;
-            _pendingDamage = __instance.totalDamageDealt;
-            _pendingLog = log;
-var st = new System.Diagnostics.StackTrace(true);
-var sf = st.GetFrame(1);
-System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-    $"[AssociateWithLog] dmg={__instance.totalDamageDealt} entry={log.GetHashCode()} caller={sf?.GetMethod()?.Name}\n");
-        }
-
-        public static void BattleLog_Add_Postfix(LogEntry entry)
         {
             try
             {
-                bool isSame = ReferenceEquals(_pendingLog, entry);
-System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-    $"[BattleLog.Add] entry={entry.GetHashCode()} pendingLog={_pendingLog?.GetHashCode()} same={isSame} pendingDmg={_pendingDamage}\n");
+                var s = BattleLogCollector.Extract(log);
+                if (s == null) return;
+
+                s.ActualDamage = __instance.totalDamageDealt;
+                s.RawDamage = __instance.totalDamageDealt;
+                // damage type 从 text 已经覆盖；不单独设
+
+                var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
+                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
+            }
+            catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] AssociateWithLog 推送失败: {ex.Message}"); }
+        }
+
+        /// <summary>BattleLog.Add 仅负责非 DamageResult 事件（状态变更/倒地/死亡）</summary>
+        public static void BattleLog_Add_Postfix(LogEntry entry)
+        {
+            if (entry is LogEntry_DamageResult) return; // 由 AssociateWithLog 处理
+            try
+            {
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
-                // 同一 entry 才取走（同一调用栈同步）
-                if (isSame)
-                {
-                    s.ActualDamage = _pendingDamage;
-                    s.RawDamage = _pendingDamage;
-                    _pendingDamage = 0;
-                    _pendingLog = null;
-                }
-
-                var payload = BattleLogCollector.ToPayload(s);
-                var json = JsonSerializer.Serialize(payload);
+                var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
-            catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] 推送失败: {ex.Message}"); }
+            catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] BattleLog.Add 推送失败: {ex.Message}"); }
         }
     }
 }
