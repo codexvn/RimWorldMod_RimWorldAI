@@ -32,17 +32,24 @@ namespace RimWorldMCP.Harmony
             if (__instance.totalDamageDealt <= 0f) return;
             _pendingDamage = __instance.totalDamageDealt;
             _pendingLog = log;
+var st = new System.Diagnostics.StackTrace(true);
+var sf = st.GetFrame(1);
+System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+    $"[AssociateWithLog] dmg={__instance.totalDamageDealt} entry={log.GetHashCode()} caller={sf?.GetMethod()?.Name}\n");
         }
 
         public static void BattleLog_Add_Postfix(LogEntry entry)
         {
             try
             {
+                bool isSame = ReferenceEquals(_pendingLog, entry);
+System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+    $"[BattleLog.Add] entry={entry.GetHashCode()} pendingLog={_pendingLog?.GetHashCode()} same={isSame} pendingDmg={_pendingDamage}\n");
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
                 // 同一 entry 才取走（同一调用栈同步）
-                if (ReferenceEquals(_pendingLog, entry))
+                if (isSame)
                 {
                     s.ActualDamage = _pendingDamage;
                     s.RawDamage = _pendingDamage;
