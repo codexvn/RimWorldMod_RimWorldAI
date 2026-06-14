@@ -35,7 +35,8 @@ namespace RimWorldMCP.Tools
                 designation_category = new
                 {
                     type = "string",
-                    description = "建筑师菜单分类过滤，中文/defName，如 \"生产\" / \"Production\""
+                    description = "建筑师菜单分类过滤（中文名）",
+                    @enum = new[] { "结构", "防御", "家具", "设备", "生产", "地板", "衣物", "杂项", "区域", "命令" }
                 },
                 page = new { type = "integer", description = "页码（1起始），默认1", @default = 1 },
                 page_size = new { type = "integer", description = "每页条数，默认20，最大50", @default = 20 }
