@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_SearchThingDef : ITool, INoMapRequired
     {
         public string Name => "search_thing_def";
-        public string Description => "Wiki 式搜索所有 ThingDef，按 label/defName/描述模糊匹配，支持类别和类型标记过滤。";
+        public string Description => "Wiki 式搜索所有 ThingDef，按 label/defName/描述模糊匹配，支持类别、类型标记和建筑师分类过滤。输出含 size/rotatable/designation_category。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -31,6 +31,11 @@ namespace RimWorldMCP.Tools
                 {
                     type = "string",
                     description = "类型标记过滤，逗号分隔。可选值: weapon, apparel, medicine, drug, food, ranged_weapon, melee_weapon, stuff, craftable, research_prerequisite, haulable"
+                },
+                designation_category = new
+                {
+                    type = "string",
+                    description = "建筑师菜单分类过滤，中文/defName，如 \"生产\" / \"Production\""
                 },
                 page = new { type = "integer", description = "页码（1起始），默认1", @default = 1 },
                 page_size = new { type = "integer", description = "每页条数，默认20，最大50", @default = 20 }
@@ -61,6 +66,10 @@ namespace RimWorldMCP.Tools
                     if (!string.IsNullOrEmpty(trimmed)) flags.Add(trimmed);
                 }
             }
+
+            string? designationCategory = null;
+            if (args.Value.TryGetProperty("designation_category", out var jDc))
+                designationCategory = jDc.GetString();
 
             int page = 1, pageSize = 20;
             if (args?.TryGetProperty("page", out var jp) == true) page = Math.Max(1, jp.GetInt32());
@@ -111,6 +120,17 @@ namespace RimWorldMCP.Tools
                         };
                     }
 
+                    // 建筑师分类过滤
+                    if (!string.IsNullOrEmpty(designationCategory))
+                    {
+                        matched = matched.Where(d =>
+                        {
+                            if (d.designationCategory == null) return false;
+                            return string.Equals(d.designationCategory.defName, designationCategory, StringComparison.OrdinalIgnoreCase)
+                                || (d.designationCategory.label != null && string.Equals(d.designationCategory.label, designationCategory, StringComparison.OrdinalIgnoreCase));
+                        }).ToList();
+                    }
+
                     if (matched.Count == 0)
                         return ToolResult.Success($"未找到匹配 \"{keyword}\" 的 Def。");
 
@@ -145,7 +165,13 @@ namespace RimWorldMCP.Tools
                         string tagStr = tags.Count > 0 ? $"[{string.Join("|", tags)}] " : "";
                         string priceStr = d.BaseMarketValue > 0 ? $", ${d.BaseMarketValue:F0}" : "";
                         string massStr = d.BaseMass > 0 ? $", {d.BaseMass:F2}kg" : "";
-                        sb.AppendLine($"- {tagStr}{d.label} (`{d.defName}`) — {d.category}{priceStr}{massStr}");
+                        // 放置信息
+                        string sizeStr = d.Size.x > 0 ? $"{d.Size.x}x{d.Size.z}" : "?";
+                        bool rotatable = d.rotatable;
+                        string rotStr = rotatable ? "↻" : "";
+                        string catLabel = d.designationCategory?.label ?? "";
+                        string catStr = !string.IsNullOrEmpty(catLabel) ? $" [{catLabel}]" : "";
+                        sb.AppendLine($"- {tagStr}{d.label} (`{d.defName}`) — {d.category}{priceStr}{massStr} | {sizeStr}{rotStr}{catStr}");
                     }
 
                     if (total > pageSize)
