@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json;
 using Verse;
 using RimWorld;
@@ -22,12 +21,11 @@ namespace RimWorldMCP.Harmony
             McpLog.Info("[Hook_Combat] BattleLog.Add + AssociateWithLog Hook 已注册");
         }
 
+        /// <summary>AssociateWithLog: 推送带伤害数值的命中事件（命中/格挡/0伤害均覆盖）</summary>
         public static void AssociateWithLog_Postfix(DamageWorker.DamageResult __instance, LogEntry_DamageResult log)
         {
             try
             {
-                System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                    $"[AssociateWithLog] dmg={__instance.totalDamageDealt} type={log.GetType().Name}\n");
                 var s = BattleLogCollector.Extract(log);
                 if (s == null) return;
 
@@ -35,23 +33,23 @@ namespace RimWorldMCP.Harmony
                 s.RawDamage = __instance.totalDamageDealt;
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
-                System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                    $"[AssociateWithLog] pushed attacker={s.Attacker} defender={s.Defender} dmg={s.ActualDamage}\n");
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
             catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] AssociateWithLog 推送失败: {ex.Message}"); }
         }
 
+        /// <summary>BattleLog.Add: 推送所有非 DamageResult 事件（倒地/死亡/状态变更）+ miss（AssociateWithLog 不触发的 DamageResult）</summary>
         public static void BattleLog_Add_Postfix(LogEntry entry)
         {
-            bool isDamage = entry is LogEntry_DamageResult;
-            System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                $"[BattleLog.Add] type={entry.GetType().Name} isDamage={isDamage}\n");
-            if (isDamage) return;
             try
             {
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
+
+                // AssociateWithLog 已推送的（命中/格挡=有damagedParts或被格挡→Deflected）不重复
+                // 仅 Miss（damagedParts==null && !Deflected）由此推送
+                if (entry is LogEntry_DamageResult && (s.Deflected || (s.DamagedParts != null && s.DamagedParts.Count > 0)))
+                    return;
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
