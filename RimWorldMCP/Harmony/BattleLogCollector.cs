@@ -10,21 +10,35 @@ using RimWorldMCP.Constants;
 namespace RimWorldMCP
 {
     /// <summary>
-    /// 战斗日志收集器——提取 attacker/defender/weapon + 游戏文本。
+    /// 战斗日志收集器——内存缓冲，不依赖 BattleLog.Battles 存活。
     /// </summary>
     public static class BattleLogCollector
     {
-        public static int LastCollectTick { get; set; }
-        public static void Reset() { LastCollectTick = 0; }
+        /// <summary>消费者订阅列表</summary>
+        private static readonly List<Action<CombatSummary>> _consumers = new();
 
-        public static List<CombatSummary> Collect(int sinceTick, int untilTick)
+        public static IDisposable Subscribe(Action<CombatSummary> consumer)
         {
-            var results = new List<CombatSummary>();
-            foreach (var battle in Find.BattleLog.Battles)
-                foreach (var entry in battle.Entries)
-                    if (entry.Tick > sinceTick && entry.Tick <= untilTick)
-                        results.Add(MakeSummary(entry));
-            return results.OrderBy(s => s.Tick).ToList();
+            lock (_consumers) _consumers.Add(consumer);
+            return new Unsubscriber(consumer, _consumers);
+        }
+
+        private class Unsubscriber : IDisposable
+        {
+            private readonly Action<CombatSummary> _consumer;
+            private readonly List<Action<CombatSummary>> _consumers;
+            public Unsubscriber(Action<CombatSummary> c, List<Action<CombatSummary>> cs) { _consumer = c; _consumers = cs; }
+            public void Dispose() { lock (_consumers) _consumers.Remove(_consumer); }
+        }
+
+        /// <summary>Hook_Combat 调用——写入内存缓冲 + 分发全部订阅者</summary>
+        public static void Publish(LogEntry entry)
+        {
+            var s = MakeSummary(entry);
+            Action<CombatSummary>[] snapshot;
+            lock (_consumers) snapshot = _consumers.ToArray();
+            foreach (var consumer in snapshot)
+                consumer(s);
         }
 
         public static CombatSummary? Extract(LogEntry entry) => MakeSummary(entry);

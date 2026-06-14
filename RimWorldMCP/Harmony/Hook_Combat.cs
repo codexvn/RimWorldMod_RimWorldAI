@@ -22,9 +22,9 @@ namespace RimWorldMCP.Harmony
         {
             try
             {
+                BattleLogCollector.Publish(entry); // 分发到全部订阅者
                 var s = BattleLogCollector.Extract(entry);
-                if (s == null) return;
-                if (s.Text.NullOrEmpty()) return;
+                if (s == null || s.Text.NullOrEmpty()) return;
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
