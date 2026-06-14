@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Verse;
 using RimWorld;
@@ -12,9 +13,9 @@ namespace RimWorldMCP.Harmony
     {
         private static readonly HarmonyLib.Harmony _instance = new HarmonyLib.Harmony("com.rimworldmcp.combat");
 
-        /// <summary>受击者 → (攻击者, 原始伤害, 实际伤害, 伤害类型标签)</summary>
+        /// <summary>PostApplyDamage → BattleLog.Add 桥接队列（处理同帧多段攻击）</summary>
         [ThreadStatic]
-        private static (Pawn attacker, float amount, float dealt, string damageLabel)? _lastDamage;
+        private static ConcurrentQueue<(Pawn attacker, float amount, float dealt, string damageLabel)>? _damageQueue;
 
         static Hook_Combat()
         {
@@ -31,13 +32,14 @@ namespace RimWorldMCP.Harmony
             catch (Exception ex) { McpLog.Error($"[Hook_Combat] 初始化失败: {ex.Message}"); }
         }
 
-        // ===== PostApplyDamage: 捕获伤害数字 =====
+        // ===== PostApplyDamage: 捕获伤害数字，入队 =====
 
         public static void PostApplyDamage_Postfix(Pawn __instance, DamageInfo dinfo, float totalDamageDealt)
         {
             if (totalDamageDealt <= 0f) return;
             var attacker = dinfo.Instigator as Pawn;
-            _lastDamage = (attacker ?? __instance, dinfo.Amount, totalDamageDealt, dinfo.Def?.label ?? "?");
+            if (_damageQueue == null) _damageQueue = new ConcurrentQueue<(Pawn, float, float, string)>();
+            _damageQueue.Enqueue((attacker ?? __instance, dinfo.Amount, totalDamageDealt, dinfo.Def?.label ?? "?"));
         }
 
         // ===== BattleLog.Add: 发送完整战斗事件 =====
@@ -49,13 +51,12 @@ namespace RimWorldMCP.Harmony
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
-                // 桥接伤害数字（同帧同步，一对一）
-                if (_lastDamage != null)
+                // 桥接伤害数字（FIFO 队列，支持同帧多段攻击一对一匹配）
+                if (_damageQueue != null && _damageQueue.TryDequeue(out var dmg))
                 {
-                    s.RawDamage = _lastDamage.Value.amount;
-                    s.ActualDamage = _lastDamage.Value.dealt;
-                    s.DamageType = _lastDamage.Value.damageLabel;
-                    _lastDamage = null;
+                    s.RawDamage = dmg.amount;
+                    s.ActualDamage = dmg.dealt;
+                    s.DamageType = dmg.damageLabel;
                 }
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));

@@ -74,7 +74,7 @@ namespace RimWorldMCP
             else if (entry is BattleLogEntry_MeleeCombat mc)
             {
                 s.Type = "melee";
-                var p = GetObjField<Pawn>(mc, _mcFields, "initiatorPawn");
+                var p = GetObjField<Pawn>(mc, _mcFields, "initiator");
                 if (p != null) { s.Attacker = p.LabelShort; s.AttackerId = p.thingIDNumber; }
                 p = GetObjField<Pawn>(mc, _mcFields, "recipientPawn");
                 if (p != null) { s.Defender = p.LabelShort; s.DefenderId = p.thingIDNumber; }
