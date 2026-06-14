@@ -132,14 +132,37 @@ namespace RimWorldMCP.Tools
                         }
                     }
 
-                    // 创建存储区：第一个预设初始化，后续预设追加
+                    // 创建存储区：第一个预设初始化，后续预设直接追加分类
                     var firstPreset = PresetNameMap.TryGetValue(presetNames[0], out var p) ? p : StorageSettingsPreset.DefaultStockpile;
                     var zone = new Zone_Stockpile(firstPreset, map.zoneManager);
 
+                    // 后续预设：直接用 filter.SetAllow 追加，不走 SetFromPreset（避免非纯追加行为）
                     for (int i = 1; i < presetNames.Count; i++)
                     {
-                        if (PresetNameMap.TryGetValue(presetNames[i], out var extraPreset))
-                            zone.settings.SetFromPreset(extraPreset);
+                        switch (presetNames[i])
+                        {
+                            case "corpse":
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Corpses, true);
+                                break;
+                            case "dumping":
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Corpses, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Chunks, true);
+                                if (ModsConfig.BiotechActive)
+                                    zone.settings.filter.SetAllow(ThingDefOf.Wastepack, true);
+                                break;
+                            case "default":
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Foods, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Manufactured, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.ResourcesRaw, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Items, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Buildings, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Weapons, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Apparel, true);
+                                zone.settings.filter.SetAllow(ThingCategoryDefOf.BodyParts, true);
+                                if (ModsConfig.BiotechActive)
+                                    zone.settings.filter.SetAllow(ThingDefOf.Wastepack, false);
+                                break;
+                        }
                     }
 
                     zone.settings.Priority = storagePriority;
