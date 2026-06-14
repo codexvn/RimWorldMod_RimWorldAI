@@ -139,33 +139,38 @@ namespace RimWorldMCP.Tools
                     zone.settings.Priority = storagePriority;
                     map.zoneManager.RegisterZone(zone);
 
-                    // 后续预设：RegisterZone 之后再用 filter.SetAllow 追加（避免注册时重置）
+                    // 后续预设：用与 manage_stockpile_filter 完全一致的 ResolveCategory + SetAllow
                     for (int i = 1; i < presetNames.Count; i++)
                     {
-                        switch (presetNames[i])
+                        var catName = presetNames[i] switch
                         {
-                            case "corpse":
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Corpses, true);
-                                break;
-                            case "dumping":
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Corpses, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Chunks, true);
-                                if (ModsConfig.BiotechActive)
-                                    zone.settings.filter.SetAllow(ThingDefOf.Wastepack, true);
-                                break;
-                            case "default":
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Foods, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Manufactured, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.ResourcesRaw, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Items, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Buildings, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Weapons, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.Apparel, true);
-                                zone.settings.filter.SetAllow(ThingCategoryDefOf.BodyParts, true);
-                                if (ModsConfig.BiotechActive)
-                                    zone.settings.filter.SetAllow(ThingDefOf.Wastepack, false);
-                                break;
-                        }
+                            "corpse" => "Corpses",
+                            "dumping" => "Corpses",
+                            "default" => "Foods",
+                            _ => presetNames[i]
+                        };
+                        var cat = DefDatabase<ThingCategoryDef>.GetNamed(catName, false);
+                        if (cat != null) zone.settings.filter.SetAllow(cat, true);
+                    }
+                    // dumping 额外追加 Chunks + Wastepack
+                    if (presetNames.Contains("dumping"))
+                    {
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.Chunks, true);
+                        if (ModsConfig.BiotechActive)
+                            zone.settings.filter.SetAllow(ThingDefOf.Wastepack, true);
+                    }
+                    // default 其余分类
+                    if (presetNames.Contains("default"))
+                    {
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.Manufactured, true);
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.ResourcesRaw, true);
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.Items, true);
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.Buildings, true);
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.Weapons, true);
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.Apparel, true);
+                        zone.settings.filter.SetAllow(ThingCategoryDefOf.BodyParts, true);
+                        if (ModsConfig.BiotechActive)
+                            zone.settings.filter.SetAllow(ThingDefOf.Wastepack, false);
                     }
 
                     int added = 0, skipped = 0;
