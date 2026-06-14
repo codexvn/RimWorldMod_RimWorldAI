@@ -139,12 +139,32 @@ namespace RimWorldMCP.Tools
                     zone.settings.Priority = storagePriority;
                     map.zoneManager.RegisterZone(zone);
 
-                    // 后续预设：用与 manage_stockpile_filter 完全一致的 ResolveCategory（中文 label 匹配）
+                    int added = 0, skipped = 0;
+                    foreach (IntVec3 cell in area)
+                    {
+                        if (cell.Fogged(map)) { skipped++; continue; }
+                        if (zone.Cells.Contains(cell)) { skipped++; continue; }
+                        if (map.zoneManager.ZoneAt(cell) != null) { skipped++; continue; }
+                        var things = cell.GetThingList(map);
+                        if (things.Any(t => !t.def.CanOverlapZones)) { skipped++; continue; }
+                        zone.AddCell(cell);
+                        added++;
+                    }
+
+                    if (zone.Cells.Count == 0)
+                    {
+                        map.zoneManager.DeregisterZone(zone);
+                        return ToolResult.Error("指定区域的所有单元格已被其他存储区占用");
+                    }
+
+                    zone.CheckContiguous();
+
+                    // 后续预设：所有 Zone 操作完成后，最后追加分类（与 manage_stockpile_filter 同路径）
                     for (int i = 1; i < presetNames.Count; i++)
                     {
                         var searchTerm = presetNames[i] switch
                         {
-                            "corpse" => "尸体",      // 中文 label，与 manage_stockpile_filter 一致
+                            "corpse" => "尸体",
                             "dumping" => "尸体",
                             "default" => "食物",
                             _ => presetNames[i]
@@ -169,26 +189,6 @@ namespace RimWorldMCP.Tools
                         if (ModsConfig.BiotechActive)
                             zone.settings.filter.SetAllow(ThingDefOf.Wastepack, false);
                     }
-
-                    int added = 0, skipped = 0;
-                    foreach (IntVec3 cell in area)
-                    {
-                        if (cell.Fogged(map)) { skipped++; continue; }
-                        if (zone.Cells.Contains(cell)) { skipped++; continue; }
-                        if (map.zoneManager.ZoneAt(cell) != null) { skipped++; continue; }
-                        var things = cell.GetThingList(map);
-                        if (things.Any(t => !t.def.CanOverlapZones)) { skipped++; continue; }
-                        zone.AddCell(cell);
-                        added++;
-                    }
-
-                    if (zone.Cells.Count == 0)
-                    {
-                        map.zoneManager.DeregisterZone(zone);
-                        return ToolResult.Error("指定区域的所有单元格已被其他存储区占用");
-                    }
-
-                    zone.CheckContiguous();
 
                     if (!ignore_unreachable)
                     {
