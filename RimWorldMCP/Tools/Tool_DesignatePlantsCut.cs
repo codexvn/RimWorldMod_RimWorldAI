@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignatePlantsCut : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_plants_cut";
-        public string Description => "标记指定区域的树木以供砍伐收获。成熟树木使用收获木材命令（HarvestPlant），未成熟树木通过 include_immature 参数控制是否砍除（CutPlant）。非树木植物请使用 designate_clear_plants。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "标记指定区域的树木及可收获植物（如龙血树、仙人掌等）进行砍伐收获。等效建筑师工具栏\"砍伐木材\"过滤 + Cut 模式标记，砍完自动清理树桩。割草/灌木请使用 designate_clear_plants，收割作物请使用 designate_harvest。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -23,8 +23,6 @@ namespace RimWorldMCP.Tools
                 pos_y = new { type = "integer", description = "起点 Y 坐标（垂直）" },
                 end_x = new { type = "integer", description = "终点 X 坐标（可选，与 end_y 配对划定矩形范围）" },
                 end_y = new { type = "integer", description = "终点 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
-                plant_defName = new { type = "string", description = "植物 defName 过滤（可选，只砍特定种类，如 OakTree）" },
-                include_immature = new { type = "boolean", description = "是否包含未成熟树木（默认 false，未成熟树木将被跳过）" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" }
             },
             required = new[] { "pos_x", "pos_y" }
@@ -41,14 +39,6 @@ namespace RimWorldMCP.Tools
             int endX = posX, endY = posY;
             bool isRange = args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out endX)
                         && args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out endY);
-
-            string plantDefName = "";
-            if (args.Value.TryGetProperty("plant_defName", out var jPlant))
-                plantDefName = jPlant.GetString() ?? "";
-
-            bool includeImmature = false;
-            if (args.Value.TryGetProperty("include_immature", out var jImm) && jImm.ValueKind == JsonValueKind.True)
-                includeImmature = true;
 
             bool ignore_unreachable = false;
             if (args.Value.TryGetProperty("ignore_unreachable", out var jIgnore) && jIgnore.ValueKind == JsonValueKind.True)
@@ -80,49 +70,24 @@ namespace RimWorldMCP.Tools
                             return ToolResult.Error("殖民者无法到达砍伐区域，请确保有路径连通或传 ignore_unreachable=true。");
                     }
 
+                    // 过滤 = 建筑师工具栏 HarvestWood（只可收获树木+树桩优先级）
+                    // 标记 = CutPlant（Cut 模式，砍完自动清树桩）
+                    var harvestWood = new Designator_PlantsHarvestWood();
                     var cutDesignator = new Designator_PlantsCut();
-                    int designated = 0, skipped = 0, filtered = 0;
+                    int designated = 0, skipped = 0;
 
                     foreach (IntVec3 cell in area)
                     {
-                        if (cell.Fogged(map)) { skipped++; continue; }
-
-                        Plant plant = cell.GetPlant(map);
-
-                        if (!string.IsNullOrEmpty(plantDefName))
-                        {
-                            if (plant == null) { filtered++; continue; }
-                            bool match = plant.def.defName.Equals(plantDefName, StringComparison.OrdinalIgnoreCase)
-                                      || (plant.def.label != null && plant.def.label.IndexOf(plantDefName, StringComparison.OrdinalIgnoreCase) >= 0);
-                            if (!match) { filtered++; continue; }
-                        }
-
-                        if (plant == null) { skipped++; continue; }
-
-                        bool isTree = plant.def.plant.IsTree;
-
-                        if (isTree && (plant.HarvestableNow || includeImmature))
-                        {
-                            if (!cutDesignator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
-                            cutDesignator.DesignateSingleCell(cell);
-                            designated++;
-                        }
-                        else if (isTree)
-                        {
-                            skipped++;
-                        }
-                        else
-                        {
-                            skipped++;
-                        }
+                        if (!harvestWood.CanDesignateCell(cell).Accepted) { skipped++; continue; }
+                        cutDesignator.DesignateSingleCell(cell);
+                        designated++;
                     }
 
                     var sb = new StringBuilder();
-                    string filterInfo = !string.IsNullOrEmpty(plantDefName) ? $"（过滤: {plantDefName}）" : "";
                     sb.Append(isRange
-                        ? $"已标记砍伐范围 ({minX},{minZ})~({maxX},{maxZ}){filterInfo}：{designated} 株"
-                        : $"已标记砍伐坐标 ({posX}, {posY}){filterInfo}：{designated} 株");
-                    sb.Append($"。（跳过 {skipped}，不匹配过滤 {filtered}）");
+                        ? $"已标记砍伐范围 ({minX},{minZ})~({maxX},{maxZ})：{designated} 株"
+                        : $"已标记砍伐坐标 ({posX}, {posY})：{designated} 株");
+                    sb.Append($"。（跳过 {skipped} 格）");
 
                     return ToolResult.Success(sb.ToString());
                 }

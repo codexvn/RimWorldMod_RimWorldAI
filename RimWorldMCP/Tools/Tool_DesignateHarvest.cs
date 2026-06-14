@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_DesignateHarvest : ITool, IRequiresAdvanceTick
     {
         public string Name => "designate_harvest";
-        public string Description => "标记指定区域已成熟的作物以供收割（仅 harvestTag=\"Standard\" 的作物，如稻米、玉米）。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "标记指定区域已成熟的作物进行收割。等效建筑师工具栏\"收获\"命令过滤（仅 harvestTag=\"Standard\" 的已成熟作物，如稻米、玉米、棉花等）。砍伐树木/仙人掌请使用 designate_plants_cut，割草/灌木请使用 designate_clear_plants。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
