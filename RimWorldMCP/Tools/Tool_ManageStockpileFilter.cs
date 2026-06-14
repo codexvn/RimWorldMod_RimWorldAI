@@ -164,7 +164,7 @@ namespace RimWorldMCP.Tools
             });
         }
 
-        public static ThingCategoryDef? ResolveCategory(string name)
+        private static ThingCategoryDef? ResolveCategory(string name)
         {
             foreach (var cat in DefDatabase<ThingCategoryDef>.AllDefs)
             {
