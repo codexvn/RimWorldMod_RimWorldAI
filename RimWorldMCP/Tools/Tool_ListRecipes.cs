@@ -14,19 +14,20 @@ namespace RimWorldMCP.Tools
     public class Tool_ListRecipes : ITool, INoMapRequired
     {
         public string Name => "list_recipes";
-        public string Description => "列出当前可用的制造配方（已研究解锁的）。搜索用正则，如 .*仿生.*（含仿生）、^Install（安装类）、.*（全部）。可筛选仅手术配方。";
+        public string Description => "列出当前可用的制造配方（已研究解锁的）。search 必填，正则搜索配方名/defName/产物名，如 .*仿生.*（含仿生）、^Install（安装类）、.*（全部）、^Administer（施用类）。可筛选仅手术配方。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
-                search = new { type = "string", description = "正则搜索，匹配配方名/defName/产物名。.* 匹配全部" },
+                search = new { type = "string", description = "正则搜索（必填），匹配配方名/defName/产物名。.* 匹配全部" },
                 workbench_type = new { type = "string", description = "工作台类型 defName 过滤" },
                 surgery_only = new { type = "boolean", description = "仅返回手术配方", @default = false },
                 page = new { type = "integer", description = "页码（1起始），默认1", @default = 1 },
                 page_size = new { type = "integer", description = "每页条数，默认10，最大50", @default = 10 }
-            }
+            },
+            required = new[] { "search" }
         });
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
@@ -52,6 +53,10 @@ namespace RimWorldMCP.Tools
                 {
                     return ToolResult.Error($"无效正则: {search}");
                 }
+            }
+            else
+            {
+                return ToolResult.Error("缺少必填参数: search。请提供正则搜索词，如 .*仿生.*（含仿生）、^Install（安装类）、.*（全部）、^Administer（施用类）");
             }
 
             return await McpCommandQueue.DispatchAsync(() =>
