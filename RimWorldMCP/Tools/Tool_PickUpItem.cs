@@ -107,8 +107,8 @@ namespace RimWorldMCP.Tools
                     job.count = finalCount;
                     job.checkEncumbrance = true;
                     job.takeInventoryDelay = 120;
-                    // Front: 拾取物品，MCP 优先
-                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
+                    // End: 拾取物品，追加到队尾
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.End))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法拾取物品（物品可能已被占用或当前任务无法中断）。");
 
                     string queueLabel = capQueue ? "（已加入队列）" : "";

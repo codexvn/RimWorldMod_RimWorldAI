@@ -52,8 +52,8 @@ namespace RimWorldMCP.Tools
 
                     ThingWithComps weapon = pawn.equipment.Primary;
                     Job job = JobMaker.MakeJob(JobDefOf.DropEquipment, weapon);
-                    // Front: 丢弃武器，MCP 优先
-                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
+                    // End: 丢弃武器，追加到队尾
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.End))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法丢弃武器（当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 将丢弃武器: {weapon.Label}");

@@ -135,8 +135,8 @@ namespace RimWorldMCP.Tools
 
             thing.SetForbidden(false, true);
             Job job = JobMaker.MakeJob(isWeapon ? JobDefOf.Equip : JobDefOf.Wear, thing);
-            // Front: 可能连装多件，MCP 指令优先排到队首
-            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
+            // End: 可能连装多件，追加到队尾
+            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.End))
                 return (false, $"{pawn.LabelShort}: 无法执行");
 
             return (true, $"{pawn.LabelShort}→{thing.Label}{qualityStr}");

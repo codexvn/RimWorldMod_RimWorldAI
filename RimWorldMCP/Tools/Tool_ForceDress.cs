@@ -130,8 +130,8 @@ namespace RimWorldMCP.Tools
 
             apparel.SetForbidden(false, true);
             Job job = JobMaker.MakeJob(JobDefOf.ForceTargetWear, targetPawn, apparel);
-            // Front: 给他人穿衣物，MCP 优先
-            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
+            // End: 给他人穿衣物，追加到队尾
+            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.End))
                 return (false, $"{pawn.LabelShort}→{targetPawn.LabelShort}: 被阻塞");
 
             return (true, $"{pawn.LabelShort}→衣→{targetPawn.LabelShort}({apparel.Label})");

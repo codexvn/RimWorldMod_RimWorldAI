@@ -80,7 +80,6 @@ namespace RimWorldMCP.Tools
                             return ToolResult.Error("殖民者无法到达砍伐区域，请确保有路径连通或传 ignore_unreachable=true。");
                     }
 
-                    var harvestWoodDesignator = new Designator_PlantsHarvestWood();
                     var cutDesignator = new Designator_PlantsCut();
                     int designated = 0, skipped = 0, filtered = 0;
 
@@ -102,13 +101,7 @@ namespace RimWorldMCP.Tools
 
                         bool isTree = plant.def.plant.IsTree;
 
-                        if (isTree && plant.HarvestableNow)
-                        {
-                            if (!harvestWoodDesignator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
-                            harvestWoodDesignator.DesignateSingleCell(cell);
-                            designated++;
-                        }
-                        else if (isTree && includeImmature)
+                        if (isTree && (plant.HarvestableNow || includeImmature))
                         {
                             if (!cutDesignator.CanDesignateCell(cell).Accepted) { skipped++; continue; }
                             cutDesignator.DesignateSingleCell(cell);

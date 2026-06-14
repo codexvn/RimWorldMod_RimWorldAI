@@ -103,8 +103,8 @@ namespace RimWorldMCP.Tools
                     thing.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(JobDefOf.Ingest, thing);
                     job.count = maxAmount;
-                    // Front: 服食/吃药，MCP 优先排到队首
-                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
+                    // End: 服食/吃药，追加到队尾
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.End))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行服食（物品可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"小人已前往服食: {thing.Label} x{maxAmount}");

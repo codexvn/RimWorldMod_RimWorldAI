@@ -74,9 +74,8 @@ namespace RimWorldMCP.Tools
                     // 装备
                     string equipmentStr = GetEquipmentSummary(pawn);
 
-                    // 当前活动 + 任务队列
-                    string currentActivity = GetCurrentActivity(pawn);
-                    string jobQueueSummary = GetJobQueueSummary(pawn);
+                    // 任务列表（当前任务 + 排队任务，复用游戏 GetReport 文本）
+                    string taskList = BuildTaskList(GetTaskLines(pawn));
 
                     // 工作优先级
                     string workPriorities = GetWorkPriorities(pawn);
@@ -115,9 +114,7 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine($"  特性: {traitsStr}");
                     sb.AppendLine($"  技能: {skillsStr}");
                     sb.AppendLine($"  装备: {equipmentStr}");
-                    sb.AppendLine($"  当前: {currentActivity} | 工作: {workPriorities}");
-                    if (!string.IsNullOrEmpty(jobQueueSummary))
-                        sb.Append(jobQueueSummary);
+                    sb.AppendLine($"  任务: {taskList} | 工作: {workPriorities}");
                     if (!string.IsNullOrEmpty(ideoAndTitle))
                         sb.AppendLine($"  {ideoAndTitle}");
                     if (!string.IsNullOrEmpty(mentalStateStr))
@@ -268,33 +265,33 @@ namespace RimWorldMCP.Tools
             catch (Exception ex) { McpLog.Warn($"[GetColonists] 数据读取失败: {ex.Message}"); return "无法读取"; }
         }
 
-        private static string GetCurrentActivity(Pawn pawn)
+        /// <summary>获取完整任务列表：当前任务 + 全部排队任务，复用 game Job.GetReport 文本</summary>
+        private static List<string> GetTaskLines(Pawn pawn)
         {
             try
             {
+                var lines = new List<string>();
+
+                // 当前任务（think job + ordered job 都包括）
                 var curJob = pawn.CurJob;
-                string jobLabel = curJob?.def?.label ?? "";
-                if (string.IsNullOrEmpty(jobLabel)) return "空闲";
-                return jobLabel;
+                if (curJob != null)
+                    lines.Add(curJob.GetReport(pawn));
+
+                // 排队任务（仅 ordered job）
+                var queue = pawn.jobs?.jobQueue;
+                if (queue != null)
+                    foreach (var qj in queue)
+                        lines.Add(qj.job.GetReport(pawn));
+
+                return lines;
             }
-            catch (Exception ex) { McpLog.Warn($"[GetColonists] 读取活动状态失败: {ex.Message}"); return "空闲"; }
+            catch (Exception ex) { McpLog.Warn($"[GetColonists] 读取任务列表失败: {ex.Message}"); return new List<string>(); }
         }
 
-        /// <summary>任务队列详情（复用游戏 Job.GetReport 生成同款文本）</summary>
-        private static string GetJobQueueSummary(Pawn pawn)
+        private static string BuildTaskList(List<string> lines)
         {
-            try
-            {
-                var queue = pawn.jobs?.jobQueue;
-                if (queue == null || queue.Count == 0) return "";
-
-                var sb = new StringBuilder();
-                sb.AppendLine($"  任务队列 ({queue.Count}):");
-                for (int i = 0; i < queue.Count; i++)
-                    sb.AppendLine($"    {i + 1}. {queue[i].job.GetReport(pawn)}");
-                return sb.ToString();
-            }
-            catch (Exception ex) { McpLog.Warn($"[GetColonists] 读取任务队列失败: {ex.Message}"); return ""; }
+            if (lines.Count == 0) return "空闲";
+            return string.Join(" | ", lines.Select((s, i) => $"{i + 1}. {s}"));
         }
 
         private static string GetIdeoAndTitle(Pawn pawn)

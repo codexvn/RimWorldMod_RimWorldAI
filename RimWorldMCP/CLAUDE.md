@@ -242,11 +242,11 @@ JobQueueHelper.TryTake(pawn, job, QueueMode.Front);
 
 `JobQueueHelper` 内部处理：
 1. `TryTakeOrderedJob(job, tag, requestQueueing=true)` — 校验 + 预留
-2. `jobQueue.Extract→EnqueueFirst` — MCP 指令提升到队首
+2. `jobQueue.Extract→EnqueueFirst` — Front 模式提升到队首
 
 **禁止**直接调用 `pawn.jobs.TryTakeOrderedJob`。
 
-`get_colonists` 的"任务队列"区块遍历 `pawn.jobs.jobQueue` 逐条显示 `job.GetReport(pawn)`（复用游戏 UI 文本）。
+`get_colonists` 的 `GetTaskLines` 统一获取当前任务 + 全部排队任务，用 `job.GetReport(pawn)` 与游戏 UI 同款文本。
 
 ## OSS 截图上传
 

@@ -88,8 +88,8 @@ namespace RimWorldMCP.Tools
                     target.SetForbidden(false, false);
                     StrippableUtility.CheckSendStrippingImpactsGoodwillMessage(target);
                     Job job = JobMaker.MakeJob(JobDefOf.Strip, target);
-                    // Front: 剥除装备，MCP 优先
-                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
+                    // End: 剥除装备，追加到队尾
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.End))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行剥除（目标可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往剥除: {target.Label}");
