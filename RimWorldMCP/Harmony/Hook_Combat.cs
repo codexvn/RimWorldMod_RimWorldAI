@@ -1,26 +1,29 @@
-using System;
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading;
 using Verse;
 using RimWorld;
 using RimWorldMCP.Constants;
 
 namespace RimWorldMCP.Harmony
 {
-    /// <summary>BattleLog.Add + PostApplyDamage 双拦截 → 详细战斗事件 SSE 推送</summary>
+    /// <summary>
+    /// BattleLog.Add + AssociateWithLog 双拦截 → 详细战斗事件 SSE 推送。
+    /// AssociateWithLog 同时持有 LogEntry + DamageResult → 自然一对一，无需队列/计数器。
+    /// </summary>
     [StaticConstructorOnStartup]
     public static class Hook_Combat
     {
         private static readonly HarmonyLib.Harmony _instance = new HarmonyLib.Harmony("com.rimworldmcp.combat");
 
-        /// <summary>PostApplyDamage → BattleLog.Add 桥接队列 + 计数器</summary>
-        [ThreadStatic]
-        private static ConcurrentQueue<(Pawn? attacker, float amount, float dealt, string damageLabel)>? _damageQueue;
-        [ThreadStatic]
-        private static int _damagePending;
-        [ThreadStatic]
-        private static bool _pawnDamageEntry; // Pawn Hook 已入队时跳过 Thing Hook (防重复)
+        /// <summary>LogEntry → (totalDamageDealt, rawAmount, damageLabel)</summary>
+        private static readonly ConditionalWeakTable<LogEntry, DamageSnapshot> _snapshots = new();
+
+        private class DamageSnapshot
+        {
+            public float TotalDamageDealt;
+            public float RawAmount;
+            public string? DamageLabel;
+        }
 
         static Hook_Combat()
         {
@@ -30,42 +33,27 @@ namespace RimWorldMCP.Harmony
                     original: HarmonyLib.AccessTools.Method(typeof(BattleLog), nameof(BattleLog.Add)),
                     postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(BattleLog_Add_Postfix)));
                 _instance.Patch(
-                    original: HarmonyLib.AccessTools.Method(typeof(Thing), nameof(Thing.PostApplyDamage)),
-                    postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(BuildingPostApplyDamage_Postfix)));
-                _instance.Patch(
-                    original: HarmonyLib.AccessTools.Method(typeof(Pawn), nameof(Pawn.PostApplyDamage)),
-                    postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(PawnPostApplyDamage_Postfix)));
-                McpLog.Info("[Hook_Combat] BattleLog.Add + PostApplyDamage(Thing+Pawn) Hook 已注册");
+                    original: HarmonyLib.AccessTools.Method(typeof(DamageWorker.DamageResult), nameof(DamageWorker.DamageResult.AssociateWithLog)),
+                    postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(AssociateWithLog_Postfix)));
+                McpLog.Info("[Hook_Combat] BattleLog.Add + AssociateWithLog Hook 已注册");
             }
-            catch (Exception ex) { McpLog.Error($"[Hook_Combat] 初始化失败: {ex.Message}"); }
+            catch (System.Exception ex) { McpLog.Error($"[Hook_Combat] 初始化失败: {ex.Message}"); }
         }
 
-        // ===== PostApplyDamage: Pawn + Thing 双入口 (Pawn重写基类, base调用防重复) =====
+        // ===== AssociateWithLog: 提取 damage 数据，关联到 LogEntry =====
 
-        public static void PawnPostApplyDamage_Postfix(Pawn __instance, DamageInfo dinfo, float totalDamageDealt)
+        public static void AssociateWithLog_Postfix(DamageWorker.DamageResult __instance, LogEntry_DamageResult log)
         {
-            _pawnDamageEntry = true;
-            EnqueueDamage(dinfo, totalDamageDealt);
+            if (__instance.totalDamageDealt <= 0f) return;
+            _snapshots.Add(log, new DamageSnapshot
+            {
+                TotalDamageDealt = __instance.totalDamageDealt,
+                RawAmount = 0, // not available here; use total
+                DamageLabel = null
+            });
         }
 
-        public static void BuildingPostApplyDamage_Postfix(Thing __instance, DamageInfo dinfo, float totalDamageDealt)
-        {
-            // Pawn 先触发 → base 后触发 → 跳过 Thing 入口，避免重复入队
-            if (_pawnDamageEntry) { _pawnDamageEntry = false; return; }
-            EnqueueDamage(dinfo, totalDamageDealt);
-        }
-
-        private static void EnqueueDamage(DamageInfo dinfo, float totalDamageDealt)
-        {
-            // 只记录有攻击者的战斗伤害（排除腐烂/温度/饥饿等环境伤害）
-            if (totalDamageDealt <= 0f) return;
-            if (dinfo.Instigator == null && !dinfo.Def.isExplosive) return;
-            if (_damageQueue == null) _damageQueue = new ConcurrentQueue<(Pawn?, float, float, string)>();
-            _damageQueue.Enqueue((dinfo.Instigator as Pawn, dinfo.Amount, totalDamageDealt, dinfo.Def?.label ?? "?"));
-            _damagePending++;
-        }
-
-        // ===== BattleLog.Add: 发送完整战斗事件 + 计数器出队 =====
+        // ===== BattleLog.Add: 发送完整战斗事件 =====
 
         public static void BattleLog_Add_Postfix(LogEntry entry)
         {
@@ -74,24 +62,18 @@ namespace RimWorldMCP.Harmony
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
-                // 计数器驱动出队——对 Pawn 和建筑都生效
-                if (_damagePending > 0 && _damageQueue != null && _damageQueue.TryDequeue(out var dmg))
+                if (_snapshots.TryGetValue(entry, out var snap))
                 {
-                    Interlocked.Decrement(ref _damagePending);
-                    s.RawDamage = dmg.amount;
-                    s.ActualDamage = dmg.dealt;
-                    s.DamageType = dmg.damageLabel;
-                }
-                else
-                {
-                    s.RawDamage = 0;
-                    s.ActualDamage = 0;
+                    s.RawDamage = snap.TotalDamageDealt;
+                    s.ActualDamage = snap.TotalDamageDealt;
+                    s.DamageType = snap.DamageLabel;
+                    _snapshots.Remove(entry);
                 }
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
-            catch (Exception ex) { McpLog.Warn($"[Hook_Combat] 推送失败: {ex.Message}"); }
+            catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] 推送失败: {ex.Message}"); }
         }
     }
 }
