@@ -18,7 +18,9 @@ namespace RimWorldMCP.Harmony
         [ThreadStatic]
         private static ConcurrentQueue<(Pawn? attacker, float amount, float dealt, string damageLabel)>? _damageQueue;
         [ThreadStatic]
-        private static int _damagePending; // PostApplyDamage入队+1, BattleLog出队-1
+        private static int _damagePending;
+        [ThreadStatic]
+        private static bool _pawnDamageEntry; // Pawn Hook 已入队时跳过 Thing Hook (防重复)
 
         static Hook_Combat()
         {
@@ -29,16 +31,29 @@ namespace RimWorldMCP.Harmony
                     postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(BattleLog_Add_Postfix)));
                 _instance.Patch(
                     original: HarmonyLib.AccessTools.Method(typeof(Thing), nameof(Thing.PostApplyDamage)),
-                    postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(PostApplyDamage_Postfix)));
-                McpLog.Info("[Hook_Combat] BattleLog.Add + PostApplyDamage(Thing) Hook 已注册");
+                    postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(BuildingPostApplyDamage_Postfix)));
+                _instance.Patch(
+                    original: HarmonyLib.AccessTools.Method(typeof(Pawn), nameof(Pawn.PostApplyDamage)),
+                    postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(PawnPostApplyDamage_Postfix)));
+                McpLog.Info("[Hook_Combat] BattleLog.Add + PostApplyDamage(Thing+Pawn) Hook 已注册");
             }
             catch (Exception ex) { McpLog.Error($"[Hook_Combat] 初始化失败: {ex.Message}"); }
         }
 
-        // ===== PostApplyDamage: Pawn + Thing 双入口，存入计数器+队列 =====
+        // ===== PostApplyDamage: Pawn + Thing 双入口 (Pawn重写基类, base调用防重复) =====
 
-        public static void PostApplyDamage_Postfix(Thing __instance, DamageInfo dinfo, float totalDamageDealt)
-            => EnqueueDamage(dinfo, totalDamageDealt);
+        public static void PawnPostApplyDamage_Postfix(Pawn __instance, DamageInfo dinfo, float totalDamageDealt)
+        {
+            _pawnDamageEntry = true;
+            EnqueueDamage(dinfo, totalDamageDealt);
+        }
+
+        public static void BuildingPostApplyDamage_Postfix(Thing __instance, DamageInfo dinfo, float totalDamageDealt)
+        {
+            // Pawn 先触发 → base 后触发 → 跳过 Thing 入口，避免重复入队
+            if (_pawnDamageEntry) { _pawnDamageEntry = false; return; }
+            EnqueueDamage(dinfo, totalDamageDealt);
+        }
 
         private static void EnqueueDamage(DamageInfo dinfo, float totalDamageDealt)
         {
