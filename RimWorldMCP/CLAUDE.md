@@ -196,7 +196,7 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 
 | Patch | 位置 | 说明 |
 |-------|------|------|
-| `Hook_Combat.cs` | Harmony/ | **新增** — `BattleLog.Add` Postfix 拦截，实时推送战斗日志（远程/近战/倒地/死亡） |
+| `Hook_Combat.cs` | Harmony/ | `BattleLog.Add` + `Pawn.PostApplyDamage` 双拦截 → 详细战斗事件 + 伤害数字桥接 → `game/combat` 频道 |
 | `Hook_Notification.cs` | Harmony/ | `LetterStack.ReceiveLetter` + `Messages.Message` + `Alert` 拦截 |
 | `Hook_LogFlush.cs` | Harmony/ | 每帧 `McpLog.Flush()` |
 | `Hook_PlanTransparency.cs` | Harmony/ | `Plan.CreateMaterial()` Postfix |
@@ -222,16 +222,45 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 
 ### 战斗日志
 
-`Hook_Combat` 拦截 `BattleLog.Add(LogEntry)`（所有战斗日志入口），通过 `BattleLogCollector` 提取并 SSE 推送。
+**双 Hook 架构**：`Hook_Combat` 同时拦截 `BattleLog.Add` 和 `Pawn.PostApplyDamage`，通过 `ConcurrentQueue` 桥接伤害数字。战斗事件推送到独立 SSE 频道 `game/combat`。
 
-**SSE 推送格式**：
-```json
-{"type":"combat","text":"Mathis用栓动步枪射中了海盗的躯干，造成12点伤害。","tick":60000}
+**数据流**：
+```
+PostApplyDamage(pawn, dinfo, totalDamageDealt)
+  → 入队 (attacker, rawDamage, actualDamage, damageLabel)
+  → BattleLog.Add(LogEntry)
+  → BattleLogCollector.Extract(entry) → 反射提取 attacker/defender/weapon/部位/格挡
+  → TryDequeue 桥接伤害数字
+  → SSE 推送至 game/combat
 ```
 
-**advance_tick 返回战斗日志**：推进开始时记录起始 tick，结束时 `BattleLogCollector.Collect(since, until)` 提取期间的所有战斗记录，以文本列表返回。
+**SSE payload 格式**（独立频道 `game/combat`）：
+```json
+{
+  "type": "combat",
+  "attack_type": "ranged",
+  "attacker": "Mathis", "attacker_id": 255,
+  "defender": "海盗", "defender_id": 312,
+  "weapon": "栓动步枪",
+  "projectile": "子弹_栓动步枪",
+  "cover": "沙袋",
+  "deflected": false,
+  "damaged_parts": ["躯干"],
+  "raw_damage": 18.0,
+  "actual_damage": 12.0,
+  "damage_type": "子弹",
+  "text": "Mathis用栓动步枪射中了海盗的躯干，造成12点伤害。",
+  "tick": 60000
+}
+```
+
+**`BattleLogCollector`**：反射提取私有字段（`initiatorPawn`/`initiator`/`recipientPawn`/`weaponDef`/`toolLabel` 等），`Collect(sinceTick, untilTick)` 提取区间战斗记录，`PushAll` 批量 SSE 推送，`BuildTextReport` 生成人类可读文本（含伤害数字标注 `[12伤害]`）。
+
+**`advance_tick` 返回战斗日志**：推进开始时记录起始 tick，结束时通过 `BattleLogCollector.Collect(since, until)` 提取期间全部战斗记录并追加到返回结果。
 
 **`get_colonists` 已有**：`GetRecentLogs()` 遍历 `Find.BattleLog.Battles` 展示最近 2 条战斗/社交日志。
+
+**SSE 频道常量**（`McpChannels.cs`）：`game/tick` / `game/notification` / `game/deterioration` / `game/trapped` / `game/combat`
 
 ### 任务队列
 
