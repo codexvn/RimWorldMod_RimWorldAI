@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_CreateStockpile : ITool, IRequiresAdvanceTick
     {
         public string Name => "create_stockpile";
-        public string Description => "创建物品储藏区并配置筛选规则。支持预设类型和优先级。提供 end_x/end_y 可划定矩形范围。⚠ 资源类存储区需要室内，corpse_dump/dumping 不需要。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "创建物品储藏区并配置筛选规则。支持预设数组合并。室外预设(dumping/corpse/default)无需房间。提供 end_x/end_y 可划定矩形范围。坐标范围为闭区间（两端坐标均包含）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -25,9 +25,7 @@ namespace RimWorldMCP.Tools
                 end_y = new { type = "integer", description = "右上 Y 坐标（可选，与 end_x 配对划定矩形范围）" },
                 preset = new
                 {
-                    type = "string",
-                    description = "存储预设类型",
-                    @enum = new[] { "dumping", "corpse", "corpse_dump", "food", "raw_resources", "manufactured", "weapons", "apparel", "chunks" },
+                    description = "存储预设，支持字符串数组如 [\"default\",\"dumping\"] 合并筛选条件。单值 \"dumping\" 也可。可选: default, dumping, corpse",
                     @default = "dumping"
                 },
                 priority = new
@@ -37,17 +35,17 @@ namespace RimWorldMCP.Tools
                     @enum = new[] { "low", "normal", "preferred", "important", "critical" },
                     @default = "normal"
                 },
-                skip_room_check = new { type = "boolean", description = "跳过房间校验（默认 false，储存区要求在室内）" },
+                skip_room_check = new { type = "boolean", description = "跳过房间校验（默认 false）" },
                 ignore_unreachable = new { type = "boolean", description = "跳过可达性检测（默认 false）" }
             },
             required = new[] { "pos_x", "pos_y" }
         });
 
-        private static readonly Dictionary<string, StorageSettingsPreset> PresetMap = new()
+        private static readonly Dictionary<string, StorageSettingsPreset> PresetNameMap = new()
         {
+            { "default", StorageSettingsPreset.DefaultStockpile },
             { "dumping", StorageSettingsPreset.DumpingStockpile },
             { "corpse", StorageSettingsPreset.CorpseStockpile },
-            { "corpse_dump", StorageSettingsPreset.CorpseStockpile },
         };
 
         private static readonly Dictionary<string, StoragePriority> PriorityMap = new()
@@ -71,9 +69,25 @@ namespace RimWorldMCP.Tools
             bool isRange = args.Value.TryGetProperty("end_x", out var jEx) && jEx.TryGetInt32(out endX)
                         && args.Value.TryGetProperty("end_y", out var jEy) && jEy.TryGetInt32(out endY);
 
-            string presetStr = "dumping";
+            // 解析 preset — 支持字符串数组或单个字符串
+            var presetNames = new List<string>();
             if (args.Value.TryGetProperty("preset", out var jP))
-                presetStr = jP.GetString() ?? "all";
+            {
+                if (jP.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in jP.EnumerateArray())
+                    {
+                        var s = item.GetString();
+                        if (!string.IsNullOrEmpty(s)) presetNames.Add(s);
+                    }
+                }
+                else
+                {
+                    var s = jP.GetString();
+                    if (!string.IsNullOrEmpty(s)) presetNames.Add(s);
+                }
+            }
+            if (presetNames.Count == 0) presetNames.Add("dumping");
 
             string priorityStr = "normal";
             if (args.Value.TryGetProperty("priority", out var jPr))
@@ -107,24 +121,25 @@ namespace RimWorldMCP.Tools
                     if (area.IsEmpty)
                         return ToolResult.Error($"指定范围 ({minX},{minZ})~({maxX},{maxZ}) 完全在地图外");
 
-                    // 房间校验：存储区必须在室内（包括蓝图墙壁围成的准房间）
-                    // 垃圾存储区（dumping）豁免此检查
-                    if (!skipRoomCheck && presetStr != "dumping" && presetStr != "corpse_dump")
+                    // 房间校验
+                    if (!skipRoomCheck)
                     {
-                        if (!IsAreaInRoom(area, map))
-                            return ToolResult.Error("存储区必须在室内！请先建造房间或房间蓝图，或传 skip_room_check=true 跳过此检查");
+                        bool hasDefault = presetNames.Contains("default");
+                        if (hasDefault)
+                        {
+                            if (!IsAreaInRoom(area, map))
+                                return ToolResult.Error("存储区必须在室内！default 预设需要房间。请先建造房间，或传 skip_room_check=true 跳过此检查");
+                        }
                     }
 
-                    // 创建存储区
-                    Zone_Stockpile zone;
-                    if (PresetMap.TryGetValue(presetStr, out var stockPreset))
+                    // 创建存储区：第一个预设初始化，后续预设追加
+                    var firstPreset = PresetNameMap.TryGetValue(presetNames[0], out var p) ? p : StorageSettingsPreset.DefaultStockpile;
+                    var zone = new Zone_Stockpile(firstPreset, map.zoneManager);
+
+                    for (int i = 1; i < presetNames.Count; i++)
                     {
-                        zone = new Zone_Stockpile(stockPreset, map.zoneManager);
-                    }
-                    else
-                    {
-                        zone = new Zone_Stockpile(StorageSettingsPreset.DumpingStockpile, map.zoneManager);
-                        ConfigureCustomPreset(zone, presetStr);
+                        if (PresetNameMap.TryGetValue(presetNames[i], out var extraPreset))
+                            zone.settings.SetFromPreset(extraPreset);
                     }
 
                     zone.settings.Priority = storagePriority;
@@ -150,19 +165,10 @@ namespace RimWorldMCP.Tools
 
                     zone.CheckContiguous();
 
-                    // 验证殖民者可达
                     if (!ignore_unreachable)
                     {
                         var colonists = PawnsFinder.AllMaps_FreeColonistsSpawned;
-                        bool reachable = false;
-                        foreach (var cell in zone.Cells)
-                        {
-                            if (colonists.Any(c => c.CanReach(cell, PathEndMode.OnCell, Danger.Deadly)))
-                            {
-                                reachable = true;
-                                break;
-                            }
-                        }
+                        bool reachable = zone.Cells.Any(cell => colonists.Any(c => c.CanReach(cell, PathEndMode.OnCell, Danger.Deadly)));
                         if (!reachable)
                         {
                             map.zoneManager.DeregisterZone(zone);
@@ -170,12 +176,13 @@ namespace RimWorldMCP.Tools
                         }
                     }
 
+                    var joinedPresets = string.Join("+", presetNames);
                     var sb = new StringBuilder();
                     sb.Append(isRange
                         ? $"已创建存储区 ({minX},{minZ})~({maxX},{maxZ})：{added} 格"
                         : $"已创建存储区 ({posX}, {posY})：{added} 格");
                     if (skipped > 0) sb.Append($"（跳过 {skipped} 格）");
-                    sb.Append($" | 预设={presetStr}，优先级={priorityStr}");
+                    sb.Append($" | 预设={joinedPresets}，优先级={priorityStr}");
 
                     return ToolResult.Success(sb.ToString());
                 }
@@ -183,36 +190,6 @@ namespace RimWorldMCP.Tools
             });
         }
 
-        private static void ConfigureCustomPreset(Zone_Stockpile zone, string preset)
-        {
-            var filter = zone.settings.filter;
-            filter.SetAllowAll(null, false);
-
-            switch (preset)
-            {
-                case "food":
-                    filter.SetAllow(ThingCategoryDefOf.Foods, true);
-                    filter.SetAllow(ThingCategoryDefOf.PlantFoodRaw, true);
-                    break;
-                case "raw_resources":
-                    filter.SetAllow(ThingCategoryDefOf.ResourcesRaw, true);
-                    filter.SetAllow(ThingCategoryDefOf.Chunks, true);
-                    break;
-                case "manufactured":
-                    filter.SetAllow(ThingCategoryDefOf.Manufactured, true);
-                    break;
-                case "weapons":
-                    filter.SetAllow(ThingCategoryDefOf.Weapons, true);
-                    break;
-                case "apparel":
-                    filter.SetAllow(ThingCategoryDefOf.Apparel, true);
-                    break;
-                case "chunks":
-                    filter.SetAllow(ThingCategoryDefOf.Chunks, true);
-                    filter.SetAllow(ThingCategoryDefOf.StoneBlocks, true);
-                    break;
-            }
-        }
         public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
         {
             if (args == null) return null;
@@ -224,10 +201,6 @@ namespace RimWorldMCP.Tools
             return (posX, posY, posX, posY);
         }
 
-        /// <summary>
-        /// 检测指定区域是否在室内。
-        /// 蓝图墙壁会触发 Region 脏化，因此 cell.GetRoom() 对蓝图围成的区域也能正确返回房间。
-        /// </summary>
         public static bool IsAreaInRoom(CellRect area, Map map)
         {
             foreach (var cell in area.Cells)
