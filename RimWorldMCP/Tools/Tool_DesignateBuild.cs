@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Linq;
@@ -147,10 +148,19 @@ namespace RimWorldMCP.Tools
                     if (pos.Fogged(Find.CurrentMap))
                         return ToolResult.Error($"目标位置 ({posX}, {posY}) 被迷雾覆盖，无法建造。请先探索该区域。");
 
-                    // 验证可放置性
+                    // 验证可放置性（含 PlaceWorker 检测：空调热冷端、操作点等）
                     var canPlace = designator.CanDesignateCell(pos);
                     if (!canPlace)
                         return ToolResult.Error($"无法在 ({posX}, {posY}) 放置 {def.label}：{canPlace.Reason}");
+
+                    // 反向检测：是否会阻塞周边设备的空闲区域
+                    {
+                        var map = Find.CurrentMap;
+                        var wallPositions = new List<(int x, int y)> { (posX, posY) };
+                        var deviceBlocked = CheckDeviceBlocking(wallPositions, map);
+                        if (deviceBlocked.Count > 0)
+                            return ToolResult.Error($"无法在 ({posX}, {posY}) 放置 {def.label}：{string.Join("; ", deviceBlocked)}");
+                    }
 
                     if (checkPlan && Find.CurrentMap.planManager.PlanAt(pos) == null)
                         return ToolResult.Error($"({posX}, {posY}) 不在任何规划区域内，拒绝建造。请先用 plan_add 添加规划标记，或传 check_plan=false 跳过此检测。");
@@ -182,6 +192,90 @@ namespace RimWorldMCP.Tools
             if (!args.Value.TryGetProperty("pos_x", out var jX) || !jX.TryGetInt32(out var posX)) return null;
             if (!args.Value.TryGetProperty("pos_y", out var jY) || !jY.TryGetInt32(out var posY)) return null;
             return (posX, posY, posX, posY);
+        }
+
+        /// <summary>检查墙/建筑位置是否会阻塞周边设备的必要空闲区域（空调热冷端、通风口、风力发电机风道等）</summary>
+        private static List<string> CheckDeviceBlocking(List<(int x, int y)> wallPositions, Map map)
+        {
+            var blocked = new List<string>();
+            var processedNeighbors = new HashSet<IntVec3>();
+
+            foreach (var (wx, wy) in wallPositions)
+            {
+                var wpos = new IntVec3(wx, 0, wy);
+
+                foreach (var dir in GenAdj.CardinalDirections)
+                {
+                    var neighborPos = wpos + dir;
+                    if (!processedNeighbors.Add(neighborPos)) continue;
+
+                    // 扫描该格子上的所有 Thing（含蓝图/框架，不止已建成的建筑）
+                    var things = neighborPos.GetThingList(map);
+                    foreach (var t in things)
+                        TryCheckDeviceBlocked(t, wpos, wx, wy, blocked);
+                }
+            }
+
+            // 风力发电机风道（含蓝图/框架）
+            foreach (var b in map.listerBuildings.AllBuildingsColonistOfClass<Building>())
+                TryCheckWindTurbine(b, wallPositions, blocked);
+            foreach (var t in map.listerThings.AllThings)
+                if (t.def.IsBlueprint || t.def.IsFrame)
+                    TryCheckWindTurbine(t, wallPositions, blocked);
+
+            return blocked;
+        }
+
+        private static bool TryResolveBuilding(Thing thing, out ThingDef def, out IntVec3 pos, out Rot4 rot)
+        {
+            def = null!; pos = IntVec3.Invalid; rot = Rot4.Invalid;
+            if (thing == null) return false;
+
+            if (thing.def.IsBlueprint || thing.def.IsFrame)
+            {
+                def = thing.def.entityDefToBuild as ThingDef;
+                pos = thing.Position;
+                rot = thing.Rotation;
+            }
+            else if (thing.def.IsBuildingArtificial || thing.def.building != null)
+            {
+                def = thing.def;
+                pos = thing.Position;
+                rot = thing.Rotation;
+            }
+            else return false;
+
+            return def != null && def.placeWorkers != null;
+        }
+
+        private static void TryCheckDeviceBlocked(Thing thing, IntVec3 wpos, int wx, int wy, List<string> blocked)
+        {
+            if (!TryResolveBuilding(thing, out var def, out var pos, out var rot)) return;
+
+            if (def.placeWorkers.Any(t => t == typeof(PlaceWorker_Cooler) || t == typeof(PlaceWorker_Vent)))
+            {
+                var hotCell = pos + IntVec3.North.RotatedBy(rot);
+                var coldCell = pos + IntVec3.South.RotatedBy(rot);
+                if (wpos == hotCell || wpos == coldCell)
+                    blocked.Add($"({wx},{wy}) 会挡住 {def.label} 的通风口");
+            }
+
+            if (def.placeWorkers.Any(t => t == typeof(PlaceWorker_NeverAdjacentUnstandable) || t == typeof(PlaceWorker_NeverAdjacentUnstandableRadial)))
+                blocked.Add($"({wx},{wy}) 紧邻 {def.label}，该设备要求周边空旷可站立");
+        }
+
+        private static void TryCheckWindTurbine(Thing thing, List<(int x, int y)> wallPositions, List<string> blocked)
+        {
+            if (!TryResolveBuilding(thing, out var def, out var pos, out var rot)) return;
+            // 检查是否有风力发电机 Comp
+            if (def.comps == null || !def.comps.Any(c => c.compClass != null && c.compClass.Name == "CompPowerPlantWind")) return;
+
+            var windCells = new HashSet<IntVec3>(WindTurbineUtility.CalculateWindCells(pos, rot, def.size));
+            foreach (var (wx, wy) in wallPositions)
+            {
+                if (windCells.Contains(new IntVec3(wx, 0, wy)))
+                    blocked.Add($"({wx},{wy}) 会阻塞 {def.label} 的风道");
+            }
         }
     }
 }

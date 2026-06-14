@@ -324,8 +324,14 @@ namespace RimWorldMCP.Tools
                             var ipos = new IntVec3(wx, 0, wy);
                             if (ipos.Fogged(map)) { blockedWalls.Add($"({wx},{wy}) 迷雾中不可见"); continue; }
                             bool isDoorPos = doorPosSet.Contains((wx, wy)) && doorDef != null;
-                            // 共用墙跳过
-                            if (!isDoorPos && HasBuildingAt(ipos, map)) continue;
+                            // 共用墙（玩家墙）跳过；天然岩壁/废弃建筑报错
+                            if (!isDoorPos)
+                            {
+                                var kind = ClassifyWallAt(ipos, map);
+                                if (kind == WallKind.PlayerWall) continue;
+                                if (kind == WallKind.NaturalRock) { blockedWalls.Add($"({wx},{wy}) 此处有天然岩壁，请先采矿或另选位置"); continue; }
+                                if (kind == WallKind.Ruin) { blockedWalls.Add($"({wx},{wy}) 此处有废弃建筑，请先拆除或另选位置"); continue; }
+                            }
                             var def = isDoorPos ? doorDef : wallDef;
                             var stuff = isDoorPos ? doorStuff : wallStuff;
                             var accept = GenConstruct.CanPlaceBlueprintAt(def, ipos, Rot4.North, map, false, null, null, stuff);
@@ -335,6 +341,15 @@ namespace RimWorldMCP.Tools
                                 blockedWalls.Add($"({wx},{wy}) {reason}");
                             }
                         }
+
+                        // 反向检测：墙是否会阻塞周边设备的空闲区域
+                        var deviceBlocked = CheckDeviceBlocking(wallPositions, map);
+                        if (deviceBlocked.Count > 0)
+                        {
+                            foreach (var b in deviceBlocked)
+                                blockedWalls.Add(b);
+                        }
+
                         if (blockedWalls.Count > 0)
                         {
                             var preSb = new StringBuilder();
@@ -355,8 +370,8 @@ namespace RimWorldMCP.Tools
                         if (ipos.Fogged(map)) { errors.Add($"雾({wx},{wy}): 迷雾中不可见"); continue; }
                         bool isDoorPos = doorPosSet.Contains((wx, wy)) && doorDes != null;
 
-                        // 非门位置 + 已有墙体 → 共用墙，跳过
-                        if (!isDoorPos && HasBuildingAt(ipos, map))
+                        // 非门位置 + 已有玩家墙体 → 共用墙，跳过
+                        if (!isDoorPos && ClassifyWallAt(ipos, map) == WallKind.PlayerWall)
                         {
                             skippedSharedWalls++;
                             continue;
@@ -449,18 +464,126 @@ namespace RimWorldMCP.Tools
             return (posX, posY, posX, posY);
         }
 
-        /// <summary>检测墙、门、蓝图、框架或岩壁，防止共享墙被重复放置。</summary>
-        private static bool HasBuildingAt(IntVec3 pos, Map map)
+        /// <summary>墙体障碍分类</summary>
+        private enum WallKind { None, PlayerWall, NaturalRock, Ruin }
+
+        /// <summary>区分墙、门、蓝图、框架、岩壁或废弃建筑</summary>
+        private static WallKind ClassifyWallAt(IntVec3 pos, Map map)
         {
             var edifice = pos.GetEdifice(map);
-            if (edifice == null) return false;
-            if (edifice.def.IsWall || edifice.def.IsDoor || edifice.def.building?.isNaturalRock == true)
-                return true;
+            if (edifice == null) return WallKind.None;
+
+            // 天然岩壁
+            if (edifice.def.building?.isNaturalRock == true)
+                return WallKind.NaturalRock;
+
+            if (edifice.def.IsWall || edifice.def.IsDoor)
+            {
+                // 非玩家派系 = 废弃建筑
+                if (edifice.Faction != Faction.OfPlayer)
+                    return WallKind.Ruin;
+                return WallKind.PlayerWall;
+            }
+
             // 蓝图或框架也算（同一次会话内多间房竞争共享墙）
             var targetDef = edifice.def.entityDefToBuild as ThingDef;
             if (targetDef != null && (targetDef.IsWall || targetDef.IsDoor))
-                return true;
-            return false;
+                return WallKind.PlayerWall;
+
+            return WallKind.None;
+        }
+
+        /// <summary>检查墙位置是否会阻塞周边设备的必要空闲区域（空调热冷端、通风口、风力发电机风道等）</summary>
+        private static List<string> CheckDeviceBlocking(List<(int x, int y)> wallPositions, Map map)
+        {
+            var blocked = new List<string>();
+            var blockedSet = new HashSet<IntVec3>();
+            var processedNeighbors = new HashSet<IntVec3>();
+
+            foreach (var (wx, wy) in wallPositions)
+            {
+                var wpos = new IntVec3(wx, 0, wy);
+
+                foreach (var dir in GenAdj.CardinalDirections)
+                {
+                    var neighborPos = wpos + dir;
+                    if (!processedNeighbors.Add(neighborPos)) continue;
+
+                    // 扫描该格子上的所有 Thing（含蓝图/框架，不止已建成的建筑）
+                    var things = neighborPos.GetThingList(map);
+                    foreach (var t in things)
+                    {
+                        TryCheckDeviceBlocked(t, wpos, wx, wy, blocked);
+                    }
+                }
+            }
+
+            // 风力发电机风道（含蓝图/框架）
+            foreach (var b in map.listerBuildings.AllBuildingsColonistOfClass<Building>())
+                TryCheckWindTurbine(b, wallPositions, blocked);
+            foreach (var t in map.listerThings.AllThings)
+                if (t.def.IsBlueprint || t.def.IsFrame)
+                    TryCheckWindTurbine(t, wallPositions, blocked);
+
+            return blocked;
+        }
+
+        /// <summary>解析 Thing（Building/Blueprint/Frame）的有效 Def、位置和旋转</summary>
+        private static bool TryResolveBuilding(Thing thing, out ThingDef def, out IntVec3 pos, out Rot4 rot)
+        {
+            def = null!; pos = IntVec3.Invalid; rot = Rot4.Invalid;
+            if (thing == null) return false;
+
+            if (thing.def.IsBlueprint || thing.def.IsFrame)
+            {
+                def = thing.def.entityDefToBuild as ThingDef;
+                pos = thing.Position;
+                rot = thing.Rotation;
+            }
+            else if (thing.def.IsBuildingArtificial || thing.def.building != null)
+            {
+                def = thing.def;
+                pos = thing.Position;
+                rot = thing.Rotation;
+            }
+            else return false;
+
+            return def != null && def.placeWorkers != null;
+        }
+
+        private static void TryCheckDeviceBlocked(Thing thing, IntVec3 wpos, int wx, int wy, List<string> blocked)
+        {
+            if (!TryResolveBuilding(thing, out var def, out var pos, out var rot)) return;
+
+            // 检查 placeWorkers 类型（通过字符串名跨蓝图/框架兼容）
+            var pwTypes = def.placeWorkers?.Select(t => t.Name).ToHashSet() ?? new HashSet<string>();
+
+            // 空调/排风口：热端冷端
+            if (pwTypes.Contains("PlaceWorker_Cooler") || pwTypes.Contains("PlaceWorker_Vent"))
+            {
+                var hotCell = pos + IntVec3.North.RotatedBy(rot);
+                var coldCell = pos + IntVec3.South.RotatedBy(rot);
+                if (wpos == hotCell || wpos == coldCell)
+                    blocked.Add($"({wx},{wy}) 会挡住 {def.label} 的通风口");
+            }
+
+            // NeverAdjacentUnstandable：周边必须空旷
+            if (pwTypes.Contains("PlaceWorker_NeverAdjacentUnstandable") || pwTypes.Contains("PlaceWorker_NeverAdjacentUnstandableRadial"))
+                blocked.Add($"({wx},{wy}) 紧邻 {def.label}，该设备要求周边空旷可站立");
+        }
+
+        private static void TryCheckWindTurbine(Thing thing, List<(int x, int y)> wallPositions, List<string> blocked)
+        {
+            if (!TryResolveBuilding(thing, out var def, out var pos, out var rot)) return;
+            // 检查是否有风力发电机 Comp（CompPowerPlantWind）
+            if (def.comps == null || !def.comps.Any(c => c.compClass != null && c.compClass.Name == "CompPowerPlantWind")) return;
+
+            var windCells = new HashSet<IntVec3>(WindTurbineUtility.CalculateWindCells(pos, rot, def.size));
+            foreach (var (wx, wy) in wallPositions)
+            {
+                if (windCells.Contains(new IntVec3(wx, 0, wy)))
+                    blocked.Add($"({wx},{wy}) 会阻塞 {def.label} 的风道");
+            }
         }
     }
 }
