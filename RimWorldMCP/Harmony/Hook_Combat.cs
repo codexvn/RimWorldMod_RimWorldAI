@@ -11,9 +11,10 @@ namespace RimWorldMCP.Harmony
     {
         private static readonly HarmonyLib.Harmony _instance = new("com.rimworldmcp.combat");
 
-        /// <summary>最近一条由 AssociateWithLog 推送的 entry，BattleLog.Add 遇同一引用直接跳过</summary>
         [ThreadStatic]
-        private static LogEntry? _pushedLog;
+        private static LogEntry? _pushedLog;      // AssociateWithLog 推送过的 entry
+        [ThreadStatic]
+        private static float _pushedDamage;
 
         static Hook_Combat()
         {
@@ -30,18 +31,33 @@ namespace RimWorldMCP.Harmony
         {
             try
             {
-                var s = BattleLogCollector.Extract(log);
-                if (s == null) return;
+                // 如果同一 entry 已被 BattleLog 先推过(无 damage)，重新推送带 damage 版本
+                if (ReferenceEquals(_pushedLog, log))
+                {
+                    _pushedLog = null; // 清除标记，只重推一次
+                    var s = BattleLogCollector.Extract(log);
+                    if (s == null) return;
+                    s.ActualDamage = __instance.totalDamageDealt;
+                    s.RawDamage = __instance.totalDamageDealt;
+                    var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
+                    System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+                        $"[AssociateWithLog] REPUSH(w/dmg) logRef={log.GetHashCode()} attacker={s.Attacker}({s.AttackerId}) dmg={s.ActualDamage}\n  SSE: {json}\n");
+                    McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
+                    return;
+                }
 
-                s.ActualDamage = __instance.totalDamageDealt;
-                s.RawDamage = __instance.totalDamageDealt;
-                _pushedLog = log; // 标记已推送
+                // 正常路径：AssociateWithLog 先于 BattleLog.Add
+                var s2 = BattleLogCollector.Extract(log);
+                if (s2 == null) return;
+                s2.ActualDamage = __instance.totalDamageDealt;
+                s2.RawDamage = __instance.totalDamageDealt;
+                _pushedLog = log;
+                _pushedDamage = __instance.totalDamageDealt;
 
-                var payload = BattleLogCollector.ToPayload(s);
-                var json = JsonSerializer.Serialize(payload);
+                var json2 = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s2));
                 System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                    $"[AssociateWithLog] logRef={log.GetHashCode()} attacker={s.Attacker}({s.AttackerId}) defender={s.Defender}({s.DefenderId}) dmg={s.ActualDamage} parts={string.Join(",",s.DamagedParts??new())}\n  SSE: {json}\n");
-                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
+                    $"[AssociateWithLog] PUSH logRef={log.GetHashCode()} attacker={s2.Attacker}({s2.AttackerId}) defender={s2.Defender}({s2.DefenderId}) dmg={s2.ActualDamage}\n  SSE: {json2}\n");
+                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json2);
             }
             catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] AssociateWithLog 推送失败: {ex.Message}"); }
         }
@@ -50,24 +66,14 @@ namespace RimWorldMCP.Harmony
         {
             try
             {
-                int entryHash = entry.GetHashCode();
-                int pushedHash = _pushedLog?.GetHashCode() ?? 0;
+                // 已推送过 → 跳过
+                if (ReferenceEquals(_pushedLog, entry)) { _pushedLog = null; return; }
 
-                // AssociateWithLog 推送过的同一 entry → 跳过
-                if (ReferenceEquals(_pushedLog, entry))
-                {
-                    _pushedLog = null;
-                    System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                        $"[BattleLog.Add] SKIP(RefEq) entryHash={entryHash} pushedHash={pushedHash} — Assoc already handled\n");
-                    return;
-                }
-
-                // 同次攻击第二条 DamageResult（无部位副本）→ 跳过
+                // 同次攻击第二条 → 跳过
                 if (entry is LogEntry_DamageResult && _pushedLog != null)
                 {
-                    var s2 = BattleLogCollector.Extract(entry);
                     System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                        $"[BattleLog.Add] SKIP(DmgResult2) entryHash={entryHash} pushedHash={pushedHash} attacker={s2?.Attacker}({s2?.AttackerId}) defender={s2?.Defender}({s2?.DefenderId})\n");
+                        $"[BattleLog.Add] SKIP(DmgResult2) entryHash={entry.GetHashCode()} pushedHash={_pushedLog?.GetHashCode()}\n");
                     _pushedLog = null;
                     return;
                 }
@@ -77,7 +83,7 @@ namespace RimWorldMCP.Harmony
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
                 System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                    $"[BattleLog.Add] PUSH entryHash={entryHash} type={entry.GetType().Name} attacker={s.Attacker}({s.AttackerId})\n  SSE: {json}\n");
+                    $"[BattleLog.Add] PUSH entryHash={entry.GetHashCode()} type={entry.GetType().Name} attacker={s.Attacker}({s.AttackerId}) dmg={s.ActualDamage}\n  SSE: {json}\n");
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
             catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] BattleLog.Add 推送失败: {ex.Message}"); }
