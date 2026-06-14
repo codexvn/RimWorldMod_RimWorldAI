@@ -90,7 +90,7 @@ namespace RimWorldMCP
                     var parts = GetObjField<List<BodyPartRecord>>(dr, _drFields, "damagedParts");
                     if (parts != null) s.DamagedParts = parts.Select(p => p.Label).ToList();
                 }
-                s.Hit = !s.Deflected && s.DamagedParts != null && s.DamagedParts.Count > 0;
+                s.Hit = !s.Deflected; // 非格挡即命中（damagedParts 可能为空，如第一条 entry）
             }
 
             return s;
