@@ -95,6 +95,9 @@ namespace RimWorldMCP.Tools
                             return ToolResult.Error($"目标位置 ({posX}, {posY}) 被迷雾覆盖，无法建造。请先探索该区域。");
 
                         var floorDesignator = new Designator_Build(terrainDef);
+                        var floorAccept = floorDesignator.CanDesignateCell(pos);
+                        if (!floorAccept.Accepted)
+                            return ToolResult.Error($"无法在 ({posX}, {posY}) 放置 {terrainDef.label}：{floorAccept.Reason}");
                         floorDesignator.DesignateSingleCell(pos);
                         return ToolResult.Success($"已成功在坐标 ({posX}, {posY}) 放置 {terrainDef.label} ({thingDefName})。");
                     }

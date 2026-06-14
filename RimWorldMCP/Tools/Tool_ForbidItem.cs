@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
@@ -12,7 +10,7 @@ namespace RimWorldMCP.Tools
     public class Tool_ForbidItem : ITool, IRequiresAdvanceTick
     {
         public string Name => "forbid_item";
-        public string Description => "禁止指定区域的物品，殖民者将不会搬运或使用它们。坐标范围为闭区间（两端坐标均包含）。";
+        public string Description => "禁止指定区域的物品，殖民者将不会搬运或使用它们。复用游戏 Designator_Forbid。坐标范围为闭区间（两端坐标均包含）。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
@@ -44,28 +42,13 @@ namespace RimWorldMCP.Tools
             {
                 var map = Find.CurrentMap;
                 if (map == null) return ToolResult.Error("当前没有可用地图。");
-                int count = 0;
-                var items = new List<string>();
-                for (int x = minX; x <= maxX; x++)
-                    for (int z = minZ; z <= maxZ; z++)
-                    {
-                        var cell = new IntVec3(x, 0, z);
-                        if (!cell.InBounds(map) || cell.Fogged(map)) continue;
-                        foreach (var t in cell.GetThingList(map))
-                        {
-                            if (t.def.category != ThingCategory.Item) continue;
-                            var comp = t.TryGetComp<CompForbiddable>();
-                            if (comp == null || comp.Forbidden) continue;
-                            t.SetForbidden(true, false);
-                            count++;
-                            if (items.Count < 10) items.Add(t.Label);
-                        }
-                    }
-                if (count == 0) return ToolResult.Success("区域内没有可禁止的物品。");
-                var sb = new StringBuilder($"已禁止 {count} 个物品");
-                if (items.Count > 0) sb.Append($": {string.Join(", ", items)}");
-                if (count > 10) sb.Append($" ... 等");
-                return ToolResult.Success(sb.ToString());
+                var area = CellRect.FromLimits(minX, minZ, maxX, maxZ);
+                area.ClipInsideMap(map);
+                if (area.IsEmpty) return ToolResult.Error("指定范围完全在地图外");
+
+                var des = new Designator_Forbid();
+                des.DesignateMultiCell(area.Cells);
+                return ToolResult.Success($"已禁止区域 ({minX},{minZ})→({maxX},{maxZ}) 内的物品。");
             });
         }
         public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)

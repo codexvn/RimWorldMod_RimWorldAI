@@ -248,6 +248,98 @@ JobQueueHelper.TryTake(pawn, job, QueueMode.Front);
 
 `get_colonists` 的 `GetTaskLines` 统一获取当前任务 + 全部排队任务，用 `job.GetReport(pawn)` 与游戏 UI 同款文本。
 
+### 建筑师菜单（Architect）与 Designator 复用
+
+#### 菜单结构
+
+游戏建筑师菜单由 `DesignationCategoryDef` 驱动（`MainTabWindow_Architect` → `ArchitectCategoryTab`）。共 12 个顶层分类，按 `order` 降序排列：
+
+| 分类 | order | 内容来源 |
+|------|-------|---------|
+| **结构** | 100 | ThingDef 扫描（`designationCategory == this` → `Designator_Build`） |
+| **防御** | 90 | 同上 |
+| **家具** | 80 | 同上 |
+| **设备** | 70 | 同上 |
+| **生产** | 60 | 同上 |
+| **地板** | 50 | ThingDef + TerrainDef 扫描 |
+| **衣物** | 40 | 同上 |
+| **杂项** | 30 | 同上 |
+| **区域** | 20 | `specialDesignatorClasses`：储存区/种植区/删除区 |
+| **命令** | 10 | `specialDesignatorClasses`：~30 个手写特殊设计器 |
+
+> 结构~杂项 8 个分类通过 `DesignationCategoryDef.ResolveDesignators()` 自动扫描 `DefDatabase<ThingDef>.AllDefs` + `DefDatabase<TerrainDef>.AllDefs`，匹配 `designationCategory == this` 的 def 自动生成 `Designator_Build(def)` 实例。每个 ThingDef.designationCategory 指向其所属分类。
+
+#### Designator 继承树
+
+```
+Designator (抽象) — CanDesignateCell / DesignateSingleCell
+├── Designator_Place (抽象) — PlacingDef / 旋转 / 幽灵预览
+│   ├── Designator_Build — 单个物品/地形建造器（模板生成）
+│   └── Designator_Dropdown — 分组下拉（如墙体材料、地板颜色）
+├── Designator_Cells (抽象) — 单元格区域操作
+│   ├── Designator_Mine / MineVein
+│   ├── Designator_SmoothSurface / SmoothFloor / SmoothWalls
+│   ├── Designator_RemoveFloor / FillIn
+│   └── Designator_Zone (抽象) → 储存区/种植区/删除区
+├── Designator_Plants (抽象) → PlantsCut / PlantsHarvest / PlantsHarvestWood
+├── Designator_Cancel / Forbid / Unforbid / Claim
+├── Designator_Deconstruct / Uninstall / Haul / Strip
+├── Designator_Hunt / Tame / Slaughter
+└── Designator_PaintBuilding / PaintFloor
+```
+
+#### Tool 开发中复用 Designator
+
+**核心原则**：优先实例化游戏 Designator，调用其 `CanDesignateCell` / `DesignateSingleCell`，零自写验证逻辑。
+
+```csharp
+// 模式一：手写特殊设计器（Order 分类下的 ~30 个）
+var des = new Designator_Mine();
+foreach (var cell in area)
+{
+    if (des.CanDesignateCell(cell).Accepted)
+        des.DesignateSingleCell(cell);
+}
+
+// 模式二：建造类设计器（结构~杂项 8 个分类）
+var des = new Designator_Build(ThingDefOf.Wall);
+des.DesignateSingleCell(pos);
+```
+
+已有工具与 Designator 对应关系：
+
+| MCP Tool | 复用 Designator |
+|----------|----------------|
+| `designate_build` | `Designator_Build(def)` |
+| `designate_plants_cut` | `Designator_PlantsCut` + `Designator_PlantsHarvestWood`(过滤) |
+| `designate_harvest` | `Designator_PlantsHarvest` |
+| `designate_clear_plants` | `Designator_PlantsCut` |
+| `designate_mine` | `Designator_Mine` |
+| `cancel_build` | `Designator_Cancel` |
+| `forbid_item` / `allow_item` | `Designator_Forbid` / `Designator_Unforbid` |
+| `claim_item` | `Designator_Claim` |
+| `designate_deconstruct` | `Designator_Deconstruct` |
+| `uninstall_building` | `Designator_Uninstall` |
+| `designate_hunt` / `_tame` / `_slaughter` | `Designator_Hunt` / `Tame` / `Slaughter` |
+| `designate_remove_floor` | `Designator_RemoveFloor` |
+| `create_stockpile` | `Designator_ZoneAddStockpile_*` |
+| `create_growing_zone` | `Designator_ZoneAdd_Growing` |
+| `delete_zone` | `Designator_ZoneDelete` |
+
+`CanDesignateCell` 内部已串联游戏全部检查：迷雾、地形、空间占用、PlaceWorker（空调热端/排风口）、交互格冲突（`NotBlockingAnyInteractionCells`）。不需要自己写任何验证。
+
+#### 未覆盖的设计器（可按需新增，一行实例化）
+
+| Designator | 用途 |
+|-----------|------|
+| `Designator_MineVein` | 标记整条矿脉 |
+| `Designator_SmoothSurface` / `_Floor` / `_Walls` | 打磨粗糙岩壁/地板/墙壁 |
+| `Designator_FillIn` | 填平浅水/沼泽 |
+| `Designator_Replant` | 移植植物 |
+| `Designator_PaintBuilding` / `_PaintFloor` | 涂色建筑/地板 |
+| `Designator_ReleaseAnimalToWild` | 放生动物 |
+| `Designator_Adopt` | 收养动物 |
+
 ## OSS 截图上传
 
 `McpOssUploader` 在截图完成后自动上传到阿里云 OSS，支持预签名 URL（私有 Bucket）和公开 URL。

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -75,82 +74,59 @@ namespace RimWorldMCP.Tools
                     var map = Find.CurrentMap;
                     if (map == null) return ToolResult.Error("当前没有可用地图。");
 
-                    int blueprintCount = 0;
-                    int frameCount = 0;
-                    int designationCount = 0;
-                    var details = new List<string>();
+                    var area = CellRect.FromLimits(minX, minZ, maxX, maxZ);
+                    area.ClipInsideMap(map);
 
-                    for (int x = minX; x <= maxX; x++)
+                    if (area.IsEmpty)
+                        return ToolResult.Error($"指定范围 ({minX},{minZ})→({maxX},{maxZ}) 完全在地图外");
+
+                    var cells = area.Cells.ToList();
+
+                    // 全部取消走 Designator_Cancel 快速路径（含 MineVein 级联移除）
+                    if (cancelBlueprints && cancelFrames && cancelDesignations)
                     {
-                        for (int z = minZ; z <= maxZ; z++)
-                        {
-                            var cell = new IntVec3(x, 0, z);
-                            if (!cell.InBounds(map)) continue;
-                            if (cell.Fogged(map)) continue;
+                        var des = new Designator_Cancel();
+                        des.DesignateMultiCell(cells);
+                        return ToolResult.Success($"已取消区域 ({minX},{minZ})→({maxX},{maxZ}) 的全部建造项目和标记（含矿脉级联）。");
+                    }
 
-                            // 收集这一格要取消的东西
+                    // 部分取消：手动分拣
+                    int bpCount = 0, frCount = 0, desigCount = 0;
+                    foreach (var cell in cells)
+                    {
+                        if (cell.Fogged(map)) continue;
+
+                        if (cancelBlueprints || cancelFrames)
+                        {
                             var things = cell.GetThingList(map);
                             for (int i = things.Count - 1; i >= 0; i--)
                             {
                                 var t = things[i];
-
                                 if (cancelBlueprints && t is Blueprint)
-                                {
-                                    details.Add($"蓝图: {t.Label} ({x},{z})");
-                                    t.Destroy(DestroyMode.Cancel);
-                                    blueprintCount++;
-                                    continue;
-                                }
-
-                                if (cancelFrames && t is Frame)
-                                {
-                                    details.Add($"框架: {t.Label} ({x},{z})");
-                                    t.Destroy(DestroyMode.Cancel);
-                                    frameCount++;
-                                }
+                                { t.Destroy(DestroyMode.Cancel); bpCount++; }
+                                else if (cancelFrames && t is Frame)
+                                { t.Destroy(DestroyMode.Cancel); frCount++; }
                             }
+                        }
 
-                            // 取消标记（Designation）
-                            if (cancelDesignations)
+                        if (cancelDesignations)
+                        {
+                            foreach (var des in map.designationManager.AllDesignationsAt(cell).ToList())
                             {
-                                var designations = map.designationManager.AllDesignationsAt(cell).ToList();
-                                foreach (var des in designations)
-                                {
-                                    if (des.def.designateCancelable)
-                                    {
-                                        details.Add($"标记: {des.def.label} ({x},{z})");
-                                        map.designationManager.RemoveDesignation(des);
-                                        designationCount++;
-                                    }
-                                }
+                                if (des.def.designateCancelable)
+                                { map.designationManager.RemoveDesignation(des); desigCount++; }
                             }
                         }
                     }
 
-                    if (blueprintCount == 0 && frameCount == 0 && designationCount == 0)
+                    if (bpCount == 0 && frCount == 0 && desigCount == 0)
                         return ToolResult.Success($"区域 ({minX},{minZ})→({maxX},{maxZ}) 没有需要取消的建造项目或标记。");
 
                     var sb = new StringBuilder();
                     sb.AppendLine($"## 取消结果 ({minX},{minZ})→({maxX},{maxZ})");
-                    if (blueprintCount > 0) sb.AppendLine($"- 取消蓝图: {blueprintCount} 处");
-                    if (frameCount > 0) sb.AppendLine($"- 取消框架: {frameCount} 处");
-                    if (designationCount > 0) sb.AppendLine($"- 取消标记: {designationCount} 处");
-
-                    if (details.Count <= 15)
-                    {
-                        sb.AppendLine();
-                        sb.AppendLine("### 详情");
-                        foreach (var d in details)
-                            sb.AppendLine($"- {d}");
-                    }
-                    else
-                    {
-                        sb.AppendLine();
-                        sb.AppendLine($"### 详情（前 10 / 共 {details.Count}）");
-                        foreach (var d in details.Take(10))
-                            sb.AppendLine($"- {d}");
-                        sb.AppendLine($"- ... 及其他 {details.Count - 10} 项");
-                    }
+                    if (bpCount > 0) sb.AppendLine($"- 取消蓝图: {bpCount} 处");
+                    if (frCount > 0) sb.AppendLine($"- 取消框架: {frCount} 处");
+                    if (desigCount > 0) sb.AppendLine($"- 取消标记: {desigCount} 处");
 
                     return ToolResult.Success(sb.ToString().TrimEnd());
                 }
