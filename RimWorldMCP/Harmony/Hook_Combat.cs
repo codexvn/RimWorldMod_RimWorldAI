@@ -37,9 +37,11 @@ namespace RimWorldMCP.Harmony
                 s.RawDamage = __instance.totalDamageDealt;
                 _pushedLog = log; // 标记已推送
 
+                var payload = BattleLogCollector.ToPayload(s);
+                var json = JsonSerializer.Serialize(payload);
                 System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                    $"[AssociateWithLog] pushed attacker={s.Attacker} defender={s.Defender} dmg={s.ActualDamage} parts={string.Join(",",s.DamagedParts??new())}\n");
-                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, JsonSerializer.Serialize(BattleLogCollector.ToPayload(s)));
+                    $"[AssociateWithLog] logRef={log.GetHashCode()} attacker={s.Attacker}({s.AttackerId}) defender={s.Defender}({s.DefenderId}) dmg={s.ActualDamage} parts={string.Join(",",s.DamagedParts??new())}\n  SSE: {json}\n");
+                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
             catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] AssociateWithLog 推送失败: {ex.Message}"); }
         }
@@ -48,24 +50,35 @@ namespace RimWorldMCP.Harmony
         {
             try
             {
-                // AssociateWithLog 推送过的同一 entry → 跳过
-                if (ReferenceEquals(_pushedLog, entry)) { _pushedLog = null; return; }
+                int entryHash = entry.GetHashCode();
+                int pushedHash = _pushedLog?.GetHashCode() ?? 0;
 
-                // 游戏同一次攻击可生成两条 DamageResult entry：Assoc 推送第一条（带部位），这里遇到第二条（无部位）→ 跳过
+                // AssociateWithLog 推送过的同一 entry → 跳过
+                if (ReferenceEquals(_pushedLog, entry))
+                {
+                    _pushedLog = null;
+                    System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+                        $"[BattleLog.Add] SKIP(RefEq) entryHash={entryHash} pushedHash={pushedHash} — Assoc already handled\n");
+                    return;
+                }
+
+                // 同次攻击第二条 DamageResult（无部位副本）→ 跳过
                 if (entry is LogEntry_DamageResult && _pushedLog != null)
                 {
+                    var s2 = BattleLogCollector.Extract(entry);
                     System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                        "[BattleLog.Add] SKIPPED duplicate DamageResult (Assoc already pushed for same tick)\n");
-                    _pushedLog = null; // 清空标记，不影响后续
+                        $"[BattleLog.Add] SKIP(DmgResult2) entryHash={entryHash} pushedHash={pushedHash} attacker={s2?.Attacker}({s2?.AttackerId}) defender={s2?.Defender}({s2?.DefenderId})\n");
+                    _pushedLog = null;
                     return;
                 }
 
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
+                var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
                 System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
-                    $"[BattleLog.Add] pushed type={entry.GetType().Name} attacker={s.Attacker}\n");
-                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, JsonSerializer.Serialize(BattleLogCollector.ToPayload(s)));
+                    $"[BattleLog.Add] PUSH entryHash={entryHash} type={entry.GetType().Name} attacker={s.Attacker}({s.AttackerId})\n  SSE: {json}\n");
+                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
             catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] BattleLog.Add 推送失败: {ex.Message}"); }
         }
