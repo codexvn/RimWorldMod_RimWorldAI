@@ -14,15 +14,15 @@ namespace RimWorldMCP.Tools
     public class Tool_AdvanceTick : ITool, INoMapRequired
     {
         public string Name => "advance_tick";
-        public string Description => "以最快速度推进游戏指定小时数后恢复原速度。1 游戏小时 = 2500 tick，最快约 0.6 秒。支持小数（如 0.5 = 半小时）。和平时期用 12 小时大步推进。Plan/Act 阶段为受控 Advance 推进（完成后自动恢复强制暂停）。";
+        public string Description => "以最快速度推进游戏指定 tick 数后恢复原速度。2500 tick = 1 游戏小时，最快约 0.6 秒。支持小数（如 0.5 = 半小时）。和平时期用 12 小时大步推进。Plan/Act 阶段为受控 Advance 推进（完成后自动恢复强制暂停）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
             properties = new
             {
-                hours = new { type = "number", description = "要运行的游戏内小时数。1 小时 = 2500 tick，超快模式下约 0.8 秒。支持小数，如 0.5 = 半小时。推荐 0.5~4 小时，和平时期用 2~4 小时大步推进。" }
-            },
-            required = new[] { "hours" }
+                hours = new { type = "number", description = "要运行的游戏内小时数（备选）。1 小时 = 2500 tick。推荐 0.5~4 小时，和平时期用 2~4 小时大步推进。" },
+                ticks = new { type = "integer", description = "要运行的 tick 数（主参数，0~60000）。2500 tick = 1 游戏小时。优先于 hours。" }
+            }
         });
 
         // pending: targetTick → (TCS, savedSpeed, initialIdleIds, battleLogStartTick)
@@ -258,12 +258,16 @@ namespace RimWorldMCP.Tools
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
             if (args == null) return ToolResult.Error("缺少参数");
-            if (!args.Value.TryGetProperty("hours", out var jHours))
-                return ToolResult.Error("缺少必填参数: hours");
-            double hours = jHours.ValueKind == JsonValueKind.Number ? jHours.GetDouble() : 0;
-            if (hours <= 0) return ToolResult.Error("hours 必须 > 0");
-            if (hours > 24) return ToolResult.Error("hours 过大，单次最多 24 小时（1 天）");
-            int ticks = (int)Math.Round(hours * 2500);
+            int ticks = 0;
+            if (args.Value.TryGetProperty("ticks", out var jTicks) && jTicks.TryGetInt32(out var t))
+                ticks = t;
+            else if (args.Value.TryGetProperty("hours", out var jHours))
+            {
+                double hours = jHours.ValueKind == JsonValueKind.Number ? jHours.GetDouble() : 0;
+                if (hours > 0) ticks = (int)Math.Round(hours * 2500);
+            }
+            if (ticks <= 0) return ToolResult.Error("ticks 或 hours 必须 > 0");
+            if (ticks > 60000) return ToolResult.Error("ticks 过大，单次最多 60000 tick（24 游戏小时）");
 
             if (LongEventHandler.ForcePause)
                 return ToolResult.Error("游戏正在加载中，主线程暂时不可用，请稍后重试。");
@@ -299,8 +303,8 @@ namespace RimWorldMCP.Tools
                     tm.TogglePaused();
                 }
 
-                int battleLogStart = BattleLogCollector.LastCollectTick > 0 ? BattleLogCollector.LastCollectTick : tm.TicksGame;
-                BattleLogCollector.LastCollectTick = tm.TicksGame;
+                int battleLogStart = tm.TicksGame; // 推进开始时记录
+                BattleLogCollector.LastCollectTick = battleLogStart;
                 lock (_lock) { _pending[target] = (tcs, savedSpeed, idleIds, battleLogStart); }
                 tm.CurTimeSpeed = TimeSpeed.Ultrafast;
                 return null!;
