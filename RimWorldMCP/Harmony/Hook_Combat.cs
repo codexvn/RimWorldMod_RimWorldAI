@@ -51,12 +51,19 @@ namespace RimWorldMCP.Harmony
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
-                // 桥接伤害数字（FIFO 队列，支持同帧多段攻击一对一匹配）
-                if (_damageQueue != null && _damageQueue.TryDequeue(out var dmg))
+                // 桥接伤害数字：PostApplyDamage 只在实际受伤时入队，未命中/格挡不入队
+                // 只在有 damagedParts 时才出队（命中=有部位=有伤害入队，未命中=无部位=无入队）
+                bool isHit = s.DamagedParts != null && s.DamagedParts.Count > 0 && !s.Deflected;
+                if (isHit && _damageQueue != null && _damageQueue.TryDequeue(out var dmg))
                 {
                     s.RawDamage = dmg.amount;
                     s.ActualDamage = dmg.dealt;
                     s.DamageType = dmg.damageLabel;
+                }
+                else
+                {
+                    s.RawDamage = 0;
+                    s.ActualDamage = 0;
                 }
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));

@@ -81,7 +81,7 @@ namespace RimWorldMCP
                 s.Weapon = GetObjField<string>(mc, _mcFields, "toolLabel") ?? "徒手";
             }
 
-            // 格挡/部位：从 LogEntry_DamageResult 读取
+            // 格挡/部位/命中：从 LogEntry_DamageResult 读取
             if (entry is LogEntry_DamageResult dr)
             {
                 s.Deflected = GetValField<bool>(dr, _drFields, "deflected");
@@ -90,6 +90,7 @@ namespace RimWorldMCP
                     var parts = GetObjField<List<BodyPartRecord>>(dr, _drFields, "damagedParts");
                     if (parts != null) s.DamagedParts = parts.Select(p => p.Label).ToList();
                 }
+                s.Hit = !s.Deflected && s.DamagedParts != null && s.DamagedParts.Count > 0;
             }
 
             return s;
@@ -108,6 +109,7 @@ namespace RimWorldMCP
             weapon = s.Weapon,
             projectile = s.Projectile,
             cover = s.Cover,
+            hit = s.Hit,
             deflected = s.Deflected,
             damaged_parts = s.DamagedParts,
             raw_damage = s.RawDamage,
@@ -153,6 +155,7 @@ namespace RimWorldMCP
         public string? Weapon;
         public string? Projectile;
         public string? Cover;
+        public bool Hit; // 是否命中（!Deflected && DamagedParts非空）
         public bool Deflected;
         public List<string>? DamagedParts;
         /// <summary>原始伤害（装甲减免前），来自 PostApplyDamage 桥接</summary>
