@@ -14,5 +14,8 @@ namespace RimWorldMCP.Constants
 
         /// <summary>殖民者被困警告</summary>
         public const string GameTrapped = "game/trapped";
+
+        /// <summary>战斗事件（远程/近战/状态变更，含伤害数值）</summary>
+        public const string GameCombat = "game/combat";
     }
 }

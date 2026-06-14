@@ -110,6 +110,9 @@ namespace RimWorldMCP
             cover = s.Cover,
             deflected = s.Deflected,
             damaged_parts = s.DamagedParts,
+            raw_damage = s.RawDamage,
+            actual_damage = s.ActualDamage,
+            damage_type = s.DamageType,
             text = s.Text,
             tick = s.Tick
         };
@@ -121,7 +124,10 @@ namespace RimWorldMCP
             sb.AppendLine();
             sb.AppendLine("### 战斗日志");
             foreach (var s in summaries)
-                sb.AppendLine($"- (Tick {s.Tick}) {s.Text}");
+            {
+                string dmg = s.ActualDamage > 0 ? $" [{s.ActualDamage:F0}伤害]" : (s.Deflected ? " [被格挡]" : "");
+                sb.AppendLine($"- (Tick {s.Tick}){dmg} {s.Text}");
+            }
             return sb.ToString().TrimEnd();
         }
 
@@ -130,7 +136,7 @@ namespace RimWorldMCP
             foreach (var s in summaries)
             {
                 var json = JsonSerializer.Serialize(ToPayload(s));
-                McpServiceManager.Host?.SendEvent(McpChannels.GameNotification, json);
+                McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
         }
     }
@@ -149,5 +155,11 @@ namespace RimWorldMCP
         public string? Cover;
         public bool Deflected;
         public List<string>? DamagedParts;
+        /// <summary>原始伤害（装甲减免前），来自 PostApplyDamage 桥接</summary>
+        public float RawDamage;
+        /// <summary>实际伤害（装甲减免后），来自 PostApplyDamage 桥接</summary>
+        public float ActualDamage;
+        /// <summary>伤害类型标签（割伤/瘀伤/子弹等）</summary>
+        public string? DamageType;
     }
 }
