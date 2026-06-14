@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 using Verse;
 using RimWorld;
@@ -21,28 +22,32 @@ namespace RimWorldMCP.Harmony
             McpLog.Info("[Hook_Combat] BattleLog.Add + AssociateWithLog Hook 已注册");
         }
 
-        /// <summary>AssociateWithLog 持有 log+damage，直接提取+推送。BattleLog.Add 仅负责非伤害事件（状态变更）。</summary>
         public static void AssociateWithLog_Postfix(DamageWorker.DamageResult __instance, LogEntry_DamageResult log)
         {
             try
             {
+                System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+                    $"[AssociateWithLog] dmg={__instance.totalDamageDealt} type={log.GetType().Name}\n");
                 var s = BattleLogCollector.Extract(log);
                 if (s == null) return;
 
                 s.ActualDamage = __instance.totalDamageDealt;
                 s.RawDamage = __instance.totalDamageDealt;
-                // damage type 从 text 已经覆盖；不单独设
 
                 var json = JsonSerializer.Serialize(BattleLogCollector.ToPayload(s));
+                System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+                    $"[AssociateWithLog] pushed attacker={s.Attacker} defender={s.Defender} dmg={s.ActualDamage}\n");
                 McpServiceManager.Host?.SendEvent(McpChannels.GameCombat, json);
             }
             catch (System.Exception ex) { McpLog.Warn($"[Hook_Combat] AssociateWithLog 推送失败: {ex.Message}"); }
         }
 
-        /// <summary>BattleLog.Add 仅负责非 DamageResult 事件（状态变更/倒地/死亡）</summary>
         public static void BattleLog_Add_Postfix(LogEntry entry)
         {
-            if (entry is LogEntry_DamageResult) return; // 由 AssociateWithLog 处理
+            bool isDamage = entry is LogEntry_DamageResult;
+            System.IO.File.AppendAllText("F:/tmp_combat_debug.txt",
+                $"[BattleLog.Add] type={entry.GetType().Name} isDamage={isDamage}\n");
+            if (isDamage) return;
             try
             {
                 var s = BattleLogCollector.Extract(entry);
