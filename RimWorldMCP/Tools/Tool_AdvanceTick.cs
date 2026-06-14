@@ -25,8 +25,8 @@ namespace RimWorldMCP.Tools
             required = new[] { "hours" }
         });
 
-        // pending: targetTick → (TCS, savedSpeed, initialIdleIds)
-        private static readonly Dictionary<int, (TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> initialIdleIds)> _pending = new();
+        // pending: targetTick → (TCS, savedSpeed, initialIdleIds, battleLogStartTick)
+        private static readonly Dictionary<int, (TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> initialIdleIds, int battleLogStartTick)> _pending = new();
         private static readonly object _lock = new();
 
         /// <summary>是否有等待中的 tick advance（AutoPauseGuard 据此跳过自动暂停）</summary>
@@ -38,10 +38,10 @@ namespace RimWorldMCP.Tools
         /// <summary>取消所有等待中的 advance_tick（中断按钮 / 玩家手动暂停触发）</summary>
         public static void CancelAll()
         {
-            List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)> cancelled;
+            List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> idleIds, int battleLogStart)> cancelled;
             lock (_lock)
             {
-                cancelled = new List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)>(_pending.Values);
+                cancelled = new List<(TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> idleIds, int battleLogStart)>(_pending.Values);
                 _pending.Clear();
             }
             // Advance 模式下：恢复暂停
@@ -55,7 +55,7 @@ namespace RimWorldMCP.Tools
                 var restoreSpeed = cancelled.Count > 0 ? cancelled[0].savedSpeed : TimeSpeed.Superfast;
                 if (tm != null) tm.CurTimeSpeed = restoreSpeed;
             }
-            foreach (var (tcs, _, _) in cancelled)
+            foreach (var (tcs, _, _, _) in cancelled)
                 tcs.TrySetResult(ToolResult.Success("advance_tick 已被中断，已恢复原速度。"));
         }
 
@@ -66,16 +66,14 @@ namespace RimWorldMCP.Tools
             if (tickManager == null) return;
             int current = tickManager.TicksGame;
 
-            List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _)>? completed = null;
+            List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> _, int battleLogStart)>? completed = null;
             bool interrupted = false;
             string interruptReason = "";
             TimeSpeed? savedSpeed = null;
 
-            // 高危事件 → 立即暂停，提前退出
             bool highDanger = NotificationBus.HighDangerPending;
             if (highDanger) NotificationBus.HighDangerPending = false;
 
-            // 殖民者空闲 → 提前退出（仅新增空闲，初始已有的不算）
             bool colonistsIdle = false;
             if (!highDanger && !tickManager.Paused)
             {
@@ -98,7 +96,7 @@ namespace RimWorldMCP.Tools
                 {
                     if (_pending.Count > 0)
                     {
-                        completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
+                        completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds, kv.Value.battleLogStartTick)).ToList();
                         if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                         _pending.Clear();
                     }
@@ -106,8 +104,8 @@ namespace RimWorldMCP.Tools
                 if (completed != null)
                 {
                     GamePaceEnforcer.CompleteAdvance();
-                    foreach (var (_, tcs, _, _) in completed)
-                        tcs.TrySetResult(ToolResult.Success(BuildGameStatus() + "\n\nadvance_tick 推进完成。"));
+                    foreach (var (_, tcs, _, _, battleLogStart) in completed)
+                        tcs.TrySetResult(ToolResult.Success(BuildGameStatus() + "\n\nadvance_tick 推进完成。" + BuildBattleReport(battleLogStart)));
                 }
                 return;
             }
@@ -116,12 +114,11 @@ namespace RimWorldMCP.Tools
             {
                 if (_pending.Count == 0) return;
 
-                // 玩家按空格暂停 → 中断所有等待
                 if (tickManager.Paused)
                 {
                     interrupted = true;
                     interruptReason = "玩家手动暂停";
-                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
+                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds, kv.Value.battleLogStartTick)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
@@ -129,17 +126,16 @@ namespace RimWorldMCP.Tools
                 {
                     interrupted = true;
                     interruptReason = highDanger ? "高危事件触发" : "殖民者出现空闲";
-                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds)).ToList();
+                    completed = _pending.Select(kv => (kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds, kv.Value.battleLogStartTick)).ToList();
                     if (completed.Count > 0) savedSpeed = completed[0].savedSpeed;
                     _pending.Clear();
                 }
                 else
                 {
-                    // 正常到达目标
-                    var reached = new List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> idleIds)>();
+                    var reached = new List<(int target, TaskCompletionSource<ToolResult> tcs, TimeSpeed savedSpeed, HashSet<int> idleIds, int battleLogStart)>();
                     foreach (var kv in _pending)
                         if (current >= kv.Key)
-                            reached.Add((kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds));
+                            reached.Add((kv.Key, kv.Value.tcs, kv.Value.savedSpeed, kv.Value.initialIdleIds, kv.Value.battleLogStartTick));
                     foreach (var r in reached) _pending.Remove(r.target);
                     if (reached.Count > 0)
                     {
@@ -151,7 +147,6 @@ namespace RimWorldMCP.Tools
 
             if (completed == null) return;
 
-            // 处理完成/中断
             if (interrupted)
             {
                 if (GamePaceEnforcer.AdvanceTargetTick > 0)
@@ -161,8 +156,8 @@ namespace RimWorldMCP.Tools
                     var tm = Find.TickManager;
                     if (tm != null) tm.CurTimeSpeed = savedSpeed.Value;
                 }
-                foreach (var (_, tcs, _, _) in completed)
-                    tcs.TrySetResult(ToolResult.Success($"advance_tick 已中断: {interruptReason}。\n\n{BuildGameStatus()}"));
+                foreach (var (_, tcs, _, _, battleLogStart) in completed)
+                    tcs.TrySetResult(ToolResult.Success($"advance_tick 已中断: {interruptReason}。\n\n{BuildGameStatus()}" + BuildBattleReport(battleLogStart)));
             }
             else
             {
@@ -173,9 +168,21 @@ namespace RimWorldMCP.Tools
                     var tm = Find.TickManager;
                     if (tm != null) tm.CurTimeSpeed = savedSpeed.Value;
                 }
-                foreach (var (_, tcs, _, _) in completed)
-                    tcs.TrySetResult(ToolResult.Success(BuildGameStatus() + "\n\nadvance_tick 推进完成。"));
+                foreach (var (_, tcs, _, _, battleLogStart) in completed)
+                    tcs.TrySetResult(ToolResult.Success(BuildGameStatus() + "\n\nadvance_tick 推进完成。" + BuildBattleReport(battleLogStart)));
             }
+        }
+
+        private static string BuildBattleReport(int battleLogStartTick)
+        {
+            try
+            {
+                int sinceTick = battleLogStartTick > 0 ? battleLogStartTick : (Find.TickManager?.TicksGame ?? 0);
+                var summaries = BattleLogCollector.Collect(sinceTick, Find.TickManager?.TicksGame ?? sinceTick + 1);
+                BattleLogCollector.PushAll(summaries);
+                return BattleLogCollector.BuildTextReport(summaries);
+            }
+            catch (Exception ex) { McpLog.Warn($"[AdvanceTick] 收集战斗日志失败: {ex.Message}"); return ""; }
         }
 
         private static string BuildGameStatus()
@@ -292,7 +299,9 @@ namespace RimWorldMCP.Tools
                     tm.TogglePaused();
                 }
 
-                lock (_lock) { _pending[target] = (tcs, savedSpeed, idleIds); }
+                int battleLogStart = BattleLogCollector.LastCollectTick > 0 ? BattleLogCollector.LastCollectTick : tm.TicksGame;
+                BattleLogCollector.LastCollectTick = tm.TicksGame;
+                lock (_lock) { _pending[target] = (tcs, savedSpeed, idleIds, battleLogStart); }
                 tm.CurTimeSpeed = TimeSpeed.Ultrafast;
                 return null!;
             });

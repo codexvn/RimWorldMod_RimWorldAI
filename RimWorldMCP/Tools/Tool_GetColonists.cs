@@ -141,8 +141,14 @@ namespace RimWorldMCP.Tools
         {
             try
             {
+                float hp = pawn.health?.summaryHealth?.SummaryHealthPercent ?? 1f;
+                float pain = pawn.health?.hediffSet?.PainTotal ?? 0f;
+                string hpStr = $"血量:{hp * 100:F0}%";
+                if (pain > 0.05f) hpStr += $" 疼痛:{pain * 100:F0}%";
+                if (pawn.Downed) hpStr += " 倒地!";
+
                 var hediffs = pawn.health?.hediffSet?.hediffs;
-                if (hediffs == null || hediffs.Count == 0) return "健康";
+                if (hediffs == null || hediffs.Count == 0) return hpStr;
 
                 var injuries = new List<string>();
                 foreach (var h in hediffs)
@@ -160,7 +166,7 @@ namespace RimWorldMCP.Tools
                     injuries.Add(line);
                 }
 
-                return injuries.Count > 0 ? string.Join("; ", injuries) : "健康";
+                return injuries.Count > 0 ? $"{hpStr} | {string.Join("; ", injuries)}" : hpStr;
             }
             catch (Exception ex) { McpLog.Warn($"[GetColonists] 数据读取失败: {ex.Message}"); return "无法读取"; }
         }

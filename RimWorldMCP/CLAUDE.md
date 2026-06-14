@@ -192,7 +192,14 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 
 ## 事件系统
 
-6 个 Harmony Patch 拦截游戏事件 → `NotificationBus` → `GetEventLevel()` 分级 → SSE 推送给 Agent。
+7 个 Harmony Patch 拦截游戏事件 → `NotificationBus` → SSE 推送给 Agent。
+
+| Patch | 位置 | 说明 |
+|-------|------|------|
+| `Hook_Combat.cs` | Harmony/ | **新增** — `BattleLog.Add` Postfix 拦截，实时推送战斗日志（远程/近战/倒地/死亡） |
+| `Hook_Notification.cs` | Harmony/ | `LetterStack.ReceiveLetter` + `Messages.Message` + `Alert` 拦截 |
+| `Hook_LogFlush.cs` | Harmony/ | 每帧 `McpLog.Flush()` |
+| `Hook_PlanTransparency.cs` | Harmony/ | `Plan.CreateMaterial()` Postfix |
 
 ### 事件分级
 
@@ -212,6 +219,19 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 | Letter | 大威胁、小威胁、死亡、负面、Boss | 仪式失败 | 正面、事件、来人、成长、任务、仪式成功 | 选择角色、游戏结束、捆绑 |
 | Message | 大威胁、小威胁、角色死亡、健康事件、负面、游戏减速 | 警告 | 正面、事件、完成、状态解除 | 拒绝、SilentInput |
 | Alert | 全部 | - | - | - |
+
+### 战斗日志
+
+`Hook_Combat` 拦截 `BattleLog.Add(LogEntry)`（所有战斗日志入口），通过 `BattleLogCollector` 提取并 SSE 推送。
+
+**SSE 推送格式**：
+```json
+{"type":"combat","text":"Mathis用栓动步枪射中了海盗的躯干，造成12点伤害。","tick":60000}
+```
+
+**advance_tick 返回战斗日志**：推进开始时记录起始 tick，结束时 `BattleLogCollector.Collect(since, until)` 提取期间的所有战斗记录，以文本列表返回。
+
+**`get_colonists` 已有**：`GetRecentLogs()` 遍历 `Find.BattleLog.Battles` 展示最近 2 条战斗/社交日志。
 
 ### 任务队列
 

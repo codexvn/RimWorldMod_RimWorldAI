@@ -63,10 +63,21 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine();
                     sb.AppendLine($"### {name}");
 
+                        // 血量 + 疼痛概括 (reuse)
+                    float hp = pawn.health?.summaryHealth?.SummaryHealthPercent ?? 1f;
+                    float painPct = pawn.health?.hediffSet?.PainTotal ?? 0f;
+                    string stateLabel = pawn.health?.State switch {
+                        PawnHealthState.Mobile => pawn.Downed ? "倒地" : "行动",
+                        PawnHealthState.Down => "倒地",
+                        PawnHealthState.Dead => "死亡",
+                        _ => "?"
+                    };
+                    sb.AppendLine($"血量: {hp * 100:F0}% | 疼痛: {painPct * 100:F0}% | 状态: {stateLabel}");
+
                     var hediffs = pawn.health?.hediffSet?.hediffs;
                     if (hediffs == null || hediffs.Count == 0)
                     {
-                        sb.AppendLine("- 状态: 健康，无异常");
+                        sb.AppendLine("  （无 hediff）");
                         continue;
                     }
 
