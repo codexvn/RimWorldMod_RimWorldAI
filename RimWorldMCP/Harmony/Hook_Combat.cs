@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Threading;
 using Verse;
 using RimWorld;
 using RimWorldMCP.Constants;
@@ -13,9 +14,11 @@ namespace RimWorldMCP.Harmony
     {
         private static readonly HarmonyLib.Harmony _instance = new HarmonyLib.Harmony("com.rimworldmcp.combat");
 
-        /// <summary>PostApplyDamage → BattleLog.Add 桥接队列（处理同帧多段攻击）</summary>
+        /// <summary>PostApplyDamage → BattleLog.Add 桥接队列 + 计数器</summary>
         [ThreadStatic]
         private static ConcurrentQueue<(Pawn attacker, float amount, float dealt, string damageLabel)>? _damageQueue;
+        [ThreadStatic]
+        private static int _damagePending; // PostApplyDamage入队+1, BattleLog出队-1
 
         static Hook_Combat()
         {
@@ -25,24 +28,27 @@ namespace RimWorldMCP.Harmony
                     original: HarmonyLib.AccessTools.Method(typeof(BattleLog), nameof(BattleLog.Add)),
                     postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(BattleLog_Add_Postfix)));
                 _instance.Patch(
-                    original: HarmonyLib.AccessTools.Method(typeof(Pawn), nameof(Pawn.PostApplyDamage)),
+                    original: HarmonyLib.AccessTools.Method(typeof(Thing), nameof(Thing.PostApplyDamage)),
                     postfix: new HarmonyLib.HarmonyMethod(typeof(Hook_Combat), nameof(PostApplyDamage_Postfix)));
-                McpLog.Info("[Hook_Combat] BattleLog.Add + PostApplyDamage Hook 已注册");
+                McpLog.Info("[Hook_Combat] BattleLog.Add + PostApplyDamage(Thing) Hook 已注册");
             }
             catch (Exception ex) { McpLog.Error($"[Hook_Combat] 初始化失败: {ex.Message}"); }
         }
 
-        // ===== PostApplyDamage: 捕获伤害数字，入队 =====
+        // ===== PostApplyDamage: Pawn + Thing 双入口，存入计数器+队列 =====
 
-        public static void PostApplyDamage_Postfix(Pawn __instance, DamageInfo dinfo, float totalDamageDealt)
+        public static void PostApplyDamage_Postfix(Thing __instance, DamageInfo dinfo, float totalDamageDealt)
+            => EnqueueDamage(dinfo, totalDamageDealt);
+
+        private static void EnqueueDamage(DamageInfo dinfo, float totalDamageDealt)
         {
             if (totalDamageDealt <= 0f) return;
-            var attacker = dinfo.Instigator as Pawn;
             if (_damageQueue == null) _damageQueue = new ConcurrentQueue<(Pawn, float, float, string)>();
-            _damageQueue.Enqueue((attacker ?? __instance, dinfo.Amount, totalDamageDealt, dinfo.Def?.label ?? "?"));
+            _damageQueue.Enqueue((dinfo.Instigator as Pawn, dinfo.Amount, totalDamageDealt, dinfo.Def?.label ?? "?"));
+            _damagePending++;
         }
 
-        // ===== BattleLog.Add: 发送完整战斗事件 =====
+        // ===== BattleLog.Add: 发送完整战斗事件 + 计数器出队 =====
 
         public static void BattleLog_Add_Postfix(LogEntry entry)
         {
@@ -51,11 +57,10 @@ namespace RimWorldMCP.Harmony
                 var s = BattleLogCollector.Extract(entry);
                 if (s == null) return;
 
-                // 桥接伤害数字：PostApplyDamage 只在实际受伤时入队，未命中/格挡不入队
-                // 只在有 damagedParts 时才出队（命中=有部位=有伤害入队，未命中=无部位=无入队）
-                bool isHit = s.DamagedParts != null && s.DamagedParts.Count > 0 && !s.Deflected;
-                if (isHit && _damageQueue != null && _damageQueue.TryDequeue(out var dmg))
+                // 计数器驱动出队——对 Pawn 和建筑都生效
+                if (_damagePending > 0 && _damageQueue != null && _damageQueue.TryDequeue(out var dmg))
                 {
+                    Interlocked.Decrement(ref _damagePending);
                     s.RawDamage = dmg.amount;
                     s.ActualDamage = dmg.dealt;
                     s.DamageType = dmg.damageLabel;
