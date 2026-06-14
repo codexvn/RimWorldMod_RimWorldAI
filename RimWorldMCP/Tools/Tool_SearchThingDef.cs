@@ -168,11 +168,28 @@ namespace RimWorldMCP.Tools
                         string massStr = d.BaseMass > 0 ? $", {d.BaseMass:F2}kg" : "";
                         // 放置信息
                         string sizeStr = d.Size.x > 0 ? $"{d.Size.x}x{d.Size.z}" : "?";
-                        bool rotatable = d.rotatable;
-                        string rotStr = rotatable ? "↻" : "";
+                        string rotStr = d.rotatable ? "↻" : "";
                         string catLabel = d.designationCategory?.label ?? "";
                         string catStr = !string.IsNullOrEmpty(catLabel) ? $" [{catLabel}]" : "";
-                        sb.AppendLine($"- {tagStr}{d.label} (`{d.defName}`) — {d.category}{priceStr}{massStr} | {sizeStr}{rotStr}{catStr}");
+
+                        // 朝向注释（可旋转+有交互格时说明默认方向含义）
+                        string dirNote = "";
+                        if (d.rotatable && d.hasInteractionCell)
+                        {
+                            var offset = d.interactionCellOffset;
+                            string dir = offset.z switch { > 0 => "北", < 0 => "南", _ => offset.x switch { > 0 => "东", < 0 => "西", _ => "" } };
+                            if (!string.IsNullOrEmpty(dir)) dirNote = $" (交互格朝{dir})";
+                        }
+                        // 空调/排风口特殊说明
+                        if (d.placeWorkers != null)
+                        {
+                            if (d.placeWorkers.Any(t => t == typeof(PlaceWorker_Cooler)))
+                                dirNote = " (蓝冷端朝南/红热端朝北—by PlaceWorker_Cooler)";
+                            else if (d.placeWorkers.Any(t => t == typeof(PlaceWorker_Vent)))
+                                dirNote = " (需两侧通透—by PlaceWorker_Vent)";
+                        }
+
+                        sb.AppendLine($"- {tagStr}{d.label} (`{d.defName}`) — {d.category}{priceStr}{massStr} | {sizeStr}{rotStr}{catStr}{dirNote}");
                     }
 
                     if (total > pageSize)
