@@ -68,7 +68,9 @@ namespace RimWorldMCP.Tools
                 {
                     filtered = filtered.Where(r =>
                         r.recipeUsers != null &&
-                        r.recipeUsers.Any(u => u.defName != null &&
+                        r.recipeUsers.Any(u => u.thingClass != null &&
+                            typeof(Building).IsAssignableFrom(u.thingClass) &&
+                            u.defName != null &&
                             u.defName.IndexOf(workbenchFilter, StringComparison.OrdinalIgnoreCase) >= 0));
                 }
 
@@ -101,10 +103,16 @@ namespace RimWorldMCP.Tools
                     var producedThing = recipe.ProducedThingDef?.label ?? "-";
                     var isSurgery = recipe.IsSurgery ? "是" : "否";
 
-                    // 工作台
+                    // 工作台 — 仅保留 Building 子类（实际工作台），排除 Pawn/Corpse 等非建筑 ThingDef
                     var workbenches = "-";
                     if (recipe.recipeUsers != null && recipe.recipeUsers.Count > 0)
-                        workbenches = string.Join(", ", recipe.recipeUsers.Select(u => u.label ?? u.defName ?? "???"));
+                    {
+                        var actualWorkbenches = recipe.recipeUsers
+                            .Where(u => u.thingClass != null && typeof(Building).IsAssignableFrom(u.thingClass))
+                            .ToList();
+                        if (actualWorkbenches.Count > 0)
+                            workbenches = string.Join(", ", actualWorkbenches.Select(u => u.label ?? u.defName ?? "???"));
+                    }
 
                     // 技能要求
                     var skillReq = "-";
