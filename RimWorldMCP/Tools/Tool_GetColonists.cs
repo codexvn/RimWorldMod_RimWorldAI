@@ -74,8 +74,9 @@ namespace RimWorldMCP.Tools
                     // 装备
                     string equipmentStr = GetEquipmentSummary(pawn);
 
-                    // 当前活动
+                    // 当前活动 + 任务队列
                     string currentActivity = GetCurrentActivity(pawn);
+                    string jobQueueSummary = GetJobQueueSummary(pawn);
 
                     // 工作优先级
                     string workPriorities = GetWorkPriorities(pawn);
@@ -115,6 +116,8 @@ namespace RimWorldMCP.Tools
                     sb.AppendLine($"  技能: {skillsStr}");
                     sb.AppendLine($"  装备: {equipmentStr}");
                     sb.AppendLine($"  当前: {currentActivity} | 工作: {workPriorities}");
+                    if (!string.IsNullOrEmpty(jobQueueSummary))
+                        sb.Append(jobQueueSummary);
                     if (!string.IsNullOrEmpty(ideoAndTitle))
                         sb.AppendLine($"  {ideoAndTitle}");
                     if (!string.IsNullOrEmpty(mentalStateStr))
@@ -270,13 +273,28 @@ namespace RimWorldMCP.Tools
             try
             {
                 var curJob = pawn.CurJob;
-                int queued = pawn.jobs?.jobQueue?.Count ?? 0;
                 string jobLabel = curJob?.def?.label ?? "";
-                string queueSuffix = queued > 0 ? $" (排队:{queued})" : "";
-                if (string.IsNullOrEmpty(jobLabel)) return $"空闲{queueSuffix}";
-                return $"{jobLabel}{queueSuffix}";
+                if (string.IsNullOrEmpty(jobLabel)) return "空闲";
+                return jobLabel;
             }
             catch (Exception ex) { McpLog.Warn($"[GetColonists] 读取活动状态失败: {ex.Message}"); return "空闲"; }
+        }
+
+        /// <summary>任务队列详情（复用游戏 Job.GetReport 生成同款文本）</summary>
+        private static string GetJobQueueSummary(Pawn pawn)
+        {
+            try
+            {
+                var queue = pawn.jobs?.jobQueue;
+                if (queue == null || queue.Count == 0) return "";
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"  任务队列 ({queue.Count}):");
+                for (int i = 0; i < queue.Count; i++)
+                    sb.AppendLine($"    {i + 1}. {queue[i].job.GetReport(pawn)}");
+                return sb.ToString();
+            }
+            catch (Exception ex) { McpLog.Warn($"[GetColonists] 读取任务队列失败: {ex.Message}"); return ""; }
         }
 
         private static string GetIdeoAndTitle(Pawn pawn)

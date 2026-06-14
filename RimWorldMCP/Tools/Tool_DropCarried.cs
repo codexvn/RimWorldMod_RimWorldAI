@@ -98,7 +98,8 @@ namespace RimWorldMCP.Tools
                         Job job = JobMaker.MakeJob(JobDefOf.HaulToCell, carried, destCell);
                         job.haulMode = HaulMode.ToCellStorage;
                         job.count = finalCount;
-                        if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
+                        // Front: 放下物品，MCP 优先
+                        if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
                             return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行搬运放下任务（当前任务无法中断）。");
 
                         return ToolResult.Success($"{pawn.Name.ToStringShort} 将把 {thingLabel} x{finalCount} 搬到 ({capDestX}, {capDestY}) 放下");

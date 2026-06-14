@@ -145,7 +145,8 @@ namespace RimWorldMCP.Tools
                     if (job?.def != null)
                         job.count = Math.Max(finalCount, 1);
 
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
+                    // Front: 搬运物品，MCP 优先
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
                         return ToolResult.Error($"{pawn.LabelShort} 无法开始搬运（物品可能已被占用或当前任务无法中断）。");
 
                     string queueLabel = capQueue ? "（已加入队列）" : "";

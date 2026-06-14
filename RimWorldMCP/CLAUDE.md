@@ -29,6 +29,7 @@ RimWorldMCP/
 │   ├── GridRenderer.cs        ← 矩形范围字符网格渲染器
 │   └── AiObservationOverlay.cs← AI操作区域半透明覆盖层
 ├── Mcp/                       ← MCP Server (JSON-RPC dispatch)
+├── JobQueueHelper.cs           ← 统一 Job 排队入口 (QueueMode: Front/End/Replace)
 ├── Harmony/                   ← 事件拦截 (NotificationBus)
 ├── Bridge/                    ← 空 stub (原 CC 桥接已迁至 Agent)
 ├── Transport/                 ← SseTransport (HTTP + SSE)
@@ -214,15 +215,38 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 
 ### 任务队列
 
-9 个日常操作工具支持 `queue` 参数（默认 `true`）——空闲时立即执行，忙碌时加入队列末尾（等价游戏内 Shift+右键）。
+#### 游戏原生机制
 
-| 有 `queue` 参数 | 无 `queue`（永远打断） |
-|---------------|---------------------|
-| haul_item, pick_up_item, equip_pawn, move_pawn | hold_combat_position, force_attack |
-| force_dress, ingest_item, strip_pawn | arrest_pawn, capture_pawn |
-| drop_equipment, drop_carried | rescue_pawn, tend_now |
+RimWorld 玩家 Shift+右键 = `Pawn_JobTracker.TryTakeOrderedJob(Job, JobTag?, requestQueueing)`（`Verse/AI/Pawn_JobTracker.cs:983`）。`requestQueueing=true` 等价于按住 Shift。
 
-`get_colonists` 的"当前活动"列会显示排队任务数，如 `建造 (排队:2)`。
+方法内部三种分支：
+
+| 条件 | 行为 | API |
+|------|------|-----|
+| 空闲 或 可中断 + 非 Shift | 清空队列 → `EnqueueFirst`（**替换**） | `ClearQueuedJobs` + `jobQueue.EnqueueFirst` |
+| **Shift 按下** 或 **`requestQueueing=true`** + 忙碌 | `EnqueueLast`（**追加排队**） | `jobQueue.EnqueueLast` |
+| 可中断 + 无 Shift | 清空队列 → `EnqueueLast`（**替换**） | `ClearQueuedJobs` + `jobQueue.EnqueueLast` |
+
+排队任务的消费：当前 Job 完成后，`ThinkNode_QueuedJob`（`Verse/AI/ThinkNode_QueuedJob.cs:17`）从 `jobQueue` 中 `Dequeue()` 取出下一个。
+
+任务队列文本显示（左下角卡片）：`Pawn.GetInspectString()`（`Pawn.cs:3678`）取 `jobQueue[0].job.GetReport(pawn)` + 若 `Count>1` 追加 `" (+N)"`，前缀 `"Queued".Translate()`（中文"等待处理"）。
+
+#### Tool 开发规范
+
+所有 Job 创建工具统一使用 `JobQueueHelper.TryTake(pawn, job, QueueMode.Front)`，MCP 指令始终排到队首优先执行。
+
+```csharp
+// ✅ 唯一正确用法 — JobQueueHelper 封装
+JobQueueHelper.TryTake(pawn, job, QueueMode.Front);
+```
+
+`JobQueueHelper` 内部处理：
+1. `TryTakeOrderedJob(job, tag, requestQueueing=true)` — 校验 + 预留
+2. `jobQueue.Extract→EnqueueFirst` — MCP 指令提升到队首
+
+**禁止**直接调用 `pawn.jobs.TryTakeOrderedJob`。
+
+`get_colonists` 的"任务队列"区块遍历 `pawn.jobs.jobQueue` 逐条显示 `job.GetReport(pawn)`（复用游戏 UI 文本）。
 
 ## OSS 截图上传
 

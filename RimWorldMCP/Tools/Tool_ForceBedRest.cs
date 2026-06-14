@@ -77,7 +77,8 @@ namespace RimWorldMCP.Tools
                     // 痊愈后 ShouldSeekMedicalRest 返回 false → 自动起身
                     Job job = JobMaker.MakeJob(JobDefOf.LayDown, bed);
                     job.restUntilHealed = true;
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    // Front: 卧床休养，MCP 优先
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法前往卧床（当前任务无法中断）。");
 
                     return ToolResult.Success($"{pawn.Name.ToStringShort} 已前往卧床休养至痊愈（医疗床={bed.Medical}），痊愈后自动起身。");

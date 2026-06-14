@@ -92,7 +92,8 @@ namespace RimWorldMCP.Tools
                                 pawn.drafter.Drafted = true;
 
                             Job job = JobMaker.MakeJob(JobDefOf.Goto, dest);
-                            if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, false))
+                            // Replace: 战斗移动，立即打断
+                            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Replace))
                             { failList.Add($"{pawn.LabelShort}: 移动被阻塞"); continue; }
 
                             successList.Add($"{pawn.LabelShort}→({posX},{posY})");

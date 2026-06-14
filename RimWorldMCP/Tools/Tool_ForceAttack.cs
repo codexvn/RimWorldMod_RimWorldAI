@@ -145,7 +145,8 @@ namespace RimWorldMCP.Tools
                                 if (holdPosition)
                                     job.endIfCantShootTargetFromCurPos = true;
                             }
-                            if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                            // Replace: 战斗指令，立即打断
+                            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Replace))
                             { failList.Add($"{pawn.LabelShort}: 无法执行攻击"); continue; }
 
                             string modeLabel = mode == "hold_position" ? "hold_position" : mode == "melee" ? "近战" : "auto";

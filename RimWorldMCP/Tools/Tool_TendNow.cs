@@ -126,7 +126,8 @@ namespace RimWorldMCP.Tools
 
                     // 创建治疗 Job
                     Job job = JobMaker.MakeJob(JobDefOf.TendPatient, patient, medicine);
-                    if (!doctor.jobs.TryTakeOrderedJob(job, JobTag.Misc))
+                    // Replace: 流血中不能排队，立即打断
+                    if (!JobQueueHelper.TryTake(doctor, job, QueueMode.Replace))
                         return ToolResult.Error($"{doctor.Name.ToStringShort} 无法执行治疗（目标可能已被占用或当前任务无法中断）。");
 
                     // 构建返回信息

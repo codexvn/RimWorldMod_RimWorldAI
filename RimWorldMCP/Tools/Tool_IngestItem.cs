@@ -55,16 +55,16 @@ namespace RimWorldMCP.Tools
                     if (map == null)
                         return ToolResult.Error("没有当前地图。");
 
-                    // 在地图可食用物品中查找目标
-                    var candidates = map.listerThings.ThingsInGroup(ThingRequestGroup.FoodSource);
-                    if (candidates == null || candidates.Count == 0)
-                        return ToolResult.Error("地图上没有任何可食用物品。");
+                    // 在全地图中查找目标（AllThings + 校验链过滤，与原版 FloatMenuOptionProvider_Ingest 一致）
+                    var allThings = map.listerThings.AllThings;
+                    if (allThings == null || allThings.Count == 0)
+                        return ToolResult.Error("地图上没有任何物品。");
 
-                    Thing? thing = candidates.FirstOrDefault(t => t.thingIDNumber == thingId);
+                    Thing? thing = allThings.FirstOrDefault(t => t.thingIDNumber == thingId);
                     if (thing == null)
-                        return ToolResult.Error($"找不到匹配 ID={thingId} 的可食用物品。");
+                        return ToolResult.Error($"找不到匹配 ID={thingId} 的物品。");
 
-                    // 验证 —— 对齐 FloatMenuOptionProvider_Ingest
+                    // 校验 —— 对齐 FloatMenuOptionProvider_Ingest
                     if (thing.def.ingestible == null || !thing.def.ingestible.showIngestFloatOption)
                         return ToolResult.Error($"{thing.Label} 不可食用。");
 
@@ -103,7 +103,8 @@ namespace RimWorldMCP.Tools
                     thing.SetForbidden(false, true);
                     Job job = JobMaker.MakeJob(JobDefOf.Ingest, thing);
                     job.count = maxAmount;
-                    if (!pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, capQueue))
+                    // Front: 服食/吃药，MCP 优先排到队首
+                    if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Front))
                         return ToolResult.Error($"{pawn.Name.ToStringShort} 无法执行服食（物品可能已被占用或当前任务无法中断）。");
 
                     return ToolResult.Success($"小人已前往服食: {thing.Label} x{maxAmount}");

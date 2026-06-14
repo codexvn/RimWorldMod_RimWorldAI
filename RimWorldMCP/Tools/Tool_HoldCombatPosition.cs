@@ -186,12 +186,14 @@ namespace RimWorldMCP.Tools
             bool accepted;
             if (pawn.Position == dest)
             {
-                accepted = pawn.jobs.TryTakeOrderedJob(waitJob, JobTag.Misc, false);
+                // Replace: 战斗布阵，立即打断当前任务
+                accepted = JobQueueHelper.TryTake(pawn, waitJob, QueueMode.Replace);
             }
             else
             {
                 Job gotoJob = JobMaker.MakeJob(JobDefOf.Goto, dest);
-                accepted = pawn.jobs.TryTakeOrderedJob(gotoJob, JobTag.Misc, false);
+                // Replace: 战斗移动，立即打断；后续 EnqueueLast 追加 Wait_Combat
+                accepted = JobQueueHelper.TryTake(pawn, gotoJob, QueueMode.Replace);
                 if (accepted)
                     pawn.jobs.jobQueue.EnqueueLast(waitJob, JobTag.Misc);
             }
