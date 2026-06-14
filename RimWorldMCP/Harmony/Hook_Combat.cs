@@ -16,7 +16,7 @@ namespace RimWorldMCP.Harmony
 
         /// <summary>PostApplyDamage → BattleLog.Add 桥接队列 + 计数器</summary>
         [ThreadStatic]
-        private static ConcurrentQueue<(Pawn attacker, float amount, float dealt, string damageLabel)>? _damageQueue;
+        private static ConcurrentQueue<(Pawn? attacker, float amount, float dealt, string damageLabel)>? _damageQueue;
         [ThreadStatic]
         private static int _damagePending; // PostApplyDamage入队+1, BattleLog出队-1
 
@@ -42,8 +42,10 @@ namespace RimWorldMCP.Harmony
 
         private static void EnqueueDamage(DamageInfo dinfo, float totalDamageDealt)
         {
+            // 只记录有攻击者的战斗伤害（排除腐烂/温度/饥饿等环境伤害）
             if (totalDamageDealt <= 0f) return;
-            if (_damageQueue == null) _damageQueue = new ConcurrentQueue<(Pawn, float, float, string)>();
+            if (dinfo.Instigator == null && !dinfo.Def.isExplosive) return;
+            if (_damageQueue == null) _damageQueue = new ConcurrentQueue<(Pawn?, float, float, string)>();
             _damageQueue.Enqueue((dinfo.Instigator as Pawn, dinfo.Amount, totalDamageDealt, dinfo.Def?.label ?? "?"));
             _damagePending++;
         }
