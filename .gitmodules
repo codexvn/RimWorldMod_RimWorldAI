@@ -1,0 +1,13 @@
+[submodule "external/RimWorldDecompiled"]
+	path = external/RimWorldDecompiled
+	url = https://github.com/codexvn/RimWorldDecompiled.git
+	branch = main
+[submodule "external/agent-client-protocol"]
+	path = external/agent-client-protocol
+	url = https://github.com/agentclientprotocol/agent-client-protocol.git
+[submodule "external/codex-acp"]
+	path = external/codex-acp
+	url = https://github.com/agentclientprotocol/codex-acp.git
+[submodule "external/claude-agent-acp"]
+	path = external/claude-agent-acp
+	url = https://github.com/agentclientprotocol/claude-agent-acp.git
