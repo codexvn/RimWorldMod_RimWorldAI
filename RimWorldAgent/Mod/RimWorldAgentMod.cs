@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using RimWorldAgent.Core;
 using RimWorldAgent.Core.CcbManager;
 using UnityEngine;
 using Verse;
@@ -18,6 +20,9 @@ namespace RimWorldAgent
         {
             Instance = this;
             Settings = GetSettings<AgentModSettings>();
+
+            var modRoot = Path.GetDirectoryName(typeof(RimWorldAgentMod).Assembly.Location) ?? ".";
+            NativeResolver.Setup(modRoot);
         }
 
         public override string SettingsCategory() => "RimWorld Agent";
@@ -317,7 +322,7 @@ namespace RimWorldAgent
             var customHeight = 0f;
             foreach (var server in Settings.CustomMcpServers)
                 customHeight += GetCustomMcpServerCardHeight(server) + 10f;
-            var h = 1220f + customHeight;
+            var h = 1320f + customHeight;
             Rect viewRect = new Rect(0f, 0f, inRect.width - 16f, h);
             Widgets.BeginScrollView(inRect, ref _scrollPos, viewRect);
             var listing = new Listing_Standard();
@@ -415,6 +420,17 @@ namespace RimWorldAgent
             GUI.color = new Color(0.6f, 0.65f, 0.75f, 1f);
             listing.Label($"累计: {usage}");
             GUI.color = Color.white;
+
+            // ==================== 工具结果 Diff ====================
+            DrawSectionHeader(listing, "工具结果 Diff");
+
+            listing.CheckboxLabeled("启用工具结果增量返回", ref Settings.DiffEnabled,
+                "开启后，支持 cacheKey 的工具结果会优先返回相对上次结果的 diff。");
+
+            listing.Label("全量阈值 (0.0-1.0)");
+            var diffThresholdText = listing.TextEntry(Settings.DiffThreshold.ToString("0.##"));
+            if (double.TryParse(diffThresholdText, out var diffThreshold))
+                Settings.DiffThreshold = Math.Max(0, Math.Min(1, diffThreshold));
 
             // ==================== Agent 行为 ====================
             DrawSectionHeader(listing, "Agent 行为");

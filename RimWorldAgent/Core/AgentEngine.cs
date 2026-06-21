@@ -49,6 +49,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         public bool LogSdkMessages { get; set; }
         public string? ApiKey { get; set; }
         public string? ApiUrl { get; set; }
+        public bool DiffEnabled { get; set; } = true;
+        public double DiffThreshold { get; set; } = 0.30;
+        public bool ClearToolResultSnapshotsOnStart { get; set; }
     }
 
     /// <summary>Agent 引擎 — CCB 生命周期 + WS + MCP + 调度循环。EXE/MOD 共享。</summary>
@@ -61,10 +64,12 @@ namespace RimWorldAgent.Core.AgentRuntime
         private readonly Action<string> _logError;
         private readonly Action<string> _logDebug;
         private readonly Action<string> _logWarn;
+        private readonly IToolResultSnapshotStore _toolResultSnapshotStore;
         private Ccb? _ccb;
         private CcbWebSocket? _ccbWs;
         private McpClient? _mcp;
         private ContextBuilder? _ctx;
+        private string _gameSessionId = "";
         private bool _initialized;
         private int _lastStatusCheckTick;
         private int _pauseStartMs;
@@ -79,8 +84,15 @@ namespace RimWorldAgent.Core.AgentRuntime
         public McpClient? McpClient => _mcp;
         public bool IsReady => _initialized && _mcp != null;
 
+        public void SetGameSessionId(string sessionId)
+            => _gameSessionId = ExtractSessionId(sessionId);
+
+        public static string ExtractGameSessionId(string rawSessionId)
+            => ExtractSessionId(rawSessionId);
+
         public AgentEngine(AgentEngineConfig cfg, IDbStore dbStore, IGameStateProvider gameState,
-            Action<string>? logInfo = null, Action<string>? logError = null, Action<string>? logDebug = null, Action<string>? logWarn = null)
+            Action<string>? logInfo = null, Action<string>? logError = null, Action<string>? logDebug = null,
+            Action<string>? logWarn = null, IToolResultSnapshotStore? toolResultSnapshotStore = null)
         {
             _cfg = cfg;
             _dbStore = dbStore;
@@ -89,6 +101,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             _logError = logError ?? (msg => { });
             _logDebug = logDebug ?? (msg => { });
             _logWarn = logWarn ?? (msg => { });
+            _toolResultSnapshotStore = toolResultSnapshotStore ?? new MemoryToolResultSnapshotStore();
         }
 
         /// <summary>完整启动流程：Skills → AgentMCP → npm install → CCB spawn → WS → MCP → SSE</summary>
@@ -170,7 +183,20 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 游戏速度（由系统自动管理，AI 不得手动切换）
             ProxyToolProvider.ToolBlacklist.Add("toggle_pause");
 
-            var proxy = new ProxyToolProvider(mcp);
+            if (_cfg.ClearToolResultSnapshotsOnStart)
+                _toolResultSnapshotStore.Clear();
+
+            var resultPipeline = new ToolResultPipeline(new IToolResultProcessor[]
+            {
+                new DiffProcessor(
+                    _toolResultSnapshotStore,
+                    new ToolResultDiffEngine(),
+                    _cfg.DiffEnabled,
+                    _cfg.DiffThreshold),
+                new SuffixProcessor()
+            });
+
+            var proxy = new ProxyToolProvider(mcp, resultPipeline, () => _gameSessionId);
             await proxy.RefreshToolsAsync();
             if (_disposed) return false;
             _agentHost.RegisterProvider(proxy);
@@ -179,15 +205,29 @@ namespace RimWorldAgent.Core.AgentRuntime
             // SDK session_id 变更时同步到 MCP（Scribe 持久化）
             AgentLoop.OnSessionIdChanged += sid =>
             {
+                _gameSessionId = sid;
+                _logInfo($"[AgentEngine] SDK sessionId 到达: {sid}");
+
+                // MCP (Scribe)
                 try
                 {
                     _ = mcp.CallTool("set_session_id", new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement(sid) });
                     _logInfo($"[AgentEngine] MCP set_session_id: {sid}");
                 }
                 catch (Exception ex) { _logWarn($"[AgentEngine] MCP set_session_id 失败: {ex.Message}"); }
+
+                // conversation store (sessionId)
+                var dbPath = Path.Combine(_cfg.ProjectPath, "conversation.db");
+                try
+                {
+                    (AgentLoop.ConversationStore as IDisposable)?.Dispose();
+                    AgentLoop.ConversationStore = new SqliteConversationStore(dbPath, sid);
+                    _logInfo($"[AgentEngine] SqliteConversationStore 已就绪 (save_id={sid})");
+                }
+                catch (Exception ex) { _logWarn($"[AgentEngine] 创建 SqliteConversationStore 失败: {ex.Message}"); }
             };
 
-            // 从 MCP 获取存档 sessionId → 写 session-id.txt → 供 companion 启动恢复
+            // 从 MCP Scribe 取出存档持久化的 SDK sessionId，写入 session-id.txt 供 companion --resume
             // 先删除旧 session-id.txt 防止旧存档数据串入新存档
             var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
             try { if (File.Exists(sidFile)) { File.Delete(sidFile); _logInfo("[AgentEngine] 已删除旧的 session-id.txt"); } }
@@ -196,10 +236,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             try
             {
                 var (success, sid) = await mcp.TryCallTool("get_session_id");
-                if (success && !string.IsNullOrEmpty(sid))
+                var sessionId = ExtractSessionId(sid);
+                if (success && !string.IsNullOrEmpty(sessionId))
                 {
-                    File.WriteAllText(sidFile, sid);
-                    _logInfo($"[AgentEngine] session-id.txt 已写入: {sid}");
+                    _gameSessionId = sessionId;
+                    File.WriteAllText(sidFile, sessionId);
+                    _logInfo($"[AgentEngine] session-id.txt 已写入: {_gameSessionId}");
                 }
                 else
                 {
@@ -525,6 +567,13 @@ namespace RimWorldAgent.Core.AgentRuntime
             _mcp = null;
             _agentHost?.Stop();
             _agentHost = null;
+            (_toolResultSnapshotStore as IDisposable)?.Dispose();
+        }
+
+        private static string ExtractSessionId(string rawSessionId)
+        {
+            var sessionId = (rawSessionId ?? "").Split('\n')[0].Trim();
+            return Guid.TryParse(sessionId, out _) ? sessionId : "";
         }
     }
 }

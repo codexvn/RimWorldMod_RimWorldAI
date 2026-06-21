@@ -23,6 +23,8 @@ namespace RimWorldAgent.Core.AgentRuntime
         private const string TOOL_EXECUTE = "execute_tool";
 
         private readonly McpClient _mcp;
+        private readonly ToolResultPipeline _pipeline;
+        private readonly Func<string?> _getSessionId;
         private List<MspToolDef> _cachedDefinitions = new();
 
         /// <summary>黑名单：不注册、不可调用的游戏工具名集合。在 Refresh 前增删。</summary>
@@ -30,9 +32,11 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         public string ProviderName => "GameProxy";
 
-        public ProxyToolProvider(McpClient mcp)
+        public ProxyToolProvider(McpClient mcp, ToolResultPipeline pipeline, Func<string?> getSessionId)
         {
             _mcp = mcp;
+            _pipeline = pipeline;
+            _getSessionId = getSessionId;
         }
 
         public async Task RefreshToolsAsync()
@@ -164,7 +168,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 {
                     var name = item.GetString();
                     if (!string.IsNullOrEmpty(name))
-                        actionNames.Add(name);
+                        actionNames.Add(name!);
                 }
 
                 if (actionNames.Count == 0)
@@ -266,6 +270,28 @@ namespace RimWorldAgent.Core.AgentRuntime
                             type = "object",
                             description = "命令参数。参数错误时会返回完整 Schema 辅助修正。",
                             additionalProperties = true
+                        },
+                        meta_data = new
+                        {
+                            type = "object",
+                            description = "包装层控制参数，不会传给原生游戏工具。",
+                            properties = new
+                            {
+                                xxprocess = new
+                                {
+                                    type = "object",
+                                    properties = new
+                                    {
+                                        noDiff = new
+                                        {
+                                            type = "boolean",
+                                            description = "true 时本次工具结果强制返回全量。"
+                                        }
+                                    },
+                                    additionalProperties = true
+                                }
+                            },
+                            additionalProperties = true
                         }
                     },
                     required = new[] { "action" }
@@ -280,6 +306,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             // 解析参数：提取 action 和 params
             string? innerName = null;
             Dictionary<string, JsonElement>? innerArgs = null;
+            Dictionary<string, JsonElement>? metaData = null;
 
             try
             {
@@ -294,6 +321,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                         if (dict.TryGetValue("params", out var paramsElem) &&
                             paramsElem.ValueKind == JsonValueKind.Object)
                             innerArgs = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(paramsElem.GetRawText());
+
+                        if (dict.TryGetValue("meta_data", out var metaElem) &&
+                            metaElem.ValueKind == JsonValueKind.Object)
+                            metaData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metaElem.GetRawText());
                     }
                 }
             }
@@ -309,29 +340,49 @@ namespace RimWorldAgent.Core.AgentRuntime
                 sw.Stop();
                 return ErrorResult("缺少 action 参数。请指定要执行的游戏命令名。");
             }
+            var toolName = innerName!;
 
-            if (ToolBlacklist.Contains(innerName))
+            if (ToolBlacklist.Contains(toolName))
             {
                 sw.Stop();
-                return ErrorResult($"工具 {innerName} 已在黑名单中，不可调用。");
+                return ErrorResult($"工具 {toolName} 已在黑名单中，不可调用。");
             }
 
             // advance_tick 标记 — 推进期间守护线程不干预；失败时立即清除
-            bool isAdvance = innerName == "advance_tick";
+            bool isAdvance = toolName == "advance_tick";
             if (isAdvance) AgentOrchestrator.IsAdvancing = true;
             try
             {
-                var result = await _mcp.CallTool(innerName, innerArgs);
-                var suffix = await ToolDispatcher.BuildModeSuffixAsync();
+                var ctx = new ToolResultContext
+                {
+                    ToolName = toolName,
+                    CoreExec = callContext => _mcp.CallTool(callContext.ToolName, callContext.Args)
+                };
+
+                if (innerArgs != null)
+                {
+                    foreach (var pair in innerArgs)
+                        ctx.Args[pair.Key] = pair.Value;
+                }
+
+                if (metaData != null)
+                {
+                    foreach (var pair in metaData)
+                        ctx.MetaData[pair.Key] = pair.Value;
+                }
+
+                ctx.CacheKey = ToolResultCacheKey.Build(_getSessionId() ?? "", toolName, ctx.Args);
+
+                await _pipeline.ExecuteAsync(ctx);
 
                 sw.Stop();
-                CoreLog.Info($"[ProxyToolProvider] execute_tool → {innerName} 完成 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms");
+                CoreLog.Info($"[ProxyToolProvider] execute_tool → {toolName} 完成 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms");
 
                 return new MspToolCallResult
                 {
                     Content = new List<MspContentItem>
                     {
-                        new MspContentItem { Type = "text", Text = result + suffix }
+                        new MspContentItem { Type = "text", Text = ctx.Output }
                     }
                 };
             }
@@ -341,12 +392,12 @@ namespace RimWorldAgent.Core.AgentRuntime
                 sw.Stop();
                 var innerMsg = ex.InnerException != null
                     ? $" | Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}" : "";
-                CoreLog.Error($"[ProxyToolProvider] execute_tool → {innerName} 失败 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms: {ex.Message}{innerMsg}");
+                CoreLog.Error($"[ProxyToolProvider] execute_tool → {toolName} 失败 耗时 {sw.Elapsed.TotalMilliseconds:F0}ms: {ex.Message}{innerMsg}");
 
                 // 参数错误时附带该工具的完整参数文档
-                var help = FindToolHelp(innerName);
+                var help = FindToolHelp(toolName);
                 var helpSuffix = help != null
-                    ? $"\n\n━━━ {innerName} 参数文档 ━━━\n{help}"
+                    ? $"\n\n━━━ {toolName} 参数文档 ━━━\n{help}"
                     : "";
 
                 return new MspToolCallResult
@@ -354,7 +405,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     IsError = true,
                     Content = new List<MspContentItem>
                     {
-                        new MspContentItem { Type = "text", Text = $"工具 {innerName} 执行失败: {ex.Message}{helpSuffix}" }
+                        new MspContentItem { Type = "text", Text = $"工具 {toolName} 执行失败: {ex.Message}{helpSuffix}" }
                     }
                 };
             }

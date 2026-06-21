@@ -20,12 +20,12 @@ RimWorldAI/
 
 ├── RimWorldAgent/             ← Agent Runtime (net472)
 │   ├── Core/
-│   │   ├── AgentRuntime/     AgentLoop + AgentOrchestrator + ContextBuilder + ToolDispatcher
+│   │   ├── AgentRuntime/     AgentLoop + AgentOrchestrator + ContextBuilder + ToolDispatcher + ToolResultPipeline
 │   │   ├── CcbManager/       CCB 子进程 + CcbWebSocket + TokenUsageTracker
 │   │   ├── UIMessageBus.cs   ★ UI 总线 — Fleck WS :19999
 │   │   ├── models/           SdkMessage / UiMessage / ChatChannel
 │   │   ├── Mcp/              MCP 客户端 + Agent MCP Server :9878
-│   │   └── Data/             ★ IDbStore + IConversationStore
+│   │   └── Data/             ★ IDbStore + IConversationStore + ToolResultSnapshotStore
 │   ├── Mod/                  GameComponent + 设置 UI + Harmony Hooks
 │   ├── Exe/                  独立 EXE 入口
 │   ├── resource/             Skills + About (元数据 + BBCode)
@@ -72,7 +72,7 @@ SimpleMspServer 被两者共同引用。Agent ↔ companion 通过 WS :19998，A
 | 端口 | 服务 | 协议 | 所属 |
 |------|------|------|------|
 | `:9877` | MCP Server（游戏 Tool） | SSE / HTTP | RimWorldMCP |
-| `:9878` | Agent MCP Server（内部工具 + game_cmd 网关代理全部游戏 Tool） | HTTP | RimWorldAgent |
+| `:9878` | Agent MCP Server（内部工具 + 游戏工具 meta-tools 代理） | HTTP | RimWorldAgent |
 | `:19998` | CC Companion（SDK 桥接） | WebSocket | RimWorldAgent |
 | `:19999` | UIMessageBus（UI 总线） | WebSocket | RimWorldAgent |
 | `:19997` | WebUI HTTP | HTTP | RimWorldAgentUI |
@@ -90,7 +90,8 @@ SimpleMspServer 被两者共同引用。Agent ↔ companion 通过 WS :19998，A
 - **CcbWebSocket ↔ companion 协议**：仅 4 种消息（C#→comp: `chat`/`abort`；comp→C#: `hello-ok`/SDK 消息）
 - **SdkMessage**：类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` 协议对齐（Assistant/StreamEvent/Result/System/User/Aborted 子类），`FromJson` 工厂完成 type=event 解包 + 未知字段校验
 - **SdkMessageParser**：SdkMessage → UiMessage 转换，不碰 JSON
-- **ProxyToolProvider**：游戏 MCP 工具通过网关模式代理到 Agent MCP——暴露单一 `game_cmd` 工具（`action` 指定命令名 + `params` 传参），大幅减少 LLM 上下文。参数错误时自动返回该工具的完整 Schema
+- **ProxyToolProvider**：游戏 MCP 工具通过 meta-tools 代理到 Agent MCP——暴露 `discover_tools` / `get_tool_schema` / `execute_tool`。`get_tool_schema` 返回原生游戏工具 Schema；`execute_tool` 使用顶层 `action` / `params` / `meta_data`，其中 `meta_data.xxprocess.noDiff` 只控制包装层，不传给原生工具
+- **ToolResultPipeline**：游戏工具结果包装链，当前包含 `DiffProcessor`（有 cacheKey 时基于 DiffPlex 生成 unified diff；无 cacheKey 返回 `full/no_cache_key`）和 `SuffixProcessor`（追加模式/速度提醒）
 - **MCP 服务器配置**：C# `CcbManager` 写出 `mcp-servers.json`（含 `agent` + 设置页自定义服务），路径通过 `--mcp-servers-path` CLI 参数传入 companion；TS `session.ts` 读取后显式传入 SDK `mcpServers` option，配合 `strictMcpConfig: true` 阻止 SDK 自动扫描项目根的 `.mcp.json`，彻底隔离 Rider IDE 等无关 MCP 服务器；`settingSources: ['local']` 保留用户本地配置文件加载
 - **UIMessageBus**：只负责 UiMessage WS 广播 + 客户端消息接收，不感知 SDK 格式
 - **RimWorldAgentUI**：独立模组，通过 WS 连接 UIMessageBus，自带 HTTP 服务提供 WebUI

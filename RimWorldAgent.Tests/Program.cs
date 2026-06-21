@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using RimWorldAgent.Core.AgentRuntime;
+using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 
 namespace RimWorldAgent.Tests
@@ -16,10 +19,24 @@ namespace RimWorldAgent.Tests
 
         static async Task Main(string[] args)
         {
-            var baseUrl = args.Length > 0 ? args[0] : "http://localhost:9877";
+            var unitOnly = args.Any(arg => arg == "--unit");
+            var baseUrl = args.FirstOrDefault(arg => arg != "--unit") ?? "http://localhost:9877";
+
+            if (unitOnly)
+            {
+                Console.WriteLine("=== Agent 本地单元测试 ===");
+                await RunLocalUnitTests();
+                Console.WriteLine();
+                Console.WriteLine($"=== 结果: {_passed} 通过, {_failed} 失败, {_skipped} 跳过 ===");
+                Environment.ExitCode = _failed > 0 ? 1 : 0;
+                return;
+            }
+
             Console.WriteLine($"=== Agent → MCP Tool 集成测试 ===");
             Console.WriteLine($"目标: {baseUrl}");
             Console.WriteLine();
+
+            await RunLocalUnitTests();
 
             // 测试 1: MCP 连接 + ListTools
             await TestConnectAndListTools(baseUrl);
@@ -44,6 +61,293 @@ namespace RimWorldAgent.Tests
             Console.WriteLine();
             Console.WriteLine($"=== 结果: {_passed} 通过, {_failed} 失败, {_skipped} 跳过 ===");
             Environment.ExitCode = _failed > 0 ? 1 : 0;
+        }
+
+        static async Task RunLocalUnitTests()
+        {
+            TestToolResultDiffEngine();
+            TestToolResultCacheKey();
+            TestGameSessionIdValidation();
+            await TestToolResultPipelineOrder();
+            await TestDiffProcessorNoCacheKey();
+            await TestDiffProcessorPatchWithCacheKey();
+            TestMemoryToolResultSnapshotStore();
+        }
+
+        static void TestToolResultDiffEngine()
+        {
+            var name = "ToolResultDiffEngine 修改 diff";
+            try
+            {
+                var engine = new ToolResultDiffEngine();
+                var diff = engine.Build("a\nb\nc", "a\nB\nc", 1, 2);
+
+                if (!diff.Text.Contains("--- v1") || !diff.Text.Contains("+++ v2"))
+                {
+                    Fail(name, "diff 文件名未使用版本号");
+                    return;
+                }
+
+                if (!diff.Text.Contains("-b") || !diff.Text.Contains("+B"))
+                {
+                    Fail(name, "diff 未包含修改行");
+                    return;
+                }
+
+                if (diff.ChangedLines != 2 || diff.Ratio <= 0)
+                {
+                    Fail(name, $"changedLines/ratio 异常: {diff.ChangedLines}/{diff.Ratio}");
+                    return;
+                }
+
+                Pass(name, "版本号、修改行和 ratio 正常");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static void TestToolResultCacheKey()
+        {
+            var name = "ToolResultCacheKey 完整入参哈希";
+            try
+            {
+                var first = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    "{\"page\":1,\"page_size\":20,\"filter\":{\"b\":2,\"a\":1}}");
+                var sameDifferentOrder = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    "{\"filter\":{\"a\":1,\"b\":2},\"page_size\":20,\"page\":1}");
+                var differentPage = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    "{\"page\":2,\"page_size\":20,\"filter\":{\"b\":2,\"a\":1}}");
+
+                var key1 = ToolResultCacheKey.Build("session", "get_items", first!);
+                var key2 = ToolResultCacheKey.Build("session", "get_items", sameDifferentOrder!);
+                var key3 = ToolResultCacheKey.Build("session", "get_items", differentPage!);
+
+                if (string.IsNullOrEmpty(key1))
+                {
+                    Fail(name, "cacheKey 为空");
+                    return;
+                }
+
+                if (key1 != key2)
+                {
+                    Fail(name, "相同完整入参因属性顺序不同生成了不同 key");
+                    return;
+                }
+
+                if (key1 == key3)
+                {
+                    Fail(name, "分页参数不同但 key 相同");
+                    return;
+                }
+
+                Pass(name, "完整入参哈希稳定，分页参数可隔离");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static void TestGameSessionIdValidation()
+        {
+            var name = "游戏 sessionId 校验";
+            try
+            {
+                var valid = "8fd79a60-4c2a-47d7-9dfb-6ac02b84cb3f\nsuffix";
+                var invalid = "会话 ID 不可用（当前可能尚未加载存档）。请先开始新游戏或加载存档。";
+
+                if (AgentEngine.ExtractGameSessionId(valid) != "8fd79a60-4c2a-47d7-9dfb-6ac02b84cb3f")
+                {
+                    Fail(name, "有效 GUID 未正确提取");
+                    return;
+                }
+
+                if (AgentEngine.ExtractGameSessionId(invalid) != "")
+                {
+                    Fail(name, "错误文本被当成 sessionId");
+                    return;
+                }
+
+                var args = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("{\"page\":1}")!;
+                var key = ToolResultCacheKey.Build(AgentEngine.ExtractGameSessionId(invalid), "get_notifications", args);
+                if (key != "")
+                {
+                    Fail(name, $"无效 sessionId 仍生成 cacheKey: {key}");
+                    return;
+                }
+
+                Pass(name, "错误文本不会进入 cacheKey");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static async Task TestToolResultPipelineOrder()
+        {
+            var name = "ToolResultPipeline 顺序";
+            try
+            {
+                var events = new List<string>();
+                var pipeline = new ToolResultPipeline(new IToolResultProcessor[]
+                {
+                    new TrackingProcessor(200, events),
+                    new TrackingProcessor(100, events)
+                });
+
+                var ctx = new ToolResultContext
+                {
+                    ToolName = "test",
+                    CoreExec = _ =>
+                    {
+                        events.Add("core");
+                        return Task.FromResult("ok");
+                    }
+                };
+
+                await pipeline.ExecuteAsync(ctx);
+                var actual = string.Join(",", events);
+                var expected = "request:100,request:200,core,response:100,response:200";
+
+                if (actual != expected)
+                {
+                    Fail(name, $"顺序错误: {actual}");
+                    return;
+                }
+
+                Pass(name, "请求链、核心执行、响应链顺序正常");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static async Task TestDiffProcessorNoCacheKey()
+        {
+            var name = "DiffProcessor 无 cacheKey 返回全量";
+            try
+            {
+                var pipeline = new ToolResultPipeline(new IToolResultProcessor[]
+                {
+                    new DiffProcessor(
+                        new MemoryToolResultSnapshotStore(),
+                        new ToolResultDiffEngine(),
+                        enabled: true,
+                        threshold: 0.30)
+                });
+
+                var ctx = new ToolResultContext
+                {
+                    ToolName = "get_colonists",
+                    CoreExec = _ => Task.FromResult("## 殖民者\n张三")
+                };
+
+                await pipeline.ExecuteAsync(ctx);
+
+                if (!ctx.Output.Contains("**mode**: full") || !ctx.Output.Contains("**reason**: no_cache_key"))
+                {
+                    Fail(name, ctx.Output);
+                    return;
+                }
+
+                if (!ctx.Output.Contains("## 殖民者"))
+                {
+                    Fail(name, "全量正文缺失");
+                    return;
+                }
+
+                Pass(name, "无 cacheKey 时稳定返回 full/no_cache_key");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static async Task TestDiffProcessorPatchWithCacheKey()
+        {
+            var name = "DiffProcessor 有 cacheKey 返回 patch";
+            try
+            {
+                var store = new MemoryToolResultSnapshotStore();
+                var pipeline = new ToolResultPipeline(new IToolResultProcessor[]
+                {
+                    new DiffProcessor(
+                        store,
+                        new ToolResultDiffEngine(),
+                        enabled: true,
+                        threshold: 0.80)
+                });
+
+                var first = new ToolResultContext
+                {
+                    ToolName = "get_colonists",
+                    CacheKey = "session:get_colonists:hash",
+                    CoreExec = _ => Task.FromResult("## 殖民者\n张三: 不满\n李四: 满意")
+                };
+                await pipeline.ExecuteAsync(first);
+
+                var second = new ToolResultContext
+                {
+                    ToolName = "get_colonists",
+                    CacheKey = "session:get_colonists:hash",
+                    CoreExec = _ => Task.FromResult("## 殖民者\n张三: 满意\n李四: 满意")
+                };
+                await pipeline.ExecuteAsync(second);
+
+                if (!first.Output.Contains("**reason**: no_baseline"))
+                {
+                    Fail(name, "首次调用未返回 no_baseline");
+                    return;
+                }
+
+                if (!second.Output.Contains("**mode**: patch") || !second.Output.Contains("-张三: 不满") || !second.Output.Contains("+张三: 满意"))
+                {
+                    Fail(name, second.Output);
+                    return;
+                }
+
+                Pass(name, "同 cacheKey 第二次小差异返回 patch");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static void TestMemoryToolResultSnapshotStore()
+        {
+            var name = "MemoryToolResultSnapshotStore 覆盖";
+            try
+            {
+                var store = new MemoryToolResultSnapshotStore();
+                store.Upsert(new ToolResultSnapshot { CacheKey = "k", ToolName = "tool", OutputText = "v1", Version = 1 });
+                store.Upsert(new ToolResultSnapshot { CacheKey = "k", ToolName = "tool", OutputText = "v2", Version = 2 });
+
+                var snapshot = store.Get("k");
+                if (snapshot == null || snapshot.OutputText != "v2" || snapshot.Version != 2)
+                {
+                    Fail(name, "同 cacheKey 未覆盖为最新快照");
+                    return;
+                }
+
+                store.Clear();
+                if (store.Get("k") != null)
+                {
+                    Fail(name, "Clear 后仍可读取快照");
+                    return;
+                }
+
+                Pass(name, "Upsert 覆盖和 Clear 正常");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
         }
 
         /// <summary>测试 1: MCP SDK 握手 + 工具列表</summary>
@@ -292,6 +596,31 @@ namespace RimWorldAgent.Tests
             catch (Exception ex)
             {
                 Fail(name, UnwrapException(ex));
+            }
+        }
+
+        private sealed class TrackingProcessor : ToolResultProcessorBase
+        {
+            private readonly List<string> _events;
+
+            public TrackingProcessor(int order, List<string> events)
+            {
+                Order = order;
+                _events = events;
+            }
+
+            public override int Order { get; }
+
+            public override Task ProcessRequestAsync(ToolResultContext ctx)
+            {
+                _events.Add($"request:{Order}");
+                return Task.CompletedTask;
+            }
+
+            public override Task ProcessResponseAsync(ToolResultContext ctx)
+            {
+                _events.Add($"response:{Order}");
+                return Task.CompletedTask;
             }
         }
 

@@ -25,12 +25,12 @@ RimWorldAgent/
 │   │   ├── IGameStateProvider.cs  ★ 游戏状态抽象接口（tick/paused/早报/wake）
 │   │   ├── SdkMessageParser.cs    ★ SDK → UiMessage 转换
 │   │   ├── InternalToolRegistry.cs ★ 内部工具注册 + Skill 加载（IToolProvider）
-│   │   └── Tools/                 7 个内部工具 + ProxyToolProvider
+│   │   └── Tools/                 7 个内部工具 + ProxyToolProvider + ToolResultPipeline
 │   ├── models/                  ★ 类型定义 — SdkMessage / UiMessage / ChatChannel
 │   │   ├── SdkMessage.cs          SDK 消息模型 + 内容块 + 辅助类型
 │   │   └── SdkSystemMessages.cs   System 消息子类（15 subtype × 1 兜底）
 │   │   └── NativeResolver.cs    ★ 原生 DLL 搜索路径设置
-│   ├── Data/                    ★ 数据抽象层 — IDbStore + IConversationStore (ConversationEntry / MemoryConvStore / SqliteConvStore / UiHistoryFormatter)
+│   ├── Data/                    ★ 数据抽象层 — IDbStore + IConversationStore + ToolResultSnapshotStore
 │   ├── Mcp/                     MCP 客户端 + Agent MCP Server (:9878)
 │   ├── CcbManager/              CCB 子进程管理 + CcbWebSocket + TokenUsageTracker
 │   └── UIMessageBus.cs          ★ UI 总线 — Fleck WS :19999
@@ -344,6 +344,8 @@ SDK 工具调用不经过 companion。MCP 服务器隔离：C# 写出 `mcp-serve
 | **SqliteConversationStore** | `Core/Data/SqliteConversationStore.cs` | SQLite WAL 持久化（Microsoft.Data.Sqlite），原生 DLL 在 Native\，按 save_id 隔离 |
 | **MemoryConversationStore** | `Core/Data/MemoryConversationStore.cs` | 纯内存存储（MOD），List+lock |
 | **UiHistoryFormatter** | `Core/Data/UiHistoryFormatter.cs` | ConversationEntry → 前端 history_response / history_before_response JSON |
+| **ToolResultPipeline** | `Core/AgentRuntime/Tools/Pipeline/*` | 游戏工具结果包装链：DiffProcessor 做 full/patch 决策，SuffixProcessor 追加运行时提醒 |
+| **ToolResultSnapshotStore** | `Core/Data/*ToolResultSnapshotStore.cs` | 工具结果快照缓存。MOD 加载时先执行 `NativeResolver.Setup`；GameComponent/EXE 创建 SQLite store 后注入 AgentEngine，表 `tool_result_snapshot` 按 `cache_key` 覆盖写入 |
 
 UI 模组 `RimWorldAgentUI` 通过 WebSocket 连接 UIMessageBus，不引用 Agent 项目。
 
@@ -578,11 +580,12 @@ Skill 加载顺序：`Skills/*.md`（内置，只读）→ `Skills.d/*.md`（用
 
 ### Proxy 工具代理
 
-`ProxyToolProvider`（`Core/AgentRuntime/Tools/ProxyToolProvider.cs`）实现 `SimpleMspServer.Mcp.IToolProvider`，将 121 个游戏 MCP 工具通过**网关模式**代理到 Agent MCP Server (:9878)：暴露单一 `game_cmd` 工具，LLM 通过 `action` 参数指定命令名、`params` 传递参数，内部路由到 McpClient 调用游戏 MCP。参数错误时自动附带该工具的完整参数文档。
+`ProxyToolProvider`（`Core/AgentRuntime/Tools/ProxyToolProvider.cs`）实现 `SimpleMspServer.Mcp.IToolProvider`，将 121 个游戏 MCP 工具通过 meta-tools 代理到 Agent MCP Server (:9878)：`discover_tools` 列出工具，`get_tool_schema` 返回原生游戏工具 Schema，`execute_tool` 通过顶层 `action` 指定命令名、`params` 传递原生参数、`meta_data` 传递包装层控制参数。`meta_data.xxprocess.noDiff` 不会传给游戏 MCP 工具。
 
 - `CcbManager` 写入 `mcp-servers.json`（非 `.mcp.json`），路径通过 `--mcp-servers-path` CLI 参数传入 companion。TS `session.ts` 读取后显式传入 SDK `mcpServers` option，配合 `strictMcpConfig: true` 阻止 SDK 自动扫描父目录的 `.mcp.json`，彻底隔离 Rider IDE 等无关 MCP 服务器；`settingSources: ['local']` 保留本地配置文件
 - SDK 调用游戏工具仍走 `mcp__agent__*`，自定义 MCP 服务由 SDK 作为额外 MCP server 直连；STDIO 服务写出为 `type=stdio`、`command`、可选 `args` 数组和可选 `env`，可用 `npx/docker/python/uvx` 等命令启动，旧 `type=npx` 兼容为 `stdio`
-- 每个工具结果末尾注入 `BuildModeSuffixAsync()` 后缀
+- `execute_tool` 调用结果进入 `ToolResultPipeline`：Agent 侧用 `sessionId + action + 完整 params 哈希` 生成 `cacheKey`；首次同 key 返回全量，后续小差异基于 SQLite 快照和 DiffPlex unified diff 返回 patch
+- 每个工具结果末尾通过 `SuffixProcessor` 注入 `BuildModeSuffixAsync()` 后缀
 - SDK `disallowedTools` 已加 `Write`/`Edit`，AI 用 `update_memory` 代替；`WebFetch` 不禁用，外部资料查询优先使用 Playwright MCP 直连 Wiki（`browser_navigate`/`browser_snapshot`/`browser_evaluate`），详见 Prompt.md 和 `rimworld-wiki-search` Skill
 
 ### 中断机制

@@ -40,6 +40,10 @@ namespace RimWorldAgent
         public long TokenBudgetLimit;
         public string TokenBudgetAction = "Block";
 
+        // 工具结果 Diff
+        public bool DiffEnabled = true;
+        public double DiffThreshold = 0.30;
+
         // MCP 服务地址
         public string GameMcpHost = "localhost";
         public int GameMcpPort = 9877;
@@ -75,6 +79,8 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref ThinkingEffort, "thinkingEffort", "high");
             Scribe_Values.Look(ref TokenBudgetLimit, "tokenBudgetLimit", 0L);
             Scribe_Values.Look(ref TokenBudgetAction, "tokenBudgetAction", "Block");
+            Scribe_Values.Look(ref DiffEnabled, "diffEnabled", true);
+            Scribe_Values.Look(ref DiffThreshold, "diffThreshold", 0.30);
             Scribe_Values.Look(ref GameMcpHost, "gameMcpHost", "localhost");
             Scribe_Values.Look(ref GameMcpPort, "gameMcpPort", 9877);
             Scribe_Values.Look(ref AgentMcpPort, "agentMcpPort", 9878);

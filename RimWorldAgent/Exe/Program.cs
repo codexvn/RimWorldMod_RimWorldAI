@@ -60,13 +60,18 @@ namespace RimWorldAgent
                 ModelName = modelName,
                 CcbDir = ccbDir ?? "",
                 WaitForGame = true,
+                ClearToolResultSnapshotsOnStart = true,
             };
+
+            NativeResolver.Setup(AppDomain.CurrentDomain.BaseDirectory);
+            var snapshotStore = new SqliteToolResultSnapshotStore(Path.Combine(projectPath, "conversation.db"));
 
             var engine = new AgentEngine(cfg, dbStore, gameState,
                 logInfo: msg => Console.WriteLine($"[Core] {msg}"),
                 logError: msg => Console.Error.WriteLine($"[Core] {msg}"),
                 logDebug: msg => Console.WriteLine($"[Core] {msg}"),
-                logWarn: msg => Console.Error.WriteLine($"[Core] {msg}"));
+                logWarn: msg => Console.Error.WriteLine($"[Core] {msg}"),
+                toolResultSnapshotStore: snapshotStore);
 
             Console.WriteLine($"RimWorldAgent 启动");
             Console.WriteLine($"  MCP: {mcpUrl}");
@@ -79,7 +84,6 @@ namespace RimWorldAgent
             UIMessageBus.Start(port: bridgePort);
             Console.WriteLine($"[Core] UIMessageBus: ws://0.0.0.0:{bridgePort}");
 
-            NativeResolver.Setup(AppDomain.CurrentDomain.BaseDirectory);
             AgentLoop.ConversationStore = new SqliteConversationStore(
                 Path.Combine(projectPath, "conversation.db"), "exe-session");
 
