@@ -29,11 +29,7 @@ namespace RimWorldMCP.Tools
                         type = "object",
                         properties = new
                         {
-                            chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")，先用 list_chunks 获取可用 chunk。" },
-                            pos_x = new { type = "integer", description = "左下 X 坐标（可选，chunk 模式下忽略）" },
-                            pos_y = new { type = "integer", description = "左下 Y 坐标（可选，chunk 模式下忽略）" },
-                            end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只查单格）" },
-                            end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只查单格）" }
+                            chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")，先用 list_chunks 获取可用 chunk。" }
                         },
                         required = new[] { "chunk_id" }
                     });
@@ -43,9 +39,8 @@ namespace RimWorldMCP.Tools
                     type = "object",
                     properties = new
                     {
-                        chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")（可选，坐标模式下忽略）" },
-                        pos_x = new { type = "integer", description = "左下 X 坐标（坐标模式下必填）" },
-                        pos_y = new { type = "integer", description = "左下 Y 坐标（坐标模式下必填）" },
+                        pos_x = new { type = "integer", description = "左下 X 坐标" },
+                        pos_y = new { type = "integer", description = "左下 Y 坐标" },
                         end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只查单格）" },
                         end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只查单格）" }
                     },
