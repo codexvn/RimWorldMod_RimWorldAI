@@ -277,7 +277,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                             description = "包装层控制参数，不会传给原生游戏工具。",
                             properties = new
                             {
-                                xxprocess = new
+                                diff = new
                                 {
                                     type = "object",
                                     properties = new
@@ -285,7 +285,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                                         noDiff = new
                                         {
                                             type = "boolean",
-                                            description = "true 时本次工具结果强制返回全量。"
+                                            description = "非必要不传。仅在 patch 不可信（上下文被压缩/基准丢失）时传 true 强制返回全量以重新同步；正常情况下服务端会自动决定 full/patch。"
                                         }
                                     },
                                     additionalProperties = true

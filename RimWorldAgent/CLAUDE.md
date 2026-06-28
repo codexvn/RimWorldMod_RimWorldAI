@@ -580,7 +580,7 @@ Skill 加载顺序：`Skills/*.md`（内置，只读）→ `Skills.d/*.md`（用
 
 ### Proxy 工具代理
 
-`ProxyToolProvider`（`Core/AgentRuntime/Tools/ProxyToolProvider.cs`）实现 `SimpleMspServer.Mcp.IToolProvider`，将 121 个游戏 MCP 工具通过 meta-tools 代理到 Agent MCP Server (:9878)：`discover_tools` 列出工具，`get_tool_schema` 返回原生游戏工具 Schema，`execute_tool` 通过顶层 `action` 指定命令名、`params` 传递原生参数、`meta_data` 传递包装层控制参数。`meta_data.xxprocess.noDiff` 不会传给游戏 MCP 工具。
+`ProxyToolProvider`（`Core/AgentRuntime/Tools/ProxyToolProvider.cs`）实现 `SimpleMspServer.Mcp.IToolProvider`，将 121 个游戏 MCP 工具通过 meta-tools 代理到 Agent MCP Server (:9878)：`discover_tools` 列出工具，`get_tool_schema` 返回原生游戏工具 Schema，`execute_tool` 通过顶层 `action` 指定命令名、`params` 传递原生参数、`meta_data` 传递包装层控制参数。`meta_data.diff.noDiff` 不会传给游戏 MCP 工具。
 
 - `CcbManager` 写入 `mcp-servers.json`（非 `.mcp.json`），路径通过 `--mcp-servers-path` CLI 参数传入 companion。TS `session.ts` 读取后显式传入 SDK `mcpServers` option，配合 `strictMcpConfig: true` 阻止 SDK 自动扫描父目录的 `.mcp.json`，彻底隔离 Rider IDE 等无关 MCP 服务器；`settingSources: ['local']` 保留本地配置文件
 - SDK 调用游戏工具仍走 `mcp__agent__*`，自定义 MCP 服务由 SDK 作为额外 MCP server 直连；STDIO 服务写出为 `type=stdio`、`command`、可选 `args` 数组和可选 `env`，可用 `npx/docker/python/uvx` 等命令启动，旧 `type=npx` 兼容为 `stdio`

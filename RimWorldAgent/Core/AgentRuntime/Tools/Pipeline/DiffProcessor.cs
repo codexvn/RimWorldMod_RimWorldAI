@@ -109,13 +109,13 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         private static bool ReadNoDiff(System.Collections.Generic.Dictionary<string, JsonElement> metaData)
         {
-            if (!metaData.TryGetValue("xxprocess", out var xxprocess) || xxprocess.ValueKind != JsonValueKind.Object)
+            if (!metaData.TryGetValue("diff", out var diff) || diff.ValueKind != JsonValueKind.Object)
                 return false;
 
-            if (xxprocess.TryGetProperty("noDiff", out var noDiff) && noDiff.ValueKind == JsonValueKind.True)
+            if (diff.TryGetProperty("noDiff", out var noDiff) && noDiff.ValueKind == JsonValueKind.True)
                 return true;
 
-            return xxprocess.TryGetProperty("nodiff", out var nodiff) && nodiff.ValueKind == JsonValueKind.True;
+            return diff.TryGetProperty("nodiff", out var nodiff) && nodiff.ValueKind == JsonValueKind.True;
         }
 
         private static void WriteFull(ToolResultContext ctx, string reason)
