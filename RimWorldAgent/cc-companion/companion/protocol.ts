@@ -21,6 +21,8 @@ export interface ChatMessage {
 
 export interface AbortMessage {
   type: 'abort';
+  /** true 表示清空上下文：删除 session-id.txt，重建不 resume 旧上下文的新 SDK 会话。 */
+  clear?: boolean;
 }
 
 export type InboundMessage = HelloMessage | ChatMessage | AbortMessage;

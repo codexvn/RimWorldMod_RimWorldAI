@@ -217,6 +217,13 @@ namespace RimWorldAgent.Core.AgentRuntime
                 _notifSuffixes.Enqueue(suffix);
         }
 
+        /// <summary>添加一次性 system-reminder suffix，用于非抢占式状态变化提示。</summary>
+        public static void EnqueueSystemReminderSuffix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            _notifSuffixes.Enqueue($"<system-reminder>\n{text}\n</system-reminder>");
+        }
+
         /// <summary>消费所有待注入通知 suffix</summary>
         private static string DrainNotifSuffixes()
         {

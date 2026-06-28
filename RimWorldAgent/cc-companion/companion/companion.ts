@@ -24,6 +24,18 @@ function log(text: string) {
   console.log(`[bridge] ${text}`);
 }
 
+function formatErrorChain(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const parts: string[] = [];
+  let current: unknown = err;
+  while (current instanceof Error) {
+    parts.push(`${current.name}: ${current.message}`);
+    current = current.cause;
+  }
+  if (current !== undefined) parts.push(String(current));
+  return parts.join(' <- ');
+}
+
 function sendJson(ws: WebSocket, obj: Record<string, unknown>) {
   if (ws.readyState === 1) ws.send(JSON.stringify(obj));
 }
@@ -97,6 +109,11 @@ async function main() {
   let pendingMessages: any[] = [];
   // stream 是否已 abort（防 chat 写入已关闭 stream）
   let streamAborted = false;
+  let processorPromise: Promise<void> | null = null;
+  let aborting: Promise<void> | null = null;
+  // 每个 SDK processor 绑定 generation；abort/rebuild 后旧 generation 的迟到消息直接丢弃。
+  let generation = 0;
+  const abortWaitTimeoutMs = 2000;
 
   // 当前 SDK 会话 ID（从 system.init 捕获，用于 abort 后 resume）
   let currentSessionId: string | undefined = readSessionId();
@@ -114,8 +131,7 @@ async function main() {
       pendingMessages = [];
     }
     buffering = false;
-    const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => onSdkMessage(msg)));
-    proc.process();
+    startProcessor();
     log(`新会话已创建${currentSessionId ? ' (resume=' + currentSessionId + ')' : ''}`);
   }
 
@@ -129,6 +145,65 @@ async function main() {
     busBroadcast(JSON.stringify(msg));
   }
 
+  function startProcessor() {
+    const processorGeneration = ++generation;
+    const proc = createResponseProcessor(queryIterator, (msg) => {
+      if (processorGeneration !== generation) return;
+      setImmediate(() => {
+        if (processorGeneration !== generation) return;
+        onSdkMessage(msg);
+      });
+    });
+    processorPromise = proc.process().catch((err: any) => {
+      log(`SDK 处理异常: ${formatErrorChain(err)}`);
+    });
+  }
+
+  async function waitForProcessorStop(processor: Promise<void> | null) {
+    if (!processor) return;
+    let timedOut = false;
+    await Promise.race([
+      processor.catch((err: any) => log(`等待 SDK 停止时异常: ${formatErrorChain(err)}`)),
+      new Promise<void>((resolve) => setTimeout(() => {
+        timedOut = true;
+        resolve();
+      }, abortWaitTimeoutMs)),
+    ]);
+    if (timedOut) log(`等待旧 SDK 会话停止超时: ${abortWaitTimeoutMs}ms`);
+  }
+
+  async function abortAndRestart(clear: boolean) {
+    if (aborting) {
+      await aborting;
+      return;
+    }
+
+    aborting = (async () => {
+      if (clear) {
+        // clear=true 表示用户主动清空上下文：删除持久化 session id，下一轮不 resume 旧 SDK 会话。
+        currentSessionId = undefined;
+        deleteSessionIdFile();
+      }
+
+      const processorToStop = processorPromise;
+      log(`收到 abort, buffering=true, resume=${currentSessionId || '(新会话)'}`);
+      buffering = true;
+      streamAborted = true;  // 旧 stream 不可写
+      generation++;
+      abortController.abort();
+      log('abortController.abort() done, waiting old session...');
+      await waitForProcessorStop(processorToStop);
+      log('旧会话已停止, startNewSession...');
+      startNewSession();
+    })();
+
+    try {
+      await aborting;
+    } finally {
+      aborting = null;
+    }
+  }
+
   function applyThinking(cfg?: ThinkingConfig) {
     if (!cfg?.mode) return;
     if (cfg.mode === Thinking.mode && cfg.effort === Thinking.effort) return;
@@ -136,6 +211,7 @@ async function main() {
     if (cfg.effort) Thinking.effort = cfg.effort;
     log(`思考模式: ${Thinking.mode}${cfg.effort ? ' effort=' + cfg.effort : ''}`);
     // abort 旧 session，防止新旧 processor 同时输出导致消息重复
+    generation++;
     abortController.abort();
     buffering = true;
     startNewSession();
@@ -157,11 +233,11 @@ async function main() {
     log(`新 WS 连接, auth=${CONFIG.token ? 'required' : 'none'}`);
     let authenticated = !CONFIG.token;
 
-    ws.on('message', (data: Buffer) => {
+    ws.on('message', async (data: Buffer) => {
       let raw: any;
       try { raw = JSON.parse(data.toString().trim()); }
-      catch {
-        log(`无效 JSON: ${data.toString().substring(0, 200)}`);
+      catch (err) {
+        log(`无效 JSON: ${formatErrorChain(err)}`);
         return;
       }
       const msg = raw as any;
@@ -201,24 +277,20 @@ async function main() {
           break;
         }
         case 'abort':
-          if (msg.clear) {
-            currentSessionId = undefined;
-            deleteSessionIdFile();
+          try {
+            await abortAndRestart(Boolean(msg.clear));
+            sendJson(ws, { type: 'aborted' });
+          } catch (err) {
+            log(`abort 处理失败: ${formatErrorChain(err)}`);
+            sendJson(ws, { type: 'error', error: 'abort failed' });
           }
-          log(`收到 abort, buffering=true, resume=${currentSessionId || '(新会话)'}`);
-          buffering = true;
-          streamAborted = true;  // 旧 stream 不可写
-          abortController.abort();
-          log('abortController.abort() done, startNewSession...');
-          startNewSession();
           break;
       }
     });
   });
 
   // WS server 就绪后启动 SDK 消息处理
-  const proc = createResponseProcessor(queryIterator, (msg) => setImmediate(() => onSdkMessage(msg)));
-  proc.process().catch((err: any) => log(`SDK 处理异常: ${err.message}`));
+  startProcessor();
 
   // ===== PID 文件 + 清理 =====
   const pidFile = join(process.cwd(), '.pid');

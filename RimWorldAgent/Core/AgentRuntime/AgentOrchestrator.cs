@@ -96,7 +96,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             OnStatusChanged?.Invoke(StatusText);
         }
 
-        /// <summary>统一中断入口：标记 + 摘要 + 立即 abort → 立即发送通知 prompt</summary>
+        /// <summary>统一中断入口：标记 + 摘要 + 请求 abort。事件 prompt 由 AgentEngine 在当前会话结束后串行发送。</summary>
         public static void RequestInterrupt(string summary)
         {
             InterruptRequested = true;
@@ -105,12 +105,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                 ? summary
                 : InterruptSummary + "\n" + summary;
             CoreLog.Info($"[AgentOrchestrator] 中断请求: {summary}");
-            if (CcbWs?.IsReady == true)
+            if (IsRunning && CcbWs?.IsReady == true)
             {
                 _ = CcbWs.SendAbort();
-                // abort 后立即发送通知到 SDK（companion 缓冲 → 新 session 回放）
-                var prompt = $"{InterruptPromptPrefix}\n{summary}\n{InterruptPromptSuffix}";
-                _ = CcbWs.SendChat(ChatChannel.Bus, prompt);
             }
         }
 
