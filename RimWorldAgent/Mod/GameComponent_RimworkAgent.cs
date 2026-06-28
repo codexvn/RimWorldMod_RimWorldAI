@@ -104,9 +104,15 @@ namespace RimWorldAgent
                     LogSdkMessages = settings?.LogSdkMessages ?? false,
                     ApiKey = settings?.ApiKey,
                     ApiUrl = settings?.ApiUrl,
+                    DiffEnabled = settings?.DiffEnabled ?? true,
+                    DiffThreshold = settings?.DiffThreshold ?? 0.30,
+                    ClearToolResultSnapshotsOnStart = true,
                 };
 
+                var snapshotStore = new SqliteToolResultSnapshotStore(
+                    Path.Combine(projectPath, "conversation.db"));
                 var engine = new AgentEngine(cfg, dbStore, gameState,
+                    toolResultSnapshotStore: snapshotStore,
                     logInfo: msg => SafeLog.Info($"[agent-core] {msg}"),
                     logError: msg => SafeLog.Error($"[agent-core] {msg}"),
                     logDebug: msg => SafeLog.Info($"[agent-core] {msg}"),
