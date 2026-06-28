@@ -17,19 +17,42 @@ namespace RimWorldMCP.Tools
     {
         public string Name => "get_tile_detail";
         public string Description => "获取指定坐标范围内所有物品、建筑、植物的详细列表，含精确坐标。用于 LLM 精确了解某区域有什么。坐标范围为闭区间（两端坐标均包含）。";
-        public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
+        public JsonElement InputSchema
         {
-            type = "object",
-            properties = new
+            get
             {
-                chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")，优先于坐标参数" },
-                pos_x = new { type = "integer", description = "左下 X 坐标（chunk_id 未提供时需要）" },
-                pos_y = new { type = "integer", description = "左下 Y 坐标（chunk_id 未提供时需要）" },
-                end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只查单格）" },
-                end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只查单格）" }
-            },
-            required = new[] { "pos_x", "pos_y" }
-        });
+                var mode = RimWorldMCPMod.Instance?.Settings?.GridQueryMode ?? GridQueryMode.Chunk;
+                if (mode == GridQueryMode.Chunk)
+                {
+                    return JsonSerializer.SerializeToElement(new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")，先用 list_chunks 获取可用 chunk。" },
+                            pos_x = new { type = "integer", description = "左下 X 坐标（可选，chunk 模式下忽略）" },
+                            pos_y = new { type = "integer", description = "左下 Y 坐标（可选，chunk 模式下忽略）" },
+                            end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只查单格）" },
+                            end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只查单格）" }
+                        },
+                        required = new[] { "chunk_id" }
+                    });
+                }
+                return JsonSerializer.SerializeToElement(new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        chunk_id = new { type = "string", description = "Chunk ID (如 \"3_5\")（可选，坐标模式下忽略）" },
+                        pos_x = new { type = "integer", description = "左下 X 坐标（坐标模式下必填）" },
+                        pos_y = new { type = "integer", description = "左下 Y 坐标（坐标模式下必填）" },
+                        end_x = new { type = "integer", description = "右上 X 坐标（可选，不提供则只查单格）" },
+                        end_y = new { type = "integer", description = "右上 Y 坐标（可选，不提供则只查单格）" }
+                    },
+                    required = new[] { "pos_x", "pos_y" }
+                });
+            }
+        }
 
         public async Task<ToolResult> ExecuteAsync(JsonElement? args)
         {
