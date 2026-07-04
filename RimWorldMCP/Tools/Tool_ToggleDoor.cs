@@ -75,19 +75,22 @@ namespace RimWorldMCP.Tools
 
                     bool targetState = wantHoldOpen ?? !door.HoldOpen;
 
-                    // 用游戏 UI Gizmo 的 Command_Toggle 逻辑（与玩家点击"保持开启"按钮等效）
-                    bool found = false;
+                    // 门有多个 Command_Toggle（保持敞门 + 允许），必须按 defaultLabel 精确定位
+                    Command_Toggle? found = null;
                     foreach (var gizmo in door.GetGizmos())
                     {
-                        if (gizmo is Command_Toggle toggle && toggle.isActive() != targetState)
+                        if (gizmo is Command_Toggle toggle
+                            && toggle.defaultLabel == "CommandToggleDoorHoldOpen".Translate())
                         {
-                            toggle.toggleAction();
-                            found = true;
+                            found = toggle;
                             break;
                         }
                     }
-                    if (!found && door.HoldOpen != targetState)
-                        return ToolResult.Error($"门 ID={door.thingIDNumber} 切换失败（Gizmo 不可用或状态未变更）。");
+                    if (found == null)
+                        return ToolResult.Error($"门 ID={door.thingIDNumber} 切换失败（未找到保持敞门 Gizmo）。");
+
+                    if (found.isActive() != targetState)
+                        found.toggleAction();
 
                     var desc = door.HoldOpen ? "保持开启（不会自动关闭）" : "自动（通过后自动关闭）";
                     return ToolResult.Success($"{door.def.label} (ID={door.thingIDNumber}, {door.Position.x},{door.Position.z}) → {desc}");
