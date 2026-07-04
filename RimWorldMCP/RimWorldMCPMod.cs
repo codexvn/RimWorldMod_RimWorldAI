@@ -54,7 +54,7 @@ namespace RimWorldMCP
             // 调试
             h += 60f;
             // 工具行为
-            h += 60f;
+            h += 84f;
             // MCP 服务器
             h += 100f;
             // 地图渲染
@@ -104,6 +104,8 @@ namespace RimWorldMCP
             listing.CheckboxLabeled("调用工具时自动移动视角", ref Settings.AutoMoveCamera, tooltip);
             listing.CheckboxLabeled("AI 查询时显示观察覆盖层", ref Settings.AutoObserveOverlay,
                 "AI 调用搜索/网格等查询工具时，在地图上短暂显示彩色半透明标记，指示 AI 正在关注的区域。");
+            listing.CheckboxLabeled("自动跟踪殖民者", ref Settings.AutoTrackColonists,
+                "游戏运行时自动将视角平滑移动到殖民者聚集位置。战斗时约 0.5 秒跟随一次，和平时期约 2 秒检查一次。");
 
             // ==================== MCP 服务器 ====================
             DrawSectionHeader(listing, "MCP 服务器");
