@@ -33,12 +33,12 @@ tags: ["概念/战斗/战术", "概念/战斗/征召", "物品/装备/武器", "
 - 使用 `shooting_position_grid` 对目标周围区域扫评分
 - 从 Top 5 结果中选择：掩体好 + 距离在射程 60-80% 处
 - `hold_combat_position(role="ranged")`：到位后进入原版 `Wait_Combat`，开启 FireAtWill，自动射击当前位置可命中的敌人
-- 不把 `force_attack(mode="hold_position")` 当默认防守命令；目标离开射线后该任务会结束，容易造成罚站
+- 不把 `force_attack(attack_mode="ranged")` 当默认防守命令；远程攻击（AttackStatic）不考虑走位，容易因无视线罚站
 
 ### 近战堵门
 - `hold_combat_position(role="melee")` 站在狭窄通道/门口守位
 - 敌人贴脸后原版 `Wait_Combat` 会自动近战反击，保护后排远程输出
-- `force_attack(mode="melee")` 只用于主动冲锋、追击落单敌人或阻止敌人攻击关键目标
+- `force_attack(attack_mode="melee")` 只用于主动冲锋、追击落单敌人或阻止敌人攻击关键目标
 
 ### 风筝近战敌人
 - 远程用 `shooting_position_grid` 选距敌人最近的掩护位

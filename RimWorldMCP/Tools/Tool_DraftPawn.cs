@@ -13,7 +13,7 @@ namespace RimWorldMCP.Tools
     public class Tool_DraftPawn : ITool, IRequiresAdvanceTick
     {
         public string Name => "draft_pawn";
-        public string Description => "征召或解除征召殖民者。征召后殖民者进入战斗状态，中断当前工作。";
+        public string Description => "征召或解除征召殖民者。征召后殖民者进入战斗状态并中断当前工作。fire_at_will 控制自动开火（默认 true）。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -26,7 +26,8 @@ namespace RimWorldMCP.Tools
                     description = "指定殖民者 ID 列表（精确子集，优先级高于 thing_id）",
                     items = new { type = "integer" }
                 },
-                drafted = new { type = "boolean", description = "true=征召, false=解除征召" }
+                drafted = new { type = "boolean", description = "true=征召, false=解除征召" },
+                fire_at_will = new { type = "boolean", description = "征召时是否自动开火（默认 true，对应游戏 UI 的 FireAtWill 开关）", @default = true }
             },
             required = new[] { "drafted" }
         });
@@ -40,6 +41,10 @@ namespace RimWorldMCP.Tools
                 return ToolResult.Error("缺少 drafted（需要 true 或 false）");
 
             var drafted = d.GetBoolean();
+            var fireAtWill = true;
+            if (args.Value.TryGetProperty("fire_at_will", out var faw)
+                && (faw.ValueKind == JsonValueKind.True || faw.ValueKind == JsonValueKind.False))
+                fireAtWill = faw.GetBoolean();
             int thingId = -1;
             var colonistIds = new List<int>();
             if (args.Value.TryGetProperty("colonist_ids", out var jIds) && jIds.ValueKind == JsonValueKind.Array)
@@ -107,6 +112,7 @@ namespace RimWorldMCP.Tools
                             continue;
                         }
                         pawn.drafter.Drafted = drafted;
+                        if (drafted) pawn.drafter.FireAtWill = fireAtWill;
                         draftedCount++;
                     }
 

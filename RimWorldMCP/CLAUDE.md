@@ -529,7 +529,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | `draft_pawn` | 征召/解除征召（`colonist_ids[]` 精确子集） | `pawn.drafter.Drafted` (入队) |
 | `get_defense_status` | 防御状态报告 | `pawn.equipment.Primary`, `map.listerBuildings` |
 | `hold_combat_position` | 批量前往阵位并进入战斗待命（melee/ranged/hold） | `JobDefOf.Goto` + `JobDefOf.Wait_Combat` (入队) |
-| `force_attack` | 批量攻击（melee/hold_position/auto，支持 `attacks[]` 数组） | `JobDefOf.AttackStatic`/`AttackMelee` (入队) |
+| `force_attack` | 批量攻击（melee/ranged，复用 FloatMenuUtility，支持 `attacks[]` 数组） | `FloatMenuUtility` → `AttackStatic`/`AttackMelee` (入队) |
 | `find_enemies` | 搜索地图上的敌人（`show_movement` 含移动预测） | `map.mapPawns.AllPawnsSpawned` |
 | `shooting_position_grid` | 射击位评分排名（Top N，复刻游戏原版 CastPositionPreference 公式） | `CoverUtility`, `CanHitTargetFrom` |
 | `defend_position` | 防御位置 set/list/remove/clear（内存存储） | 内存 `List<DefendPoint>` |

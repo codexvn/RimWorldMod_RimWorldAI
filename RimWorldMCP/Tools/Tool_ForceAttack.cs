@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Verse;
-using Verse.AI;
 using RimWorld;
 using RimWorldMCP;
 
@@ -13,7 +12,7 @@ namespace RimWorldMCP.Tools
     public class Tool_ForceAttack : ITool, IRequiresAdvanceTick
     {
         public string Name => "force_attack";
-        public string Description => "批量命令殖民者攻击指定目标。attack_mode 支持 melee（近战追击）、hold_position（原地射击，敌出射程自动停）、auto（根据武器自动选择）。";
+        public string Description => "批量命令殖民者攻击指定目标。attack_mode: melee=近身攻击（走位+近战）, ranged=远程攻击（原地射击）。与游戏右键攻击菜单校验完全一致。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -33,9 +32,9 @@ namespace RimWorldMCP.Tools
                             attack_mode = new
                             {
                                 type = "string",
-                                description = "攻击模式: melee=近战追击, hold_position=原地射击不移动, auto=根据武器自动选",
-                                @enum = new[] { "melee", "hold_position", "auto" },
-                                @default = "auto"
+                                description = "攻击模式: melee=近身攻击, ranged=远程攻击",
+                                @enum = new[] { "melee", "ranged" },
+                                @default = "ranged"
                             }
                         },
                         required = new[] { "colonist_id", "target_id" }
@@ -82,18 +81,17 @@ namespace RimWorldMCP.Tools
                                 continue;
                             }
 
-                            string mode = "auto";
+                            string mode = "ranged";
                             if (jAttack.TryGetProperty("attack_mode", out var jMode) && jMode.ValueKind == JsonValueKind.String)
                             {
-                                mode = jMode.GetString() ?? "auto";
-                                if (mode != "melee" && mode != "hold_position" && mode != "auto" && mode != "ranged" && mode != "chase")
+                                mode = jMode.GetString() ?? "ranged";
+                                // backward compat: old names
+                                if (mode == "hold_position" || mode == "auto" || mode == "chase") mode = "ranged";
+                                if (mode != "melee" && mode != "ranged")
                                 {
-                                    failList.Add($"col={colonistId}: 未知模式 {mode}");
+                                    failList.Add($"col={colonistId}: 未知模式 {mode}，有效值: melee, ranged");
                                     continue;
                                 }
-                                // 兼容旧名
-                                if (mode == "ranged") mode = "hold_position";
-                                if (mode == "chase") mode = "auto";
                             }
 
                             // 缓存查找
@@ -112,45 +110,37 @@ namespace RimWorldMCP.Tools
                             if (target == null) { failList.Add($"{pawn.LabelShort}: 找不到目标 ID={targetId}"); continue; }
                             if (target.Dead || target.Destroyed) { failList.Add($"{pawn.LabelShort}: 目标 {target.LabelShort} 已死"); continue; }
 
-                            // 自动征召
-                            if (pawn.drafter != null && !pawn.Drafted)
-                                pawn.drafter.Drafted = true;
+                            // 自动征召 + 自由开火
+                            if (pawn.drafter != null)
+                            {
+                                if (!pawn.Drafted) pawn.drafter.Drafted = true;
+                                pawn.drafter.FireAtWill = true;
+                            }
                             if (!pawn.Drafted) { failList.Add($"{pawn.LabelShort}: 无法征召"); continue; }
 
-                            // 选择攻击 Job
-                            JobDef jobDef;
-                            bool holdPosition = mode == "hold_position";
-                            if (mode == "hold_position" || mode == "auto")
+                            // 调用游戏原生 FloatMenuUtility，与 UI 右键攻击菜单完全一致。
+                            // 注意: FloatMenuUtility 内部调用 TryTakeOrderedJob (非 JobQueueHelper)，
+                            // 这是刻意保持与游戏 UI 行为 1:1 对齐。
+                            Action? attackAction;
+                            string failStr;
+                            if (mode == "melee")
                             {
-                                if (pawn.equipment?.Primary?.def?.IsRangedWeapon == true)
-                                    jobDef = JobDefOf.AttackStatic;
-                                else if (mode == "hold_position")
-                                { failList.Add($"{pawn.LabelShort}: 无远程武器，无法hold_position"); continue; }
-                                else
-                                    jobDef = JobDefOf.AttackMelee;
+                                attackAction = FloatMenuUtility.GetMeleeAttackAction(pawn, target, out failStr);
                             }
-                            else // melee
-                                jobDef = JobDefOf.AttackMelee;
-
-                            // 可达性
-                            PathEndMode peMode = jobDef == JobDefOf.AttackMelee ? PathEndMode.ClosestTouch : PathEndMode.OnCell;
-                            if (!pawn.CanReach(target, peMode, Danger.Deadly))
-                            { failList.Add($"{pawn.LabelShort}: 无法到达 {target.LabelShort}"); continue; }
-
-                            Job job = JobMaker.MakeJob(jobDef, target);
-                            job.expiryInterval = -1;
-                            if (jobDef == JobDefOf.AttackStatic)
+                            else
                             {
-                                job.maxNumStaticAttacks = int.MaxValue;
-                                if (holdPosition)
-                                    job.endIfCantShootTargetFromCurPos = true;
+                                attackAction = FloatMenuUtility.GetRangedAttackAction(pawn, target, out failStr);
                             }
-                            // Replace: 战斗指令，立即打断
-                            if (!JobQueueHelper.TryTake(pawn, job, QueueMode.Replace))
-                            { failList.Add($"{pawn.LabelShort}: 无法执行攻击"); continue; }
 
-                            string modeLabel = mode == "hold_position" ? "hold_position" : mode == "melee" ? "近战" : "auto";
-                            successList.Add($"{pawn.LabelShort}{getArrow(jobDef)}→{target.LabelShort}({modeLabel})");
+                            if (attackAction == null)
+                            {
+                                failList.Add($"{pawn.LabelShort}: {failStr}");
+                                continue;
+                            }
+
+                            attackAction();
+                            var modeLabel = mode == "melee" ? "近战" : "远程";
+                            successList.Add($"{pawn.LabelShort}→{target.LabelShort}({modeLabel})");
                         }
                         catch (Exception ex)
                         {
@@ -169,11 +159,6 @@ namespace RimWorldMCP.Tools
                     return ToolResult.Error($"强制攻击失败: {ex.Message}");
                 }
             });
-        }
-
-        private static string getArrow(JobDef def)
-        {
-            return def == JobDefOf.AttackStatic ? "⇢" : "→";
         }
 
         public (int minX, int minZ, int maxX, int maxZ)? GetTargetRange(JsonElement? args)
