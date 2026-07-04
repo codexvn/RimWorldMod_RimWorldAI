@@ -97,13 +97,13 @@ namespace RimWorldMCP.Tools
 
                 // 原版常数
                 const float basePreference = 0.3f;
-                const float optimalRangeFactor = 0.8f;
                 const float coverPreferenceFactor = 0.55f;
                 const float distanceDecayBase = 0.967f;
 
                 float rangeFromTarget = (casterPos - targetPos).LengthHorizontal;
                 float rangeFromTargetSquared = rangeFromTarget * rangeFromTarget;
-                float optimalRange = effectiveRange * 0.8f * verb.verbProps.range * 0.8f;
+                // effectiveRange 已是武器射程，0.8 = 最佳位置在 80% 射程处（与游戏 CastPositionFinder 一致）
+                float optimalRange = effectiveRange * 0.8f;
                 float optimalRangeSquared = optimalRange * optimalRange;
 
                 bool wantCover = effectiveRange > 5f;
@@ -202,7 +202,7 @@ namespace RimWorldMCP.Tools
                     float rangePct = d / effectiveRange * 100f;
                     if (c >= 0.5f) parts.Add("掩体好");
                     else if (c >= 0.2f) parts.Add("有掩体");
-                    if (Math.Abs(rangePct - 64f) < 10f) parts.Add("距离适中");
+                    if (Math.Abs(rangePct - 80f) < 10f) parts.Add("距离适中");
                     else if (rangePct < 30f) parts.Add("偏近");
                     else if (rangePct > 85f) parts.Add("偏远");
                     if (parts.Count == 0) parts.Add("-");

@@ -141,9 +141,74 @@ namespace RimWorldMCP.Tools
                     }
 
                     if (drafted)
-                        sb.AppendLine("。殖民者将中断当前工作并进入战斗状态。");
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine();
+
+                        // 每个被征召的殖民者附战斗简报 — 复用游戏 StatsReportUtility 统计管线
+                        foreach (var pawn in targets)
+                        {
+                            if (pawn.Downed || pawn.Deathresting) continue;
+
+                            var parts = new List<string>
+                            {
+                                $"**{pawn.Name.ToStringShort}**"
+                            };
+
+                            // 移动速度（游戏统计管线）
+                            float moveSpeed = pawn.GetStatValue(StatDefOf.MoveSpeed, true, -1);
+                            parts.Add($"移速:{moveSpeed:F1}格/秒");
+
+                            // 护甲（游戏统计管线）
+                            float sharp = pawn.GetStatValue(StatDefOf.ArmorRating_Sharp, true, -1);
+                            float blunt = pawn.GetStatValue(StatDefOf.ArmorRating_Blunt, true, -1);
+                            float heat = pawn.GetStatValue(StatDefOf.ArmorRating_Heat, true, -1);
+                            if (sharp > 0.01f || blunt > 0.01f || heat > 0.01f)
+                                parts.Add($"护甲:利刃{sharp:P0}/钝击{blunt:P0}/热能{heat:P0}");
+
+                            parts.Add($"开火:{(pawn.drafter?.FireAtWill == true ? "是" : "否")}");
+
+                            // 武器属性 — 复用游戏信息卡统计管线（遍历 StatDef → GetStatValue → 与 "i" 按钮一致）
+                            var primary = pawn.equipment?.Primary;
+                            if (primary != null)
+                            {
+                                var req = StatRequest.For(primary);
+                                var weaponLabel = $"{primary.def?.label ?? "???"}";
+                                var quality = primary.TryGetComp<CompQuality>();
+                                if (quality != null) weaponLabel += $"({quality.Quality.GetLabel()})";
+                                parts.Add(primary.def?.IsMeleeWeapon == true ? $"近战 [{weaponLabel}]" : $"远程 [{weaponLabel}]");
+
+                                foreach (StatDef st in DefDatabase<StatDef>.AllDefs)
+                                {
+                                    try
+                                    {
+                                        if (!st.Worker.ShouldShowFor(req)) continue;
+                                        if (st.Worker.IsDisabledFor(primary)) continue;
+                                        // 只取武器相关分类
+                                        var cat = st.category?.defName ?? "";
+                                        if (!cat.Contains("Weapon") && !cat.Contains("Ranged") && !cat.Contains("Melee")) continue;
+
+                                        float val = primary.GetStatValue(st, true, -1);
+                                        parts.Add($"{st.LabelCap}:{st.ValueToString(val, ToStringNumberSense.Undefined)}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        McpLog.Warn($"[draft_pawn] 武器属性 {st.defName} 计算失败: {ex.Message}");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                parts.Add("空手");
+                            }
+
+                            sb.AppendLine(string.Join(" | ", parts));
+                        }
+                    }
                     else
-                        sb.AppendLine("。殖民者将恢复日常工作。");
+                    {
+                        sb.Append("。殖民者将恢复日常工作。");
+                    }
 
                     if (skippedPawns.Count > 0)
                         sb.AppendLine($"注意：{skippedPawns.Count} 名殖民者被跳过（{string.Join("、", skippedPawns)}）。");
