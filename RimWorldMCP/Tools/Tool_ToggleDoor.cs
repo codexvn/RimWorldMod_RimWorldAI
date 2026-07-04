@@ -75,14 +75,19 @@ namespace RimWorldMCP.Tools
 
                     bool targetState = wantHoldOpen ?? !door.HoldOpen;
 
-                    // 等效于游戏内点击门的"保持开启"按钮：通过反射调用内部 setter
-                    var prop = typeof(Building_Door).GetProperty("HoldOpen",
-                        BindingFlags.Instance | BindingFlags.Public);
-                    var setter = prop?.GetSetMethod(true);
-                    if (setter == null)
-                        return ToolResult.Error($"无法操作门 ID={door.thingIDNumber}（缺少 HoldOpen setter）。");
-
-                    setter.Invoke(door, new object[] { targetState });
+                    // 用游戏 UI Gizmo 的 Command_Toggle 逻辑（与玩家点击"保持开启"按钮等效）
+                    bool found = false;
+                    foreach (var gizmo in door.GetGizmos())
+                    {
+                        if (gizmo is Command_Toggle toggle && toggle.isActive() != targetState)
+                        {
+                            toggle.toggleAction();
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found && door.HoldOpen != targetState)
+                        return ToolResult.Error($"门 ID={door.thingIDNumber} 切换失败（Gizmo 不可用或状态未变更）。");
 
                     var desc = door.HoldOpen ? "保持开启（不会自动关闭）" : "自动（通过后自动关闭）";
                     return ToolResult.Success($"{door.def.label} (ID={door.thingIDNumber}, {door.Position.x},{door.Position.z}) → {desc}");

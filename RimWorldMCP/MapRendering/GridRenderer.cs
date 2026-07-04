@@ -5,38 +5,30 @@ using Verse;
 namespace RimWorldMCP.MapRendering
 {
     /// <summary>
-    /// 公共网格渲染器 — 从 chunk 工具中抽取的纯数据生成逻辑。
-    /// 遍历矩形范围，调用 cellCharProvider 生成字符网格和已用符号集合。
-    /// 不包含压缩、chunk 逻辑、输出格式化。
+    /// 公共网格渲染器 — 矩形遍历生成网格。只做遍历，不含压缩/格式化。
+    /// 两条独立管线（按数据类型，不强行统一模型）:
+    ///   char 管线 — 单值 heatmap
+    ///   CellData 管线 — 多层 tile_grid
     /// </summary>
     public static class GridRenderer
     {
-        /// <summary>字符网格渲染结果</summary>
-        public struct GridResult
+        /// <summary>单值网格渲染结果（heatmap）</summary>
+        public struct CharGridResult
         {
-            /// <summary>rows[z][x]，z 为相对偏移（0..height-1），x 为相对偏移（0..width-1）</summary>
             public char[][] Rows;
-            /// <summary>网格中出现的所有唯一符号</summary>
             public HashSet<char> UsedSymbols;
-            /// <summary>是否所有格子均为迷雾</summary>
-            public bool AllFog;
         }
 
-        /// <summary>
-        /// 遍历矩形范围生成字符网格。
-        /// minX/minZ/maxX/maxZ 为世界坐标（闭区间），cellCharProvider 决定每格的符号。
-        /// </summary>
-        public static GridResult RenderGrid(
+        /// <summary>单值网格: 每格返回一个 char（heatmap）</summary>
+        public static CharGridResult RenderGrid(
             Map map,
             int minX, int minZ, int maxX, int maxZ,
-            Func<IntVec3, Map, (char symbol, string? category)> cellCharProvider)
+            Func<IntVec3, Map, char> cellProvider)
         {
             int w = maxX - minX + 1;
             int h = maxZ - minZ + 1;
 
             var usedSymbols = new HashSet<char>();
-            bool allFog = true;
-
             var rows = new char[h][];
             for (int z = 0; z < h; z++)
             {
@@ -44,19 +36,49 @@ namespace RimWorldMCP.MapRendering
                 for (int x = 0; x < w; x++)
                 {
                     var pos = new IntVec3(minX + x, 0, minZ + z);
-                    var (symbol, _) = cellCharProvider(pos, map);
+                    var symbol = cellProvider(pos, map);
                     rows[z][x] = symbol;
                     usedSymbols.Add(symbol);
-                    if (symbol != '█') allFog = false;
                 }
             }
 
-            return new GridResult
+            return new CharGridResult { Rows = rows, UsedSymbols = usedSymbols };
+        }
+
+        /// <summary>多层网格: 每格返回 CellData（get_tile_grid）。序列化器在此时按层配置创建。</summary>
+        public static GridData RenderGrid(
+            Map map,
+            int minX, int minZ, int maxX, int maxZ,
+            int layerCount,
+            int baseLayerCount,
+            Func<IntVec3, Map, CellData> cellProvider)
+        {
+            int w = maxX - minX + 1;
+            int h = maxZ - minZ + 1;
+
+            var grid = new GridData
             {
-                Rows = rows,
-                UsedSymbols = usedSymbols,
-                AllFog = allFog
+                LayerCount = layerCount,
+                BaseLayerCount = baseLayerCount,
+                UsedSymbols = new HashSet<char>(),
+                Serializer = new CellSerializer(layerCount, baseLayerCount)
             };
+
+            var rows = new CellData[h][];
+            for (int z = 0; z < h; z++)
+            {
+                rows[z] = new CellData[w];
+                for (int x = 0; x < w; x++)
+                {
+                    var pos = new IntVec3(minX + x, 0, minZ + z);
+                    var cell = cellProvider(pos, map);
+                    rows[z][x] = cell;
+                    grid.Serializer.CollectSymbols(cell, grid.UsedSymbols);
+                }
+            }
+
+            grid.Rows = rows;
+            return grid;
         }
     }
 }

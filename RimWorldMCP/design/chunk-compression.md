@@ -38,15 +38,18 @@ Grid Tool (chunk_id → 单 Chunk)
 |------|------|
 | `McpModSettings.cs` | `CompressionMethod` 枚举、`ChunkWidth`/`ChunkHeight`/`GridCompression` 设置项 |
 | `RimWorldMCPMod.cs` | 设置窗口：分块尺寸/压缩方法切换 |
-| `Compression/IChunkCompressor.cs` | 压缩接口：`Compress(char[][], chunkIndex) → string` |
+| `Compression/IChunkCompressor.cs` | 压缩接口：双重载 `Compress(char[][], chunkIndex)`（heatmap）+ `Compress(GridData, chunkIndex)`（多层） |
 | `Compression/UncompressedCompressor.cs` | 未压缩：`L00=chars...` |
 | `Compression/RleCompressor.cs` | RLE：`L00=#1.30#1`，十进制 count |
 | `Compression/RowRefCompressor.cs` | RowRef+RLE：`*L{row}` 同行去重引用 |
 | `Compression/CompressorFactory.cs` | 工厂：`Create(method) → IChunkCompressor` |
-| `MapRendering/MapChunk.cs` | 分块数据模型：XIndex/ZIndex, Bounds, CompressedData, IsAllFog |
+| `MapRendering/MapChunk.cs` | 分块数据模型：XIndex/ZIndex, Bounds, CompressedData |
 | `MapRendering/MapChunker.cs` | `GetChunkByIndex()` / `TryParseChunkId()` / `FormatChunkId()` / `GetIntersectingChunks()` |
 | `MapRendering/SymbolDictionary.cs` | 词表驱动（Symbols.json symbols 字段）+ 兜底池分配（fallback_pool），每次启动重建 |
-| `MapRendering/CellCharProviders.cs` | 5 种网格的单元格→字符映射函数 |
+| `MapRendering/CellSerializer.cs` | 多层单元格→文本序列化（base 层合并 / `[...]` 触发规则），脱离数据模型 |
+| `MapRendering/GridData.cs` | 多层单元格数据模型（row-major）+ CellData/CellLayer 结构 |
+| `MapRendering/GridRenderer.cs` | 矩形遍历双管线：char 版（heatmap）/ CellData 版（get_tile_grid） |
+| `MapRendering/CellCharProviders.cs` | 单元格映射函数：ForTileGrid→CellData（多层）/ For{Terrain,Fertility,Temperature,Pollution}→char（单值） |
 | `Tools/Tool_ListChunks.cs` | 矩形范围 → chunk_id 列表 |
 | `Tools/Tool_GetSymbolDictionary.cs` | 字典查询：all/forward/reverse/by_chars |
 | `Tools/Tool_GetTileGrid.cs` | chunk_id → 综合网格 |

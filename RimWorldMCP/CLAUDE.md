@@ -22,11 +22,13 @@ RimWorldMCP/
 │   └── semantic_map.py        ← AI润色后的语义字符参照表
 ├── Tools/                     ← 100+ 游戏 Tool
 ├── MapRendering/              ← 网格渲染与符号映射
-│   ├── CellCharProviders.cs   ← 单元格→字符映射（ForTileGrid按AltitudeLayer渲染顺序:蓝图>Pawn>物品>建筑>植物>区域>地形）
+│   ├── CellCharProviders.cs   ← 单元格映射：ForTileGrid→CellData（多层）/ For{Terrain,Fertility,Temp,Pollution}→char（单值）
+│   ├── GridData.cs            ← 多层数据模型（row-major: CellLayer/CellData/GridData）
+│   ├── CellSerializer.cs      ← 多层单元格→文本序列化（base层合并/[...]触发），脱离数据模型
 │   ├── SymbolDictionary.cs    ← 词表驱动符号字典 — 每次启动重建，无缓存
 │   ├── MapChunker.cs          ← Chunk索引↔世界坐标转换（TryParseChunkId/GetChunkByIndex等）
 │   ├── MapChunk.cs            ← Chunk数据模型
-│   ├── GridRenderer.cs        ← 矩形范围字符网格渲染器
+│   ├── GridRenderer.cs        ← 矩形遍历双管线：char版（heatmap）/ CellData版（get_tile_grid）
 │   └── AiObservationOverlay.cs← AI操作区域半透明覆盖层
 ├── Mcp/                       ← MCP Server (JSON-RPC dispatch)
 ├── JobQueueHelper.cs           ← 统一 Job 排队入口 (QueueMode: Front/End/Replace)
@@ -122,38 +124,44 @@ RimWorld 的 `IntVec3(x, y, z)` 字段含义（源码 `IntVec3.cs`, `CellRect.cs
 | 作物 | U+03B1-03C9 | 作物植物（希腊字母） |
 | 流向 | U+2190-21FF | 流向类设施 |
 
-**排除字符**：私有区(U+E000-U+F8FF)、代理区、控制字符、`"` `'`（JSON 解析冲突）。
+**排除字符**：私有区(U+E000-U+F8FF)、代理区、控制字符、`"` `'`（JSON 解析冲突）。**语法字符**（RESERVED）：`[ ] { } , 0-9`——多层格式分隔符和数字不分配给 Def。
 
 **运行时**：`SymbolDictionary.Initialize()` 每次启动直接读词表重建，无缓存。词表缺失/损坏直接抛异常。C# 不含硬编码符号池。
 
-**ForTileGrid 渲染层**（匹配游戏 `AltitudeLayer`，高 Y 优先）：
+**ForTileGrid 渲染层** — 多层模型（6 层，row-major `GridData.Rows[z][x]`，每格 `CellData.Layers[0..5]`）：
 
-| 层 | AltitudeLayer | Y 坐标 | 字符来源 |
-|----|--------------|-------|---------|
-| 蓝图/框架 | Blueprint | 9.51 | 固定 `∎` |
-| 生物 (Pawn) | Pawn | 8.42 | `SymbolDictionary` |
-| 物品/尸体 | Item | 6.59 | `SymbolDictionary` |
-| 建筑 | Building | 5.49 | `SymbolDictionary` |
-| 植物 | LowPlant | 4.02 | `SymbolDictionary` |
-| 区域 | Zone | 3.29 | 固定 `=`/`S` |
-| 地形 | Terrain | 0.73 | `SymbolDictionary`（兜底） |
+```
+CellData.Layers[0..5]:
+ [0] Terrain    — 地面数据（不直接显示）
+ [1] Plant      — BaseLayer，地面显示符号 | 触发 [...]
+ [5] Blueprint
+```
 
-**固定网格**（不经过词表，字符硬编码）：
-- `fertility_grid` / `temperature_grid` / `pollution_grid` 使用 `▓▒░·○◎●█P.?` 等字符
-- `get_tile_grid` 的迷雾用 `█`
+| 层 | 分类 | 索引 | 说明 |
+|----|------|------|------|
+| 地形 | Base | [0] | 地面数据，不直接显示 |
+| 植物 | Base | [1] | 地面显示（Plant ?? Terrain） |
+| 建筑 | Upper | [2] | 所有 ThingCategory.Building（含 Mineable），同格多个 Buildings → ExtraBuildings 溢出 |
+| 物品 | Upper | [3] | 按 def 聚合，取 stackCount 最大的 |
+| 生物 | Upper | [4] | 第一个 Pawn |
+| 蓝图 | Upper | [5] | 固定符号 `∎` |
 
-**图例**：`GetLegendString(usedSymbols)` 输出 `{char}={def.label}`，字符→Def 一一对应。
+**输出语法**：
 
-### 网格查询模式切换
+| 场景 | 格式 | 示例 |
+|------|------|------|
+| 地面层 | `符号 RLE` | `;20`（20格沙地） |
+| 单层上层 | `符号{材质} RLE` | `▉{◱}3`（3格板岩墙） |
+| 单层物品 | `符号{材质,数量}` | `≙{,75}`（75大理石块，无材质符留空） |
+| 2+ 上层重叠 | `[上层1 上层2...]` | `[▉{◱}─]`（墙+电线） |
 
-5 个网格工具（`get_tile_grid`, `fertility_grid`, `terrain_grid`, `temperature_grid`, `pollution_grid`）支持两种查询模式，通过设置 `GridQueryMode` 切换：
+**展开规则**：单上层直接输出内联符号+标注，不触发 `[...]`；仅当一格有 2 层及以上非 base 层时才展开分组。
 
-| 模式 | InputSchema 参数 | Execute 行为 | 输出格式 |
-|------|-----------------|-------------|---------|
-| **Chunk**（默认） | `chunk_id: string`（格式 `"X_Z"`） | `MapChunker.TryParseChunkId` → `GetChunkByIndex` → 手动迭代 → 压缩 | RLE/RowRefRLE 压缩 |
-| **坐标** | `pos_x, pos_y, end_x?, end_y?` | 直接坐标解析 → `GridRenderer.RenderGrid()` | 逐行 `z{WZ}: {chars}` |
+**数据模型与管线**（双管线，按数据类型分流）：
+- **多层管线**（`get_tile_grid`）：`GridRenderer.RenderGrid(...,Func<...,CellData>)` → `GridData.Rows`（`CellData[][]`）；`CellSerializer`（`MapRendering/CellSerializer.cs`）负责序列化（`LayerCount=6, BaseLayerCount=2`）。
+- **单值管线**（`terrain/fertility/temperature/pollution_grid`）：`GridRenderer.RenderGrid(...,Func<...,char>)` → `char[][]`，直接单字符输出，不经过 CellData。
 
-Chunk 模式内部通过 `MapChunker` 完成坐标转换，不新增 Helper。
+序列化关注点（base 层合并 / `[...]` 触发）封装在 `CellSerializer`，不污染数据模型 `GridData`。
 
 ### 端口清理机制
 

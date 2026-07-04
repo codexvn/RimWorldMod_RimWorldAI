@@ -82,23 +82,19 @@ namespace RimWorldMCP.Tools
                         var chunk = MapChunker.GetChunkByIndex(xIndex, zIndex, map.Size.x, map.Size.z, cw, ch);
                         var compressor = CompressorFactory.Create(method);
 
-                        int polluted = 0, total = 0;
-                        var rows = new char[chunk.Height][];
-                        for (int z = 0; z < chunk.Height; z++)
-                        {
-                            rows[z] = new char[chunk.Width];
-                            for (int x = 0; x < chunk.Width; x++)
-                            {
-                                var pos = new IntVec3(chunk.MinX + x, 0, chunk.MinZ + z);
-                                var (symbol, _) = CellCharProviders.ForPollution(pos, map);
-                                rows[z][x] = symbol;
-                                total++;
-                                if (symbol == 'P') polluted++;
-                            }
-                        }
+                        var result = GridRenderer.RenderGrid(map, chunk.MinX, chunk.MinZ, chunk.MaxX, chunk.MaxZ,
+                            CellCharProviders.ForPollution);
 
-                        Array.Reverse(rows); // 翻转行序：高z（北）先输出
-                        chunk.CompressedData = compressor.Compress(rows, (chunk.XIndex, chunk.ZIndex));
+                        int polluted = 0, total = 0;
+                        foreach (var row in result.Rows)
+                            foreach (var c in row)
+                            {
+                                total++;
+                                if (c == 'P') polluted++;
+                            }
+
+                        Array.Reverse(result.Rows); // 翻转行序：高z（北）先输出
+                        chunk.CompressedData = compressor.Compress(result.Rows, (chunk.XIndex, chunk.ZIndex));
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"## {Name}  Chunk({chunk.XIndex},{chunk.ZIndex})  x∈[{chunk.MinX},{chunk.MaxX}] z∈[{chunk.MinZ},{chunk.MaxZ}]  {chunk.Width}×{chunk.Height}");
@@ -140,17 +136,16 @@ namespace RimWorldMCP.Tools
                         if (map == null) return ToolResult.Error("当前没有可用地图。");
                         if (!ModsConfig.BiotechActive) return ToolResult.Error("需要 Biotech DLC 才能查询污染层。");
 
-                        var result = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ, CellCharProviders.ForPollution);
+                        var result = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ,
+                            CellCharProviders.ForPollution);
 
                         int polluted = 0, total = 0;
-                        for (int z = 0; z < h; z++)
-                        {
-                            for (int x = 0; x < w; x++)
+                        foreach (var row in result.Rows)
+                            foreach (var c in row)
                             {
                                 total++;
-                                if (result.Rows[z][x] == 'P') polluted++;
+                                if (c == 'P') polluted++;
                             }
-                        }
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"## {Name}  x∈[{minX},{maxX}] z∈[{minZ},{maxZ}]  {w}×{h}");

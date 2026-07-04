@@ -11,7 +11,6 @@ namespace RimWorldMCP.MapRendering
         public int Width { get; set; }
         public int Height { get; set; }
         public string CompressedData { get; set; } = "";
-        public bool IsAllFog { get; set; }
 
         public override string ToString() =>
             $"Chunk({XIndex},{ZIndex}) [{MinX},{MinZ}]-[{MaxX},{MaxZ}] {Width}x{Height}";

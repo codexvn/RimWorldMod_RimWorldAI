@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using RimWorldMCP.MapRendering;
 
 namespace RimWorldMCP.Compression
 {
@@ -11,33 +12,59 @@ namespace RimWorldMCP.Compression
     {
         public string Name => "行引用+RLE";
 
+        // ===== 单值网格 (heatmap) =====
+
         public string Compress(char[][] rows, (int x, int z) chunkIndex)
         {
             var sb = new StringBuilder();
-            // 第一遍: 计算每行的 RLE 字符串
+
             var rleStrings = new string[rows.Length];
             var rleToFirstRow = new Dictionary<string, int>();
-
             for (int r = 0; r < rows.Length; r++)
             {
                 var rowSb = new StringBuilder();
-                RleCompressor.EncodeRleRow(rows[r], rowSb);
+                RleCompressor.EncodeRleRowChar(rows[r], rowSb);
                 rleStrings[r] = rowSb.ToString();
-
                 if (!rleToFirstRow.ContainsKey(rleStrings[r]))
                     rleToFirstRow[rleStrings[r]] = r;
             }
 
-            // 第二遍: 输出，重复行使用引用
+            AppendRows(sb, rleStrings, rleToFirstRow);
+            return sb.ToString();
+        }
+
+        // ===== 多层网格 (get_tile_grid) =====
+
+        public string Compress(GridData grid, (int x, int z) chunkIndex)
+        {
+            var sb = new StringBuilder();
+            var rows = grid.Rows;
+
+            var rleStrings = new string[rows.Length];
+            var rleToFirstRow = new Dictionary<string, int>();
             for (int r = 0; r < rows.Length; r++)
+            {
+                var rowSb = new StringBuilder();
+                RleCompressor.EncodeRleRowCell(grid, rows[r], rowSb);
+                rleStrings[r] = rowSb.ToString();
+                if (!rleToFirstRow.ContainsKey(rleStrings[r]))
+                    rleToFirstRow[rleStrings[r]] = r;
+            }
+
+            AppendRows(sb, rleStrings, rleToFirstRow);
+            return sb.ToString();
+        }
+
+        // 两管线共用: 按 rleStrings 输出，重复行用 *L{ref} 引用
+        private static void AppendRows(StringBuilder sb, string[] rleStrings, Dictionary<string, int> rleToFirstRow)
+        {
+            for (int r = 0; r < rleStrings.Length; r++)
             {
                 sb.Append('L');
                 sb.Append(r.ToString("D2"));
                 sb.Append('=');
-
                 if (rleToFirstRow[rleStrings[r]] < r)
                 {
-                    // 引用首次出现的行
                     sb.Append("*L");
                     sb.Append(rleToFirstRow[rleStrings[r]].ToString("D2"));
                 }
@@ -45,12 +72,9 @@ namespace RimWorldMCP.Compression
                 {
                     sb.Append(rleStrings[r]);
                 }
-
-                if (r < rows.Length - 1)
+                if (r < rleStrings.Length - 1)
                     sb.Append('\n');
             }
-
-            return sb.ToString();
         }
     }
 }

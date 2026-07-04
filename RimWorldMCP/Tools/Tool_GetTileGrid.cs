@@ -12,10 +12,13 @@ namespace RimWorldMCP.Tools
     public class Tool_GetTileGrid : ITool
     {
         public string Name => "get_tile_grid";
-        public string Description => "获取指定区域的文本化网格地图（支持 Chunk 或坐标两种查询模式）。坐标范围为闭区间（两端坐标均包含）。地图坐标系: 左下角为原点(0,0)，x向东、z向北。网格上北下南、左西右东。";
+        public string Description => "获取指定区域的文本化多层网格地图（支持 Chunk 或坐标两种查询模式）。坐标范围为闭区间（两端坐标均包含）。地图坐标系: 左下角为原点(0,0)，x向东、z向北。网格上北下南、左西右东。";
 
         private const int MaxGridWidth = 80;
         private const int MaxGridHeight = 60;
+
+        private const string SyntaxHelp =
+            "## 语法: 单字符=纯地形/迷雾(可RLE); 符号{材质,数量} = 带标注对象(可RLE); [上层...] = 多层重叠(可RLE)";
 
         public JsonElement InputSchema
         {
@@ -80,36 +83,25 @@ namespace RimWorldMCP.Tools
 
                         var chunk = MapChunker.GetChunkByIndex(xIndex, zIndex, map.Size.x, map.Size.z, cw, ch);
                         var compressor = CompressorFactory.Create(method);
-                        var usedSymbols = new HashSet<char>();
-                        bool allFog = true;
 
-                        var rows = new char[chunk.Height][];
-                        for (int z = 0; z < chunk.Height; z++)
-                        {
-                            rows[z] = new char[chunk.Width];
-                            for (int x = 0; x < chunk.Width; x++)
-                            {
-                                var pos = new IntVec3(chunk.MinX + x, 0, chunk.MinZ + z);
-                                var (symbol, _) = CellCharProviders.ForTileGrid(pos, map);
-                                rows[z][x] = symbol;
-                                usedSymbols.Add(symbol);
-                                if (symbol != '█') allFog = false;
-                            }
-                        }
+                        var grid = GridRenderer.RenderGrid(
+                            map, chunk.MinX, chunk.MinZ, chunk.MaxX, chunk.MaxZ,
+                            CellCharProviders.TileGridLayerCount,
+                            CellCharProviders.TileGridBaseLayerCount,
+                            CellCharProviders.ForTileGrid);
 
-                        chunk.IsAllFog = allFog;
-                        Array.Reverse(rows); // 翻转行序：高z（北）先输出
-                        chunk.CompressedData = compressor.Compress(rows, (chunk.XIndex, chunk.ZIndex));
+                        Array.Reverse(grid.Rows); // 翻转行序：高z（北）先输出
+                        chunk.CompressedData = compressor.Compress(grid, (chunk.XIndex, chunk.ZIndex));
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"## {Name}  Chunk({chunk.XIndex},{chunk.ZIndex})  x∈[{chunk.MinX},{chunk.MaxX}] z∈[{chunk.MinZ},{chunk.MaxZ}]  {chunk.Width}×{chunk.Height}");
-                        sb.AppendLine($"## 压缩: {compressor.Name}  字典Hash: {SymbolDictionary.DictHash}");
-                        if (allFog) sb.AppendLine("## 全迷雾");
+                        sb.AppendLine($"## 多层格式  压缩: {compressor.Name}  字典Hash: {SymbolDictionary.DictHash}");
+                        sb.AppendLine(SyntaxHelp);
                         sb.AppendLine();
                         sb.AppendLine(chunk.CompressedData);
                         sb.AppendLine();
                         sb.AppendLine("## 图例");
-                        sb.AppendLine(SymbolDictionary.GetLegendString(usedSymbols));
+                        sb.AppendLine(SymbolDictionary.GetLegendString(grid.UsedSymbols));
 
                         return ToolResult.Success(sb.ToString().TrimEnd());
                     }
@@ -142,23 +134,28 @@ namespace RimWorldMCP.Tools
                         var map = Find.CurrentMap;
                         if (map == null) return ToolResult.Error("当前没有可用地图。");
 
-                        var result = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ, CellCharProviders.ForTileGrid);
+                        var grid = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ,
+                            CellCharProviders.TileGridLayerCount,
+                            CellCharProviders.TileGridBaseLayerCount,
+                            CellCharProviders.ForTileGrid);
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"## {Name}  x∈[{minX},{maxX}] z∈[{minZ},{maxZ}]  {w}×{h}");
-                        sb.AppendLine($"## 字典Hash: {SymbolDictionary.DictHash}");
-                        if (result.AllFog) sb.AppendLine("## 全迷雾");
+                        sb.AppendLine($"## 多层格式  字典Hash: {SymbolDictionary.DictHash}");
+                        sb.AppendLine(SyntaxHelp);
                         sb.AppendLine();
 
                         for (int z = h - 1; z >= 0; z--)
                         {
                             sb.Append($"z{minZ + z}: ");
-                            sb.AppendLine(new string(result.Rows[z]));
+                            foreach (var cell in grid.Rows[z])
+                                sb.Append(grid.Serializer.Serialize(cell));
+                            sb.AppendLine();
                         }
 
                         sb.AppendLine();
                         sb.AppendLine("## 图例");
-                        sb.AppendLine(SymbolDictionary.GetLegendString(result.UsedSymbols));
+                        sb.AppendLine(SymbolDictionary.GetLegendString(grid.UsedSymbols));
 
                         return ToolResult.Success(sb.ToString().TrimEnd());
                     }

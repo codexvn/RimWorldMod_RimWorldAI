@@ -249,16 +249,29 @@ namespace RimWorldMCP.MapRendering
             var sb = new StringBuilder();
             foreach (var c in usedSymbols)
             {
+                string? label = null;
                 if (_reverse.TryGetValue(c, out var info))
-                {
-                    if (sb.Length > 0) sb.Append("  ");
-                    sb.Append(c);
-                    sb.Append('=');
-                    sb.Append(info.Label);
-                }
+                    label = info.Label;
+                else if (HardcodedLegend.TryGetValue(c, out var hardcoded))
+                    label = hardcoded;
+
+                if (label == null) continue;
+
+                if (sb.Length > 0) sb.Append("  ");
+                sb.Append(c);
+                sb.Append('=');
+                sb.Append(label);
             }
             return sb.ToString();
         }
+
+        /// <summary>代码硬编码、不进词表的符号（迷雾/蓝图/未知），图例需兜底显示。</summary>
+        private static readonly Dictionary<char, string> HardcodedLegend = new()
+        {
+            { '█', "迷雾" },
+            { '?', "未知/迷雾" },
+            { '∎', "蓝图/框架" },
+        };
 
         private static string FormatExceptionChain(Exception ex)
         {

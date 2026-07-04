@@ -29,7 +29,7 @@ import sys
 import unicodedata
 
 # 固定网格独占字符 — 不能分配给词表
-RESERVED = set("▓▒░·○◎●█P.?\"'")
+RESERVED = set("▓▒░·○◎●█P.?\"'[]{}0123456789,")
 
 # 不可渲染的 Unicode 区块 (私有区/代理/特殊)
 BAD_RANGES = [
@@ -58,7 +58,6 @@ def is_bad_char(c: str) -> bool:
 
 PRESET_MAP = {
     # ---- 地形 Terrain ----
-    "Soil":             ",",
     "SoilRich":         ":",
     "Gravel":           "`",
     "Sand":             ";",
@@ -70,9 +69,6 @@ PRESET_MAP = {
     "WaterShallow":     "~",
     "WaterDeep":        "≋",
     "Concrete":         "&",
-    "BrokenAsphalt":    "0",
-    "Underwall":        "1",
-    "AncientTile":      "2",
 
     # ---- 建筑：墙门 ----
     "Wall":             "▉",
@@ -168,8 +164,6 @@ PRESET_MAP = {
     "RawCorn":          "◕",
     "RawBerries":       "◖",
     "Hay":              "≀",
-    "ChunkSlagSteel":   "8",
-    "ChunkSandstone":   "9",
     "Synthread":        "⌇",
     "Cloth":            "✕",
 

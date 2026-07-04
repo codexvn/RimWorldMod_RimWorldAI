@@ -80,23 +80,12 @@ namespace RimWorldMCP.Tools
 
                         var chunk = MapChunker.GetChunkByIndex(xIndex, zIndex, map.Size.x, map.Size.z, cw, ch);
                         var compressor = CompressorFactory.Create(method);
-                        var usedSymbols = new HashSet<char>();
 
-                        var rows = new char[chunk.Height][];
-                        for (int z = 0; z < chunk.Height; z++)
-                        {
-                            rows[z] = new char[chunk.Width];
-                            for (int x = 0; x < chunk.Width; x++)
-                            {
-                                var pos = new IntVec3(chunk.MinX + x, 0, chunk.MinZ + z);
-                                var (symbol, _) = CellCharProviders.ForTerrain(pos, map);
-                                rows[z][x] = symbol;
-                                usedSymbols.Add(symbol);
-                            }
-                        }
+                        var result = GridRenderer.RenderGrid(map, chunk.MinX, chunk.MinZ, chunk.MaxX, chunk.MaxZ,
+                            CellCharProviders.ForTerrain);
 
-                        Array.Reverse(rows); // 翻转行序：高z（北）先输出
-                        chunk.CompressedData = compressor.Compress(rows, (chunk.XIndex, chunk.ZIndex));
+                        Array.Reverse(result.Rows); // 翻转行序：高z（北）先输出
+                        chunk.CompressedData = compressor.Compress(result.Rows, (chunk.XIndex, chunk.ZIndex));
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"## {Name}  Chunk({chunk.XIndex},{chunk.ZIndex})  x∈[{chunk.MinX},{chunk.MaxX}] z∈[{chunk.MinZ},{chunk.MaxZ}]  {chunk.Width}×{chunk.Height}");
@@ -105,7 +94,7 @@ namespace RimWorldMCP.Tools
                         sb.AppendLine(chunk.CompressedData);
                         sb.AppendLine();
                         sb.AppendLine("## 图例");
-                        sb.AppendLine(SymbolDictionary.GetLegendString(usedSymbols));
+                        sb.AppendLine(SymbolDictionary.GetLegendString(result.UsedSymbols));
 
                         return ToolResult.Success(sb.ToString().TrimEnd());
                     }
@@ -138,7 +127,8 @@ namespace RimWorldMCP.Tools
                         var map = Find.CurrentMap;
                         if (map == null) return ToolResult.Error("当前没有可用地图。");
 
-                        var result = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ, CellCharProviders.ForTerrain);
+                        var result = GridRenderer.RenderGrid(map, minX, minZ, maxX, maxZ,
+                            CellCharProviders.ForTerrain);
 
                         var sb = new StringBuilder();
                         sb.AppendLine($"## {Name}  x∈[{minX},{maxX}] z∈[{minZ},{maxZ}]  {w}×{h}");

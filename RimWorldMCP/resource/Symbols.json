@@ -1,10 +1,6 @@
 {
   "version": 1,
   "symbols": {
-    "Soil": {
-      "char": ",",
-      "group": "Terrain"
-    },
     "SoilRich": {
       "char": ":",
       "group": "Terrain"
@@ -47,18 +43,6 @@
     },
     "Concrete": {
       "char": "&",
-      "group": "Terrain"
-    },
-    "BrokenAsphalt": {
-      "char": "0",
-      "group": "Terrain"
-    },
-    "Underwall": {
-      "char": "1",
-      "group": "Terrain"
-    },
-    "AncientTile": {
-      "char": "2",
       "group": "Terrain"
     },
     "Wall": {
@@ -369,14 +353,6 @@
       "char": "≀",
       "group": "Item"
     },
-    "ChunkSlagSteel": {
-      "char": "8",
-      "group": "Item"
-    },
-    "ChunkSandstone": {
-      "char": "9",
-      "group": "Item"
-    },
     "Synthread": {
       "char": "⌇",
       "group": "Item"
@@ -574,5691 +550,5703 @@
       "group": "Item"
     },
     "Agarilux": {
-      "char": "3",
+      "char": "<",
       "group": "Plant"
     },
     "Alpaca": {
-      "char": "4",
+      "char": ">",
       "group": "Pawn"
     },
     "Alphabeaver": {
-      "char": "5",
+      "char": "A",
       "group": "Pawn"
     },
     "Altar_Grand": {
-      "char": "6",
-      "group": "Building"
-    },
-    "Altar_Large": {
-      "char": "7",
-      "group": "Building"
-    },
-    "Altar_Medium": {
-      "char": "<",
-      "group": "Building"
-    },
-    "Altar_Small": {
-      "char": ">",
-      "group": "Building"
-    },
-    "Ambrosia": {
-      "char": "A",
-      "group": "Item"
-    },
-    "AncientAPC": {
       "char": "B",
       "group": "Building"
     },
-    "AncientATM": {
+    "Altar_Large": {
       "char": "C",
       "group": "Building"
     },
-    "AncientAirConditioner": {
+    "Altar_Medium": {
       "char": "D",
       "group": "Building"
     },
-    "AncientBandNode": {
+    "Altar_Small": {
       "char": "E",
       "group": "Building"
     },
-    "AncientBarrel": {
+    "Ambrosia": {
       "char": "F",
-      "group": "Building"
+      "group": "Item"
     },
-    "AncientBasicRecharger": {
+    "AncientAPC": {
       "char": "G",
       "group": "Building"
     },
-    "AncientBed": {
+    "AncientATM": {
       "char": "H",
       "group": "Building"
     },
-    "AncientCommsConsole": {
+    "AncientAirConditioner": {
       "char": "I",
       "group": "Building"
     },
-    "AncientConcrete": {
+    "AncientBandNode": {
       "char": "J",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "AncientConcreteBarrier": {
+    "AncientBarrel": {
       "char": "K",
       "group": "Building"
     },
-    "AncientCrate": {
+    "AncientBasicRecharger": {
       "char": "L",
       "group": "Building"
     },
-    "AncientCryptosleepCasket": {
+    "AncientBed": {
       "char": "M",
       "group": "Building"
     },
-    "AncientCryptosleepPod": {
+    "AncientBridge": {
       "char": "N",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "AncientDisplayBank": {
+    "AncientCommsConsole": {
       "char": "O",
       "group": "Building"
     },
-    "AncientDropshipEngine": {
+    "AncientConcrete": {
       "char": "Q",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "AncientEnemyTerminal": {
+    "AncientConcreteBarrier": {
       "char": "R",
       "group": "Building"
     },
-    "AncientEquipmentBlocks": {
+    "AncientCrate": {
       "char": "S",
       "group": "Building"
     },
-    "AncientExostriderCannon": {
+    "AncientCryptosleepCasket": {
       "char": "T",
       "group": "Building"
     },
-    "AncientExostriderHead": {
+    "AncientCryptosleepPod": {
       "char": "U",
       "group": "Building"
     },
-    "AncientExostriderLeg": {
+    "AncientDisplayBank": {
       "char": "V",
       "group": "Building"
     },
-    "AncientExostriderRemains": {
+    "AncientDropshipEngine": {
       "char": "W",
       "group": "Building"
     },
-    "AncientFence": {
+    "AncientEnemyTerminal": {
       "char": "X",
       "group": "Building"
     },
-    "AncientFuelNode": {
+    "AncientEquipmentBlocks": {
       "char": "Y",
       "group": "Building"
     },
-    "AncientGenerator": {
+    "AncientExostriderCannon": {
       "char": "Z",
       "group": "Building"
     },
-    "AncientGiantWheel": {
-      "char": "[",
-      "group": "Building"
-    },
-    "AncientHermeticCrate": {
+    "AncientExostriderHead": {
       "char": "\\",
       "group": "Building"
     },
-    "AncientHydrant": {
-      "char": "]",
-      "group": "Building"
-    },
-    "AncientJetEngine": {
+    "AncientExostriderLeg": {
       "char": "^",
       "group": "Building"
     },
-    "AncientKitchenSink": {
+    "AncientExostriderRemains": {
       "char": "_",
       "group": "Building"
     },
-    "AncientLamp": {
+    "AncientFence": {
       "char": "a",
       "group": "Building"
     },
-    "AncientLamppost": {
+    "AncientFuelNode": {
       "char": "b",
       "group": "Building"
     },
-    "AncientLargeContainer": {
+    "AncientGenerator": {
       "char": "c",
       "group": "Building"
     },
-    "AncientLargeCrate": {
+    "AncientGiantWheel": {
       "char": "d",
       "group": "Building"
     },
-    "AncientLargeMechGestator": {
+    "AncientHermeticCrate": {
       "char": "e",
       "group": "Building"
     },
-    "AncientLargeRustedEngineBlock": {
+    "AncientHydrant": {
       "char": "f",
       "group": "Building"
     },
-    "AncientLockerBank": {
+    "AncientJetEngine": {
       "char": "g",
       "group": "Building"
     },
-    "AncientLongCrate": {
+    "AncientKitchenSink": {
       "char": "h",
       "group": "Building"
     },
-    "AncientMachine": {
+    "AncientLamp": {
       "char": "i",
       "group": "Building"
     },
-    "AncientMechDropBeacon": {
+    "AncientLamppost": {
       "char": "j",
       "group": "Building"
     },
-    "AncientMechGestator": {
+    "AncientLargeContainer": {
       "char": "k",
       "group": "Building"
     },
-    "AncientMechGestatorTank": {
+    "AncientLargeCrate": {
       "char": "l",
       "group": "Building"
     },
-    "AncientMegaCannonBarrel": {
+    "AncientLargeMechGestator": {
       "char": "m",
       "group": "Building"
     },
-    "AncientMegaCannonTripod": {
+    "AncientLargeRustedEngineBlock": {
       "char": "n",
       "group": "Building"
     },
-    "AncientMicrowave": {
+    "AncientLockerBank": {
       "char": "o",
       "group": "Building"
     },
-    "AncientMilitaryCrate": {
+    "AncientLongCrate": {
       "char": "p",
       "group": "Building"
     },
-    "AncientMiniWarwalkerRemains": {
+    "AncientMachine": {
       "char": "q",
       "group": "Building"
     },
-    "AncientOperatingTable": {
+    "AncientMechDropBeacon": {
       "char": "r",
       "group": "Building"
     },
-    "AncientOven": {
+    "AncientMechGestator": {
       "char": "s",
       "group": "Building"
     },
-    "AncientPipelineSection": {
+    "AncientMechGestatorTank": {
       "char": "t",
       "group": "Building"
     },
-    "AncientPipes": {
+    "AncientMegaCannonBarrel": {
       "char": "u",
       "group": "Building"
     },
-    "AncientPodCar": {
+    "AncientMegaCannonTripod": {
       "char": "v",
       "group": "Building"
     },
-    "AncientPostbox": {
+    "AncientMicrowave": {
       "char": "w",
       "group": "Building"
     },
-    "AncientRazorWire": {
+    "AncientMilitaryCrate": {
       "char": "x",
       "group": "Building"
     },
-    "AncientRefrigerator": {
+    "AncientMiniWarwalkerRemains": {
       "char": "y",
       "group": "Building"
     },
-    "AncientRustedCar": {
+    "AncientOperatingTable": {
       "char": "z",
       "group": "Building"
     },
-    "AncientRustedCarFrame": {
-      "char": "{",
-      "group": "Building"
-    },
-    "AncientRustedDropship": {
+    "AncientOven": {
       "char": "|",
       "group": "Building"
     },
-    "AncientRustedEngineBlock": {
-      "char": "}",
-      "group": "Building"
-    },
-    "AncientRustedJeep": {
+    "AncientPipelineSection": {
       "char": "━",
       "group": "Building"
     },
-    "AncientRustedTruck": {
+    "AncientPipes": {
       "char": "│",
       "group": "Building"
     },
-    "AncientSecurityCrate": {
+    "AncientPodCar": {
       "char": "┅",
       "group": "Building"
     },
-    "AncientSecurityTurret": {
+    "AncientPostbox": {
       "char": "┆",
       "group": "Building"
     },
-    "AncientShipBeacon": {
+    "AncientRazorWire": {
       "char": "┇",
       "group": "Building"
     },
-    "AncientShoppingCart": {
+    "AncientRefrigerator": {
       "char": "┈",
       "group": "Building"
     },
-    "AncientSmallCrate": {
+    "AncientRustedCar": {
       "char": "┉",
       "group": "Building"
     },
-    "AncientSpacerCrate": {
+    "AncientRustedCarFrame": {
       "char": "┊",
       "group": "Building"
     },
-    "AncientStandardRecharger": {
+    "AncientRustedDropship": {
       "char": "┋",
       "group": "Building"
     },
-    "AncientStorageCylinder": {
+    "AncientRustedEngineBlock": {
       "char": "┌",
       "group": "Building"
     },
-    "AncientStove": {
+    "AncientRustedJeep": {
       "char": "┍",
       "group": "Building"
     },
-    "AncientSystemRack": {
+    "AncientRustedTruck": {
       "char": "┎",
       "group": "Building"
     },
-    "AncientTank": {
+    "AncientSecurityCrate": {
       "char": "┏",
       "group": "Building"
     },
-    "AncientTankTrap": {
+    "AncientSecurityTurret": {
       "char": "┐",
       "group": "Building"
     },
-    "AncientTerminal": {
+    "AncientShipBeacon": {
       "char": "┑",
       "group": "Building"
     },
-    "AncientTerminal_Worshipful": {
+    "AncientShoppingCart": {
       "char": "┒",
       "group": "Building"
     },
-    "AncientToilet": {
+    "AncientSmallCrate": {
       "char": "┓",
       "group": "Building"
     },
-    "AncientToxifierGenerator": {
+    "AncientSpacerCrate": {
       "char": "└",
       "group": "Building"
     },
-    "AncientVendingMachine": {
+    "AncientStandardRecharger": {
       "char": "┕",
       "group": "Building"
     },
-    "AncientWarspiderRemains": {
+    "AncientStorageCylinder": {
       "char": "┖",
       "group": "Building"
     },
-    "AncientWarwalkerClaw": {
+    "AncientStove": {
       "char": "┗",
       "group": "Building"
     },
-    "AncientWarwalkerFoot": {
+    "AncientSystemRack": {
       "char": "┘",
       "group": "Building"
     },
-    "AncientWarwalkerLeg": {
+    "AncientTank": {
       "char": "┙",
       "group": "Building"
     },
-    "AncientWarwalkerShell": {
+    "AncientTankTrap": {
       "char": "┚",
       "group": "Building"
     },
-    "AncientWarwalkerTorso": {
+    "AncientTerminal": {
       "char": "┛",
       "group": "Building"
     },
-    "AncientWashingMachine": {
+    "AncientTerminal_Worshipful": {
       "char": "├",
       "group": "Building"
     },
-    "AncientWheel": {
+    "AncientTile": {
       "char": "┝",
-      "group": "Building"
-    },
-    "AncientWoodPlankFloor": {
-      "char": "┞",
       "group": "Terrain"
     },
-    "AnimalBed": {
+    "AncientToilet": {
+      "char": "┞",
+      "group": "Building"
+    },
+    "AncientToxifierGenerator": {
       "char": "┟",
       "group": "Building"
     },
-    "AnimalFlap": {
+    "AncientVendingMachine": {
       "char": "┠",
       "group": "Building"
     },
-    "AnimalSleepingBox": {
+    "AncientWarspiderRemains": {
       "char": "┡",
       "group": "Building"
     },
-    "AnimalSleepingSpot": {
+    "AncientWarwalkerClaw": {
       "char": "┢",
       "group": "Building"
     },
-    "AnimalistSlab_Broad": {
+    "AncientWarwalkerFoot": {
       "char": "┣",
-      "group": "Item"
+      "group": "Building"
     },
-    "AnimalistSlab_Medium": {
+    "AncientWarwalkerLeg": {
       "char": "┤",
-      "group": "Item"
+      "group": "Building"
     },
-    "AnimusStone": {
+    "AncientWarwalkerShell": {
       "char": "┥",
       "group": "Building"
     },
-    "Apparel_AdvancedHelmet": {
+    "AncientWarwalkerTorso": {
       "char": "┦",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_AirwireHeadset": {
+    "AncientWashingMachine": {
       "char": "┧",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorCataphract": {
+    "AncientWheel": {
       "char": "┨",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorCataphractPhoenix": {
+    "AncientWoodPlankFloor": {
       "char": "┩",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "Apparel_ArmorCataphractPrestige": {
+    "AnimalBed": {
       "char": "┪",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorHelmetCataphract": {
+    "AnimalFlap": {
       "char": "┫",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorHelmetCataphractPrestige": {
+    "AnimalSleepingBox": {
       "char": "┬",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorHelmetMechCommander": {
+    "AnimalSleepingSpot": {
       "char": "┭",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorHelmetMechlordHelmet": {
+    "AnimalistSlab_Broad": {
       "char": "┮",
       "group": "Item"
     },
-    "Apparel_ArmorHelmetRecon": {
+    "AnimalistSlab_Medium": {
       "char": "┯",
       "group": "Item"
     },
-    "Apparel_ArmorHelmetReconPrestige": {
+    "AnimusStone": {
       "char": "┰",
-      "group": "Item"
+      "group": "Building"
     },
-    "Apparel_ArmorLocust": {
+    "Apparel_AdvancedHelmet": {
       "char": "┱",
       "group": "Item"
     },
-    "Apparel_ArmorMarineGrenadier": {
+    "Apparel_AirwireHeadset": {
       "char": "┲",
       "group": "Item"
     },
-    "Apparel_ArmorMarineHelmetPrestige": {
+    "Apparel_ArmorCataphract": {
       "char": "┳",
       "group": "Item"
     },
-    "Apparel_ArmorMarinePrestige": {
+    "Apparel_ArmorCataphractPhoenix": {
       "char": "┴",
       "group": "Item"
     },
-    "Apparel_ArmorRecon": {
+    "Apparel_ArmorCataphractPrestige": {
       "char": "┵",
       "group": "Item"
     },
-    "Apparel_ArmorReconPrestige": {
+    "Apparel_ArmorHelmetCataphract": {
       "char": "┶",
       "group": "Item"
     },
-    "Apparel_ArrayHeadset": {
+    "Apparel_ArmorHelmetCataphractPrestige": {
       "char": "┷",
       "group": "Item"
     },
-    "Apparel_AuthorityCap": {
+    "Apparel_ArmorHelmetMechCommander": {
       "char": "┸",
       "group": "Item"
     },
-    "Apparel_Bandolier": {
+    "Apparel_ArmorHelmetMechlordHelmet": {
       "char": "┹",
       "group": "Item"
     },
-    "Apparel_BasicShirt": {
+    "Apparel_ArmorHelmetRecon": {
       "char": "┺",
       "group": "Item"
     },
-    "Apparel_Beret": {
+    "Apparel_ArmorHelmetReconPrestige": {
       "char": "┻",
       "group": "Item"
     },
-    "Apparel_BiomutationLance": {
+    "Apparel_ArmorLocust": {
       "char": "┼",
       "group": "Item"
     },
-    "Apparel_Blindfold": {
+    "Apparel_ArmorMarineGrenadier": {
       "char": "┽",
       "group": "Item"
     },
-    "Apparel_BodyStrap": {
+    "Apparel_ArmorMarineHelmetPrestige": {
       "char": "┾",
       "group": "Item"
     },
-    "Apparel_BowlerHat": {
+    "Apparel_ArmorMarinePrestige": {
       "char": "┿",
       "group": "Item"
     },
-    "Apparel_Broadwrap": {
+    "Apparel_ArmorRecon": {
       "char": "╀",
       "group": "Item"
     },
-    "Apparel_Burka": {
+    "Apparel_ArmorReconPrestige": {
       "char": "╁",
       "group": "Item"
     },
-    "Apparel_Cape": {
+    "Apparel_ArrayHeadset": {
       "char": "╂",
       "group": "Item"
     },
-    "Apparel_CeremonialCultistMask": {
+    "Apparel_AuthorityCap": {
       "char": "╃",
       "group": "Item"
     },
-    "Apparel_ClothMask": {
+    "Apparel_Bandolier": {
       "char": "╄",
       "group": "Item"
     },
-    "Apparel_Collar": {
+    "Apparel_BasicShirt": {
       "char": "╅",
       "group": "Item"
     },
-    "Apparel_CollarShirt": {
+    "Apparel_Beret": {
       "char": "╆",
       "group": "Item"
     },
-    "Apparel_Coronet": {
+    "Apparel_BiomutationLance": {
       "char": "╇",
       "group": "Item"
     },
-    "Apparel_Corset": {
+    "Apparel_Blindfold": {
       "char": "╈",
       "group": "Item"
     },
-    "Apparel_CowboyHat": {
+    "Apparel_BodyStrap": {
       "char": "╉",
       "group": "Item"
     },
-    "Apparel_Crown": {
+    "Apparel_BowlerHat": {
       "char": "╊",
       "group": "Item"
     },
-    "Apparel_CrownStellic": {
+    "Apparel_Broadwrap": {
       "char": "╋",
       "group": "Item"
     },
-    "Apparel_CultistMask": {
+    "Apparel_Burka": {
       "char": "╌",
       "group": "Item"
     },
-    "Apparel_DeadlifePack": {
+    "Apparel_Cape": {
       "char": "╍",
       "group": "Item"
     },
-    "Apparel_DisruptorFlarePack": {
+    "Apparel_CeremonialCultistMask": {
       "char": "╎",
       "group": "Item"
     },
-    "Apparel_Duster": {
+    "Apparel_ClothMask": {
       "char": "╏",
       "group": "Item"
     },
-    "Apparel_EltexSkullcap": {
+    "Apparel_Collar": {
       "char": "═",
       "group": "Item"
     },
-    "Apparel_FirefoampopPack": {
+    "Apparel_CollarShirt": {
       "char": "╒",
       "group": "Item"
     },
-    "Apparel_FlakJacket": {
+    "Apparel_Coronet": {
       "char": "╓",
       "group": "Item"
     },
-    "Apparel_FlakPants": {
+    "Apparel_Corset": {
       "char": "╔",
       "group": "Item"
     },
-    "Apparel_FlakVest": {
+    "Apparel_CowboyHat": {
       "char": "╕",
       "group": "Item"
     },
-    "Apparel_Flophat": {
+    "Apparel_Crown": {
       "char": "╖",
       "group": "Item"
     },
-    "Apparel_GasMask": {
+    "Apparel_CrownStellic": {
       "char": "╗",
       "group": "Item"
     },
-    "Apparel_Gunlink": {
+    "Apparel_CultistMask": {
       "char": "╘",
       "group": "Item"
     },
-    "Apparel_HatHood": {
+    "Apparel_DeadlifePack": {
       "char": "╙",
       "group": "Item"
     },
-    "Apparel_HatLadies": {
+    "Apparel_DisruptorFlarePack": {
       "char": "╚",
       "group": "Item"
     },
-    "Apparel_HatTop": {
+    "Apparel_Duster": {
       "char": "╛",
       "group": "Item"
     },
-    "Apparel_Headwrap": {
+    "Apparel_EltexSkullcap": {
       "char": "╜",
       "group": "Item"
     },
-    "Apparel_HeavyShield": {
+    "Apparel_FirefoampopPack": {
       "char": "╝",
       "group": "Item"
     },
-    "Apparel_IntegratorHeadset": {
+    "Apparel_FlakJacket": {
       "char": "╞",
       "group": "Item"
     },
-    "Apparel_Jacket": {
+    "Apparel_FlakPants": {
       "char": "╟",
       "group": "Item"
     },
-    "Apparel_KidHelmet": {
+    "Apparel_FlakVest": {
       "char": "╠",
       "group": "Item"
     },
-    "Apparel_KidPants": {
+    "Apparel_Flophat": {
       "char": "╡",
       "group": "Item"
     },
-    "Apparel_KidParka": {
+    "Apparel_GasMask": {
       "char": "╢",
       "group": "Item"
     },
-    "Apparel_KidRomper": {
+    "Apparel_Gunlink": {
       "char": "╣",
       "group": "Item"
     },
-    "Apparel_KidShirt": {
+    "Apparel_HatHood": {
       "char": "╤",
       "group": "Item"
     },
-    "Apparel_KidTribal": {
+    "Apparel_HatLadies": {
       "char": "╥",
       "group": "Item"
     },
-    "Apparel_LabCoat": {
+    "Apparel_HatTop": {
       "char": "╦",
       "group": "Item"
     },
-    "Apparel_MechlordSuit": {
+    "Apparel_Headwrap": {
       "char": "╧",
       "group": "Item"
     },
-    "Apparel_PackBandwidth": {
+    "Apparel_HeavyShield": {
       "char": "╨",
       "group": "Item"
     },
-    "Apparel_PackBroadshield": {
+    "Apparel_IntegratorHeadset": {
       "char": "╩",
       "group": "Item"
     },
-    "Apparel_PackControl": {
+    "Apparel_Jacket": {
       "char": "╪",
       "group": "Item"
     },
-    "Apparel_PackJump": {
+    "Apparel_KidHelmet": {
       "char": "╫",
       "group": "Item"
     },
-    "Apparel_PackTox": {
+    "Apparel_KidPants": {
       "char": "╭",
       "group": "Item"
     },
-    "Apparel_PackTurret": {
+    "Apparel_KidParka": {
       "char": "╮",
       "group": "Item"
     },
-    "Apparel_Pants": {
+    "Apparel_KidRomper": {
       "char": "╯",
       "group": "Item"
     },
-    "Apparel_Parka": {
+    "Apparel_KidShirt": {
       "char": "╰",
       "group": "Item"
     },
-    "Apparel_PlateArmor": {
+    "Apparel_KidTribal": {
       "char": "╱",
       "group": "Item"
     },
-    "Apparel_PowerArmor": {
+    "Apparel_LabCoat": {
       "char": "╲",
       "group": "Item"
     },
-    "Apparel_PowerArmorHelmet": {
+    "Apparel_MechlordSuit": {
       "char": "╳",
       "group": "Item"
     },
-    "Apparel_PsychicFoilHelmet": {
+    "Apparel_PackBandwidth": {
       "char": "╴",
       "group": "Item"
     },
-    "Apparel_PsychicInsanityLance": {
+    "Apparel_PackBroadshield": {
       "char": "╵",
       "group": "Item"
     },
-    "Apparel_PsychicShockLance": {
+    "Apparel_PackControl": {
       "char": "╶",
       "group": "Item"
     },
-    "Apparel_PsyfocusHelmet": {
+    "Apparel_PackJump": {
       "char": "╷",
       "group": "Item"
     },
-    "Apparel_PsyfocusRobe": {
+    "Apparel_PackTox": {
       "char": "╸",
       "group": "Item"
     },
-    "Apparel_PsyfocusShirt": {
+    "Apparel_PackTurret": {
       "char": "╹",
       "group": "Item"
     },
-    "Apparel_PsyfocusVest": {
+    "Apparel_Pants": {
       "char": "╺",
       "group": "Item"
     },
-    "Apparel_Robe": {
+    "Apparel_Parka": {
       "char": "╻",
       "group": "Item"
     },
-    "Apparel_RobeRoyal": {
+    "Apparel_PlateArmor": {
       "char": "╼",
       "group": "Item"
     },
-    "Apparel_Sash": {
+    "Apparel_PowerArmor": {
       "char": "╽",
       "group": "Item"
     },
-    "Apparel_Shadecone": {
+    "Apparel_PowerArmorHelmet": {
       "char": "╾",
       "group": "Item"
     },
-    "Apparel_ShardPsychicInsanityLance": {
+    "Apparel_PsychicFoilHelmet": {
       "char": "╿",
       "group": "Item"
     },
-    "Apparel_ShardPsychicShockLance": {
+    "Apparel_PsychicInsanityLance": {
       "char": "▀",
       "group": "Item"
     },
-    "Apparel_ShieldBelt": {
+    "Apparel_PsychicShockLance": {
       "char": "▁",
       "group": "Item"
     },
-    "Apparel_ShirtRuffle": {
+    "Apparel_PsyfocusHelmet": {
       "char": "▂",
       "group": "Item"
     },
-    "Apparel_SimpleHelmet": {
+    "Apparel_PsyfocusRobe": {
       "char": "▃",
       "group": "Item"
     },
-    "Apparel_Slicecap": {
+    "Apparel_PsyfocusShirt": {
       "char": "▄",
       "group": "Item"
     },
-    "Apparel_SmokepopBelt": {
+    "Apparel_PsyfocusVest": {
       "char": "▅",
       "group": "Item"
     },
-    "Apparel_Tailcap": {
+    "Apparel_Robe": {
       "char": "▆",
       "group": "Item"
     },
-    "Apparel_TortureCrown": {
+    "Apparel_RobeRoyal": {
       "char": "▇",
       "group": "Item"
     },
-    "Apparel_TribalA": {
+    "Apparel_Sash": {
       "char": "▊",
       "group": "Item"
     },
-    "Apparel_TribalHeaddress": {
+    "Apparel_Shadecone": {
       "char": "▋",
       "group": "Item"
     },
-    "Apparel_Tuque": {
+    "Apparel_ShardPsychicInsanityLance": {
       "char": "▌",
       "group": "Item"
     },
-    "Apparel_VestRoyal": {
+    "Apparel_ShardPsychicShockLance": {
       "char": "▍",
       "group": "Item"
     },
-    "Apparel_VisageMask": {
+    "Apparel_ShieldBelt": {
       "char": "▎",
       "group": "Item"
     },
-    "Apparel_WarMask": {
+    "Apparel_ShirtRuffle": {
       "char": "▏",
       "group": "Item"
     },
-    "Apparel_WarVeil": {
+    "Apparel_SimpleHelmet": {
       "char": "▐",
       "group": "Item"
     },
-    "ArchiteCapsule": {
+    "Apparel_Slicecap": {
       "char": "▔",
       "group": "Item"
     },
-    "ArchonexusCore": {
+    "Apparel_SmokepopBelt": {
       "char": "▕",
-      "group": "Building"
+      "group": "Item"
     },
-    "ArchotechArm": {
+    "Apparel_Tailcap": {
       "char": "▖",
-      "group": "Building"
+      "group": "Item"
     },
-    "ArchotechEye": {
+    "Apparel_TortureCrown": {
       "char": "▗",
-      "group": "Building"
+      "group": "Item"
     },
-    "ArchotechLeg": {
+    "Apparel_TribalA": {
       "char": "▘",
-      "group": "Building"
+      "group": "Item"
     },
-    "ArchotechTower": {
+    "Apparel_TribalHeaddress": {
       "char": "▙",
-      "group": "Building"
+      "group": "Item"
     },
-    "ArmorskinGland": {
+    "Apparel_Tuque": {
       "char": "▚",
       "group": "Item"
     },
-    "Arrow_Great": {
+    "Apparel_VestRoyal": {
       "char": "▛",
       "group": "Item"
     },
-    "Arrow_Recurve": {
+    "Apparel_VisageMask": {
       "char": "▜",
       "group": "Item"
     },
-    "Arrow_Short": {
+    "Apparel_WarMask": {
       "char": "▝",
       "group": "Item"
     },
-    "Artillery_AutoMortar": {
+    "Apparel_WarVeil": {
       "char": "▞",
-      "group": "Building"
+      "group": "Item"
     },
-    "Artillery_Mortar": {
+    "ArchiteCapsule": {
       "char": "▟",
-      "group": "Building"
+      "group": "Item"
     },
-    "AtmosphericHeater": {
+    "ArchonexusCore": {
       "char": "▧",
       "group": "Building"
     },
-    "AtmosphericHeaterGlowingVents": {
+    "ArchotechArm": {
       "char": "▪",
-      "group": "Item"
+      "group": "Building"
     },
-    "Autobong": {
+    "ArchotechEye": {
       "char": "▫",
       "group": "Building"
     },
-    "Autodoor": {
+    "ArchotechLeg": {
       "char": "▬",
       "group": "Building"
     },
-    "BabyDecoration": {
+    "ArchotechTower": {
       "char": "▮",
       "group": "Building"
     },
-    "BabyFood": {
+    "ArmorskinGland": {
       "char": "▯",
       "group": "Item"
     },
-    "BabySleepingSpot": {
+    "Arrow_Great": {
       "char": "▱",
-      "group": "Building"
+      "group": "Item"
     },
-    "BandNode": {
+    "Arrow_Recurve": {
       "char": "▴",
-      "group": "Building"
+      "group": "Item"
     },
-    "BasicRecharger": {
+    "Arrow_Short": {
       "char": "▵",
+      "group": "Item"
+    },
+    "Artillery_AutoMortar": {
+      "char": "▶",
       "group": "Building"
     },
-    "Bear_Grizzly": {
-      "char": "▶",
-      "group": "Pawn"
-    },
-    "Bear_Polar": {
+    "Artillery_Mortar": {
       "char": "▷",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "BedrollDouble": {
+    "AtmosphericHeater": {
       "char": "▸",
       "group": "Building"
     },
-    "Beer": {
+    "AtmosphericHeaterGlowingVents": {
       "char": "▹",
       "group": "Item"
     },
-    "Bioferrite": {
+    "Autobong": {
       "char": "►",
-      "group": "Item"
+      "group": "Building"
     },
-    "BioferriteGenerator": {
+    "Autodoor": {
       "char": "▻",
       "group": "Building"
     },
-    "BioferriteHarvester": {
+    "BabyDecoration": {
       "char": "▼",
       "group": "Building"
     },
-    "BioferritePlate": {
+    "BabyFood": {
       "char": "▽",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "BioferriteShaper": {
+    "BabySleepingSpot": {
       "char": "▾",
       "group": "Building"
     },
-    "BiofuelRefinery": {
+    "BandNode": {
       "char": "▿",
       "group": "Building"
     },
-    "BiomutationPulser": {
+    "BasicRecharger": {
       "char": "◀",
-      "group": "Item"
-    },
-    "BiomutationWarmup": {
-      "char": "◁",
-      "group": "Item"
-    },
-    "BionicArm": {
-      "char": "◂",
       "group": "Building"
     },
-    "BionicEar": {
+    "Bear_Grizzly": {
+      "char": "◁",
+      "group": "Pawn"
+    },
+    "Bear_Polar": {
+      "char": "◂",
+      "group": "Pawn"
+    },
+    "BedrollDouble": {
       "char": "◃",
       "group": "Building"
     },
-    "BionicEye": {
+    "Beer": {
       "char": "◄",
-      "group": "Building"
+      "group": "Item"
     },
-    "BionicHeart": {
+    "Bioferrite": {
       "char": "◅",
-      "group": "Building"
+      "group": "Item"
     },
-    "BionicJaw": {
+    "BioferriteGenerator": {
       "char": "◘",
       "group": "Building"
     },
-    "BionicLeg": {
+    "BioferriteHarvester": {
       "char": "◙",
       "group": "Building"
     },
-    "BionicSpine": {
+    "BioferritePlate": {
       "char": "◚",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "BionicStomach": {
+    "BioferriteShaper": {
       "char": "◛",
       "group": "Building"
     },
-    "BionicTongue": {
+    "BiofuelRefinery": {
       "char": "◜",
       "group": "Building"
     },
-    "BiosculpterPod": {
+    "BiomutationPulser": {
       "char": "◝",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bison": {
+    "BiomutationWarmup": {
       "char": "◞",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Blackboard": {
+    "BionicArm": {
       "char": "◟",
       "group": "Building"
     },
-    "Blight": {
+    "BionicEar": {
       "char": "◠",
-      "group": "Item"
+      "group": "Building"
     },
-    "BlocksGranite": {
+    "BionicEye": {
       "char": "◡",
-      "group": "Item"
+      "group": "Building"
     },
-    "BlocksLimestone": {
+    "BionicHeart": {
       "char": "◢",
-      "group": "Item"
+      "group": "Building"
     },
-    "BlocksMarble": {
+    "BionicJaw": {
       "char": "◣",
-      "group": "Item"
+      "group": "Building"
     },
-    "BlocksSandstone": {
+    "BionicLeg": {
       "char": "◤",
-      "group": "Item"
+      "group": "Building"
     },
-    "BlocksSlate": {
+    "BionicSpine": {
       "char": "◥",
-      "group": "Item"
+      "group": "Building"
     },
-    "Boards_Totemic": {
+    "BionicStomach": {
       "char": "◦",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "Bombardment": {
+    "BionicTongue": {
       "char": "◧",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bookcase": {
+    "BiosculpterPod": {
       "char": "◨",
       "group": "Building"
     },
-    "BookcaseSmall": {
+    "Bison": {
       "char": "◩",
-      "group": "Building"
-    },
-    "Boomrat": {
-      "char": "◪",
       "group": "Pawn"
     },
-    "Bow_Great": {
+    "Blackboard": {
+      "char": "◪",
+      "group": "Building"
+    },
+    "Blight": {
       "char": "◬",
       "group": "Item"
     },
-    "Bow_Recurve": {
+    "BlocksGranite": {
       "char": "◭",
       "group": "Item"
     },
-    "Bow_Short": {
+    "BlocksLimestone": {
       "char": "◮",
       "group": "Item"
     },
-    "Brazier": {
+    "BlocksMarble": {
       "char": "◯",
-      "group": "Building"
+      "group": "Item"
     },
-    "Brewery": {
+    "BlocksSandstone": {
       "char": "◰",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bridge": {
+    "BlocksSlate": {
       "char": "◱",
+      "group": "Item"
+    },
+    "Boards_Totemic": {
+      "char": "◲",
       "group": "Terrain"
     },
-    "BroadshieldCore": {
-      "char": "◲",
+    "Bombardment": {
+      "char": "◳",
       "group": "Item"
     },
-    "BroadshieldProjector": {
-      "char": "◳",
+    "Bookcase": {
+      "char": "◴",
       "group": "Building"
     },
-    "Bryolux": {
-      "char": "◴",
-      "group": "Plant"
-    },
-    "Bulbfreak": {
+    "BookcaseSmall": {
       "char": "◵",
+      "group": "Building"
+    },
+    "Boomrat": {
+      "char": "◶",
       "group": "Pawn"
     },
-    "BulletShieldPsychic": {
-      "char": "◶",
-      "group": "Item"
-    },
-    "Bullet_AssaultRifle": {
+    "Bow_Great": {
       "char": "◷",
       "group": "Item"
     },
-    "Bullet_AutocannonTurret": {
+    "Bow_Recurve": {
       "char": "◸",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bullet_Autopistol": {
+    "Bow_Short": {
       "char": "◹",
       "group": "Item"
     },
-    "Bullet_BoltActionRifle": {
+    "Brazier": {
       "char": "◺",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_ChargeBlasterHeavy": {
+    "Brewery": {
       "char": "◻",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_ChargeLance": {
+    "Bridge": {
       "char": "◼",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "Bullet_ChargeRifle": {
+    "BroadshieldCore": {
       "char": "◽",
       "group": "Item"
     },
-    "Bullet_DoomsdayRocket": {
+    "BroadshieldProjector": {
       "char": "◾",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_EMPLauncher": {
+    "BrokenAsphalt": {
       "char": "◿",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "Bullet_FleshmelterBolt": {
+    "Bryolux": {
       "char": "∀",
-      "group": "Item"
+      "group": "Plant"
     },
-    "Bullet_Heatspike": {
+    "Bulbfreak": {
       "char": "∁",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Bullet_HeavySMG": {
+    "BulletShieldPsychic": {
       "char": "∂",
       "group": "Item"
     },
-    "Bullet_HellcatRifle": {
+    "Bullet_AssaultRifle": {
       "char": "∃",
       "group": "Item"
     },
-    "Bullet_HellsphereCannonGun": {
+    "Bullet_AutocannonTurret": {
       "char": "∄",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_IncendiaryLauncher": {
+    "Bullet_Autopistol": {
       "char": "∅",
       "group": "Item"
     },
-    "Bullet_InfernoCannon": {
+    "Bullet_BoltActionRifle": {
       "char": "∆",
       "group": "Item"
     },
-    "Bullet_LMG": {
+    "Bullet_ChargeBlasterHeavy": {
       "char": "∇",
       "group": "Item"
     },
-    "Bullet_MachinePistol": {
+    "Bullet_ChargeLance": {
       "char": "∈",
       "group": "Item"
     },
-    "Bullet_MiniShotgun": {
+    "Bullet_ChargeRifle": {
       "char": "∉",
       "group": "Item"
     },
-    "Bullet_MiniSlug": {
+    "Bullet_DoomsdayRocket": {
       "char": "∊",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bullet_MiniTurret": {
+    "Bullet_EMPLauncher": {
       "char": "∋",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bullet_Minigun": {
+    "Bullet_FleshmelterBolt": {
       "char": "∌",
       "group": "Item"
     },
-    "Bullet_NeedleGun": {
+    "Bullet_Heatspike": {
       "char": "∍",
       "group": "Item"
     },
-    "Bullet_Revolver": {
+    "Bullet_HeavySMG": {
       "char": "∏",
       "group": "Item"
     },
-    "Bullet_Rocket": {
+    "Bullet_HellcatRifle": {
       "char": "∐",
       "group": "Item"
     },
-    "Bullet_Shell_AcidSpit": {
+    "Bullet_HellsphereCannonGun": {
       "char": "∑",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bullet_Shell_AntigrainWarhead": {
+    "Bullet_IncendiaryLauncher": {
       "char": "−",
       "group": "Item"
     },
-    "Bullet_Shell_Deadlife": {
+    "Bullet_InfernoCannon": {
       "char": "∓",
       "group": "Item"
     },
-    "Bullet_Shell_EMP": {
+    "Bullet_LMG": {
       "char": "∔",
       "group": "Item"
     },
-    "Bullet_Shell_Firefoam": {
+    "Bullet_MachinePistol": {
       "char": "∕",
       "group": "Item"
     },
-    "Bullet_Shell_HighExplosive": {
+    "Bullet_MiniShotgun": {
       "char": "∖",
       "group": "Item"
     },
-    "Bullet_Shell_Incendiary": {
+    "Bullet_MiniSlug": {
       "char": "∗",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_Shell_Smoke": {
+    "Bullet_MiniTurret": {
       "char": "∘",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_Shell_Tox": {
+    "Bullet_Minigun": {
       "char": "√",
       "group": "Item"
     },
-    "Bullet_Shotgun": {
+    "Bullet_NeedleGun": {
       "char": "∛",
       "group": "Item"
     },
-    "Bullet_Slugthrower": {
+    "Bullet_Revolver": {
       "char": "∜",
       "group": "Item"
     },
-    "Bullet_SmokeLauncher": {
+    "Bullet_Rocket": {
       "char": "∝",
       "group": "Item"
     },
-    "Bullet_SniperRifle": {
+    "Bullet_Shell_AcidSpit": {
       "char": "∞",
-      "group": "Item"
+      "group": "Building"
     },
-    "Bullet_Spiner": {
+    "Bullet_Shell_AntigrainWarhead": {
       "char": "∟",
       "group": "Item"
     },
-    "Bullet_TacticalTurret": {
+    "Bullet_Shell_Deadlife": {
       "char": "∠",
-      "group": "Building"
+      "group": "Item"
     },
-    "Bullet_ThumpCannon": {
+    "Bullet_Shell_EMP": {
       "char": "∡",
       "group": "Item"
     },
-    "Bullet_ToxbombLauncher": {
+    "Bullet_Shell_Firefoam": {
       "char": "∢",
       "group": "Item"
     },
-    "Bullet_ToxicNeedleGun": {
+    "Bullet_Shell_HighExplosive": {
       "char": "∣",
       "group": "Item"
     },
-    "Bullet_TurretSniper": {
+    "Bullet_Shell_Incendiary": {
       "char": "∤",
-      "group": "Building"
+      "group": "Item"
     },
-    "Burnbong": {
+    "Bullet_Shell_Smoke": {
       "char": "∥",
-      "group": "Building"
+      "group": "Item"
     },
-    "BurnedBioferritePlate": {
+    "Bullet_Shell_Tox": {
       "char": "∦",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "BurnedCarpet": {
+    "Bullet_Shotgun": {
       "char": "∧",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "BurnedStrawMatting": {
+    "Bullet_Slugthrower": {
       "char": "∨",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "BurnedTree": {
+    "Bullet_SmokeLauncher": {
       "char": "∩",
-      "group": "Plant"
+      "group": "Item"
     },
-    "BurnedWoodPlankFloor": {
+    "Bullet_SniperRifle": {
       "char": "∪",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "BurningPowerCell": {
+    "Bullet_Spiner": {
       "char": "∫",
-      "group": "Building"
+      "group": "Item"
     },
-    "BurnoutMechlinkBooster": {
+    "Bullet_TacticalTurret": {
       "char": "∬",
       "group": "Building"
     },
-    "ButcherSpot": {
+    "Bullet_ThumpCannon": {
       "char": "∭",
-      "group": "Building"
+      "group": "Item"
     },
-    "CannibalPlatter": {
+    "Bullet_ToxbombLauncher": {
       "char": "∮",
-      "group": "Building"
+      "group": "Item"
     },
-    "Capybara": {
+    "Bullet_ToxicNeedleGun": {
       "char": "∯",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "CaravanPackingSpot": {
+    "Bullet_TurretSniper": {
       "char": "∰",
       "group": "Building"
     },
-    "Caribou": {
+    "Burnbong": {
       "char": "∱",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Carpet_Mindbend": {
+    "BurnedBioferritePlate": {
       "char": "∲",
       "group": "Terrain"
     },
-    "Carpet_MindbendA": {
+    "BurnedCarpet": {
       "char": "∳",
       "group": "Terrain"
     },
-    "Carpet_MindbendB": {
+    "BurnedStrawMatting": {
       "char": "∴",
       "group": "Terrain"
     },
-    "Carpet_MindbendC": {
+    "BurnedTree": {
       "char": "∵",
-      "group": "Terrain"
+      "group": "Plant"
     },
-    "Carpet_MindbendD": {
+    "BurnedWoodPlankFloor": {
       "char": "∶",
       "group": "Terrain"
     },
-    "Carpet_MindbendE": {
+    "BurningPowerCell": {
       "char": "∷",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "Cassowary": {
+    "BurnoutMechlinkBooster": {
       "char": "∸",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Cat": {
+    "ButcherSpot": {
       "char": "∹",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "CaveExit": {
+    "CannibalPlatter": {
       "char": "∻",
       "group": "Building"
     },
-    "ChemfuelPoweredGenerator": {
+    "Capybara": {
       "char": "∼",
-      "group": "Building"
-    },
-    "Chicken": {
-      "char": "∽",
       "group": "Pawn"
     },
-    "Chimera": {
+    "CaravanPackingSpot": {
+      "char": "∽",
+      "group": "Building"
+    },
+    "Caribou": {
       "char": "∾",
       "group": "Pawn"
     },
-    "Chinchilla": {
+    "Carpet_Mindbend": {
       "char": "∿",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendA": {
+      "char": "≁",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendB": {
+      "char": "≂",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendC": {
+      "char": "≃",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendD": {
+      "char": "≄",
+      "group": "Terrain"
+    },
+    "Carpet_MindbendE": {
+      "char": "≅",
+      "group": "Terrain"
+    },
+    "Cassowary": {
+      "char": "≆",
       "group": "Pawn"
     },
-    "Chocolate": {
-      "char": "≁",
-      "group": "Item"
-    },
-    "ChoppedStump": {
-      "char": "≂",
-      "group": "Plant"
-    },
-    "ChoppedStump_Anima": {
-      "char": "≃",
-      "group": "Plant"
-    },
-    "ChoppedStump_Gauranlen": {
-      "char": "≄",
-      "group": "Plant"
-    },
-    "ChoppedStump_Harbinger": {
-      "char": "≅",
-      "group": "Plant"
-    },
-    "ChoppedStump_Polluted": {
-      "char": "≆",
-      "group": "Plant"
-    },
-    "ChoppedStump_Polux": {
+    "Cat": {
       "char": "≇",
-      "group": "Plant"
+      "group": "Pawn"
     },
-    "ChristmasTree": {
+    "CaveExit": {
       "char": "≉",
       "group": "Building"
     },
-    "ChunkGranite": {
+    "ChemfuelPoweredGenerator": {
       "char": "≊",
-      "group": "Item"
-    },
-    "ChunkLimestone": {
-      "char": "≌",
-      "group": "Item"
-    },
-    "ChunkMarble": {
-      "char": "≍",
-      "group": "Item"
-    },
-    "ChunkMechanoidSlag": {
-      "char": "≎",
       "group": "Building"
     },
-    "ChunkSlate": {
+    "Chicken": {
+      "char": "≌",
+      "group": "Pawn"
+    },
+    "Chimera": {
+      "char": "≍",
+      "group": "Pawn"
+    },
+    "Chinchilla": {
+      "char": "≎",
+      "group": "Pawn"
+    },
+    "Chocolate": {
       "char": "≏",
       "group": "Item"
     },
-    "CircadianAssistant": {
+    "ChoppedStump": {
       "char": "≐",
-      "group": "Item"
+      "group": "Plant"
     },
-    "CircadianHalfCycler": {
+    "ChoppedStump_Anima": {
       "char": "≑",
-      "group": "Item"
+      "group": "Plant"
     },
-    "ClimateAdjuster": {
+    "ChoppedStump_Gauranlen": {
       "char": "≒",
-      "group": "Building"
+      "group": "Plant"
     },
-    "Coagulator": {
+    "ChoppedStump_Harbinger": {
       "char": "≓",
-      "group": "Item"
+      "group": "Plant"
     },
-    "Cobra": {
+    "ChoppedStump_Polluted": {
       "char": "≔",
-      "group": "Pawn"
+      "group": "Plant"
     },
-    "CochlearImplant": {
+    "ChoppedStump_Polux": {
       "char": "≕",
-      "group": "Building"
+      "group": "Plant"
     },
-    "CocoonMegascarab": {
+    "ChristmasTree": {
       "char": "≖",
       "group": "Building"
     },
-    "CocoonMegaspider": {
+    "ChunkGranite": {
       "char": "≗",
-      "group": "Building"
+      "group": "Item"
     },
-    "CocoonSpawner": {
+    "ChunkLimestone": {
       "char": "≘",
       "group": "Item"
     },
-    "CocoonSpelopede": {
+    "ChunkMarble": {
       "char": "≙",
-      "group": "Building"
+      "group": "Item"
     },
-    "CollapsedRocks": {
+    "ChunkMechanoidSlag": {
       "char": "≚",
       "group": "Building"
     },
-    "ControlSublink": {
+    "ChunkSandstone": {
       "char": "≛",
       "group": "Item"
     },
-    "ControlSublinkHigh": {
+    "ChunkSlagSteel": {
       "char": "≜",
       "group": "Item"
     },
-    "CorrosiveHeart": {
+    "ChunkSlate": {
       "char": "≝",
       "group": "Item"
     },
-    "Couch": {
+    "CircadianAssistant": {
       "char": "≞",
+      "group": "Item"
+    },
+    "CircadianHalfCycler": {
+      "char": "≟",
+      "group": "Item"
+    },
+    "ClimateAdjuster": {
+      "char": "≠",
       "group": "Building"
     },
-    "Cougar": {
-      "char": "≟",
-      "group": "Pawn"
-    },
-    "Cow": {
-      "char": "≠",
-      "group": "Pawn"
-    },
-    "CracksShieldBreak": {
+    "Coagulator": {
       "char": "≢",
       "group": "Item"
     },
-    "CraftingSpot": {
+    "Cobra": {
       "char": "≣",
+      "group": "Pawn"
+    },
+    "CochlearImplant": {
+      "char": "≤",
       "group": "Building"
     },
-    "CrashedShipPartIncoming": {
-      "char": "≤",
-      "group": "Item"
-    },
-    "CraterLarge": {
+    "CocoonMegascarab": {
       "char": "≥",
       "group": "Building"
     },
-    "CraterMedium": {
+    "CocoonMegaspider": {
       "char": "≦",
       "group": "Building"
     },
-    "CraterSmall": {
+    "CocoonSpawner": {
       "char": "≧",
+      "group": "Item"
+    },
+    "CocoonSpelopede": {
+      "char": "≨",
       "group": "Building"
     },
-    "CreepJoiner": {
-      "char": "≨",
-      "group": "Pawn"
-    },
-    "DarklightBrazier": {
+    "CollapsedRocks": {
       "char": "≩",
       "group": "Building"
     },
-    "Darktorch": {
+    "ControlSublink": {
       "char": "≪",
-      "group": "Building"
+      "group": "Item"
     },
-    "DarktorchFungus": {
+    "ControlSublinkHigh": {
       "char": "≫",
-      "group": "Building"
+      "group": "Item"
     },
-    "DeathAcidifier": {
+    "CorrosiveHeart": {
       "char": "≬",
-      "group": "Building"
+      "group": "Item"
     },
-    "DeathrestAccelerator": {
+    "Couch": {
       "char": "≭",
       "group": "Building"
     },
-    "DeathrestCapacitySerum": {
+    "Cougar": {
       "char": "≮",
-      "group": "Item"
-    },
-    "DeathrestCasket": {
-      "char": "≯",
-      "group": "Building"
-    },
-    "DeepDrill": {
-      "char": "≰",
-      "group": "Building"
-    },
-    "Deer": {
-      "char": "≱",
       "group": "Pawn"
     },
-    "Defoliator": {
-      "char": "≲",
+    "Cow": {
+      "char": "≯",
+      "group": "Pawn"
+    },
+    "CracksShieldBreak": {
+      "char": "≰",
+      "group": "Item"
+    },
+    "CraftingSpot": {
+      "char": "≱",
       "group": "Building"
     },
-    "DefoliatorShipPart": {
+    "CrashedShipPartIncoming": {
+      "char": "≲",
+      "group": "Item"
+    },
+    "CraterLarge": {
       "char": "≳",
       "group": "Building"
     },
-    "DelayedEffecterSpawner": {
+    "CraterMedium": {
       "char": "≴",
       "group": "Building"
     },
-    "DelayedMetalhorrorEmerger": {
+    "CraterSmall": {
       "char": "≵",
       "group": "Building"
     },
-    "DetoxifierKidney": {
+    "CreepJoiner": {
       "char": "≶",
-      "group": "Item"
-    },
-    "DetoxifierLung": {
-      "char": "≷",
-      "group": "Item"
-    },
-    "DetoxifierStomach": {
-      "char": "≸",
-      "group": "Item"
-    },
-    "DevilstrandCloth": {
-      "char": "≹",
-      "group": "Item"
-    },
-    "Devourer": {
-      "char": "≺",
       "group": "Pawn"
     },
-    "DirtCubeSculpture": {
+    "DarklightBrazier": {
+      "char": "≷",
+      "group": "Building"
+    },
+    "Darktorch": {
+      "char": "≸",
+      "group": "Building"
+    },
+    "DarktorchFungus": {
+      "char": "≹",
+      "group": "Building"
+    },
+    "DeathAcidifier": {
+      "char": "≺",
+      "group": "Building"
+    },
+    "DeathrestAccelerator": {
       "char": "≻",
       "group": "Building"
     },
-    "DisruptorFlare": {
+    "DeathrestCapacitySerum": {
       "char": "≼",
       "group": "Item"
     },
-    "Donkey": {
+    "DeathrestCasket": {
       "char": "≽",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "DoubleSleepingSpot": {
+    "DeepDrill": {
       "char": "≾",
       "group": "Building"
     },
-    "Drape": {
+    "Deer": {
       "char": "≿",
+      "group": "Pawn"
+    },
+    "Defoliator": {
+      "char": "⊀",
       "group": "Building"
     },
-    "Dreadmeld": {
-      "char": "⊀",
-      "group": "Pawn"
-    },
-    "DrillArm": {
+    "DefoliatorShipPart": {
       "char": "⊁",
-      "group": "Item"
+      "group": "Building"
     },
-    "Dromedary": {
+    "DelayedEffecterSpawner": {
       "char": "⊃",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "DropPodIncoming": {
+    "DelayedMetalhorrorEmerger": {
       "char": "⊄",
-      "group": "Item"
+      "group": "Building"
     },
-    "DropPodIncomingMechanoidRapid": {
+    "DetoxifierKidney": {
       "char": "⊅",
       "group": "Item"
     },
-    "DropPodLeaving": {
+    "DetoxifierLung": {
       "char": "⊆",
       "group": "Item"
     },
-    "DrugLab": {
+    "DetoxifierStomach": {
       "char": "⊇",
-      "group": "Building"
+      "group": "Item"
     },
-    "Drum": {
+    "DevilstrandCloth": {
       "char": "⊈",
-      "group": "Building"
+      "group": "Item"
     },
-    "DryadCocoon": {
+    "Devourer": {
       "char": "⊉",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "DryadHealingPod": {
+    "DirtCubeSculpture": {
       "char": "⊊",
       "group": "Building"
     },
-    "Dryad_Barkskin": {
+    "DisruptorFlare": {
       "char": "⊋",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Dryad_Basic": {
+    "Donkey": {
       "char": "⊌",
       "group": "Pawn"
     },
-    "Dryad_Berrymaker": {
+    "DoubleSleepingSpot": {
       "char": "⊍",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Dryad_Carrier": {
+    "Drape": {
       "char": "⊎",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Dryad_Clawer": {
+    "Dreadmeld": {
       "char": "⊏",
       "group": "Pawn"
     },
-    "Dryad_Gaumaker": {
+    "DrillArm": {
       "char": "⊐",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Dryad_Medicinemaker": {
+    "Dromedary": {
       "char": "⊑",
       "group": "Pawn"
     },
-    "Dryad_Woodmaker": {
+    "DropPodIncoming": {
       "char": "⊒",
-      "group": "Pawn"
-    },
-    "Duck": {
-      "char": "⊓",
-      "group": "Pawn"
-    },
-    "Dye": {
-      "char": "⊔",
-      "group": "Plant"
-    },
-    "DyingRevenant": {
-      "char": "⊕",
       "group": "Item"
     },
-    "EMIDynamo": {
+    "DropPodIncomingMechanoidRapid": {
+      "char": "⊓",
+      "group": "Item"
+    },
+    "DropPodLeaving": {
+      "char": "⊔",
+      "group": "Item"
+    },
+    "DrugLab": {
+      "char": "⊕",
+      "group": "Building"
+    },
+    "Drum": {
       "char": "⊖",
       "group": "Building"
     },
-    "Effigy": {
+    "DryadCocoon": {
       "char": "⊘",
       "group": "Building"
     },
-    "EggBox": {
+    "DryadHealingPod": {
       "char": "⊙",
       "group": "Building"
     },
-    "EggCassowaryFertilized": {
+    "Dryad_Barkskin": {
       "char": "⊚",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggCassowaryUnfertilized": {
+    "Dryad_Basic": {
       "char": "⊛",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggChickenFertilized": {
+    "Dryad_Berrymaker": {
       "char": "⊜",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggChickenUnfertilized": {
+    "Dryad_Carrier": {
       "char": "⊝",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggCobraFertilized": {
+    "Dryad_Clawer": {
       "char": "⊠",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggCobraUnfertilized": {
+    "Dryad_Gaumaker": {
       "char": "⊡",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggDuckFertilized": {
+    "Dryad_Medicinemaker": {
       "char": "⊢",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggDuckUnfertilized": {
+    "Dryad_Woodmaker": {
       "char": "⊣",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggEmuFertilized": {
+    "Duck": {
       "char": "⊤",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "EggEmuUnfertilized": {
+    "Dye": {
       "char": "⊥",
-      "group": "Item"
+      "group": "Plant"
     },
-    "EggGooseFertilized": {
+    "DyingRevenant": {
       "char": "⊦",
       "group": "Item"
     },
-    "EggGooseUnfertilized": {
+    "EMIDynamo": {
       "char": "⊧",
-      "group": "Item"
+      "group": "Building"
     },
-    "EggIguanaFertilized": {
+    "Effigy": {
       "char": "⊨",
-      "group": "Item"
+      "group": "Building"
     },
-    "EggIguanaUnfertilized": {
+    "EggBox": {
       "char": "⊩",
-      "group": "Item"
+      "group": "Building"
     },
-    "EggOstrichFertilized": {
+    "EggCassowaryFertilized": {
       "char": "⊪",
       "group": "Item"
     },
-    "EggOstrichUnfertilized": {
+    "EggCassowaryUnfertilized": {
       "char": "⊫",
       "group": "Item"
     },
-    "EggTortoiseFertilized": {
+    "EggChickenFertilized": {
       "char": "⊬",
       "group": "Item"
     },
-    "EggTortoiseUnfertilized": {
+    "EggChickenUnfertilized": {
       "char": "⊭",
       "group": "Item"
     },
-    "EggTurkeyFertilized": {
+    "EggCobraFertilized": {
       "char": "⊮",
       "group": "Item"
     },
-    "EggTurkeyUnfertilized": {
+    "EggCobraUnfertilized": {
       "char": "⊯",
       "group": "Item"
     },
-    "ElbowBlade": {
+    "EggDuckFertilized": {
       "char": "⊰",
       "group": "Item"
     },
-    "ElectricCrematorium": {
+    "EggDuckUnfertilized": {
       "char": "⊱",
-      "group": "Building"
+      "group": "Item"
     },
-    "ElectricInhibitor": {
+    "EggEmuFertilized": {
       "char": "⊲",
-      "group": "Building"
+      "group": "Item"
     },
-    "ElectricSmelter": {
+    "EggEmuUnfertilized": {
       "char": "⊳",
-      "group": "Building"
+      "group": "Item"
     },
-    "ElectricTailoringBench": {
+    "EggGooseFertilized": {
       "char": "⊴",
-      "group": "Building"
+      "group": "Item"
     },
-    "Electroharvester": {
+    "EggGooseUnfertilized": {
       "char": "⊵",
-      "group": "Building"
+      "group": "Item"
     },
-    "Elephant": {
+    "EggIguanaFertilized": {
       "char": "⊶",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "ElephantTusk": {
+    "EggIguanaUnfertilized": {
       "char": "⊷",
       "group": "Item"
     },
-    "Elk": {
+    "EggOstrichFertilized": {
       "char": "⊸",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Emu": {
+    "EggOstrichUnfertilized": {
       "char": "⊹",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "EndTable": {
+    "EggTortoiseFertilized": {
       "char": "⊺",
-      "group": "Building"
+      "group": "Item"
     },
-    "EndlessPit2x2c": {
+    "EggTortoiseUnfertilized": {
       "char": "⊻",
-      "group": "Building"
+      "group": "Item"
     },
-    "EndlessPit3x2c": {
+    "EggTurkeyFertilized": {
       "char": "⊼",
-      "group": "Building"
+      "group": "Item"
     },
-    "EndlessPit3x3c": {
+    "EggTurkeyUnfertilized": {
       "char": "⊽",
-      "group": "Building"
+      "group": "Item"
     },
-    "Explosion": {
+    "ElbowBlade": {
       "char": "⊾",
       "group": "Item"
     },
-    "FermentingBarrel": {
+    "ElectricCrematorium": {
       "char": "⊿",
       "group": "Building"
     },
-    "FieldHand": {
+    "ElectricInhibitor": {
       "char": "⋀",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_AmnioticFluid": {
+    "ElectricSmelter": {
       "char": "⋁",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_AnimalFilth": {
+    "ElectricTailoringBench": {
       "char": "⋂",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_Ash": {
+    "Electroharvester": {
       "char": "⋃",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_BlastMark": {
+    "Elephant": {
       "char": "⋄",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Filth_Blood": {
+    "ElephantTusk": {
       "char": "⋅",
       "group": "Item"
     },
-    "Filth_BloodInsect": {
+    "Elk": {
       "char": "⋆",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Filth_BloodSmear": {
+    "Emu": {
       "char": "⋇",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Filth_CorpseBile": {
+    "EndTable": {
       "char": "⋈",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_DarkBlood": {
+    "EndlessPit2x2c": {
       "char": "⋉",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_DarkBloodSmear": {
+    "EndlessPit3x2c": {
       "char": "⋊",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_Dirt": {
+    "EndlessPit3x3c": {
       "char": "⋋",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_DriedBlood": {
+    "Explosion": {
       "char": "⋌",
       "group": "Item"
     },
-    "Filth_FireFoam": {
+    "FermentingBarrel": {
       "char": "⋍",
-      "group": "Item"
+      "group": "Building"
     },
-    "Filth_FlammableBile": {
+    "FieldHand": {
       "char": "⋎",
       "group": "Item"
     },
-    "Filth_Fleshmass": {
+    "Filth_AmnioticFluid": {
       "char": "⋏",
       "group": "Item"
     },
-    "Filth_Floordrawing": {
+    "Filth_AnimalFilth": {
       "char": "⋐",
       "group": "Item"
     },
-    "Filth_Fuel": {
+    "Filth_Ash": {
       "char": "⋑",
       "group": "Item"
     },
-    "Filth_GestationFluid": {
+    "Filth_BlastMark": {
       "char": "⋒",
       "group": "Item"
     },
-    "Filth_GrayFlesh": {
+    "Filth_Blood": {
       "char": "⋓",
       "group": "Item"
     },
-    "Filth_GrayFleshNoticeable": {
+    "Filth_BloodInsect": {
       "char": "⋔",
       "group": "Item"
     },
-    "Filth_Hair": {
+    "Filth_BloodSmear": {
       "char": "⋕",
       "group": "Item"
     },
-    "Filth_LooseGround": {
+    "Filth_CorpseBile": {
       "char": "⋖",
       "group": "Item"
     },
-    "Filth_MachineBits": {
+    "Filth_DarkBlood": {
       "char": "⋗",
       "group": "Item"
     },
-    "Filth_MetalhorrorDebris": {
+    "Filth_DarkBloodSmear": {
       "char": "⋘",
       "group": "Item"
     },
-    "Filth_MoldyUniform": {
+    "Filth_Dirt": {
       "char": "⋙",
       "group": "Item"
     },
-    "Filth_OilSmear": {
+    "Filth_DriedBlood": {
       "char": "⋚",
       "group": "Item"
     },
-    "Filth_PodSlime": {
+    "Filth_FireFoam": {
       "char": "⋛",
       "group": "Item"
     },
-    "Filth_RevenantBloodPool": {
+    "Filth_FlammableBile": {
       "char": "⋜",
       "group": "Item"
     },
-    "Filth_RevenantSmear": {
+    "Filth_Fleshmass": {
       "char": "⋝",
       "group": "Item"
     },
-    "Filth_RubbleBuilding": {
+    "Filth_Floordrawing": {
       "char": "⋞",
       "group": "Item"
     },
-    "Filth_RubbleRock": {
+    "Filth_Fuel": {
       "char": "⋟",
       "group": "Item"
     },
-    "Filth_Sand": {
+    "Filth_GestationFluid": {
       "char": "⋠",
       "group": "Item"
     },
-    "Filth_ScatteredDocuments": {
+    "Filth_GrayFlesh": {
       "char": "⋡",
       "group": "Item"
     },
-    "Filth_Slime": {
+    "Filth_GrayFleshNoticeable": {
       "char": "⋢",
       "group": "Item"
     },
-    "Filth_SpentAcid": {
+    "Filth_Hair": {
       "char": "⋣",
       "group": "Item"
     },
-    "Filth_Trash": {
+    "Filth_LooseGround": {
       "char": "⋤",
       "group": "Item"
     },
-    "Filth_TwistedFlesh": {
+    "Filth_MachineBits": {
       "char": "⋥",
       "group": "Item"
     },
-    "Filth_Vomit": {
+    "Filth_MetalhorrorDebris": {
       "char": "⋦",
       "group": "Item"
     },
-    "Filth_Water": {
+    "Filth_MoldyUniform": {
       "char": "⋧",
       "group": "Item"
     },
-    "FineTileGranite": {
+    "Filth_OilSmear": {
       "char": "⋨",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FineTileLimestone": {
+    "Filth_PodSlime": {
       "char": "⋩",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FineTileMarble": {
+    "Filth_RevenantBloodPool": {
       "char": "⋪",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FineTileSandstone": {
+    "Filth_RevenantSmear": {
       "char": "⋫",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FineTileSlate": {
+    "Filth_RubbleBuilding": {
       "char": "⋬",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FineTileVacstone": {
+    "Filth_RubbleRock": {
       "char": "⋭",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "Fingerspike": {
+    "Filth_Sand": {
       "char": "⋮",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Fire": {
+    "Filth_ScatteredDocuments": {
       "char": "⋯",
       "group": "Item"
     },
-    "FirefoamPopper": {
+    "Filth_Slime": {
       "char": "⋰",
-      "group": "Building"
+      "group": "Item"
     },
-    "FlagstoneGranite": {
+    "Filth_SpentAcid": {
       "char": "⋱",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FlagstoneLimestone": {
+    "Filth_Trash": {
       "char": "⋲",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FlagstoneMarble": {
+    "Filth_TwistedFlesh": {
       "char": "⋳",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FlagstoneSandstone": {
+    "Filth_Vomit": {
       "char": "⋴",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "FlagstoneSlate": {
+    "Filth_Water": {
       "char": "⋵",
+      "group": "Item"
+    },
+    "FineTileGranite": {
+      "char": "⋶",
       "group": "Terrain"
     },
-    "Flake": {
-      "char": "⋶",
-      "group": "Item"
-    },
-    "Flamebow": {
+    "FineTileLimestone": {
       "char": "⋷",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "FlashShieldBreak": {
+    "FineTileMarble": {
       "char": "⋸",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "Flashstorm": {
+    "FineTileSandstone": {
       "char": "⋹",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "FlatscreenTelevision": {
+    "FineTileSlate": {
       "char": "⋺",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "Flesh": {
+    "FineTileVacstone": {
       "char": "⋻",
       "group": "Terrain"
     },
-    "FleshSack": {
+    "Fingerspike": {
       "char": "⋼",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "FleshbeastGroundSpawner": {
+    "Fire": {
       "char": "⋽",
       "group": "Item"
     },
-    "Fleshbulb": {
+    "FirefoamPopper": {
       "char": "⋾",
       "group": "Building"
     },
-    "Fleshmass": {
+    "FlagstoneGranite": {
       "char": "⋿",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "FleshmassHeart": {
+    "FlagstoneLimestone": {
       "char": "☂",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "FleshmassHeartSpawner": {
+    "FlagstoneMarble": {
       "char": "☃",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "FleshmassNeuralLump": {
+    "FlagstoneSandstone": {
       "char": "☄",
+      "group": "Terrain"
+    },
+    "FlagstoneSlate": {
+      "char": "★",
+      "group": "Terrain"
+    },
+    "Flake": {
+      "char": "☆",
       "group": "Item"
     },
-    "FleshmassNucleus": {
-      "char": "★",
-      "group": "Pawn"
-    },
-    "FleshmassSpitter": {
-      "char": "☆",
-      "group": "Building"
-    },
-    "Fleshmass_Active": {
+    "Flamebow": {
       "char": "☇",
-      "group": "Building"
+      "group": "Item"
     },
-    "FloodLight": {
+    "FlashShieldBreak": {
       "char": "☈",
-      "group": "Building"
+      "group": "Item"
     },
-    "FloorEtching": {
+    "Flashstorm": {
       "char": "☊",
-      "group": "Building"
+      "group": "Item"
     },
-    "FloorEtchingRambling": {
+    "FlatscreenTelevision": {
       "char": "☋",
       "group": "Building"
     },
-    "FlyerArrival": {
+    "Flesh": {
       "char": "☌",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "FlyerLeaving": {
+    "FleshSack": {
       "char": "☍",
+      "group": "Building"
+    },
+    "FleshbeastGroundSpawner": {
+      "char": "☎",
       "group": "Item"
     },
-    "Fox_Arctic": {
-      "char": "☎",
-      "group": "Pawn"
-    },
-    "Fox_Fennec": {
+    "Fleshbulb": {
       "char": "☏",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Fox_Red": {
+    "Fleshmass": {
       "char": "☐",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "FrenzyInducer": {
+    "FleshmassHeart": {
       "char": "☑",
       "group": "Building"
     },
-    "FueledSmithy": {
+    "FleshmassHeartSpawner": {
       "char": "☒",
       "group": "Building"
     },
-    "FungalGravel": {
+    "FleshmassNeuralLump": {
       "char": "☓",
-      "group": "Terrain"
-    },
-    "GameOfUrBoard": {
-      "char": "☔",
-      "group": "Building"
-    },
-    "GastroAnalyzer": {
-      "char": "☖",
       "group": "Item"
     },
-    "GaumakerCocoon": {
+    "FleshmassNucleus": {
+      "char": "☔",
+      "group": "Pawn"
+    },
+    "FleshmassSpitter": {
+      "char": "☖",
+      "group": "Building"
+    },
+    "Fleshmass_Active": {
       "char": "☗",
       "group": "Building"
     },
-    "GauranlenSeed": {
+    "FloodLight": {
       "char": "☙",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Gazelle": {
+    "FloorEtching": {
       "char": "☚",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "GeneAssembler": {
+    "FloorEtchingRambling": {
       "char": "☛",
       "group": "Building"
     },
-    "GeneBank": {
+    "FlyerArrival": {
       "char": "☜",
-      "group": "Building"
+      "group": "Item"
     },
-    "GeneExtractor": {
+    "FlyerLeaving": {
       "char": "☝",
-      "group": "Building"
+      "group": "Item"
     },
-    "GeneProcessor": {
+    "Fox_Arctic": {
       "char": "☞",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "Genepack": {
+    "Fox_Fennec": {
       "char": "☟",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "GhoulBarbs": {
+    "Fox_Red": {
       "char": "☠",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "GhoulPlating": {
+    "FrenzyInducer": {
       "char": "☡",
-      "group": "Item"
-    },
-    "GhoulResurrectionSerum": {
-      "char": "☤",
-      "group": "Item"
-    },
-    "GibbetCage": {
-      "char": "☥",
       "group": "Building"
     },
-    "Gloomlight": {
+    "FueledSmithy": {
+      "char": "☤",
+      "group": "Building"
+    },
+    "FungalGravel": {
+      "char": "☥",
+      "group": "Terrain"
+    },
+    "GameOfUrBoard": {
       "char": "☦",
       "group": "Building"
     },
-    "GlowPod": {
+    "GastroAnalyzer": {
       "char": "☧",
+      "group": "Item"
+    },
+    "GaumakerCocoon": {
+      "char": "☨",
       "group": "Building"
     },
-    "Glowstool": {
-      "char": "☨",
+    "GauranlenSeed": {
+      "char": "☩",
       "group": "Plant"
     },
-    "GlucosoidPump": {
-      "char": "☩",
-      "group": "Building"
-    },
-    "GoJuice": {
+    "Gazelle": {
       "char": "☪",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Goat": {
+    "GeneAssembler": {
       "char": "☫",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "GoldTile": {
+    "GeneBank": {
       "char": "☬",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "GoldenCube": {
+    "GeneExtractor": {
       "char": "☭",
+      "group": "Building"
+    },
+    "GeneProcessor": {
+      "char": "☮",
+      "group": "Building"
+    },
+    "Genepack": {
+      "char": "☰",
       "group": "Item"
     },
-    "Goose": {
-      "char": "☮",
-      "group": "Pawn"
-    },
-    "Gorehulk": {
-      "char": "☰",
-      "group": "Pawn"
-    },
-    "GrandArchotechStructure": {
+    "GhoulBarbs": {
       "char": "☱",
-      "group": "Building"
+      "group": "Item"
     },
-    "GrandThrone": {
+    "GhoulPlating": {
       "char": "☲",
-      "group": "Building"
+      "group": "Item"
     },
-    "Granite": {
+    "GhoulResurrectionSerum": {
       "char": "☳",
       "group": "Item"
     },
-    "GrayBox": {
+    "GibbetCage": {
       "char": "☵",
       "group": "Building"
     },
-    "GrayDoor": {
+    "Gloomlight": {
       "char": "☶",
       "group": "Building"
     },
-    "GrayFleshSample": {
+    "GlowPod": {
       "char": "☷",
-      "group": "Item"
-    },
-    "GrayStatueDeadlifeDust": {
-      "char": "☸",
       "group": "Building"
     },
-    "GrayStatueTeleporter": {
+    "Glowstool": {
+      "char": "☸",
+      "group": "Plant"
+    },
+    "GlucosoidPump": {
       "char": "☹",
       "group": "Building"
     },
-    "GraySurface": {
+    "GoJuice": {
       "char": "☽",
-      "group": "Terrain"
-    },
-    "GrayWall": {
-      "char": "☾",
-      "group": "Building"
-    },
-    "Grenade_Deadlife": {
-      "char": "☿",
       "group": "Item"
     },
-    "Grenade_DisruptorFlare": {
+    "Goat": {
+      "char": "☾",
+      "group": "Pawn"
+    },
+    "GoldTile": {
+      "char": "☿",
+      "group": "Terrain"
+    },
+    "GoldenCube": {
       "char": "♀",
       "group": "Item"
     },
-    "Grenade_TurretPack": {
+    "Goose": {
       "char": "♂",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "GroundCrackHuge": {
+    "Gorehulk": {
       "char": "♃",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "GroundPenetratingScanner": {
+    "GrandArchotechStructure": {
       "char": "♄",
       "group": "Building"
     },
-    "GrowthVat": {
+    "GrandThrone": {
       "char": "♅",
       "group": "Building"
     },
-    "GuineaPig": {
+    "Granite": {
       "char": "♆",
-      "group": "Pawn"
-    },
-    "Gun_AssaultRifle": {
-      "char": "♇",
       "group": "Item"
     },
-    "Gun_AutocannonTurret": {
+    "GrayBox": {
+      "char": "♇",
+      "group": "Building"
+    },
+    "GrayDoor": {
       "char": "♈",
       "group": "Building"
     },
-    "Gun_Autopistol": {
+    "GrayFleshSample": {
       "char": "♉",
       "group": "Item"
     },
-    "Gun_BeamGraser": {
+    "GrayStatueDeadlifeDust": {
       "char": "♊",
-      "group": "Item"
-    },
-    "Gun_BoltActionRifle": {
-      "char": "♋",
-      "group": "Item"
-    },
-    "Gun_ChainShotgun": {
-      "char": "♌",
-      "group": "Item"
-    },
-    "Gun_ChargeBlasterHeavy": {
-      "char": "♍",
-      "group": "Item"
-    },
-    "Gun_ChargeBlasterHeavyTurret": {
-      "char": "♎",
       "group": "Building"
     },
-    "Gun_ChargeBlasterTurret": {
-      "char": "♏",
-      "group": "Pawn"
+    "GrayStatueTeleporter": {
+      "char": "♋",
+      "group": "Building"
     },
-    "Gun_ChargeLance": {
+    "GraySurface": {
+      "char": "♌",
+      "group": "Terrain"
+    },
+    "GrayWall": {
+      "char": "♍",
+      "group": "Building"
+    },
+    "Grenade_Deadlife": {
+      "char": "♎",
+      "group": "Item"
+    },
+    "Grenade_DisruptorFlare": {
+      "char": "♏",
+      "group": "Item"
+    },
+    "Grenade_TurretPack": {
       "char": "♐",
       "group": "Item"
     },
-    "Gun_ChargeRifle": {
+    "GroundCrackHuge": {
       "char": "♑",
       "group": "Item"
     },
-    "Gun_DoomsdayRocket": {
+    "GroundPenetratingScanner": {
       "char": "♒",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_EmpLauncher": {
+    "GrowthVat": {
       "char": "♓",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_HeavySMG": {
+    "GuineaPig": {
       "char": "♕",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Gun_HellcatRifle": {
+    "Gun_AssaultRifle": {
       "char": "♖",
       "group": "Item"
     },
-    "Gun_HellsphereCannon": {
+    "Gun_AutocannonTurret": {
       "char": "♗",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_IncendiaryLauncher": {
+    "Gun_Autopistol": {
       "char": "♙",
       "group": "Item"
     },
-    "Gun_Incinerator": {
+    "Gun_BeamGraser": {
       "char": "♚",
       "group": "Item"
     },
-    "Gun_InfernoCannon": {
+    "Gun_BoltActionRifle": {
       "char": "♝",
       "group": "Item"
     },
-    "Gun_InfernoCannonTurret": {
+    "Gun_ChainShotgun": {
       "char": "♟",
-      "group": "Building"
+      "group": "Item"
     },
-    "Gun_LMG": {
+    "Gun_ChargeBlasterHeavy": {
       "char": "♦",
       "group": "Item"
     },
-    "Gun_MachinePistol": {
+    "Gun_ChargeBlasterHeavyTurret": {
       "char": "♪",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_MiniFlameblaster": {
+    "Gun_ChargeBlasterTurret": {
       "char": "♯",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Gun_MiniShotgun": {
+    "Gun_ChargeLance": {
       "char": "♰",
       "group": "Item"
     },
-    "Gun_MiniTurret": {
+    "Gun_ChargeRifle": {
       "char": "♱",
-      "group": "Building"
+      "group": "Item"
     },
-    "Gun_MiniTurretMech": {
+    "Gun_DoomsdayRocket": {
       "char": "♲",
-      "group": "Building"
+      "group": "Item"
     },
-    "Gun_Minigun": {
+    "Gun_EmpLauncher": {
       "char": "♳",
       "group": "Item"
     },
-    "Gun_Needle": {
+    "Gun_HeavySMG": {
       "char": "♴",
       "group": "Item"
     },
-    "Gun_NeedleLauncher": {
+    "Gun_HellcatRifle": {
       "char": "♵",
       "group": "Item"
     },
-    "Gun_PumpShotgun": {
+    "Gun_HellsphereCannon": {
       "char": "♶",
       "group": "Item"
     },
-    "Gun_Revolver": {
+    "Gun_IncendiaryLauncher": {
       "char": "♷",
       "group": "Item"
     },
-    "Gun_RocketswarmLauncher": {
+    "Gun_Incinerator": {
       "char": "♸",
-      "group": "Building"
+      "group": "Item"
     },
-    "Gun_Slugthrower": {
+    "Gun_InfernoCannon": {
       "char": "♹",
       "group": "Item"
     },
-    "Gun_SmokeLauncher": {
+    "Gun_InfernoCannonTurret": {
       "char": "♻",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_SniperRifle": {
+    "Gun_LMG": {
       "char": "♼",
       "group": "Item"
     },
-    "Gun_Spiner": {
+    "Gun_MachinePistol": {
       "char": "♽",
       "group": "Item"
     },
-    "Gun_TacticalTurret": {
+    "Gun_MiniFlameblaster": {
       "char": "♾",
-      "group": "Building"
+      "group": "Item"
     },
-    "Gun_ThumpCannon": {
+    "Gun_MiniShotgun": {
       "char": "♿",
       "group": "Item"
     },
-    "Gun_ToxbombLauncher": {
+    "Gun_MiniTurret": {
       "char": "⚀",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_ToxicNeedle": {
+    "Gun_MiniTurretMech": {
       "char": "⚁",
-      "group": "Item"
+      "group": "Building"
     },
-    "Gun_TripleRocket": {
+    "Gun_Minigun": {
       "char": "⚂",
       "group": "Item"
     },
-    "Gun_TurretFoam": {
+    "Gun_Needle": {
       "char": "⚃",
-      "group": "Building"
+      "group": "Item"
     },
-    "Gun_TurretSniper": {
+    "Gun_NeedleLauncher": {
       "char": "⚄",
-      "group": "Building"
+      "group": "Item"
     },
-    "HandTailoringBench": {
+    "Gun_PumpShotgun": {
       "char": "⚅",
-      "group": "Building"
+      "group": "Item"
     },
-    "HandTalon": {
+    "Gun_Revolver": {
       "char": "⚆",
       "group": "Item"
     },
-    "HarbingerSeed": {
+    "Gun_RocketswarmLauncher": {
       "char": "⚇",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Hare": {
+    "Gun_Slugthrower": {
       "char": "⚈",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Harp": {
+    "Gun_SmokeLauncher": {
       "char": "⚉",
-      "group": "Building"
+      "group": "Item"
     },
-    "Harpsichord": {
+    "Gun_SniperRifle": {
       "char": "⚊",
-      "group": "Building"
+      "group": "Item"
     },
-    "HealingEnhancer": {
+    "Gun_Spiner": {
       "char": "⚋",
       "group": "Item"
     },
-    "Heart": {
+    "Gun_TacticalTurret": {
       "char": "⚌",
       "group": "Building"
     },
-    "HemogenAmplifier": {
+    "Gun_ThumpCannon": {
       "char": "⚍",
-      "group": "Building"
+      "group": "Item"
     },
-    "HemogenPack": {
+    "Gun_ToxbombLauncher": {
       "char": "⚎",
       "group": "Item"
     },
-    "Hemopump": {
+    "Gun_ToxicNeedle": {
       "char": "⚏",
-      "group": "Building"
+      "group": "Item"
     },
-    "HiddenConduit": {
+    "Gun_TripleRocket": {
       "char": "⚓",
-      "group": "Building"
+      "group": "Item"
     },
-    "Hive": {
+    "Gun_TurretFoam": {
       "char": "⚔",
       "group": "Building"
     },
-    "HoldingPlatform": {
+    "Gun_TurretSniper": {
       "char": "⚖",
       "group": "Building"
     },
-    "HoldingSpot": {
+    "HandTailoringBench": {
       "char": "⚚",
       "group": "Building"
     },
-    "HoopstoneRing": {
+    "HandTalon": {
       "char": "⚛",
+      "group": "Item"
+    },
+    "HarbingerSeed": {
+      "char": "⚜",
+      "group": "Plant"
+    },
+    "Hare": {
+      "char": "⚝",
+      "group": "Pawn"
+    },
+    "Harp": {
+      "char": "⚞",
       "group": "Building"
     },
-    "Horse": {
-      "char": "⚜",
-      "group": "Pawn"
-    },
-    "HumanEmbryo": {
-      "char": "⚝",
-      "group": "Item"
-    },
-    "HumanOvum": {
-      "char": "⚞",
-      "group": "Item"
-    },
-    "Husky": {
+    "Harpsichord": {
       "char": "⚟",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Hyperweave": {
+    "HealingEnhancer": {
       "char": "⚠",
       "group": "Item"
     },
-    "Ibex": {
+    "Heart": {
       "char": "⚢",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Ideogram": {
+    "HemogenAmplifier": {
       "char": "⚣",
       "group": "Building"
     },
-    "Iguana": {
+    "HemogenPack": {
       "char": "⚤",
-      "group": "Pawn"
-    },
-    "Immunoenhancer": {
-      "char": "⚥",
       "group": "Item"
     },
-    "IncenseShrine": {
+    "Hemopump": {
+      "char": "⚥",
+      "group": "Building"
+    },
+    "HiddenConduit": {
       "char": "⚦",
       "group": "Building"
     },
-    "IncineratorSpray": {
+    "Hive": {
       "char": "⚧",
-      "group": "Item"
+      "group": "Building"
     },
-    "InfiniteChemreactor": {
+    "HoldingPlatform": {
       "char": "⚨",
       "group": "Building"
     },
-    "InsectJelly": {
+    "HoldingSpot": {
       "char": "⚩",
-      "group": "Item"
-    },
-    "Jade": {
-      "char": "⚪",
-      "group": "Item"
-    },
-    "Joywire": {
-      "char": "⚫",
       "group": "Building"
     },
-    "JuggernautSerum": {
+    "HoopstoneRing": {
+      "char": "⚪",
+      "group": "Building"
+    },
+    "Horse": {
+      "char": "⚫",
+      "group": "Pawn"
+    },
+    "HumanEmbryo": {
       "char": "⚬",
       "group": "Item"
     },
-    "Kidney": {
+    "HumanOvum": {
       "char": "⚭",
-      "group": "Building"
-    },
-    "KneeSpike": {
-      "char": "⚮",
       "group": "Item"
     },
-    "KneelPillow": {
-      "char": "⚯",
-      "group": "Building"
-    },
-    "KneelSheet": {
-      "char": "⚰",
-      "group": "Building"
-    },
-    "LabradorRetriever": {
-      "char": "⚱",
+    "Husky": {
+      "char": "⚮",
       "group": "Pawn"
     },
-    "LabyrinthMatter": {
-      "char": "⚲",
+    "Hyperweave": {
+      "char": "⚯",
       "group": "Item"
     },
-    "LargeMechGestator": {
-      "char": "⚳",
+    "Ibex": {
+      "char": "⚰",
+      "group": "Pawn"
+    },
+    "Ideogram": {
+      "char": "⚱",
       "group": "Building"
     },
-    "LearningAssistant": {
-      "char": "⚴",
+    "Iguana": {
+      "char": "⚲",
+      "group": "Pawn"
+    },
+    "Immunoenhancer": {
+      "char": "⚳",
       "group": "Item"
     },
-    "Leather_Bear": {
+    "IncenseShrine": {
+      "char": "⚴",
+      "group": "Building"
+    },
+    "IncineratorSpray": {
       "char": "⚵",
       "group": "Item"
     },
-    "Leather_Bird": {
+    "InfiniteChemreactor": {
       "char": "⚶",
-      "group": "Item"
+      "group": "Building"
     },
-    "Leather_Bluefur": {
+    "InsectJelly": {
       "char": "⚷",
       "group": "Item"
     },
-    "Leather_Camel": {
+    "Jade": {
       "char": "⚸",
       "group": "Item"
     },
-    "Leather_Chinchilla": {
+    "Joywire": {
       "char": "⚹",
-      "group": "Item"
+      "group": "Building"
     },
-    "Leather_Dog": {
+    "JuggernautSerum": {
       "char": "⚺",
       "group": "Item"
     },
-    "Leather_Dread": {
+    "Kidney": {
       "char": "⚻",
-      "group": "Item"
+      "group": "Building"
     },
-    "Leather_Elephant": {
+    "KneeSpike": {
       "char": "⚼",
       "group": "Item"
     },
-    "Leather_Fox": {
+    "KneelPillow": {
       "char": "⚽",
-      "group": "Item"
+      "group": "Building"
     },
-    "Leather_GuineaPig": {
+    "KneelSheet": {
       "char": "⚾",
-      "group": "Item"
+      "group": "Building"
     },
-    "Leather_Heavy": {
+    "LabradorRetriever": {
       "char": "⚿",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Leather_Human": {
+    "LabyrinthMatter": {
       "char": "⛀",
       "group": "Item"
     },
-    "Leather_Light": {
+    "LargeMechGestator": {
       "char": "⛁",
-      "group": "Item"
+      "group": "Building"
     },
-    "Leather_Lizard": {
+    "LearningAssistant": {
       "char": "⛂",
       "group": "Item"
     },
-    "Leather_Panthera": {
+    "Leather_Bear": {
       "char": "⛃",
       "group": "Item"
     },
-    "Leather_Patch": {
+    "Leather_Bird": {
       "char": "⛄",
       "group": "Item"
     },
-    "Leather_Pig": {
+    "Leather_Bluefur": {
       "char": "⛅",
       "group": "Item"
     },
-    "Leather_Plain": {
+    "Leather_Camel": {
       "char": "⛆",
       "group": "Item"
     },
-    "Leather_Rhinoceros": {
+    "Leather_Chinchilla": {
       "char": "⛇",
       "group": "Item"
     },
-    "Leather_Thrumbo": {
+    "Leather_Dog": {
       "char": "⛈",
       "group": "Item"
     },
-    "Leather_Wolf": {
+    "Leather_Dread": {
       "char": "⛉",
       "group": "Item"
     },
-    "Lectern": {
+    "Leather_Elephant": {
       "char": "⛊",
-      "group": "Building"
+      "group": "Item"
     },
-    "LightBall": {
+    "Leather_Fox": {
       "char": "⛋",
-      "group": "Building"
+      "group": "Item"
     },
-    "Limestone": {
+    "Leather_GuineaPig": {
       "char": "⛌",
       "group": "Item"
     },
-    "Liver": {
+    "Leather_Heavy": {
       "char": "⛍",
-      "group": "Building"
+      "group": "Item"
     },
-    "LongRangeMineralScanner": {
+    "Leather_Human": {
       "char": "⛎",
-      "group": "Building"
+      "group": "Item"
     },
-    "Loudspeaker": {
+    "Leather_Light": {
       "char": "⛏",
-      "group": "Building"
+      "group": "Item"
     },
-    "LoveEnhancer": {
+    "Leather_Lizard": {
       "char": "⛐",
       "group": "Item"
     },
-    "Luciferium": {
+    "Leather_Panthera": {
       "char": "⛑",
       "group": "Item"
     },
-    "Lung": {
+    "Leather_Patch": {
       "char": "⛒",
-      "group": "Building"
+      "group": "Item"
     },
-    "Lynx": {
+    "Leather_Pig": {
       "char": "⛓",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "MajorArchotechStructure": {
+    "Leather_Plain": {
       "char": "⛔",
-      "group": "Building"
+      "group": "Item"
     },
-    "MajorArchotechStructureStudiable": {
+    "Leather_Rhinoceros": {
       "char": "⛕",
-      "group": "Building"
+      "group": "Item"
     },
-    "Marble": {
+    "Leather_Thrumbo": {
       "char": "⛖",
       "group": "Item"
     },
-    "MarriageSpot": {
+    "Leather_Wolf": {
       "char": "⛗",
-      "group": "Building"
-    },
-    "MarshyTerrain": {
-      "char": "⛘",
-      "group": "Terrain"
-    },
-    "MealFine": {
-      "char": "⛙",
       "group": "Item"
     },
-    "MealFine_Meat": {
+    "Lectern": {
+      "char": "⛘",
+      "group": "Building"
+    },
+    "LightBall": {
+      "char": "⛙",
+      "group": "Building"
+    },
+    "Limestone": {
       "char": "⛚",
       "group": "Item"
     },
-    "MealFine_Veg": {
+    "Liver": {
       "char": "⛛",
-      "group": "Item"
+      "group": "Building"
     },
-    "MealLavish": {
+    "LongRangeMineralScanner": {
       "char": "⛜",
-      "group": "Item"
+      "group": "Building"
     },
-    "MealLavish_Meat": {
+    "Loudspeaker": {
       "char": "⛝",
-      "group": "Item"
+      "group": "Building"
     },
-    "MealLavish_Veg": {
+    "LoveEnhancer": {
       "char": "⛞",
       "group": "Item"
     },
-    "MealNutrientPaste": {
+    "Luciferium": {
       "char": "⛟",
       "group": "Item"
     },
-    "MealSurvivalPack": {
+    "Lung": {
       "char": "⛠",
-      "group": "Item"
+      "group": "Building"
     },
-    "Meat_Twisted": {
+    "Lynx": {
       "char": "⛡",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MechAssembler": {
+    "MajorArchotechStructure": {
       "char": "⛢",
       "group": "Building"
     },
-    "MechBooster": {
+    "MajorArchotechStructureStudiable": {
       "char": "⛣",
       "group": "Building"
     },
-    "MechCapsule": {
+    "Marble": {
       "char": "⛤",
-      "group": "Building"
+      "group": "Item"
     },
-    "MechDropBeacon": {
+    "MarriageSpot": {
       "char": "⛥",
       "group": "Building"
     },
-    "MechFormfeeder": {
+    "MarshyTerrain": {
       "char": "⛦",
+      "group": "Terrain"
+    },
+    "MealFine": {
+      "char": "⛧",
       "group": "Item"
     },
-    "MechGestator": {
-      "char": "⛧",
-      "group": "Building"
-    },
-    "MechGestatorCycleCompleteLarge_East": {
+    "MealFine_Meat": {
       "char": "⛨",
       "group": "Item"
     },
-    "MechGestatorCycleCompleteLarge_North": {
+    "MealFine_Veg": {
       "char": "⛩",
       "group": "Item"
     },
-    "MechGestatorCycleCompleteLarge_South": {
+    "MealLavish": {
       "char": "⛪",
       "group": "Item"
     },
-    "MechGestatorCycleCompleteLarge_West": {
+    "MealLavish_Meat": {
       "char": "⛫",
       "group": "Item"
     },
-    "MechGestatorCycleComplete_East": {
+    "MealLavish_Veg": {
       "char": "⛬",
       "group": "Item"
     },
-    "MechGestatorCycleComplete_North": {
+    "MealNutrientPaste": {
       "char": "⛭",
       "group": "Item"
     },
-    "MechGestatorCycleComplete_South": {
+    "MealSurvivalPack": {
       "char": "⛮",
       "group": "Item"
     },
-    "MechGestatorFormedLarge_East": {
+    "Meat_Twisted": {
       "char": "⛯",
       "group": "Item"
     },
-    "MechGestatorFormedLarge_North": {
+    "MechAssembler": {
       "char": "⛰",
-      "group": "Item"
+      "group": "Building"
     },
-    "MechGestatorFormedLarge_South": {
+    "MechBooster": {
       "char": "⛱",
-      "group": "Item"
+      "group": "Building"
     },
-    "MechGestatorFormedLarge_West": {
+    "MechCapsule": {
       "char": "⛲",
-      "group": "Item"
+      "group": "Building"
     },
-    "MechGestatorFormed_East": {
+    "MechDropBeacon": {
       "char": "⛳",
-      "group": "Item"
+      "group": "Building"
     },
-    "MechGestatorFormed_North": {
+    "MechFormfeeder": {
       "char": "⛴",
       "group": "Item"
     },
-    "MechGestatorFormed_South": {
+    "MechGestator": {
       "char": "⛵",
-      "group": "Item"
+      "group": "Building"
     },
-    "MechGestatorFormingLarge_East": {
+    "MechGestatorCycleCompleteLarge_East": {
       "char": "⛶",
       "group": "Item"
     },
-    "MechGestatorFormingLarge_North": {
+    "MechGestatorCycleCompleteLarge_North": {
       "char": "⛷",
       "group": "Item"
     },
-    "MechGestatorFormingLarge_South": {
+    "MechGestatorCycleCompleteLarge_South": {
       "char": "⛸",
       "group": "Item"
     },
-    "MechGestatorFormingLarge_West": {
+    "MechGestatorCycleCompleteLarge_West": {
       "char": "⛹",
       "group": "Item"
     },
-    "MechGestatorForming_East": {
+    "MechGestatorCycleComplete_East": {
       "char": "⛺",
       "group": "Item"
     },
-    "MechGestatorForming_North": {
+    "MechGestatorCycleComplete_North": {
       "char": "⛻",
       "group": "Item"
     },
-    "MechGestatorForming_South": {
+    "MechGestatorCycleComplete_South": {
       "char": "⛼",
       "group": "Item"
     },
-    "MechSerumHealer": {
+    "MechGestatorFormedLarge_East": {
       "char": "⛾",
       "group": "Item"
     },
-    "MechSerumResurrector": {
+    "MechGestatorFormedLarge_North": {
       "char": "⛿",
       "group": "Item"
     },
-    "MechShield": {
+    "MechGestatorFormedLarge_South": {
       "char": "✀",
       "group": "Item"
     },
-    "Mech_Agrihand": {
+    "MechGestatorFormedLarge_West": {
       "char": "✁",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Apocriton": {
+    "MechGestatorFormed_East": {
       "char": "✃",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_CentipedeBurner": {
+    "MechGestatorFormed_North": {
       "char": "✄",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_CentipedeGunner": {
+    "MechGestatorFormed_South": {
       "char": "✅",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Centurion": {
+    "MechGestatorFormingLarge_East": {
       "char": "✆",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Cleansweeper": {
+    "MechGestatorFormingLarge_North": {
       "char": "✇",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Constructoid": {
+    "MechGestatorFormingLarge_South": {
       "char": "✈",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Diabolus": {
+    "MechGestatorFormingLarge_West": {
       "char": "✉",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Fabricor": {
+    "MechGestatorForming_East": {
       "char": "✊",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Legionary": {
+    "MechGestatorForming_North": {
       "char": "✋",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Lifter": {
+    "MechGestatorForming_South": {
       "char": "✌",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Militor": {
+    "MechSerumHealer": {
       "char": "✍",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Paramedic": {
+    "MechSerumResurrector": {
       "char": "✎",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Scorcher": {
+    "MechShield": {
       "char": "✏",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Mech_Termite": {
+    "Mech_Agrihand": {
       "char": "✐",
       "group": "Pawn"
     },
-    "Mech_Tesseron": {
+    "Mech_Apocriton": {
       "char": "✑",
       "group": "Pawn"
     },
-    "Mech_Tunneler": {
+    "Mech_CentipedeBurner": {
       "char": "✒",
       "group": "Pawn"
     },
-    "Mech_WarUrchin": {
+    "Mech_CentipedeGunner": {
       "char": "✓",
       "group": "Pawn"
     },
-    "Mech_Warqueen": {
+    "Mech_Centurion": {
       "char": "✔",
       "group": "Pawn"
     },
-    "MechanoidTransponder": {
+    "Mech_Cleansweeper": {
       "char": "✗",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MechbandDish": {
+    "Mech_Constructoid": {
       "char": "✘",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "Mechlink": {
+    "Mech_Diabolus": {
       "char": "✙",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MedicineUltratech": {
+    "Mech_Fabricor": {
       "char": "✛",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeditationSpot": {
+    "Mech_Legionary": {
       "char": "✜",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "Megascarab": {
+    "Mech_Lifter": {
       "char": "✝",
       "group": "Pawn"
     },
-    "MegascreenTelevision": {
+    "Mech_Militor": {
       "char": "✞",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "Megaspider": {
+    "Mech_Paramedic": {
       "char": "✟",
       "group": "Pawn"
     },
-    "MeleeWeapon_Axe": {
+    "Mech_Scorcher": {
       "char": "✠",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_BreachAxe": {
+    "Mech_Termite": {
       "char": "✡",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_Club": {
+    "Mech_Tesseron": {
       "char": "✢",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_Gladius": {
+    "Mech_Tunneler": {
       "char": "✣",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_Ikwa": {
+    "Mech_WarUrchin": {
       "char": "✥",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_Knife": {
+    "Mech_Warqueen": {
       "char": "✦",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_LongSword": {
+    "MechanoidTransponder": {
       "char": "✨",
       "group": "Item"
     },
-    "MeleeWeapon_Mace": {
+    "MechbandDish": {
       "char": "✩",
-      "group": "Item"
+      "group": "Building"
     },
-    "MeleeWeapon_MonoSword": {
+    "Mechlink": {
       "char": "✪",
       "group": "Item"
     },
-    "MeleeWeapon_MonoSwordBladelink": {
+    "MedicineUltratech": {
       "char": "✫",
       "group": "Item"
     },
-    "MeleeWeapon_PlasmaSword": {
+    "MeditationSpot": {
       "char": "✬",
-      "group": "Item"
+      "group": "Building"
     },
-    "MeleeWeapon_PlasmaSwordBladelink": {
+    "Megascarab": {
       "char": "✭",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_PsyfocusStaff": {
+    "MegascreenTelevision": {
       "char": "✮",
-      "group": "Item"
+      "group": "Building"
     },
-    "MeleeWeapon_Spear": {
+    "Megaspider": {
       "char": "✯",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MeleeWeapon_Warhammer": {
+    "MeleeWeapon_Axe": {
       "char": "✰",
       "group": "Item"
     },
-    "MeleeWeapon_ZeusHammerBladelink": {
+    "MeleeWeapon_BreachAxe": {
       "char": "✱",
       "group": "Item"
     },
-    "MeleeWeapon_Zeushammer": {
+    "MeleeWeapon_Club": {
       "char": "✲",
       "group": "Item"
     },
-    "MetalHellAmbience": {
+    "MeleeWeapon_Gladius": {
       "char": "✴",
       "group": "Item"
     },
-    "MetalHellFloorCracks": {
+    "MeleeWeapon_Ikwa": {
       "char": "✵",
       "group": "Item"
     },
-    "MetalHellFloorMarkings": {
+    "MeleeWeapon_Knife": {
       "char": "✶",
       "group": "Item"
     },
-    "MetalHellFog": {
+    "MeleeWeapon_LongSword": {
       "char": "✷",
       "group": "Item"
     },
-    "MetalHellFogHigh": {
+    "MeleeWeapon_Mace": {
       "char": "✸",
       "group": "Item"
     },
-    "MetalTile": {
+    "MeleeWeapon_MonoSword": {
       "char": "✹",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "MetalbloodHeart": {
+    "MeleeWeapon_MonoSwordBladelink": {
       "char": "✺",
       "group": "Item"
     },
-    "MetalbloodSerum": {
+    "MeleeWeapon_PlasmaSword": {
       "char": "✻",
       "group": "Item"
     },
-    "Metalhorror": {
+    "MeleeWeapon_PlasmaSwordBladelink": {
       "char": "✼",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "MeteoriteCraterIncoming": {
+    "MeleeWeapon_PsyfocusStaff": {
       "char": "✽",
       "group": "Item"
     },
-    "MeteoriteIncoming": {
+    "MeleeWeapon_Spear": {
       "char": "✾",
       "group": "Item"
     },
-    "Milk": {
+    "MeleeWeapon_Warhammer": {
       "char": "❂",
       "group": "Item"
     },
-    "MindNumbSerum": {
+    "MeleeWeapon_ZeusHammerBladelink": {
       "char": "❃",
       "group": "Item"
     },
-    "Mindscrew": {
+    "MeleeWeapon_Zeushammer": {
       "char": "❅",
       "group": "Item"
     },
-    "MineableComponentsIndustrial": {
+    "MetalHellAmbience": {
       "char": "❆",
-      "group": "Building"
+      "group": "Item"
     },
-    "MineableGold": {
+    "MetalHellFloorCracks": {
       "char": "❇",
-      "group": "Building"
+      "group": "Item"
     },
-    "MineableJade": {
+    "MetalHellFloorMarkings": {
       "char": "❈",
-      "group": "Building"
+      "group": "Item"
     },
-    "MineablePlasteel": {
+    "MetalHellFog": {
       "char": "❉",
-      "group": "Building"
+      "group": "Item"
     },
-    "MineableSilver": {
+    "MetalHellFogHigh": {
       "char": "❊",
-      "group": "Building"
+      "group": "Item"
     },
-    "MineableSteel": {
+    "MetalTile": {
       "char": "❋",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "MineableUranium": {
+    "MetalbloodHeart": {
       "char": "❌",
-      "group": "Building"
+      "group": "Item"
     },
-    "MinifiedThing": {
+    "MetalbloodSerum": {
       "char": "❍",
       "group": "Item"
     },
-    "MinifiedThingRealtimeDraw": {
+    "Metalhorror": {
       "char": "❎",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "MinifiedTree": {
+    "MeteoriteCraterIncoming": {
       "char": "❏",
       "group": "Item"
     },
-    "MoisturePump": {
+    "MeteoriteIncoming": {
       "char": "❐",
-      "group": "Building"
+      "group": "Item"
     },
-    "Monkey": {
+    "Milk": {
       "char": "❑",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "MonolithFragment": {
+    "MindNumbSerum": {
       "char": "❒",
       "group": "Item"
     },
-    "MonolithIncoming": {
+    "Mindscrew": {
       "char": "❓",
       "group": "Item"
     },
-    "MonumentMarker": {
+    "MineableComponentsIndustrial": {
       "char": "❔",
-      "group": "Item"
+      "group": "Building"
     },
-    "MorbidSlab_Broad": {
+    "MineableGold": {
       "char": "❕",
-      "group": "Item"
+      "group": "Building"
     },
-    "MorbidSlab_Medium": {
+    "MineableJade": {
       "char": "❖",
-      "group": "Item"
+      "group": "Building"
     },
-    "MossyTerrain": {
+    "MineablePlasteel": {
       "char": "❗",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "Mote_AbductWarmupDistortionRing": {
+    "MineableSilver": {
       "char": "❘",
-      "group": "Item"
+      "group": "Building"
     },
-    "Mote_AbductWarmupDistortionRingBuilding": {
+    "MineableSteel": {
       "char": "❙",
-      "group": "Item"
+      "group": "Building"
     },
-    "Mote_ActivatedVoidStructure": {
+    "MineableUranium": {
       "char": "❚",
-      "group": "Item"
+      "group": "Building"
     },
-    "Mote_ActivatorCountdownGlow": {
+    "MinifiedThing": {
       "char": "❛",
       "group": "Item"
     },
-    "Mote_ActivatorProximityGlow": {
+    "MinifiedThingRealtimeDraw": {
       "char": "❜",
       "group": "Item"
     },
-    "Mote_AnimalWarcallDistortion": {
+    "MinifiedTree": {
       "char": "❝",
       "group": "Item"
     },
-    "Mote_AnimalWarcallFlash": {
+    "MoisturePump": {
       "char": "❞",
-      "group": "Item"
+      "group": "Building"
     },
-    "Mote_AnimalWarcallMentalState": {
+    "Monkey": {
       "char": "❟",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Mote_AnimalWarcallTarget": {
+    "MonolithFragment": {
       "char": "❠",
       "group": "Item"
     },
-    "Mote_AnimalWarcallTargetFlash": {
+    "MonolithIncoming": {
       "char": "❡",
       "group": "Item"
     },
-    "Mote_AnimalWarcallWarmup": {
+    "MonumentMarker": {
       "char": "❢",
       "group": "Item"
     },
-    "Mote_ApocritonPulse": {
+    "MorbidSlab_Broad": {
       "char": "❣",
       "group": "Item"
     },
-    "Mote_ApocritonWarmupArea": {
+    "MorbidSlab_Medium": {
       "char": "❤",
       "group": "Item"
     },
-    "Mote_BabyCryingDots": {
+    "MossyTerrain": {
       "char": "❥",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "Mote_BerserkBit": {
+    "Mote_AbductWarmupDistortionRing": {
       "char": "❦",
       "group": "Item"
     },
-    "Mote_Bestow": {
+    "Mote_AbductWarmupDistortionRingBuilding": {
       "char": "❧",
       "group": "Item"
     },
-    "Mote_BioFerriteHarvested": {
+    "Mote_ActivatedVoidStructure": {
       "char": "❨",
       "group": "Item"
     },
-    "Mote_Bombardment": {
+    "Mote_ActivatorCountdownGlow": {
       "char": "❩",
       "group": "Item"
     },
-    "Mote_Bombardment_PreImpact": {
+    "Mote_ActivatorProximityGlow": {
       "char": "❪",
       "group": "Item"
     },
-    "Mote_Cards": {
+    "Mote_AnimalWarcallDistortion": {
       "char": "❫",
       "group": "Item"
     },
-    "Mote_CastPsycast": {
+    "Mote_AnimalWarcallFlash": {
       "char": "❬",
       "group": "Item"
     },
-    "Mote_ChargingCablesPulse": {
+    "Mote_AnimalWarcallMentalState": {
       "char": "❭",
       "group": "Item"
     },
-    "Mote_ChargingElectroCables": {
+    "Mote_AnimalWarcallTarget": {
       "char": "❮",
       "group": "Item"
     },
-    "Mote_Clean": {
+    "Mote_AnimalWarcallTargetFlash": {
       "char": "❯",
       "group": "Item"
     },
-    "Mote_ClearSnow": {
+    "Mote_AnimalWarcallWarmup": {
       "char": "❰",
       "group": "Item"
     },
-    "Mote_Clipboard": {
+    "Mote_ApocritonPulse": {
       "char": "❱",
       "group": "Item"
     },
-    "Mote_CoagulateA": {
+    "Mote_ApocritonWarmupArea": {
       "char": "❲",
       "group": "Item"
     },
-    "Mote_CoagulateB": {
+    "Mote_BabyCryingDots": {
       "char": "❳",
       "group": "Item"
     },
-    "Mote_CoagulateStencil": {
+    "Mote_BerserkBit": {
       "char": "❴",
       "group": "Item"
     },
-    "Mote_CocoonBreaking": {
+    "Mote_Bestow": {
       "char": "❵",
       "group": "Item"
     },
-    "Mote_CocoonDestroyedFlyingPiece": {
+    "Mote_BioFerriteHarvested": {
       "char": "❶",
       "group": "Item"
     },
-    "Mote_CocoonDestroyedFlyingSlime": {
+    "Mote_Bombardment": {
       "char": "❷",
       "group": "Item"
     },
-    "Mote_CocoonDestroyedMist": {
+    "Mote_Bombardment_PreImpact": {
       "char": "❸",
       "group": "Item"
     },
-    "Mote_ColonistAttacking": {
+    "Mote_Cards": {
       "char": "❹",
       "group": "Item"
     },
-    "Mote_ColonistFleeing": {
+    "Mote_CastPsycast": {
       "char": "❺",
       "group": "Item"
     },
-    "Mote_CombatCommand": {
+    "Mote_ChargingCablesPulse": {
       "char": "❻",
       "group": "Item"
     },
-    "Mote_CombatCommandLinkLine": {
+    "Mote_ChargingElectroCables": {
       "char": "❼",
       "group": "Item"
     },
-    "Mote_CookBit": {
+    "Mote_Clean": {
       "char": "❽",
       "group": "Item"
     },
-    "Mote_Danger": {
+    "Mote_ClearSnow": {
       "char": "❾",
       "group": "Item"
     },
-    "Mote_Deathresting": {
+    "Mote_Clipboard": {
       "char": "❿",
       "group": "Item"
     },
-    "Mote_DistortionPulse": {
+    "Mote_CoagulateA": {
       "char": "➀",
       "group": "Item"
     },
-    "Mote_DrunkBubble": {
+    "Mote_CoagulateB": {
       "char": "➁",
       "group": "Item"
     },
-    "Mote_DuelCircle": {
+    "Mote_CoagulateStencil": {
       "char": "➂",
       "group": "Item"
     },
-    "Mote_ExtinguisherPuff": {
+    "Mote_CocoonBreaking": {
       "char": "➃",
       "group": "Item"
     },
-    "Mote_FleshmelterBolt_Aim": {
+    "Mote_CocoonDestroyedFlyingPiece": {
       "char": "➄",
       "group": "Item"
     },
-    "Mote_FleshmelterBolt_Charge": {
+    "Mote_CocoonDestroyedFlyingSlime": {
       "char": "➅",
       "group": "Item"
     },
-    "Mote_FleshmelterBolt_Target": {
+    "Mote_CocoonDestroyedMist": {
       "char": "➆",
       "group": "Item"
     },
-    "Mote_FoodBitMeat": {
+    "Mote_ColonistAttacking": {
       "char": "➇",
       "group": "Item"
     },
-    "Mote_FoodBitVegetarian": {
+    "Mote_ColonistFleeing": {
       "char": "➈",
       "group": "Item"
     },
-    "Mote_ForceJob": {
+    "Mote_CombatCommand": {
       "char": "➉",
       "group": "Item"
     },
-    "Mote_ForceJobMaintained": {
+    "Mote_CombatCommandLinkLine": {
       "char": "➊",
       "group": "Item"
     },
-    "Mote_ForcedVisible": {
+    "Mote_CookBit": {
       "char": "➋",
       "group": "Item"
     },
-    "Mote_GauranlenCasteChanged": {
+    "Mote_Danger": {
       "char": "➌",
       "group": "Item"
     },
-    "Mote_GiantExplosion": {
+    "Mote_Deathresting": {
       "char": "➍",
       "group": "Item"
     },
-    "Mote_GiantExplosionInner": {
+    "Mote_DistortionPulse": {
       "char": "➎",
       "group": "Item"
     },
-    "Mote_GraserBeamBase": {
+    "Mote_DrunkBubble": {
       "char": "➏",
       "group": "Item"
     },
-    "Mote_Hacking": {
+    "Mote_DuelCircle": {
       "char": "➐",
       "group": "Item"
     },
-    "Mote_HarbingerTreeRoots": {
+    "Mote_ExtinguisherPuff": {
       "char": "➑",
       "group": "Item"
     },
-    "Mote_Harvest": {
+    "Mote_FleshmelterBolt_Aim": {
       "char": "➒",
       "group": "Item"
     },
-    "Mote_HateChantCall": {
+    "Mote_FleshmelterBolt_Charge": {
       "char": "➓",
       "group": "Item"
     },
-    "Mote_HateChantShadow": {
+    "Mote_FleshmelterBolt_Target": {
       "char": "➔",
       "group": "Item"
     },
-    "Mote_HellsphereCannon_Aim": {
+    "Mote_FoodBitMeat": {
       "char": "➕",
       "group": "Item"
     },
-    "Mote_HellsphereCannon_Charge": {
+    "Mote_FoodBitVegetarian": {
       "char": "➖",
       "group": "Item"
     },
-    "Mote_HellsphereCannon_Target": {
+    "Mote_ForceJob": {
       "char": "➗",
       "group": "Item"
     },
-    "Mote_HoraxHugeSpellWarmup": {
+    "Mote_ForceJobMaintained": {
       "char": "➘",
       "group": "Item"
     },
-    "Mote_HoraxSmallSpellWarmup": {
+    "Mote_ForcedVisible": {
       "char": "➙",
       "group": "Item"
     },
-    "Mote_IncineratorBurst": {
+    "Mote_GauranlenCasteChanged": {
       "char": "➚",
       "group": "Item"
     },
-    "Mote_Leaf": {
+    "Mote_GiantExplosion": {
       "char": "➛",
       "group": "Item"
     },
-    "Mote_LightBall": {
+    "Mote_GiantExplosionInner": {
       "char": "➜",
       "group": "Item"
     },
-    "Mote_LightBallLights": {
+    "Mote_GraserBeamBase": {
       "char": "➝",
       "group": "Item"
     },
-    "Mote_LongSparkThrown": {
+    "Mote_Hacking": {
       "char": "➞",
       "group": "Item"
     },
-    "Mote_LoudspeakerLights": {
+    "Mote_HarbingerTreeRoots": {
       "char": "➟",
       "group": "Item"
     },
-    "Mote_MeatExplosionFlyingPiece": {
+    "Mote_Harvest": {
       "char": "➠",
       "group": "Item"
     },
-    "Mote_MeatExplosionFlyingPieceOverloaded": {
+    "Mote_HateChantCall": {
       "char": "➡",
       "group": "Item"
     },
-    "Mote_MeatExplosionFlyingSplatter": {
+    "Mote_HateChantShadow": {
       "char": "➢",
       "group": "Item"
     },
-    "Mote_MeatExplosionMist": {
+    "Mote_HellsphereCannon_Aim": {
       "char": "➣",
       "group": "Item"
     },
-    "Mote_MechCharging": {
+    "Mote_HellsphereCannon_Charge": {
       "char": "➤",
       "group": "Item"
     },
-    "Mote_MechControlTakingSparkArch": {
+    "Mote_HellsphereCannon_Target": {
       "char": "➥",
       "group": "Item"
     },
-    "Mote_MechResurrectFlash": {
+    "Mote_HoraxHugeSpellWarmup": {
       "char": "➦",
       "group": "Item"
     },
-    "Mote_MechResurrectGlow": {
+    "Mote_HoraxSmallSpellWarmup": {
       "char": "➧",
       "group": "Item"
     },
-    "Mote_MechResurrectWarmupOnTarget": {
+    "Mote_IncineratorBurst": {
       "char": "➨",
       "group": "Item"
     },
-    "Mote_MechSparkSimple": {
+    "Mote_Leaf": {
       "char": "➩",
       "group": "Item"
     },
-    "Mote_MechTunnelerSlowedDown": {
+    "Mote_LightBall": {
       "char": "➪",
       "group": "Item"
     },
-    "Mote_MechUncontrolled": {
+    "Mote_LightBallLights": {
       "char": "➫",
       "group": "Item"
     },
-    "Mote_MechbandAntennaWaves": {
+    "Mote_LongSparkThrown": {
       "char": "➬",
       "group": "Item"
     },
-    "Mote_MechbandDishWaves": {
+    "Mote_LoudspeakerLights": {
       "char": "➭",
       "group": "Item"
     },
-    "Mote_MechbandElectricity": {
+    "Mote_MeatExplosionFlyingPiece": {
       "char": "➮",
       "group": "Item"
     },
-    "Mote_MechbandPreparing": {
+    "Mote_MeatExplosionFlyingPieceOverloaded": {
       "char": "➯",
       "group": "Item"
     },
-    "Mote_NewbornBecomeChildGlow": {
+    "Mote_MeatExplosionFlyingSplatter": {
       "char": "➰",
       "group": "Item"
     },
-    "Mote_NoctolEyes": {
+    "Mote_MeatExplosionMist": {
       "char": "➱",
       "group": "Item"
     },
-    "Mote_ObeliskExplosionWarmupArea": {
+    "Mote_MechCharging": {
       "char": "➲",
       "group": "Item"
     },
-    "Mote_Paint": {
+    "Mote_MechControlTakingSparkArch": {
       "char": "➳",
       "group": "Item"
     },
-    "Mote_PollutionPump": {
+    "Mote_MechResurrectFlash": {
       "char": "➴",
       "group": "Item"
     },
-    "Mote_PowerBeam": {
+    "Mote_MechResurrectGlow": {
       "char": "➵",
       "group": "Item"
     },
-    "Mote_PowerCellBurning": {
+    "Mote_MechResurrectWarmupOnTarget": {
       "char": "➶",
       "group": "Item"
     },
-    "Mote_ProgressBar": {
+    "Mote_MechSparkSimple": {
       "char": "➷",
       "group": "Item"
     },
-    "Mote_ProgressBarAlwaysVisible": {
+    "Mote_MechTunnelerSlowedDown": {
       "char": "➸",
       "group": "Item"
     },
-    "Mote_ProximityScannerActivated": {
+    "Mote_MechUncontrolled": {
       "char": "➹",
       "group": "Item"
     },
-    "Mote_ProximityScannerRadius": {
+    "Mote_MechbandAntennaWaves": {
       "char": "➺",
       "group": "Item"
     },
-    "Mote_PsychicBanshee": {
+    "Mote_MechbandDishWaves": {
       "char": "➻",
       "group": "Item"
     },
-    "Mote_PsychicConditionCauserEffect": {
+    "Mote_MechbandElectricity": {
       "char": "➼",
       "group": "Item"
     },
-    "Mote_PsychicDistortionRingContractingQuick": {
+    "Mote_MechbandPreparing": {
       "char": "➽",
       "group": "Item"
     },
-    "Mote_PsychicEmanatorEffect": {
+    "Mote_NewbornBecomeChildGlow": {
       "char": "➾",
       "group": "Item"
     },
-    "Mote_PsychicLinkLine": {
+    "Mote_NoctolEyes": {
       "char": "➿",
       "group": "Item"
     },
-    "Mote_PsychicLinkPulse": {
+    "Mote_ObeliskExplosionWarmupArea": {
       "char": "α",
       "group": "Item"
     },
-    "Mote_PsychicRitualInvocation": {
+    "Mote_Paint": {
       "char": "γ",
       "group": "Item"
     },
-    "Mote_PsyfocusPulse": {
+    "Mote_PollutionPump": {
       "char": "ε",
       "group": "Item"
     },
-    "Mote_RedFlash": {
+    "Mote_PowerBeam": {
       "char": "ζ",
       "group": "Item"
     },
-    "Mote_RedFlashStrong": {
+    "Mote_PowerCellBurning": {
       "char": "η",
       "group": "Item"
     },
-    "Mote_ResurrectAbility": {
+    "Mote_ProgressBar": {
       "char": "θ",
       "group": "Item"
     },
-    "Mote_ResurrectFlash": {
+    "Mote_ProgressBarAlwaysVisible": {
       "char": "ι",
       "group": "Item"
     },
-    "Mote_RevenantHeard": {
+    "Mote_ProximityScannerActivated": {
       "char": "κ",
       "group": "Item"
     },
-    "Mote_RipscannerHeadGlow": {
+    "Mote_ProximityScannerRadius": {
       "char": "λ",
       "group": "Item"
     },
-    "Mote_RitualCandleA": {
+    "Mote_PsychicBanshee": {
       "char": "μ",
       "group": "Item"
     },
-    "Mote_RitualCandleB": {
+    "Mote_PsychicConditionCauserEffect": {
       "char": "ν",
       "group": "Item"
     },
-    "Mote_RitualCandleC": {
+    "Mote_PsychicDistortionRingContractingQuick": {
       "char": "ξ",
       "group": "Item"
     },
-    "Mote_RitualGlowRays": {
+    "Mote_PsychicEmanatorEffect": {
       "char": "ο",
       "group": "Item"
     },
-    "Mote_RitualGlowSingleRay": {
+    "Mote_PsychicLinkLine": {
       "char": "σ",
       "group": "Item"
     },
-    "Mote_RitualSmoke": {
+    "Mote_PsychicLinkPulse": {
       "char": "υ",
       "group": "Item"
     },
-    "Mote_RitualSmokeDust": {
+    "Mote_PsychicRitualInvocation": {
       "char": "φ",
       "group": "Item"
     },
-    "Mote_RitualSmokeDustVague": {
+    "Mote_PsyfocusPulse": {
       "char": "χ",
       "group": "Item"
     },
-    "Mote_RitualSmokeThick": {
+    "Mote_RedFlash": {
       "char": "ψ",
       "group": "Item"
     },
-    "Mote_RitualSmokeThickSlim": {
+    "Mote_RedFlashStrong": {
       "char": "ω",
       "group": "Item"
     },
-    "Mote_RitualTechLineA": {
+    "Mote_ResurrectAbility": {
       "char": "←",
       "group": "Item"
     },
-    "Mote_RitualTechLineB": {
+    "Mote_ResurrectFlash": {
       "char": "↑",
       "group": "Item"
     },
-    "Mote_RitualTechLineC": {
+    "Mote_RevenantHeard": {
       "char": "→",
       "group": "Item"
     },
-    "Mote_RolePawnHighlight": {
+    "Mote_RipscannerHeadGlow": {
       "char": "↓",
       "group": "Item"
     },
-    "Mote_RolePositionHighlight": {
+    "Mote_RitualCandleA": {
       "char": "↕",
       "group": "Item"
     },
-    "Mote_SanguophageMeetingSmoke": {
+    "Mote_RitualCandleB": {
       "char": "↖",
       "group": "Item"
     },
-    "Mote_ShamblerAlert": {
+    "Mote_RitualCandleC": {
       "char": "↗",
       "group": "Item"
     },
-    "Mote_ShamblerRaiseMist": {
+    "Mote_RitualGlowRays": {
       "char": "↘",
       "group": "Item"
     },
-    "Mote_SkyLanternGlow": {
+    "Mote_RitualGlowSingleRay": {
       "char": "↙",
       "group": "Item"
     },
-    "Mote_SkyLanternOuterGlow": {
+    "Mote_RitualSmoke": {
       "char": "↚",
       "group": "Item"
     },
-    "Mote_SkyLanternSmoke": {
+    "Mote_RitualSmokeDust": {
       "char": "↛",
       "group": "Item"
     },
-    "Mote_SmokeFlake": {
+    "Mote_RitualSmokeDustVague": {
       "char": "↜",
       "group": "Item"
     },
-    "Mote_SmokeJoint": {
+    "Mote_RitualSmokeThick": {
       "char": "↝",
       "group": "Item"
     },
-    "Mote_Sow": {
+    "Mote_RitualSmokeThickSlim": {
       "char": "↞",
       "group": "Item"
     },
-    "Mote_SparkSimple": {
+    "Mote_RitualTechLineA": {
       "char": "↟",
       "group": "Item"
     },
-    "Mote_SparkThrown": {
+    "Mote_RitualTechLineB": {
       "char": "↠",
       "group": "Item"
     },
-    "Mote_SparkThrownFast": {
+    "Mote_RitualTechLineC": {
       "char": "↡",
       "group": "Item"
     },
-    "Mote_SparkThrownFastBlue": {
+    "Mote_RolePawnHighlight": {
       "char": "↢",
       "group": "Item"
     },
-    "Mote_SparkThrownFastBright": {
+    "Mote_RolePositionHighlight": {
       "char": "↣",
       "group": "Item"
     },
-    "Mote_Speech": {
+    "Mote_SanguophageMeetingSmoke": {
       "char": "↤",
       "group": "Item"
     },
-    "Mote_SpikePipe": {
+    "Mote_ShamblerAlert": {
       "char": "↥",
       "group": "Item"
     },
-    "Mote_Splash": {
+    "Mote_ShamblerRaiseMist": {
       "char": "↦",
       "group": "Item"
     },
-    "Mote_StoneBit": {
+    "Mote_SkyLanternGlow": {
       "char": "↧",
       "group": "Item"
     },
-    "Mote_Stun": {
+    "Mote_SkyLanternOuterGlow": {
       "char": "↨",
       "group": "Item"
     },
-    "Mote_SubcoreEncoderEast": {
+    "Mote_SkyLanternSmoke": {
       "char": "↩",
       "group": "Item"
     },
-    "Mote_SubcoreEncoderNorth": {
+    "Mote_SmokeFlake": {
       "char": "↪",
       "group": "Item"
     },
-    "Mote_SubcoreEncoderSouth": {
+    "Mote_SmokeJoint": {
       "char": "↫",
       "group": "Item"
     },
-    "Mote_TempRoof": {
+    "Mote_Sow": {
       "char": "↬",
       "group": "Item"
     },
-    "Mote_TerrorHalo": {
+    "Mote_SparkSimple": {
       "char": "↭",
       "group": "Item"
     },
-    "Mote_Text": {
+    "Mote_SparkThrown": {
       "char": "↮",
       "group": "Item"
     },
-    "Mote_Thought": {
+    "Mote_SparkThrownFast": {
       "char": "↯",
       "group": "Item"
     },
-    "Mote_ThoughtBad": {
+    "Mote_SparkThrownFastBlue": {
       "char": "↰",
       "group": "Item"
     },
-    "Mote_ThoughtGood": {
+    "Mote_SparkThrownFastBright": {
       "char": "↱",
       "group": "Item"
     },
-    "Mote_TotemOutline": {
+    "Mote_Speech": {
       "char": "↲",
       "group": "Item"
     },
-    "Mote_ToxicDamage": {
+    "Mote_SpikePipe": {
       "char": "↳",
       "group": "Item"
     },
-    "Mote_Toy": {
+    "Mote_Splash": {
       "char": "↴",
       "group": "Item"
     },
-    "Mote_VatGlowHorizontal": {
+    "Mote_StoneBit": {
       "char": "↵",
       "group": "Item"
     },
-    "Mote_VatGlowVertical": {
+    "Mote_Stun": {
       "char": "↶",
       "group": "Item"
     },
-    "Mote_VoidNode": {
+    "Mote_SubcoreEncoderEast": {
       "char": "↷",
       "group": "Item"
     },
-    "Mote_VomitBit": {
+    "Mote_SubcoreEncoderNorth": {
       "char": "↸",
       "group": "Item"
     },
-    "Mote_WarQueenSpineGlow": {
+    "Mote_SubcoreEncoderSouth": {
       "char": "↹",
       "group": "Item"
     },
-    "Mote_WarUrchinSpawnFlash": {
+    "Mote_TempRoof": {
       "char": "↺",
       "group": "Item"
     },
-    "Mote_WarhUrchinSpawnElectricity": {
+    "Mote_TerrorHalo": {
       "char": "↻",
       "group": "Item"
     },
-    "Mote_WarmupNeuroquake": {
+    "Mote_Text": {
       "char": "↼",
       "group": "Item"
     },
-    "Mote_WarmupWordOf": {
+    "Mote_Thought": {
       "char": "↽",
       "group": "Item"
     },
-    "Mote_WorkCommand": {
+    "Mote_ThoughtBad": {
       "char": "↾",
       "group": "Item"
     },
-    "Mote_WorkCommandLinkLine": {
+    "Mote_ThoughtGood": {
       "char": "↿",
       "group": "Item"
     },
-    "Mote_XenogermImplantation": {
+    "Mote_TotemOutline": {
       "char": "⇀",
       "group": "Item"
     },
-    "MultiAnalyzer": {
+    "Mote_ToxicDamage": {
       "char": "⇁",
-      "group": "Building"
+      "group": "Item"
     },
-    "NanostructuringChip": {
+    "Mote_Toy": {
       "char": "⇂",
       "group": "Item"
     },
-    "NatureShrine_Large": {
+    "Mote_VatGlowHorizontal": {
       "char": "⇃",
-      "group": "Building"
+      "group": "Item"
     },
-    "NatureShrine_Small": {
+    "Mote_VatGlowVertical": {
       "char": "⇄",
-      "group": "Building"
+      "group": "Item"
     },
-    "NerveBundle": {
+    "Mote_VoidNode": {
       "char": "⇅",
-      "group": "Building"
+      "group": "Item"
     },
-    "NerveSpiker": {
+    "Mote_VomitBit": {
       "char": "⇆",
       "group": "Item"
     },
-    "NerveSpiker_Spike": {
+    "Mote_WarQueenSpineGlow": {
       "char": "⇇",
       "group": "Item"
     },
-    "NeuralSupercharger": {
+    "Mote_WarUrchinSpawnFlash": {
       "char": "⇈",
-      "group": "Building"
+      "group": "Item"
     },
-    "Neurocalculator": {
+    "Mote_WarhUrchinSpawnElectricity": {
       "char": "⇉",
       "group": "Item"
     },
-    "Nociosphere": {
+    "Mote_WarmupNeuroquake": {
       "char": "⇊",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Noctol": {
+    "Mote_WarmupWordOf": {
       "char": "⇋",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Noctolith": {
+    "Mote_WorkCommand": {
       "char": "⇌",
-      "group": "Building"
+      "group": "Item"
     },
-    "NoctolithIncoming": {
+    "Mote_WorkCommandLinkLine": {
       "char": "⇍",
       "group": "Item"
     },
-    "Novel": {
+    "Mote_XenogermImplantation": {
       "char": "⇎",
       "group": "Item"
     },
-    "NuclearStomach": {
+    "MultiAnalyzer": {
       "char": "⇏",
-      "group": "Item"
+      "group": "Building"
     },
-    "OrbitalTargeterBombardment": {
+    "NanostructuringChip": {
       "char": "⇐",
       "group": "Item"
     },
-    "OrbitalTargeterMechCluster": {
+    "NatureShrine_Large": {
       "char": "⇑",
-      "group": "Item"
+      "group": "Building"
     },
-    "OrbitalTargeterPowerBeam": {
+    "NatureShrine_Small": {
       "char": "⇒",
-      "group": "Item"
+      "group": "Building"
     },
-    "OrbitalTradeBeacon": {
+    "NerveBundle": {
       "char": "⇓",
       "group": "Building"
     },
-    "OrnateDoor": {
+    "NerveSpiker": {
       "char": "⇔",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ostrich": {
+    "NerveSpiker_Spike": {
       "char": "⇕",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Painstopper": {
+    "NeuralSupercharger": {
       "char": "⇖",
       "group": "Building"
     },
-    "Panther": {
+    "Neurocalculator": {
       "char": "⇗",
+      "group": "Item"
+    },
+    "Nociosphere": {
+      "char": "⇘",
       "group": "Pawn"
     },
-    "PartySpot": {
-      "char": "⇘",
-      "group": "Building"
-    },
-    "PassiveCooler": {
+    "Noctol": {
       "char": "⇙",
+      "group": "Pawn"
+    },
+    "Noctolith": {
+      "char": "⇚",
       "group": "Building"
     },
-    "PavedTile": {
-      "char": "⇚",
-      "group": "Terrain"
-    },
-    "PawnFlyer": {
+    "NoctolithIncoming": {
       "char": "⇛",
       "group": "Item"
     },
-    "PawnFlyer_ConsumeLeap": {
+    "Novel": {
       "char": "⇜",
       "group": "Item"
     },
-    "PawnFlyer_Stun": {
+    "NuclearStomach": {
       "char": "⇝",
       "group": "Item"
     },
-    "PawnGroundSpawner": {
+    "OrbitalTargeterBombardment": {
       "char": "⇞",
       "group": "Item"
     },
-    "Pemmican": {
+    "OrbitalTargeterMechCluster": {
       "char": "⇟",
       "group": "Item"
     },
-    "PenMarker": {
+    "OrbitalTargeterPowerBeam": {
       "char": "⇠",
-      "group": "Building"
-    },
-    "Penoxycyline": {
-      "char": "⇡",
       "group": "Item"
     },
-    "Pew": {
+    "OrbitalTradeBeacon": {
+      "char": "⇡",
+      "group": "Building"
+    },
+    "OrnateDoor": {
       "char": "⇢",
       "group": "Building"
     },
-    "Piano": {
+    "Ostrich": {
       "char": "⇣",
+      "group": "Pawn"
+    },
+    "Painstopper": {
+      "char": "⇤",
       "group": "Building"
     },
-    "PiercingSpine": {
-      "char": "⇤",
-      "group": "Item"
-    },
-    "Pig": {
+    "Panther": {
       "char": "⇥",
       "group": "Pawn"
     },
-    "Pila": {
+    "PartySpot": {
       "char": "⇦",
-      "group": "Item"
+      "group": "Building"
     },
-    "Pilum_Thrown": {
+    "PassiveCooler": {
       "char": "⇧",
+      "group": "Building"
+    },
+    "PavedTile": {
+      "char": "⇨",
+      "group": "Terrain"
+    },
+    "PawnFlyer": {
+      "char": "⇩",
       "group": "Item"
     },
-    "PitBurrow": {
-      "char": "⇨",
-      "group": "Building"
-    },
-    "PitBurrowSpawner": {
-      "char": "⇩",
-      "group": "Building"
-    },
-    "PitGate": {
+    "PawnFlyer_ConsumeLeap": {
       "char": "⇪",
-      "group": "Building"
+      "group": "Item"
     },
-    "PitGateExit": {
+    "PawnFlyer_Stun": {
       "char": "⇫",
-      "group": "Building"
+      "group": "Item"
     },
-    "PitGateSpawner": {
+    "PawnGroundSpawner": {
       "char": "⇬",
-      "group": "Building"
+      "group": "Item"
     },
-    "PlantPot": {
+    "Pemmican": {
       "char": "⇭",
-      "group": "Building"
+      "group": "Item"
     },
-    "PlantPot_Bonsai": {
+    "PenMarker": {
       "char": "⇮",
       "group": "Building"
     },
-    "Plant_Agave": {
+    "Penoxycyline": {
       "char": "⇯",
-      "group": "Plant"
+      "group": "Item"
     },
-    "Plant_Alocasia": {
+    "Pew": {
       "char": "⇰",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_Ambrosia": {
+    "Piano": {
       "char": "⇱",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_Astragalus": {
+    "PiercingSpine": {
       "char": "⇲",
-      "group": "Plant"
+      "group": "Item"
     },
-    "Plant_Brambles": {
+    "Pig": {
       "char": "⇳",
-      "group": "Plant"
+      "group": "Pawn"
     },
-    "Plant_Chokevine": {
+    "Pila": {
       "char": "⇴",
-      "group": "Plant"
+      "group": "Item"
     },
-    "Plant_Clivia": {
+    "Pilum_Thrown": {
       "char": "⇵",
-      "group": "Plant"
+      "group": "Item"
     },
-    "Plant_Dandelion": {
+    "PitBurrow": {
       "char": "⇶",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_Fibercorn": {
+    "PitBurrowSpawner": {
       "char": "⇷",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_GrassAnima": {
+    "PitGate": {
       "char": "⇸",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_GrayGrass": {
+    "PitGateExit": {
       "char": "⇹",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_Haygrass": {
+    "PitGateSpawner": {
       "char": "⇺",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_HealrootWild": {
+    "PlantPot": {
       "char": "⇻",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_MossGauranlen": {
+    "PlantPot_Bonsai": {
       "char": "⇼",
-      "group": "Plant"
+      "group": "Building"
     },
-    "Plant_Nutrifungus": {
+    "Plant_Agave": {
       "char": "⇽",
       "group": "Plant"
     },
-    "Plant_PebbleCactus": {
+    "Plant_Alocasia": {
       "char": "⇾",
       "group": "Plant"
     },
-    "Plant_PincushionCactus": {
+    "Plant_Ambrosia": {
       "char": "⇿",
       "group": "Plant"
     },
-    "Plant_PodGauranlen": {
+    "Plant_Astragalus": {
       "char": "⌀",
       "group": "Plant"
     },
-    "Plant_Rafflesia": {
+    "Plant_Brambles": {
       "char": "⌁",
       "group": "Plant"
     },
-    "Plant_RatPalm": {
+    "Plant_Chokevine": {
       "char": "⌃",
       "group": "Plant"
     },
-    "Plant_Ripthorn": {
+    "Plant_Clivia": {
       "char": "⌄",
       "group": "Plant"
     },
-    "Plant_SaguaroCactus": {
+    "Plant_Dandelion": {
       "char": "⌅",
       "group": "Plant"
     },
-    "Plant_ShrubLow": {
+    "Plant_Fibercorn": {
       "char": "⌆",
       "group": "Plant"
     },
-    "Plant_Strawberry": {
+    "Plant_GrassAnima": {
       "char": "⌉",
       "group": "Plant"
     },
-    "Plant_TallGrass": {
+    "Plant_GrayGrass": {
       "char": "⌊",
       "group": "Plant"
     },
-    "Plant_Timbershroom": {
+    "Plant_Haygrass": {
       "char": "⌋",
       "group": "Plant"
     },
-    "Plant_Tinctoria": {
+    "Plant_HealrootWild": {
       "char": "⌌",
       "group": "Plant"
     },
-    "Plant_Toxipotato": {
+    "Plant_MossGauranlen": {
       "char": "⌍",
       "group": "Plant"
     },
-    "Plant_TreeBonsai": {
+    "Plant_Nutrifungus": {
       "char": "⌎",
       "group": "Plant"
     },
-    "Plant_TreeGrayPine": {
+    "Plant_PebbleCactus": {
       "char": "⌏",
       "group": "Plant"
     },
-    "Plant_TreeHarbinger": {
+    "Plant_PincushionCactus": {
       "char": "⌑",
       "group": "Plant"
     },
-    "Plant_TreePolux": {
+    "Plant_PodGauranlen": {
       "char": "⌓",
       "group": "Plant"
     },
-    "Plant_Witchwood": {
+    "Plant_Rafflesia": {
       "char": "⌔",
       "group": "Plant"
     },
-    "Plates_Spikecore": {
+    "Plant_RatPalm": {
       "char": "⌕",
-      "group": "Terrain"
+      "group": "Plant"
     },
-    "PodLauncher": {
+    "Plant_Ripthorn": {
       "char": "⌖",
-      "group": "Building"
+      "group": "Plant"
     },
-    "PollutionPump": {
+    "Plant_SaguaroCactus": {
       "char": "⌗",
-      "group": "Building"
+      "group": "Plant"
     },
-    "PoluxSeed": {
+    "Plant_ShrubLow": {
       "char": "⌙",
       "group": "Plant"
     },
-    "PowerBeam": {
+    "Plant_Strawberry": {
       "char": "⌚",
+      "group": "Plant"
+    },
+    "Plant_TallGrass": {
+      "char": "⌛",
+      "group": "Plant"
+    },
+    "Plant_Timbershroom": {
+      "char": "⌜",
+      "group": "Plant"
+    },
+    "Plant_Tinctoria": {
+      "char": "⌝",
+      "group": "Plant"
+    },
+    "Plant_Toxipotato": {
+      "char": "⌞",
+      "group": "Plant"
+    },
+    "Plant_TreeBonsai": {
+      "char": "⌟",
+      "group": "Plant"
+    },
+    "Plant_TreeGrayPine": {
+      "char": "⌠",
+      "group": "Plant"
+    },
+    "Plant_TreeHarbinger": {
+      "char": "⌡",
+      "group": "Plant"
+    },
+    "Plant_TreePolux": {
+      "char": "⌢",
+      "group": "Plant"
+    },
+    "Plant_Witchwood": {
+      "char": "⌣",
+      "group": "Plant"
+    },
+    "Plates_Spikecore": {
+      "char": "⌤",
+      "group": "Terrain"
+    },
+    "PodLauncher": {
+      "char": "⌥",
+      "group": "Building"
+    },
+    "PollutionPump": {
+      "char": "⌦",
+      "group": "Building"
+    },
+    "PoluxSeed": {
+      "char": "⌧",
+      "group": "Plant"
+    },
+    "PowerBeam": {
+      "char": "⌨",
       "group": "Item"
     },
     "PowerClaw": {
-      "char": "⌛",
-      "group": "Building"
-    },
-    "PowerfocusChip": {
-      "char": "⌜",
-      "group": "Item"
-    },
-    "Proj_Acid": {
-      "char": "⌝",
-      "group": "Item"
-    },
-    "Proj_CorrosiveFluid": {
-      "char": "⌞",
-      "group": "Item"
-    },
-    "Proj_FireArrow": {
-      "char": "⌟",
-      "group": "Item"
-    },
-    "Proj_Foam": {
-      "char": "⌠",
-      "group": "Building"
-    },
-    "Proj_Foam_Ability": {
-      "char": "⌡",
-      "group": "Item"
-    },
-    "Proj_GrenadeEMP": {
-      "char": "⌢",
-      "group": "Item"
-    },
-    "Proj_GrenadeFrag": {
-      "char": "⌣",
-      "group": "Item"
-    },
-    "Proj_GrenadeMolotov": {
-      "char": "⌤",
-      "group": "Item"
-    },
-    "Proj_GrenadePhoenixFire": {
-      "char": "⌥",
-      "group": "Item"
-    },
-    "Proj_GrenadeTox": {
-      "char": "⌦",
-      "group": "Item"
-    },
-    "Proj_GrenadierGrenade": {
-      "char": "⌧",
-      "group": "Item"
-    },
-    "Proj_Rocket": {
-      "char": "⌨",
-      "group": "Building"
-    },
-    "ProximityDetector": {
       "char": "〈",
       "group": "Building"
     },
-    "PsychicAmplifier": {
+    "PowerfocusChip": {
       "char": "〉",
       "group": "Item"
     },
-    "PsychicAnimalPulser": {
+    "Proj_Acid": {
       "char": "⌫",
       "group": "Item"
     },
-    "PsychicDroner": {
+    "Proj_CorrosiveFluid": {
       "char": "⌭",
-      "group": "Building"
+      "group": "Item"
     },
-    "PsychicDronerShipPart": {
+    "Proj_FireArrow": {
       "char": "⌮",
-      "group": "Building"
+      "group": "Item"
     },
-    "PsychicEmanator": {
+    "Proj_Foam": {
       "char": "⌯",
       "group": "Building"
     },
-    "PsychicHarmonizer": {
+    "Proj_Foam_Ability": {
       "char": "⌰",
       "group": "Item"
     },
-    "PsychicReader": {
+    "Proj_GrenadeEMP": {
       "char": "⌱",
       "group": "Item"
     },
-    "PsychicRitualSpot": {
+    "Proj_GrenadeFrag": {
       "char": "⌲",
-      "group": "Building"
+      "group": "Item"
     },
-    "PsychicSensitizer": {
+    "Proj_GrenadeMolotov": {
       "char": "⌳",
       "group": "Item"
     },
-    "PsychicSoothePulser": {
+    "Proj_GrenadePhoenixFire": {
       "char": "⌴",
       "group": "Item"
     },
-    "PsychicSuppressor": {
+    "Proj_GrenadeTox": {
       "char": "⌶",
-      "group": "Building"
+      "group": "Item"
     },
-    "PsychiteTea": {
+    "Proj_GrenadierGrenade": {
       "char": "⌷",
       "group": "Item"
     },
-    "PsychofluidPump": {
+    "Proj_Rocket": {
       "char": "⌸",
       "group": "Building"
     },
-    "PsychoidLeaves": {
+    "ProximityDetector": {
       "char": "⌹",
-      "group": "Item"
-    },
-    "Pyre": {
-      "char": "⌺",
       "group": "Building"
     },
-    "Raccoon": {
-      "char": "⌻",
-      "group": "Pawn"
-    },
-    "RadialTrigger": {
-      "char": "⌼",
+    "PsychicAmplifier": {
+      "char": "⌺",
       "group": "Item"
     },
-    "RaisedRocks": {
+    "PsychicAnimalPulser": {
+      "char": "⌻",
+      "group": "Item"
+    },
+    "PsychicDroner": {
+      "char": "⌼",
+      "group": "Building"
+    },
+    "PsychicDronerShipPart": {
       "char": "⌽",
       "group": "Building"
     },
-    "Rat": {
+    "PsychicEmanator": {
       "char": "⌾",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "RawAgave": {
+    "PsychicHarmonizer": {
       "char": "⌿",
       "group": "Item"
     },
-    "RawFungus": {
+    "PsychicReader": {
       "char": "⍀",
       "group": "Item"
     },
-    "RawHops": {
+    "PsychicRitualSpot": {
       "char": "⍁",
-      "group": "Item"
+      "group": "Building"
     },
-    "RawToxipotato": {
+    "PsychicSensitizer": {
       "char": "⍂",
       "group": "Item"
     },
-    "RectTrigger": {
+    "PsychicSoothePulser": {
       "char": "⍃",
       "group": "Item"
     },
-    "ReinforcedBarrel": {
+    "PsychicSuppressor": {
       "char": "⍄",
-      "group": "Item"
+      "group": "Building"
     },
-    "RelicInertArk": {
+    "PsychiteTea": {
       "char": "⍅",
       "group": "Item"
     },
-    "RelicInertBox": {
+    "PsychofluidPump": {
       "char": "⍆",
-      "group": "Item"
+      "group": "Building"
     },
-    "RelicInertCube": {
+    "PsychoidLeaves": {
       "char": "⍇",
       "group": "Item"
     },
-    "RelicInertCup": {
+    "Pyre": {
       "char": "⍈",
-      "group": "Item"
+      "group": "Building"
     },
-    "RelicInertFragment": {
+    "Raccoon": {
       "char": "⍉",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "RelicInertPendant": {
+    "RadialTrigger": {
       "char": "⍊",
       "group": "Item"
     },
-    "RelicInertSwordHandle": {
+    "RaisedRocks": {
       "char": "⍋",
-      "group": "Item"
-    },
-    "RelicInertTablet": {
-      "char": "⍌",
-      "group": "Item"
-    },
-    "Reliquary": {
-      "char": "⍍",
       "group": "Building"
     },
-    "RemoteRepairer": {
+    "Rat": {
+      "char": "⍌",
+      "group": "Pawn"
+    },
+    "RawAgave": {
+      "char": "⍍",
+      "group": "Item"
+    },
+    "RawFungus": {
       "char": "⍎",
       "group": "Item"
     },
-    "RemoteShielder": {
+    "RawHops": {
       "char": "⍏",
       "group": "Item"
     },
-    "RepairProbe": {
+    "RawToxipotato": {
       "char": "⍐",
       "group": "Item"
     },
-    "ReprocessorStomach": {
+    "RectTrigger": {
       "char": "⍑",
       "group": "Item"
     },
-    "Revenant": {
+    "ReinforcedBarrel": {
       "char": "⍒",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "RevenantFleshChunk": {
+    "RelicInertArk": {
       "char": "⍓",
       "group": "Item"
     },
-    "RevenantSpine": {
+    "RelicInertBox": {
       "char": "⍔",
       "group": "Item"
     },
-    "RevenantVertebrae": {
+    "RelicInertCube": {
       "char": "⍕",
       "group": "Item"
     },
-    "Rhinoceros": {
+    "RelicInertCup": {
       "char": "⍖",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "RipScannerGlow_East": {
+    "RelicInertFragment": {
       "char": "⍗",
       "group": "Item"
     },
-    "RipScannerGlow_North": {
+    "RelicInertPendant": {
       "char": "⍘",
       "group": "Item"
     },
-    "RipScannerGlow_South": {
+    "RelicInertSwordHandle": {
       "char": "⍙",
       "group": "Item"
     },
-    "RipScannerGlow_West": {
+    "RelicInertTablet": {
       "char": "⍚",
       "group": "Item"
     },
-    "RitualSpot": {
+    "Reliquary": {
       "char": "⍛",
       "group": "Building"
     },
-    "Riverbank": {
+    "RemoteRepairer": {
       "char": "⍜",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "RusticRug_Broad": {
+    "RemoteShielder": {
       "char": "⍝",
       "group": "Item"
     },
-    "RusticRug_Medium": {
+    "RepairProbe": {
       "char": "⍞",
       "group": "Item"
     },
-    "SacrificialFlag": {
+    "ReprocessorStomach": {
       "char": "⍟",
-      "group": "Building"
+      "group": "Item"
     },
-    "SandCubeSculpture": {
+    "Revenant": {
       "char": "⍠",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "SandbagRubble": {
+    "RevenantFleshChunk": {
       "char": "⍡",
       "group": "Item"
     },
-    "Sandstone": {
+    "RevenantSpine": {
       "char": "⍢",
       "group": "Item"
     },
-    "SanguphageMeetingTorch": {
+    "RevenantVertebrae": {
       "char": "⍣",
-      "group": "Building"
+      "group": "Item"
     },
-    "Sarcophagus": {
+    "Rhinoceros": {
       "char": "⍤",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "Schematic": {
+    "RipScannerGlow_East": {
       "char": "⍥",
       "group": "Item"
     },
-    "SchoolDesk": {
+    "RipScannerGlow_North": {
       "char": "⍦",
-      "group": "Building"
+      "group": "Item"
     },
-    "ScrapCubeSculpture": {
+    "RipScannerGlow_South": {
       "char": "⍧",
-      "group": "Building"
+      "group": "Item"
     },
-    "SculptureLarge": {
+    "RipScannerGlow_West": {
       "char": "⍨",
-      "group": "Building"
+      "group": "Item"
     },
-    "SculptureTerror": {
+    "RitualSpot": {
       "char": "⍩",
       "group": "Building"
     },
-    "SecurityDoor": {
+    "Riverbank": {
       "char": "⍪",
-      "group": "Building"
+      "group": "Terrain"
     },
-    "SerumCentrifuge": {
+    "RusticRug_Broad": {
       "char": "⍫",
-      "group": "Building"
+      "group": "Item"
     },
-    "Shard": {
+    "RusticRug_Medium": {
       "char": "⍬",
       "group": "Item"
     },
-    "ShardAnimalPulser": {
+    "SacrificialFlag": {
       "char": "⍭",
-      "group": "Item"
+      "group": "Building"
     },
-    "ShardBeacon": {
+    "SandCubeSculpture": {
       "char": "⍮",
       "group": "Building"
     },
-    "ShardInhibitor": {
+    "SandbagRubble": {
       "char": "⍯",
-      "group": "Building"
+      "group": "Item"
     },
-    "Sheep": {
+    "Sandstone": {
       "char": "⍰",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "ShelfSmall": {
+    "SanguphageMeetingTorch": {
       "char": "⍱",
       "group": "Building"
     },
-    "Shell_AntigrainWarhead": {
+    "Sarcophagus": {
       "char": "⍲",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_Deadlife": {
+    "Schematic": {
       "char": "⍳",
       "group": "Item"
     },
-    "Shell_Deadlife_Releasing": {
+    "SchoolDesk": {
       "char": "⍴",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_EMP": {
+    "ScrapCubeSculpture": {
       "char": "⍵",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_Firefoam": {
+    "SculptureLarge": {
       "char": "⍶",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_HighExplosive": {
+    "SculptureTerror": {
       "char": "⍷",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_Incendiary": {
+    "SecurityDoor": {
       "char": "⍸",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_Smoke": {
+    "SerumCentrifuge": {
       "char": "⍹",
-      "group": "Item"
+      "group": "Building"
     },
-    "Shell_Toxic": {
+    "Shard": {
       "char": "⍺",
       "group": "Item"
     },
-    "Shell_Toxic_Releasing": {
+    "ShardAnimalPulser": {
       "char": "⍻",
       "group": "Item"
     },
-    "Shell_Toxic_Releasing_Water": {
+    "ShardBeacon": {
       "char": "⍼",
-      "group": "Item"
+      "group": "Building"
     },
-    "ShieldGeneratorBullets": {
+    "ShardInhibitor": {
       "char": "⍽",
       "group": "Building"
     },
-    "ShieldGeneratorMortar": {
+    "Sheep": {
       "char": "⍾",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "ShipChunk": {
+    "ShelfSmall": {
       "char": "⍿",
       "group": "Building"
     },
-    "ShipChunkIncoming": {
+    "Shell_AntigrainWarhead": {
       "char": "⎀",
       "group": "Item"
     },
-    "ShipChunkIncoming_SmallExplosion": {
+    "Shell_Deadlife": {
       "char": "⎁",
       "group": "Item"
     },
-    "ShipLandingBeacon": {
+    "Shell_Deadlife_Releasing": {
       "char": "⎂",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ship_Beam": {
+    "Shell_EMP": {
       "char": "⎃",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ship_ComputerCore": {
+    "Shell_Firefoam": {
       "char": "⎄",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ship_CryptosleepCasket": {
+    "Shell_HighExplosive": {
       "char": "⎅",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ship_Engine": {
+    "Shell_Incendiary": {
       "char": "⎆",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ship_Reactor": {
+    "Shell_Smoke": {
       "char": "⎇",
-      "group": "Building"
+      "group": "Item"
     },
-    "Ship_SensorCluster": {
+    "Shell_Toxic": {
       "char": "⎈",
-      "group": "Building"
+      "group": "Item"
     },
-    "Shuttle": {
+    "Shell_Toxic_Releasing": {
       "char": "⎉",
-      "group": "Building"
+      "group": "Item"
     },
-    "ShuttleCrashed": {
+    "Shell_Toxic_Releasing_Water": {
       "char": "⎊",
-      "group": "Building"
+      "group": "Item"
     },
-    "ShuttleCrashed_Exitable": {
+    "ShieldGeneratorBullets": {
       "char": "⎋",
       "group": "Building"
     },
-    "ShuttleCrashed_Exitable_Mechanitor": {
+    "ShieldGeneratorMortar": {
       "char": "⎌",
       "group": "Building"
     },
-    "ShuttleCrashing": {
+    "ShipChunk": {
       "char": "⎍",
-      "group": "Item"
+      "group": "Building"
     },
-    "ShuttleCrashing_Mechanitor": {
+    "ShipChunkIncoming": {
       "char": "⎎",
       "group": "Item"
     },
-    "ShuttleIncoming": {
+    "ShipChunkIncoming_SmallExplosion": {
       "char": "⎏",
       "group": "Item"
     },
-    "ShuttleLeaving": {
+    "ShipLandingBeacon": {
       "char": "⎐",
-      "group": "Item"
+      "group": "Building"
     },
-    "Sightstealer": {
+    "Ship_Beam": {
       "char": "⎑",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "SignalAction_Ambush": {
+    "Ship_ComputerCore": {
       "char": "⎒",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_Delay": {
+    "Ship_CryptosleepCasket": {
       "char": "⎓",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_DormancyWakeUp": {
+    "Ship_Engine": {
       "char": "⎔",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_Incident": {
+    "Ship_Reactor": {
       "char": "⎕",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_Infestation": {
+    "Ship_SensorCluster": {
       "char": "⎖",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_Letter": {
+    "Shuttle": {
       "char": "⎗",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_Message": {
+    "ShuttleCrashed": {
       "char": "⎘",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_OpenCasket": {
+    "ShuttleCrashed_Exitable": {
       "char": "⎙",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_OpenDoor": {
+    "ShuttleCrashed_Exitable_Mechanitor": {
       "char": "⎚",
-      "group": "Item"
+      "group": "Building"
     },
-    "SignalAction_SoundOneShot": {
+    "ShuttleCrashing": {
       "char": "⎛",
       "group": "Item"
     },
-    "SignalAction_StartWick": {
+    "ShuttleCrashing_Mechanitor": {
       "char": "⎜",
       "group": "Item"
     },
-    "SignalChip": {
+    "ShuttleIncoming": {
       "char": "⎝",
       "group": "Item"
     },
-    "SilverTile": {
+    "ShuttleLeaving": {
       "char": "⎞",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "SimpleProstheticArm": {
+    "Sightstealer": {
       "char": "⎟",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "SimpleProstheticHeart": {
+    "SignalAction_Ambush": {
       "char": "⎠",
-      "group": "Building"
+      "group": "Item"
     },
-    "SimpleProstheticLeg": {
+    "SignalAction_Delay": {
       "char": "⎡",
-      "group": "Building"
+      "group": "Item"
     },
-    "Skull": {
+    "SignalAction_DormancyWakeUp": {
       "char": "⎢",
       "group": "Item"
     },
-    "Skullspike": {
+    "SignalAction_Incident": {
       "char": "⎣",
-      "group": "Building"
+      "group": "Item"
     },
-    "SkyLantern": {
+    "SignalAction_Infestation": {
       "char": "⎤",
       "group": "Item"
     },
-    "SlabBed": {
+    "SignalAction_Letter": {
       "char": "⎥",
-      "group": "Building"
+      "group": "Item"
     },
-    "SlabDoubleBed": {
+    "SignalAction_Message": {
       "char": "⎦",
-      "group": "Building"
+      "group": "Item"
     },
-    "SlagRubble": {
+    "SignalAction_OpenCasket": {
       "char": "⎧",
       "group": "Item"
     },
-    "Slate": {
+    "SignalAction_OpenDoor": {
       "char": "⎨",
       "group": "Item"
     },
-    "SleepAccelerator": {
+    "SignalAction_SoundOneShot": {
       "char": "⎩",
-      "group": "Building"
+      "group": "Item"
     },
-    "SleepSuppressor": {
+    "SignalAction_StartWick": {
       "char": "⎪",
-      "group": "Building"
+      "group": "Item"
     },
-    "SleepingSpot": {
+    "SignalChip": {
       "char": "⎫",
-      "group": "Building"
+      "group": "Item"
     },
-    "SmashedStump": {
+    "SilverTile": {
       "char": "⎬",
-      "group": "Plant"
+      "group": "Terrain"
     },
-    "SmashedStump_Anima": {
+    "SimpleProstheticArm": {
       "char": "⎭",
-      "group": "Plant"
-    },
-    "SmashedStump_Gauranlen": {
-      "char": "⎮",
-      "group": "Plant"
-    },
-    "SmashedStump_Harbinger": {
-      "char": "⎯",
-      "group": "Plant"
-    },
-    "SmashedStump_Polluted": {
-      "char": "⎰",
-      "group": "Plant"
-    },
-    "SmashedStump_Polux": {
-      "char": "⎱",
-      "group": "Plant"
-    },
-    "SmokeSpewer": {
-      "char": "⎲",
       "group": "Building"
     },
-    "SmokeleafJoint": {
+    "SimpleProstheticHeart": {
+      "char": "⎮",
+      "group": "Building"
+    },
+    "SimpleProstheticLeg": {
+      "char": "⎯",
+      "group": "Building"
+    },
+    "Skull": {
+      "char": "⎰",
+      "group": "Item"
+    },
+    "Skullspike": {
+      "char": "⎱",
+      "group": "Building"
+    },
+    "SkyLantern": {
+      "char": "⎲",
+      "group": "Item"
+    },
+    "SlabBed": {
       "char": "⎳",
-      "group": "Item"
+      "group": "Building"
     },
-    "SmokeleafLeaves": {
+    "SlabDoubleBed": {
       "char": "⎴",
-      "group": "Item"
+      "group": "Building"
     },
-    "SmoothedGranite": {
+    "SlagRubble": {
       "char": "⎵",
       "group": "Item"
     },
-    "SmoothedLimestone": {
+    "Slate": {
       "char": "⎶",
       "group": "Item"
     },
-    "SmoothedMarble": {
+    "SleepAccelerator": {
       "char": "⎷",
-      "group": "Item"
+      "group": "Building"
     },
-    "SmoothedSandstone": {
+    "SleepSuppressor": {
       "char": "⎸",
-      "group": "Item"
+      "group": "Building"
     },
-    "SmoothedSlate": {
+    "SleepingSpot": {
       "char": "⎹",
-      "group": "Item"
+      "group": "Building"
     },
-    "Snowhare": {
+    "SmashedStump": {
       "char": "⎺",
-      "group": "Pawn"
+      "group": "Plant"
     },
-    "Snowman": {
+    "SmashedStump_Anima": {
       "char": "⎻",
-      "group": "Building"
+      "group": "Plant"
     },
-    "SoftScannerGlow_East": {
+    "SmashedStump_Gauranlen": {
       "char": "⎼",
-      "group": "Item"
+      "group": "Plant"
     },
-    "SoftScannerGlow_North": {
+    "SmashedStump_Harbinger": {
       "char": "⎽",
-      "group": "Item"
+      "group": "Plant"
     },
-    "SoftScannerGlow_South": {
+    "SmashedStump_Polluted": {
       "char": "⎾",
-      "group": "Item"
+      "group": "Plant"
     },
-    "SoftScannerGlow_West": {
+    "SmashedStump_Polux": {
       "char": "⎿",
-      "group": "Item"
+      "group": "Plant"
     },
-    "SolarPinhole": {
+    "SmokeSpewer": {
       "char": "⏀",
-      "group": "Item"
-    },
-    "Spacedrone": {
-      "char": "⏁",
       "group": "Building"
     },
-    "SpacedroneIncoming": {
+    "SmokeleafJoint": {
+      "char": "⏁",
+      "group": "Item"
+    },
+    "SmokeleafLeaves": {
       "char": "⏂",
       "group": "Item"
     },
-    "Spark": {
+    "SmoothedGranite": {
       "char": "⏃",
       "group": "Item"
     },
-    "Spelopede": {
+    "SmoothedLimestone": {
       "char": "⏄",
-      "group": "Pawn"
+      "group": "Item"
     },
-    "Spike_Fingerspike": {
+    "SmoothedMarble": {
       "char": "⏅",
       "group": "Item"
     },
-    "Spike_Toughspike": {
+    "SmoothedSandstone": {
       "char": "⏆",
       "group": "Item"
     },
-    "SpikecoreFloorStar_Broad": {
+    "SmoothedSlate": {
       "char": "⏇",
       "group": "Item"
     },
-    "SpikecoreFloorStar_Medium": {
+    "Snowhare": {
       "char": "⏈",
-      "group": "Item"
-    },
-    "Spine_Gorehulk": {
-      "char": "⏉",
-      "group": "Item"
-    },
-    "Squirrel": {
-      "char": "⏊",
       "group": "Pawn"
     },
-    "StandardRecharger": {
+    "Snowman": {
+      "char": "⏉",
+      "group": "Building"
+    },
+    "SoftScannerGlow_East": {
+      "char": "⏊",
+      "group": "Item"
+    },
+    "SoftScannerGlow_North": {
       "char": "⏋",
-      "group": "Building"
+      "group": "Item"
     },
-    "SteamGeyser": {
+    "SoftScannerGlow_South": {
       "char": "⏌",
-      "group": "Building"
+      "group": "Item"
     },
-    "SteleGrand": {
+    "SoftScannerGlow_West": {
       "char": "⏍",
-      "group": "Building"
+      "group": "Item"
     },
-    "SteleLarge": {
+    "Soil": {
       "char": "⏎",
-      "group": "Building"
-    },
-    "SterileTile": {
-      "char": "⏏",
       "group": "Terrain"
     },
-    "StoneCubeSculpture": {
+    "SolarPinhole": {
+      "char": "⏏",
+      "group": "Item"
+    },
+    "Spacedrone": {
       "char": "⏐",
       "group": "Building"
     },
-    "StoneskinGland": {
+    "SpacedroneIncoming": {
       "char": "⏑",
       "group": "Item"
     },
-    "StrawMatting": {
+    "Spark": {
       "char": "⏒",
-      "group": "Terrain"
+      "group": "Item"
     },
-    "StylingStation": {
+    "Spelopede": {
       "char": "⏓",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "SubcoreBasic": {
+    "Spike_Fingerspike": {
       "char": "⏔",
       "group": "Item"
     },
-    "SubcoreEncoder": {
+    "Spike_Toughspike": {
       "char": "⏕",
-      "group": "Building"
+      "group": "Item"
     },
-    "SubcoreHigh": {
+    "SpikecoreFloorStar_Broad": {
       "char": "⏖",
       "group": "Item"
     },
-    "SubcoreRegular": {
+    "SpikecoreFloorStar_Medium": {
       "char": "⏗",
       "group": "Item"
     },
-    "SubcoreRipscanner": {
+    "Spine_Gorehulk": {
       "char": "⏘",
-      "group": "Building"
+      "group": "Item"
     },
-    "SubcoreSoftscanner": {
+    "Squirrel": {
       "char": "⏙",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "SunBlocker": {
+    "StandardRecharger": {
       "char": "⏚",
       "group": "Building"
     },
-    "Table2x4c": {
+    "SteamGeyser": {
       "char": "⏛",
       "group": "Building"
     },
-    "Table3x3c": {
+    "SteleGrand": {
       "char": "⏜",
       "group": "Building"
     },
-    "TableMachining": {
+    "SteleLarge": {
       "char": "⏝",
       "group": "Building"
     },
-    "TableSculpting": {
+    "SterileTile": {
       "char": "⏞",
+      "group": "Terrain"
+    },
+    "StoneCubeSculpture": {
+      "char": "⏟",
       "group": "Building"
     },
-    "TachycardiacArrestExplosion": {
-      "char": "⏟",
-      "group": "Item"
-    },
-    "TechprofSubpersonaCore": {
+    "StoneskinGland": {
       "char": "⏠",
       "group": "Item"
     },
-    "Telescope": {
+    "StrawMatting": {
       "char": "⏡",
+      "group": "Terrain"
+    },
+    "StylingStation": {
+      "char": "⏢",
+      "group": "Building"
+    },
+    "SubcoreBasic": {
+      "char": "⏣",
+      "group": "Item"
+    },
+    "SubcoreEncoder": {
+      "char": "⏤",
+      "group": "Building"
+    },
+    "SubcoreHigh": {
+      "char": "⏥",
+      "group": "Item"
+    },
+    "SubcoreRegular": {
+      "char": "⏦",
+      "group": "Item"
+    },
+    "SubcoreRipscanner": {
+      "char": "⏧",
+      "group": "Building"
+    },
+    "SubcoreSoftscanner": {
+      "char": "⏨",
+      "group": "Building"
+    },
+    "SunBlocker": {
+      "char": "⏩",
+      "group": "Building"
+    },
+    "Table2x4c": {
+      "char": "⏪",
+      "group": "Building"
+    },
+    "Table3x3c": {
+      "char": "⏫",
+      "group": "Building"
+    },
+    "TableMachining": {
+      "char": "⏬",
+      "group": "Building"
+    },
+    "TableSculpting": {
+      "char": "⏭",
+      "group": "Building"
+    },
+    "TachycardiacArrestExplosion": {
+      "char": "⏮",
+      "group": "Item"
+    },
+    "TechprofSubpersonaCore": {
+      "char": "⏯",
+      "group": "Item"
+    },
+    "Telescope": {
+      "char": "⏰",
       "group": "Building"
     },
     "TextBook": {
-      "char": "⏢",
+      "char": "⏱",
       "group": "Item"
     },
     "Throne": {
-      "char": "⏣",
+      "char": "⏲",
       "group": "Building"
     },
     "ThrumboHorn": {
-      "char": "⏤",
+      "char": "⏳",
       "group": "Item"
     },
     "TileGranite": {
-      "char": "⏥",
-      "group": "Terrain"
-    },
-    "TileLimestone": {
-      "char": "⏦",
-      "group": "Terrain"
-    },
-    "TileMarble": {
-      "char": "⏧",
-      "group": "Terrain"
-    },
-    "TileSandstone": {
-      "char": "⏨",
-      "group": "Terrain"
-    },
-    "TileSlate": {
-      "char": "⏩",
-      "group": "Terrain"
-    },
-    "Tile_MorbidGranite": {
-      "char": "⏪",
-      "group": "Terrain"
-    },
-    "Tile_MorbidLimestone": {
-      "char": "⏫",
-      "group": "Terrain"
-    },
-    "Tile_MorbidMarble": {
-      "char": "⏬",
-      "group": "Terrain"
-    },
-    "Tile_MorbidSandstone": {
-      "char": "⏭",
-      "group": "Terrain"
-    },
-    "Tile_MorbidSlate": {
-      "char": "⏮",
-      "group": "Terrain"
-    },
-    "Tile_MorbidVacstone": {
-      "char": "⏯",
-      "group": "Terrain"
-    },
-    "Tile_SpikecoreGranite": {
-      "char": "⏰",
-      "group": "Terrain"
-    },
-    "Tile_SpikecoreLimestone": {
-      "char": "⏱",
-      "group": "Terrain"
-    },
-    "Tile_SpikecoreMarble": {
-      "char": "⏲",
-      "group": "Terrain"
-    },
-    "Tile_SpikecoreSandstone": {
-      "char": "⏳",
-      "group": "Terrain"
-    },
-    "Tile_SpikecoreSlate": {
       "char": "⏴",
       "group": "Terrain"
     },
-    "Tile_SpikecoreVacstone": {
+    "TileLimestone": {
       "char": "⏵",
       "group": "Terrain"
     },
-    "Tile_TotemicGranite": {
+    "TileMarble": {
       "char": "⏶",
       "group": "Terrain"
     },
-    "Tile_TotemicLimestone": {
+    "TileSandstone": {
       "char": "⏷",
       "group": "Terrain"
     },
-    "Tile_TotemicMarble": {
+    "TileSlate": {
       "char": "⏸",
       "group": "Terrain"
     },
-    "Tile_TotemicSandstone": {
+    "Tile_MorbidGranite": {
       "char": "⏹",
       "group": "Terrain"
     },
-    "Tile_TotemicSlate": {
+    "Tile_MorbidLimestone": {
       "char": "⏺",
       "group": "Terrain"
     },
-    "Tile_TotemicVacstone": {
+    "Tile_MorbidMarble": {
       "char": "⏼",
       "group": "Terrain"
     },
-    "Tile_Transhumanist": {
+    "Tile_MorbidSandstone": {
       "char": "⏽",
       "group": "Terrain"
     },
-    "Tome": {
+    "Tile_MorbidSlate": {
       "char": "⏾",
+      "group": "Terrain"
+    },
+    "Tile_MorbidVacstone": {
+      "char": "⏿",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreGranite": {
+      "char": "⬀",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreLimestone": {
+      "char": "⬁",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreMarble": {
+      "char": "⬂",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreSandstone": {
+      "char": "⬃",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreSlate": {
+      "char": "⬄",
+      "group": "Terrain"
+    },
+    "Tile_SpikecoreVacstone": {
+      "char": "⬅",
+      "group": "Terrain"
+    },
+    "Tile_TotemicGranite": {
+      "char": "⬆",
+      "group": "Terrain"
+    },
+    "Tile_TotemicLimestone": {
+      "char": "⬇",
+      "group": "Terrain"
+    },
+    "Tile_TotemicMarble": {
+      "char": "⬈",
+      "group": "Terrain"
+    },
+    "Tile_TotemicSandstone": {
+      "char": "⬉",
+      "group": "Terrain"
+    },
+    "Tile_TotemicSlate": {
+      "char": "⬊",
+      "group": "Terrain"
+    },
+    "Tile_TotemicVacstone": {
+      "char": "⬋",
+      "group": "Terrain"
+    },
+    "Tile_Transhumanist": {
+      "char": "⬌",
+      "group": "Terrain"
+    },
+    "Tome": {
+      "char": "⬍",
       "group": "Item"
     },
     "ToolCabinet": {
-      "char": "⏿",
-      "group": "Building"
-    },
-    "TorchLamp": {
-      "char": "⬀",
-      "group": "Building"
-    },
-    "TorchWallLamp": {
-      "char": "⬁",
-      "group": "Building"
-    },
-    "Tornado": {
-      "char": "⬂",
-      "group": "Item"
-    },
-    "TornadoGenerator": {
-      "char": "⬃",
-      "group": "Item"
-    },
-    "Tortoise": {
-      "char": "⬄",
-      "group": "Pawn"
-    },
-    "TotemicSlab_Broad": {
-      "char": "⬅",
-      "group": "Item"
-    },
-    "TotemicSlab_Medium": {
-      "char": "⬆",
-      "group": "Item"
-    },
-    "ToughskinGland": {
-      "char": "⬇",
-      "group": "Item"
-    },
-    "Toughspike": {
-      "char": "⬈",
-      "group": "Pawn"
-    },
-    "Toxalope": {
-      "char": "⬉",
-      "group": "Pawn"
-    },
-    "ToxicSpewer": {
-      "char": "⬊",
-      "group": "Building"
-    },
-    "ToxifierGenerator": {
-      "char": "⬋",
-      "group": "Building"
-    },
-    "ToyBox": {
-      "char": "⬌",
-      "group": "Building"
-    },
-    "TransportPod": {
-      "char": "⬍",
-      "group": "Building"
-    },
-    "TrapIED_AntigrainWarhead": {
       "char": "⬎",
       "group": "Building"
     },
-    "TrapIED_Deadlife": {
+    "TorchLamp": {
       "char": "⬏",
       "group": "Building"
     },
-    "TrapIED_EMP": {
+    "TorchWallLamp": {
       "char": "⬐",
       "group": "Building"
     },
-    "TrapIED_Firefoam": {
+    "Tornado": {
       "char": "⬑",
-      "group": "Building"
+      "group": "Item"
     },
-    "TrapIED_HighExplosive": {
+    "TornadoGenerator": {
       "char": "⬒",
-      "group": "Building"
+      "group": "Item"
     },
-    "TrapIED_Incendiary": {
+    "Tortoise": {
       "char": "⬓",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "TrapIED_Smoke": {
+    "TotemicSlab_Broad": {
       "char": "⬔",
-      "group": "Building"
+      "group": "Item"
     },
-    "TrapIED_ToxGas": {
+    "TotemicSlab_Medium": {
       "char": "⬕",
-      "group": "Building"
+      "group": "Item"
     },
-    "TriggerContainerEmptied": {
+    "ToughskinGland": {
       "char": "⬖",
       "group": "Item"
     },
-    "TriggerUnfogged": {
+    "Toughspike": {
       "char": "⬗",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Trispike": {
+    "Toxalope": {
       "char": "⬘",
       "group": "Pawn"
     },
-    "TunnelHiveSpawner": {
+    "ToxicSpewer": {
       "char": "⬙",
-      "group": "Item"
+      "group": "Building"
     },
-    "TunnelJellySpawner": {
+    "ToxifierGenerator": {
       "char": "⬚",
-      "group": "Item"
+      "group": "Building"
     },
-    "Turkey": {
+    "ToyBox": {
       "char": "⬛",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Turret_AutoChargeBlaster": {
+    "TransportPod": {
       "char": "⬜",
       "group": "Building"
     },
-    "Turret_AutoInferno": {
+    "TrapIED_AntigrainWarhead": {
       "char": "⬝",
       "group": "Building"
     },
-    "Turret_AutoMiniTurret": {
+    "TrapIED_Deadlife": {
       "char": "⬞",
       "group": "Building"
     },
-    "Turret_AutoMortar": {
+    "TrapIED_EMP": {
       "char": "⬟",
       "group": "Building"
     },
-    "Turret_Autocannon": {
+    "TrapIED_Firefoam": {
       "char": "⬠",
       "group": "Building"
     },
-    "Turret_FoamTurret": {
+    "TrapIED_HighExplosive": {
       "char": "⬡",
       "group": "Building"
     },
-    "Turret_Mortar": {
+    "TrapIED_Incendiary": {
       "char": "⬣",
       "group": "Building"
     },
-    "Turret_RocketswarmLauncher": {
+    "TrapIED_Smoke": {
       "char": "⬤",
       "group": "Building"
     },
-    "Turret_Sniper": {
+    "TrapIED_ToxGas": {
       "char": "⬥",
       "group": "Building"
     },
-    "Turret_TacticalTurret": {
+    "TriggerContainerEmptied": {
       "char": "⬦",
-      "group": "Building"
+      "group": "Item"
     },
-    "TwistedArchotechSupport_Large": {
+    "TriggerUnfogged": {
       "char": "⬧",
-      "group": "Building"
+      "group": "Item"
     },
-    "TwistedArchotechSupport_Small": {
+    "Trispike": {
       "char": "⬨",
-      "group": "Building"
+      "group": "Pawn"
     },
-    "TwistedArchotechSupport_Vertical": {
+    "TunnelHiveSpawner": {
       "char": "⬩",
-      "group": "Building"
+      "group": "Item"
     },
-    "UnfinishedApparel": {
+    "TunnelJellySpawner": {
       "char": "⬪",
       "group": "Item"
     },
-    "UnfinishedArmor": {
+    "Turkey": {
       "char": "⬫",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "UnfinishedBelt": {
+    "Turret_AutoChargeBlaster": {
       "char": "⬬",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedComponent": {
+    "Turret_AutoInferno": {
       "char": "⬭",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedGun": {
+    "Turret_AutoMiniTurret": {
       "char": "⬮",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedHealthItemBionic": {
+    "Turret_AutoMortar": {
       "char": "⬯",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedHealthItemGhoul": {
+    "Turret_Autocannon": {
       "char": "⬰",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedHealthItemProsthetic": {
+    "Turret_FoamTurret": {
       "char": "⬱",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedMask": {
+    "Turret_Mortar": {
       "char": "⬲",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedMetallicTechArmor": {
+    "Turret_RocketswarmLauncher": {
       "char": "⬳",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedMusicalInstrument": {
+    "Turret_Sniper": {
       "char": "⬴",
       "group": "Building"
     },
-    "UnfinishedPack": {
+    "Turret_TacticalTurret": {
       "char": "⬵",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedPiano": {
+    "TwistedArchotechSupport_Large": {
       "char": "⬶",
       "group": "Building"
     },
-    "UnfinishedSculpture": {
+    "TwistedArchotechSupport_Small": {
       "char": "⬷",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedSubcore": {
+    "TwistedArchotechSupport_Vertical": {
       "char": "⬸",
-      "group": "Item"
+      "group": "Building"
     },
-    "UnfinishedTechArmor": {
+    "Underwall": {
       "char": "⬹",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "UnfinishedWeapon": {
+    "UnfinishedApparel": {
       "char": "⬺",
       "group": "Item"
     },
-    "UnstablePowerCell": {
+    "UnfinishedArmor": {
       "char": "⬻",
-      "group": "Building"
+      "group": "Item"
     },
-    "Urn": {
+    "UnfinishedBelt": {
       "char": "⬼",
-      "group": "Building"
+      "group": "Item"
     },
-    "VanometricPowerCell": {
+    "UnfinishedComponent": {
       "char": "⬽",
-      "group": "Building"
+      "group": "Item"
     },
-    "VenomFangs": {
+    "UnfinishedGun": {
       "char": "⬾",
       "group": "Item"
     },
-    "VenomTalon": {
+    "UnfinishedHealthItemBionic": {
       "char": "⬿",
       "group": "Item"
     },
-    "VoidMonolith": {
+    "UnfinishedHealthItemGhoul": {
       "char": "⭀",
-      "group": "Building"
+      "group": "Item"
     },
-    "VoidMonolithAttachmentBottomLeft": {
+    "UnfinishedHealthItemProsthetic": {
       "char": "⭁",
-      "group": "Building"
+      "group": "Item"
     },
-    "VoidMonolithAttachmentBottomRight": {
+    "UnfinishedMask": {
       "char": "⭂",
-      "group": "Building"
+      "group": "Item"
     },
-    "VoidMonolithAttachmentLeft": {
+    "UnfinishedMetallicTechArmor": {
       "char": "⭃",
-      "group": "Building"
+      "group": "Item"
     },
-    "VoidMonolithAttachmentRight": {
+    "UnfinishedMusicalInstrument": {
       "char": "⭄",
       "group": "Building"
     },
-    "VoidMonolithAttachmentTop": {
+    "UnfinishedPack": {
       "char": "⭅",
-      "group": "Building"
-    },
-    "VoidMonolithPyramind": {
-      "char": "⭆",
       "group": "Item"
     },
-    "VoidNode": {
-      "char": "⭇",
+    "UnfinishedPiano": {
+      "char": "⭆",
       "group": "Building"
     },
-    "VoidNodeCore_DustA": {
+    "UnfinishedSculpture": {
+      "char": "⭇",
+      "group": "Item"
+    },
+    "UnfinishedSubcore": {
       "char": "⭈",
       "group": "Item"
     },
-    "VoidNodeCore_DustB": {
+    "UnfinishedTechArmor": {
       "char": "⭉",
       "group": "Item"
     },
-    "VoidNodeDistortion": {
+    "UnfinishedWeapon": {
       "char": "⭊",
       "group": "Item"
     },
-    "VoidSculpture": {
+    "UnstablePowerCell": {
       "char": "⭋",
       "group": "Building"
     },
-    "VoidStructure": {
+    "Urn": {
       "char": "⭌",
       "group": "Building"
     },
-    "VoidStructureIncoming": {
+    "VanometricPowerCell": {
       "char": "⭍",
-      "group": "Item"
-    },
-    "Voidmetal": {
-      "char": "⭎",
-      "group": "Terrain"
-    },
-    "VoidmetalMass": {
-      "char": "⭏",
       "group": "Building"
     },
-    "VoidmetalMassLarge": {
+    "VenomFangs": {
+      "char": "⭎",
+      "group": "Item"
+    },
+    "VenomTalon": {
+      "char": "⭏",
+      "group": "Item"
+    },
+    "VoidMonolith": {
       "char": "⭐",
       "group": "Building"
     },
-    "VoidmetalMassMedium": {
+    "VoidMonolithAttachmentBottomLeft": {
       "char": "⭑",
       "group": "Building"
     },
-    "VoidmetalMassSmall": {
+    "VoidMonolithAttachmentBottomRight": {
       "char": "⭒",
       "group": "Building"
     },
-    "VoidmetalWall": {
+    "VoidMonolithAttachmentLeft": {
       "char": "⭓",
       "group": "Building"
     },
-    "VoidsightSerum": {
+    "VoidMonolithAttachmentRight": {
       "char": "⭔",
-      "group": "Item"
+      "group": "Building"
     },
-    "WakeUp": {
+    "VoidMonolithAttachmentTop": {
       "char": "⭕",
-      "group": "Item"
+      "group": "Building"
     },
-    "Warg": {
+    "VoidMonolithPyramind": {
       "char": "⭖",
-      "group": "Pawn"
-    },
-    "WarpedObeliskIncoming": {
-      "char": "⭗",
       "group": "Item"
     },
-    "WarpedObelisk_Abductor": {
+    "VoidNode": {
+      "char": "⭗",
+      "group": "Building"
+    },
+    "VoidNodeCore_DustA": {
       "char": "⭘",
-      "group": "Building"
+      "group": "Item"
     },
-    "WarpedObelisk_Duplicator": {
+    "VoidNodeCore_DustB": {
       "char": "⭙",
-      "group": "Building"
+      "group": "Item"
     },
-    "WarpedObelisk_Labyrinth": {
+    "VoidNodeDistortion": {
       "char": "⭚",
-      "group": "Building"
+      "group": "Item"
     },
-    "WarpedObelisk_Mutator": {
+    "VoidSculpture": {
       "char": "⭛",
       "group": "Building"
     },
-    "WasteRat": {
+    "VoidStructure": {
       "char": "⭜",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Wastepack": {
+    "VoidStructureIncoming": {
       "char": "⭝",
       "group": "Item"
     },
-    "WastepackAtomizer": {
+    "Voidmetal": {
       "char": "⭞",
+      "group": "Terrain"
+    },
+    "VoidmetalMass": {
+      "char": "⭟",
       "group": "Building"
     },
-    "WaterMovingChestDeep": {
-      "char": "⭟",
-      "group": "Terrain"
-    },
-    "WaterMovingShallow": {
+    "VoidmetalMassLarge": {
       "char": "⭠",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "WaterOceanDeep": {
+    "VoidmetalMassMedium": {
       "char": "⭡",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "WaterOceanShallow": {
+    "VoidmetalMassSmall": {
       "char": "⭢",
-      "group": "Terrain"
+      "group": "Building"
     },
-    "WatermillGenerator": {
+    "VoidmetalWall": {
       "char": "⭣",
       "group": "Building"
     },
-    "WaterproofConduit": {
+    "VoidsightSerum": {
       "char": "⭤",
-      "group": "Building"
+      "group": "Item"
     },
-    "Weapon_GrenadeEMP": {
+    "WakeUp": {
       "char": "⭥",
       "group": "Item"
     },
-    "Weapon_GrenadeFrag": {
+    "Warg": {
       "char": "⭦",
-      "group": "Item"
+      "group": "Pawn"
     },
-    "Weapon_GrenadeMolotov": {
+    "WarpedObeliskIncoming": {
       "char": "⭧",
       "group": "Item"
     },
-    "Weapon_GrenadeTox": {
+    "WarpedObelisk_Abductor": {
       "char": "⭨",
-      "group": "Item"
+      "group": "Building"
     },
-    "WeatherController": {
+    "WarpedObelisk_Duplicator": {
       "char": "⭩",
       "group": "Building"
     },
-    "WildBoar": {
+    "WarpedObelisk_Labyrinth": {
       "char": "⭪",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Wolf_Arctic": {
+    "WarpedObelisk_Mutator": {
       "char": "⭫",
-      "group": "Pawn"
+      "group": "Building"
     },
-    "Wolf_Timber": {
+    "WasteRat": {
       "char": "⭬",
       "group": "Pawn"
     },
-    "WoodPlankFloor": {
+    "Wastepack": {
       "char": "⭭",
+      "group": "Item"
+    },
+    "WastepackAtomizer": {
+      "char": "⭮",
+      "group": "Building"
+    },
+    "WaterMovingChestDeep": {
+      "char": "⭯",
       "group": "Terrain"
     },
-    "WoolAlpaca": {
-      "char": "⭮",
-      "group": "Item"
-    },
-    "WoolBison": {
-      "char": "⭯",
-      "group": "Item"
-    },
-    "WoolMegasloth": {
+    "WaterMovingShallow": {
       "char": "⭰",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "WoolMuffalo": {
+    "WaterOceanDeep": {
       "char": "⭱",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "WoolSheep": {
+    "WaterOceanShallow": {
       "char": "⭲",
-      "group": "Item"
+      "group": "Terrain"
     },
-    "Wort": {
+    "WatermillGenerator": {
       "char": "⭳",
-      "group": "Item"
+      "group": "Building"
     },
-    "Xenogerm": {
+    "WaterproofConduit": {
       "char": "⭶",
+      "group": "Building"
+    },
+    "Weapon_GrenadeEMP": {
+      "char": "⭷",
       "group": "Item"
     },
-    "Yak": {
-      "char": "⭷",
-      "group": "Pawn"
-    },
-    "Yayo": {
+    "Weapon_GrenadeFrag": {
       "char": "⭸",
       "group": "Item"
     },
-    "YorkshireTerrier": {
+    "Weapon_GrenadeMolotov": {
       "char": "⭹",
+      "group": "Item"
+    },
+    "Weapon_GrenadeTox": {
+      "char": "⭺",
+      "group": "Item"
+    },
+    "WeatherController": {
+      "char": "⭻",
+      "group": "Building"
+    },
+    "WildBoar": {
+      "char": "⭼",
+      "group": "Pawn"
+    },
+    "Wolf_Arctic": {
+      "char": "⭽",
+      "group": "Pawn"
+    },
+    "Wolf_Timber": {
+      "char": "⭾",
+      "group": "Pawn"
+    },
+    "WoodPlankFloor": {
+      "char": "⭿",
+      "group": "Terrain"
+    },
+    "WoolAlpaca": {
+      "char": "⮀",
+      "group": "Item"
+    },
+    "WoolBison": {
+      "char": "⮁",
+      "group": "Item"
+    },
+    "WoolMegasloth": {
+      "char": "⮂",
+      "group": "Item"
+    },
+    "WoolMuffalo": {
+      "char": "⮃",
+      "group": "Item"
+    },
+    "WoolSheep": {
+      "char": "⮄",
+      "group": "Item"
+    },
+    "Wort": {
+      "char": "⮅",
+      "group": "Item"
+    },
+    "Xenogerm": {
+      "char": "⮆",
+      "group": "Item"
+    },
+    "Yak": {
+      "char": "⮇",
+      "group": "Pawn"
+    },
+    "Yayo": {
+      "char": "⮈",
+      "group": "Item"
+    },
+    "YorkshireTerrier": {
+      "char": "⮉",
       "group": "Pawn"
     }
   },
   "fallback_pool": [
-    "⭺",
-    "⭻",
-    "⭼",
-    "⭽",
-    "⭾",
-    "⭿",
-    "⮀",
-    "⮁",
-    "⮂",
-    "⮃",
-    "⮄",
-    "⮅",
-    "⮆",
-    "⮇",
-    "⮈",
-    "⮉",
     "⮊",
     "⮋",
     "⮌",
@@ -10035,22 +10023,6 @@
     "⫽",
     "⫾",
     "⫿",
-    "⭺",
-    "⭻",
-    "⭼",
-    "⭽",
-    "⭾",
-    "⭿",
-    "⮀",
-    "⮁",
-    "⮂",
-    "⮃",
-    "⮄",
-    "⮅",
-    "⮆",
-    "⮇",
-    "⮈",
-    "⮉",
     "⮊",
     "⮋",
     "⮌",
@@ -10242,6 +10214,38 @@
     "ⱇ",
     "ⱈ",
     "ⱉ",
-    "ⱊ"
+    "ⱊ",
+    "ⱋ",
+    "ⱌ",
+    "ⱍ",
+    "ⱎ",
+    "ⱏ",
+    "ⱐ",
+    "ⱑ",
+    "ⱒ",
+    "ⱓ",
+    "ⱔ",
+    "ⱕ",
+    "ⱖ",
+    "ⱗ",
+    "ⱘ",
+    "ⱙ",
+    "ⱚ",
+    "ⱛ",
+    "ⱜ",
+    "ⱝ",
+    "ⱞ",
+    "ⱟ",
+    "Ⱡ",
+    "ⱡ",
+    "Ɫ",
+    "Ᵽ",
+    "Ɽ",
+    "ⱥ",
+    "ⱦ",
+    "Ⱨ",
+    "ⱨ",
+    "Ⱪ",
+    "ⱪ"
   ]
 }
