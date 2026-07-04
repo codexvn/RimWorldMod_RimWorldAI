@@ -76,16 +76,24 @@ namespace RimWorldMCP.Tools
                     }
                     else
                     {
-                        // 自动选择兼容工作台，跳过单据已满的
-                        var compatible = workTables.Where(t => recipe.AvailableOnNow(t, null) && t.billStack.Count < 15).ToList();
-                        targetTable = compatible.Count > 0 ? compatible[0] : workTables[0];
+                        // 自动选择兼容工作台，跳过单据已满的。用 AllRecipes 检查工作台类型兼容性（AvailableOnNow 对生产配方永远返回 true，不可靠）
+                        var compatible = workTables.Where(t => t.def.AllRecipes.Contains(recipe) && t.billStack.Count < 15).ToList();
+                        if (compatible.Count == 0)
+                        {
+                            var anySupports = workTables.Any(t => t.def.AllRecipes.Contains(recipe));
+                            if (!anySupports)
+                                return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 在当前殖民地没有兼容的工作台。");
+                            else
+                                return ToolResult.Error($"所有兼容 {recipe.label} 的工作台单据已满（最多 15 个）。请先删除或暂停其他单据。");
+                        }
+                        targetTable = compatible[0];
                     }
 
                     var tableLabel = targetTable.def?.label ?? targetTable.def?.defName ?? "工作台";
 
-                    // 检查配方与工作台兼容性
-                    if (!recipe.AvailableOnNow(targetTable, null))
-                        return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 无法在 {tableLabel} 上执行。可用工作台: {string.Join(", ", workTables.Where(t => recipe.AvailableOnNow(t, null)).Select(t => t.def?.label))}");
+                    // 检查配方与工作台兼容性。用 AllRecipes 而非 AvailableOnNow——后者对生产配方永远返回 true
+                    if (!targetTable.def.AllRecipes.Contains(recipe))
+                        return ToolResult.Error($"配方 {recipe.label} ({recipeDefName}) 无法在 {tableLabel} 上执行。可用工作台: {string.Join(", ", workTables.Where(t => t.def.AllRecipes.Contains(recipe)).Select(t => t.def?.label))}");
 
                     // 检查工作台单据数量上限
                     if (targetTable.billStack.Count >= 15)
