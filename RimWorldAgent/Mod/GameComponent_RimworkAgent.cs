@@ -248,7 +248,16 @@ namespace RimWorldAgent
                 WorkingDirectory = string.IsNullOrWhiteSpace(backend.WorkingDirectory)
                     ? null
                     : backend.WorkingDirectory.Trim(),
-                Env = ParseEnvironment(backend.EnvText)
+                Env = ParseEnvironment(backend.EnvText),
+                SessionConfigSelections = (backend.SessionConfigSelections ?? new List<AcpSessionConfigSelection>())
+                    .Where(item => item != null && !string.IsNullOrWhiteSpace(item.ConfigId))
+                    .Select(item => new AcpSessionConfigSelectionValue
+                    {
+                        ConfigId = item.ConfigId.Trim(),
+                        Type = string.IsNullOrWhiteSpace(item.Type) ? "select" : item.Type.Trim(),
+                        Value = item.Value ?? ""
+                    })
+                    .ToList()
             };
         }
 

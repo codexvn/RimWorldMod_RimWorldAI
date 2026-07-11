@@ -12,11 +12,13 @@ namespace RimWorldAgent.Core.AgentTransport
     {
         public bool Success { get; }
         public string Message { get; }
+        public List<SessionConfigOptionDto> ConfigOptions { get; }
 
-        public AcpBackendProbeResult(bool success, string message)
+        public AcpBackendProbeResult(bool success, string message, List<SessionConfigOptionDto>? configOptions = null)
         {
             Success = success;
             Message = message;
+            ConfigOptions = configOptions ?? new List<SessionConfigOptionDto>();
         }
     }
 
@@ -43,10 +45,11 @@ namespace RimWorldAgent.Core.AgentTransport
                 _ => { },
                 _ => { });
 
+            string? sessionId = null;
             try
             {
                 host.Start();
-                var response = await host.SendAsync(
+                var initResponse = await host.SendAsync(
                     IpcMessageTypes.Initialize,
                     new InitializeRequest
                     {
@@ -68,19 +71,35 @@ namespace RimWorldAgent.Core.AgentTransport
                     },
                     cancellationToken);
 
-                if (response.Type == IpcMessageTypes.Error)
+                if (initResponse.Type == IpcMessageTypes.Error)
                 {
-                    var error = IpcJson.DeserializePayload<ErrorResponse>(response);
+                    var error = IpcJson.DeserializePayload<ErrorResponse>(initResponse);
                     return Failure(error.Message);
                 }
 
-                var initialized = IpcJson.DeserializePayload<InitializeResponse>(response);
+                var initialized = IpcJson.DeserializePayload<InitializeResponse>(initResponse);
                 var version = string.IsNullOrWhiteSpace(initialized.AgentVersion)
                     ? "未知版本"
                     : initialized.AgentVersion;
+
+                var sessionResponse = await host.SendAsync(
+                    IpcMessageTypes.NewSession,
+                    new object(),
+                    cancellationToken);
+                if (sessionResponse.Type == IpcMessageTypes.Error)
+                {
+                    var error = IpcJson.DeserializePayload<ErrorResponse>(sessionResponse);
+                    return Failure($"ACP 已启动，但拉取 Session Config 失败：{error.Message}");
+                }
+
+                var session = IpcJson.DeserializePayload<SessionResponse>(sessionResponse);
+                sessionId = session.SessionId;
+                var options = session.ConfigOptions ?? new List<SessionConfigOptionDto>();
+                var optionCount = options.Count;
                 return new AcpBackendProbeResult(
                     true,
-                    $"ACP 启动成功：{initialized.AgentName} {version}");
+                    $"ACP 启动成功：{initialized.AgentName} {version} · configOptions={optionCount}",
+                    options);
             }
             catch (OperationCanceledException)
             {
@@ -92,6 +111,22 @@ namespace RimWorldAgent.Core.AgentTransport
             }
             finally
             {
+                if (!string.IsNullOrWhiteSpace(sessionId))
+                {
+                    try
+                    {
+                        await host.SendAsync(
+                            IpcMessageTypes.Close,
+                            new SessionRequest { SessionId = sessionId! },
+                            CancellationToken.None);
+                    }
+                    catch (Exception closeEx)
+                    {
+                        // dispose host below; close is best-effort for probe cleanup
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[AcpBackendProbe] close session failed: {closeEx.GetType().Name}: {closeEx.Message}");
+                    }
+                }
                 host.Dispose();
             }
         }

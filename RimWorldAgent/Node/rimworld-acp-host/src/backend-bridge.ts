@@ -9,7 +9,10 @@ import type {
   AgentRuntimeConfig,
   InitializeResponse,
   PromptResponse,
+  SessionConfigOption,
   SessionResponse,
+  SetSessionConfigOptionRequest,
+  SetSessionConfigOptionResponse,
 } from "./protocol.js";
 import { trace } from "./trace.js";
 
@@ -101,6 +104,11 @@ export class BackendBridge {
           writeTextFile: false,
         },
         terminal: false,
+        session: {
+          configOptions: {
+            boolean: {},
+          },
+        },
       },
     }) as unknown as AcpInitializeResponse;
     const initialized = this.initialized;
@@ -118,10 +126,13 @@ export class BackendBridge {
 
   async newSession(): Promise<SessionResponse> {
     trace("ACP session/new send");
-    const response = await this.requireConnection().agent.request(acp.methods.agent.session.new, this.createSessionRequest()) as { sessionId: string };
+    const response = await this.requireConnection().agent.request(acp.methods.agent.session.new, this.createSessionRequest()) as {
+      sessionId: string;
+      configOptions?: SessionConfigOption[] | null;
+    };
     this.currentSessionId = String(response.sessionId);
-    trace("ACP session/new receive");
-    return { sessionId: this.currentSessionId };
+    trace(`ACP session/new receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
+    return this.toSessionResponse(this.currentSessionId, response.configOptions);
   }
 
   async resumeSession(sessionId: string): Promise<SessionResponse> {
@@ -132,10 +143,10 @@ export class BackendBridge {
       additionalDirectories: this.config.additionalDirectories,
       mcpServers: this.toAcpMcpServers(),
       _meta: this.createSessionMeta(),
-    }) as unknown as { sessionId?: string };
+    }) as unknown as { sessionId?: string; configOptions?: SessionConfigOption[] | null };
     this.currentSessionId = String(response.sessionId ?? sessionId);
-    trace("ACP session/resume receive");
-    return { sessionId: this.currentSessionId };
+    trace(`ACP session/resume receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
+    return this.toSessionResponse(this.currentSessionId, response.configOptions);
   }
 
   async loadSession(sessionId: string): Promise<SessionResponse> {
@@ -146,10 +157,35 @@ export class BackendBridge {
       additionalDirectories: this.config.additionalDirectories,
       mcpServers: this.toAcpMcpServers(),
       _meta: this.createSessionMeta(),
-    }) as unknown as { sessionId?: string };
+    }) as unknown as { sessionId?: string; configOptions?: SessionConfigOption[] | null };
     this.currentSessionId = String(response.sessionId ?? sessionId);
-    trace("ACP session/load receive");
-    return { sessionId: this.currentSessionId };
+    trace(`ACP session/load receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
+    return this.toSessionResponse(this.currentSessionId, response.configOptions);
+  }
+
+  async setSessionConfigOption(request: SetSessionConfigOptionRequest): Promise<SetSessionConfigOptionResponse> {
+    const params: Record<string, unknown> = {
+      sessionId: request.sessionId,
+      configId: request.configId,
+      value: request.value,
+    };
+    if (request.type === "boolean" || typeof request.value === "boolean") {
+      params.type = "boolean";
+      params.value = typeof request.value === "boolean"
+        ? request.value
+        : String(request.value).toLowerCase() === "true";
+    }
+    trace(`ACP session/set_config_option send configId=${request.configId}`);
+    const response = await this.requireConnection().agent.request(
+      acp.methods.agent.session.setConfigOption,
+      params,
+    ) as { configOptions?: SessionConfigOption[] | null };
+    const configOptions = this.normalizeConfigOptions(response.configOptions);
+    trace(`ACP session/set_config_option receive options=${configOptions.length}`);
+    return {
+      sessionId: request.sessionId,
+      configOptions,
+    };
   }
 
   async prompt(sessionId: string, prompt: string): Promise<PromptResponse> {
@@ -219,7 +255,7 @@ export class BackendBridge {
   }
 
   private async requestPermission(params: any): Promise<any> {
-    if (this.usesControlledClaudeToolSet()) {
+    if (this.isWhitelistedPermissionRequest(params)) {
       const allowed = (params.options ?? []).find((option: any) => option.kind === "allow_always")
         ?? (params.options ?? []).find((option: any) => option.kind === "allow_once");
       if (allowed) return { outcome: { outcome: "selected", optionId: allowed.optionId } };
@@ -245,6 +281,26 @@ export class BackendBridge {
     throw new Error(`${name} capability is disabled for the game agent.`);
   }
 
+  private toSessionResponse(sessionId: string, configOptions?: SessionConfigOption[] | null): SessionResponse {
+    return {
+      sessionId,
+      configOptions: this.normalizeConfigOptions(configOptions),
+    };
+  }
+
+  private normalizeConfigOptions(configOptions?: SessionConfigOption[] | null): SessionConfigOption[] {
+    if (!Array.isArray(configOptions)) return [];
+    return configOptions
+      .filter((option): option is SessionConfigOption => option != null && typeof option === "object")
+      .map((option) => ({
+        ...option,
+        id: String(option.id ?? ""),
+        name: String(option.name ?? option.id ?? ""),
+        type: String(option.type ?? "select"),
+      }))
+      .filter((option) => option.id.length > 0);
+  }
+
   private createSessionRequest(): any {
     return {
       cwd: this.config.cwd,
@@ -258,10 +314,6 @@ export class BackendBridge {
     const meta: Record<string, unknown> = {
       systemPrompt: { append: this.config.prompt.systemPrompt },
     };
-    if (this.usesControlledClaudeToolSet()) {
-      meta.disableBuiltInTools = true;
-      meta.claudeCode = { options: { tools: [] } };
-    }
     return meta;
   }
 
@@ -269,8 +321,20 @@ export class BackendBridge {
     return [{ type: "http", name: "agent", url: this.config.agentMcpUrl, headers: [] }];
   }
 
-  private usesControlledClaudeToolSet(): boolean {
-    return this.config.backend.name === "claude-agent-acp";
+  private isWhitelistedPermissionRequest(params: any): boolean {
+    const toolName = this.extractPermissionToolName(params).toLowerCase();
+    return toolName === "agent"
+      || toolName.startsWith("mcp__agent__")
+      || toolName.startsWith("agent__")
+      || toolName.startsWith("agent/");
+  }
+
+  private extractPermissionToolName(params: any): string {
+    const toolCall = params?.toolCall;
+    if (typeof toolCall?.toolName === "string") return toolCall.toolName;
+    if (typeof toolCall?.name === "string") return toolCall.name;
+    if (typeof toolCall?.title === "string") return toolCall.title;
+    return "";
   }
 
   private convertSessionUpdate(params: any): AgentEvent {
@@ -286,13 +350,17 @@ export class BackendBridge {
         return { kind: "user_message", sessionId, messageId: update.messageId, text: update.content?.text ?? "" };
       case "tool_call":
         return {
-          kind: "tool_call", sessionId, toolCallId: String(update.toolCallId), title: update.title,
-          toolKind: String(update.kind), status: String(update.status), rawInput: update.rawInput, rawOutput: update.rawOutput,
+          kind: "tool_call", sessionId, toolCallId: String(update.toolCallId ?? ""),
+          toolName: this.extractToolName(update), title: update.title,
+          toolKind: typeof update.kind === "string" ? update.kind : undefined,
+          status: String(update.status ?? "pending"), rawInput: update.rawInput, rawOutput: update.rawOutput,
         };
       case "tool_call_update":
         return {
-          kind: "tool_update", sessionId, toolCallId: String(update.toolCallId), title: update.title,
-          toolKind: update.kind ? String(update.kind) : undefined, status: String(update.status),
+          kind: "tool_update", sessionId, toolCallId: String(update.toolCallId ?? ""),
+          toolName: this.extractToolName(update), title: update.title,
+          toolKind: typeof update.kind === "string" ? update.kind : undefined,
+          status: String(update.status ?? "pending"),
           rawInput: update.rawInput, rawOutput: update.rawOutput,
         };
       case "usage_update":
@@ -313,6 +381,13 @@ export class BackendBridge {
   private requireConnection(): ClientConnection {
     if (!this.clientConnection) throw new Error("ACP backend connection is not ready.");
     return this.clientConnection;
+  }
+
+  private extractToolName(update: any): string | undefined {
+    const metadataName = update?._meta?.claudeCode?.toolName;
+    if (typeof metadataName === "string" && metadataName.length > 0) return metadataName;
+    if (typeof update?.toolName === "string" && update.toolName.length > 0) return update.toolName;
+    return undefined;
   }
 
   private logError(operation: string, error: unknown): void {

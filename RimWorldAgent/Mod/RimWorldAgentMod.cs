@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.AgentTransport;
+using RimWorldAgent.IPC.Generated;
 using RimWorldAgent.Core;
 using UnityEngine;
 using Verse;
@@ -15,6 +17,7 @@ namespace RimWorldAgent
     public class RimWorldAgentMod : Mod
     {
         private const float CustomBackendCardHeight = 500f;
+        private const float SessionConfigOptionRowHeight = 52f;
 
         public static RimWorldAgentMod Instance { get; private set; } = null!;
         public AgentModSettings Settings { get; private set; }
@@ -158,7 +161,20 @@ namespace RimWorldAgent
         }
 
         private float GetAcpBackendCardHeight(AcpBackendSetting backend)
-            => CustomBackendCardHeight;
+        {
+            var options = AcpSessionConfig.DeserializeOptions(backend.LastConfigOptionsJson);
+            var known = 0;
+            foreach (var option in options)
+            {
+                if (option == null) continue;
+                var type = string.IsNullOrWhiteSpace(option.Type) ? "select" : option.Type;
+                if (string.Equals(type, "select", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(type, "boolean", StringComparison.OrdinalIgnoreCase))
+                    known++;
+            }
+            return CustomBackendCardHeight + known * SessionConfigOptionRowHeight
+                + (known > 0 || !string.IsNullOrWhiteSpace(backend.LastConfigOptionsJson) ? 36f : 0f);
+        }
 
         private bool DrawAcpBackendCard(Listing_Standard listing, AcpBackendSetting backend, int index)
         {
@@ -193,11 +209,10 @@ namespace RimWorldAgent
             backend.ArgsText = inner.TextEntry(backend.ArgsText ?? "").Trim();
             inner.Label("工作目录（留空使用 Agent 数据目录）");
             backend.WorkingDirectory = inner.TextEntry(backend.WorkingDirectory ?? "").Trim();
-            inner.Label("环境变量（每行 KEY=VALUE；模型、API URL、API Key 等由 Backend 自行约定）");
-            inner.Label("模型配置位置：填写 Backend 要求的环境变量或命令参数；ACP 不定义统一的模型字段。");
+            inner.Label("环境变量（每行 KEY=VALUE；认证、API URL、API Key 等由 Backend 自行约定）");
             backend.EnvText = DrawTextArea(inner, backend.EnvText ?? "", 62f);
             var testRunning = _backendTestTask != null && !_backendTestTask.IsCompleted;
-            if (!testRunning && inner.ButtonText("测试 ACP 启动"))
+            if (!testRunning && inner.ButtonText("测试连通性并拉取 Session Config"))
                 StartBackendTest(backend);
             if (backend.Id == _backendTestBackendId && !string.IsNullOrWhiteSpace(_backendTestStatus))
             {
@@ -207,6 +222,16 @@ namespace RimWorldAgent
                 inner.Label(_backendTestStatus);
                 GUI.color = Color.white;
             }
+            else if (!string.IsNullOrWhiteSpace(backend.LastProbeStatus)
+                && (backend.Id != _backendTestBackendId || string.IsNullOrWhiteSpace(_backendTestStatus)))
+            {
+                GUI.color = backend.LastProbeStatus.StartsWith("ACP 启动成功", StringComparison.Ordinal)
+                    ? new Color(0.55f, 0.85f, 0.65f, 1f)
+                    : new Color(0.6f, 0.65f, 0.75f, 1f);
+                inner.Label(backend.LastProbeStatus);
+                GUI.color = Color.white;
+            }
+            DrawSessionConfigOptions(inner, backend);
             var deleted = inner.ButtonText("删除此 Backend");
             inner.End();
             return deleted;
@@ -222,7 +247,7 @@ namespace RimWorldAgent
                 : string.IsNullOrWhiteSpace(selected.DisplayName) ? selected.Id : selected.DisplayName;
             if (listing.ButtonText($"当前 Backend: {selectedName}")) ShowBackendSelectionMenu();
             GUI.color = new Color(0.6f, 0.65f, 0.75f, 1f);
-            listing.Label("点击上方按钮选择已启用的 Backend。认证、API 地址和模型由 Backend 自身配置管理。");
+            listing.Label("点击上方按钮选择已启用的 Backend。认证/API 由环境变量配置；模型等 Session Config 通过下方「测试连通性并拉取」选择并保存。");
             GUI.color = Color.white;
 
             listing.Label("Node.js 运行时（用于启动 ACP Host，留空自动检测）");
@@ -323,6 +348,16 @@ namespace RimWorldAgent
             {
                 var result = _backendTestTask.GetAwaiter().GetResult();
                 _backendTestStatus = result.Message;
+                var backend = Settings.AcpBackends.FirstOrDefault(item => item != null && item.Id == _backendTestBackendId);
+                if (backend != null)
+                {
+                    backend.LastProbeStatus = result.Message;
+                    if (result.Success)
+                    {
+                        backend.LastConfigOptionsJson = AcpSessionConfig.SerializeOptions(result.ConfigOptions);
+                        MergeSelectionsFromCatalog(backend, result.ConfigOptions);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -332,6 +367,130 @@ namespace RimWorldAgent
             finally
             {
                 _backendTestTask = null;
+            }
+        }
+
+        private static void MergeSelectionsFromCatalog(AcpBackendSetting backend, List<SessionConfigOptionDto> catalog)
+        {
+            if (backend.SessionConfigSelections == null)
+                backend.SessionConfigSelections = new List<AcpSessionConfigSelection>();
+            var existing = backend.SessionConfigSelections
+                .Where(item => item != null && !string.IsNullOrWhiteSpace(item.ConfigId))
+                .ToDictionary(item => item.ConfigId, StringComparer.Ordinal);
+            var next = new List<AcpSessionConfigSelection>();
+            foreach (var option in catalog ?? new List<SessionConfigOptionDto>())
+            {
+                if (option == null || string.IsNullOrWhiteSpace(option.Id)) continue;
+                var type = string.IsNullOrWhiteSpace(option.Type) ? "select" : option.Type.Trim().ToLowerInvariant();
+                if (type != "select" && type != "boolean") continue;
+                var current = AcpSessionConfig.CurrentValueToString(option);
+                if (existing.TryGetValue(option.Id, out var saved) && !string.IsNullOrWhiteSpace(saved.Value))
+                {
+                    var selection = new AcpSessionConfigSelectionValue
+                    {
+                        ConfigId = option.Id,
+                        Type = type,
+                        Value = saved.Value
+                    };
+                    if (AcpSessionConfig.IsSelectionApplicable(option, selection, out _))
+                        current = saved.Value;
+                }
+                next.Add(new AcpSessionConfigSelection
+                {
+                    ConfigId = option.Id,
+                    Type = type,
+                    Value = current
+                });
+            }
+            backend.SessionConfigSelections = next;
+        }
+
+        private void DrawSessionConfigOptions(Listing_Standard listing, AcpBackendSetting backend)
+        {
+            var options = AcpSessionConfig.DeserializeOptions(backend.LastConfigOptionsJson);
+            if (options.Count == 0)
+            {
+                GUI.color = new Color(0.6f, 0.65f, 0.75f, 1f);
+                listing.Label("Session Config：尚未拉取。点击上方按钮测试连通性并获取可选项。");
+                GUI.color = Color.white;
+                return;
+            }
+
+            if (backend.SessionConfigSelections == null)
+                backend.SessionConfigSelections = new List<AcpSessionConfigSelection>();
+
+            listing.Gap(4f);
+            GUI.color = new Color(0.55f, 0.7f, 0.85f, 1f);
+            listing.Label($"Session Config Options（{options.Count}）— 仅在新建会话时应用");
+            GUI.color = Color.white;
+
+            foreach (var option in options)
+            {
+                if (option == null || string.IsNullOrWhiteSpace(option.Id)) continue;
+                var type = string.IsNullOrWhiteSpace(option.Type) ? "select" : option.Type.Trim();
+                var selection = backend.SessionConfigSelections.FirstOrDefault(item => item != null
+                    && string.Equals(item.ConfigId, option.Id, StringComparison.Ordinal));
+                if (selection == null)
+                {
+                    selection = new AcpSessionConfigSelection
+                    {
+                        ConfigId = option.Id,
+                        Type = type.ToLowerInvariant(),
+                        Value = AcpSessionConfig.CurrentValueToString(option)
+                    };
+                    backend.SessionConfigSelections.Add(selection);
+                }
+
+                var title = string.IsNullOrWhiteSpace(option.Name) ? option.Id : option.Name;
+                if (!string.IsNullOrWhiteSpace(option.Category))
+                    title = $"{title}  [{option.Category}]";
+
+                if (string.Equals(type, "boolean", StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = string.Equals(selection.Value, "true", StringComparison.OrdinalIgnoreCase);
+                    listing.CheckboxLabeled(title, ref value, option.Description ?? option.Id);
+                    selection.Type = "boolean";
+                    selection.Value = value ? "true" : "false";
+                    continue;
+                }
+
+                if (!string.Equals(type, "select", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!AcpSessionConfig.TryGetSelectValues(option, out var values) || values.Count == 0)
+                {
+                    GUI.color = Color.yellow;
+                    listing.Label($"{title}: 无可选项");
+                    GUI.color = Color.white;
+                    continue;
+                }
+
+                var current = values.FirstOrDefault(v => string.Equals(v.Value, selection.Value, StringComparison.Ordinal));
+                if (string.IsNullOrEmpty(current.Value))
+                    current = values[0];
+                selection.Type = "select";
+                selection.Value = current.Value;
+                var label = $"{title}: {current.Name}";
+                if (listing.ButtonText(label))
+                {
+                    var capturedBackend = backend;
+                    var capturedOptionId = option.Id;
+                    var menu = values.Select(v => new FloatMenuOption(
+                        string.IsNullOrWhiteSpace(v.Description) ? v.Name : $"{v.Name} — {v.Description}",
+                        () =>
+                        {
+                            var target = capturedBackend.SessionConfigSelections
+                                .FirstOrDefault(item => item != null && item.ConfigId == capturedOptionId);
+                            if (target == null)
+                            {
+                                target = new AcpSessionConfigSelection { ConfigId = capturedOptionId, Type = "select" };
+                                capturedBackend.SessionConfigSelections.Add(target);
+                            }
+                            target.Type = "select";
+                            target.Value = v.Value;
+                        })).ToList();
+                    Find.WindowStack.Add(new FloatMenu(menu));
+                }
             }
         }
 

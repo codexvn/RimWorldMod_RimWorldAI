@@ -111,3 +111,19 @@ Agent → 保存新 session id "B" → MCP Scribe 落盘
 ## 已知边界
 
 当前首轮切换只替换 transport/session/runtime。ACP 的 session/update 通过 compatibility projector 转换为原有 UI DTO；UI DTO 全量迁移和统一命名属于后续阶段。权限请求在无人值守的游戏 Agent 中统一拒绝或取消，避免 session 永久挂起等待人工处理。
+
+
+## Session Config Options
+
+Mod 设置中每个 ACP Backend 可「测试连通性并拉取 Session Config」，将 backend 返回的全部 `configOptions` 展示并保存选择。
+
+应用时机（仅新建会话）：
+
+- `session/new`（含 load/resume 失败后回退 new、以及 clear_context 触发的 new）成功后，按保存的 selections 顺序调用 `session/set_config_option`
+- `session/load` / `session/resume` 成功时不覆盖后端会话当前配置
+- 单项失败（configId 不存在、value 不在 options、type 不匹配）跳过并 warn，不中断会话创建
+
+IPC：
+
+- `new_session_response` / `load_session_response` / `resume_session_response` 可带 `configOptions`
+- `set_session_config_option` → ACP `session/set_config_option`，响应返回完整 options 目录

@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rimworld-agent.local/schema/ipc-v1.json",
   "title": "RimWorld Agent IPC v1",
@@ -27,6 +27,10 @@
       "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/sessionRequest" } } }
     },
     {
+      "if": { "properties": { "type": { "const": "set_session_config_option" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/setSessionConfigOptionRequest" } } }
+    },
+    {
       "if": { "properties": { "type": { "const": "prompt" } } },
       "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/promptRequest" } } }
     },
@@ -37,6 +41,10 @@
     {
       "if": { "properties": { "type": { "enum": ["new_session_response", "resume_session_response", "load_session_response"] } } },
       "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/sessionResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "set_session_config_option_response" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/setSessionConfigOptionResponse" } } }
     },
     {
       "if": { "properties": { "type": { "const": "prompt_response" } } },
@@ -87,8 +95,59 @@
     "sessionResponse": {
       "type": "object",
       "required": ["sessionId"],
-      "properties": { "sessionId": { "type": "string", "minLength": 1 } },
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1 },
+        "configOptions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sessionConfigOption" }
+        }
+      },
       "additionalProperties": false
+    },
+    "setSessionConfigOptionRequest": {
+      "type": "object",
+      "required": ["sessionId", "configId", "value"],
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1 },
+        "configId": { "type": "string", "minLength": 1 },
+        "type": { "type": "string" },
+        "value": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "boolean" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "setSessionConfigOptionResponse": {
+      "type": "object",
+      "required": ["sessionId", "configOptions"],
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1 },
+        "configOptions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sessionConfigOption" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sessionConfigOption": {
+      "type": "object",
+      "required": ["id", "name", "type"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "category": { "type": ["string", "null"] },
+        "type": { "type": "string", "minLength": 1 },
+        "currentValue": {},
+        "options": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "additionalProperties": true
     },
     "promptRequest": {
       "type": "object",
@@ -167,6 +226,7 @@
         "messageId": { "type": "string" },
         "text": { "type": "string" },
         "toolCallId": { "type": "string" },
+        "toolName": { "type": "string" },
         "title": { "type": "string" },
         "toolKind": { "type": "string" },
         "status": { "type": "string" },

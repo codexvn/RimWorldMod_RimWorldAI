@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.AgentTransport;
+using RimWorldAgent.IPC.Generated;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 using RimWorldAgent.Core.models;
@@ -43,15 +45,18 @@ namespace RimWorldAgent.Core.AgentRuntime
         public IReadOnlyList<string> Args { get; }
         public string WorkingDirectory { get; }
         public IReadOnlyDictionary<string, string> Env { get; }
+        public IReadOnlyList<AcpSessionConfigSelectionValue> SessionConfigSelections { get; }
 
         public AcpAgentLaunch(string name, string command, IReadOnlyList<string> args,
-            string workingDirectory, IReadOnlyDictionary<string, string> env)
+            string workingDirectory, IReadOnlyDictionary<string, string> env,
+            IReadOnlyList<AcpSessionConfigSelectionValue>? sessionConfigSelections = null)
         {
             Name = name;
             Command = command;
             Args = args;
             WorkingDirectory = workingDirectory;
             Env = env;
+            SessionConfigSelections = sessionConfigSelections ?? Array.Empty<AcpSessionConfigSelectionValue>();
         }
     }
 
@@ -303,6 +308,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             if (string.IsNullOrEmpty(_gameSessionId))
             {
+                // NewAsync 内部会应用已保存的 Session Config
                 await session.NewAsync(CancellationToken.None);
                 return;
             }
@@ -334,6 +340,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
 
             _logWarn("[AgentEngine] 旧 ACP session 不可恢复，创建新 session。");
+            // NewAsync 内部会应用已保存的 Session Config
             await session.NewAsync(CancellationToken.None);
         }
 
@@ -561,7 +568,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                         command = Path.GetFullPath(Path.Combine(workingDirectory, command));
                     }
                     return new AcpAgentLaunch(configured.Name, command, configured.Args,
-                        workingDirectory, configured.Env);
+                        workingDirectory, configured.Env, configured.SessionConfigSelections);
                 }
 
                 _logWarn("[AgentEngine] ACP Backend 缺少启动命令: " + configured.Name);

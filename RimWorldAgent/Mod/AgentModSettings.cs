@@ -3,6 +3,20 @@ using Verse;
 
 namespace RimWorldAgent
 {
+    public class AcpSessionConfigSelection : IExposable
+    {
+        public string ConfigId = "";
+        public string Type = "select";
+        public string Value = "";
+
+        public void ExposeData()
+        {
+            Scribe_Values.Look(ref ConfigId, "configId", "");
+            Scribe_Values.Look(ref Type, "type", "select");
+            Scribe_Values.Look(ref Value, "value", "");
+        }
+    }
+
     public class AcpBackendSetting : IExposable
     {
         public bool Enabled = true;
@@ -13,6 +27,9 @@ namespace RimWorldAgent
         public string ArgsText = "";
         public string WorkingDirectory = "";
         public string EnvText = "";
+        public List<AcpSessionConfigSelection> SessionConfigSelections = new List<AcpSessionConfigSelection>();
+        public string LastConfigOptionsJson = "";
+        public string LastProbeStatus = "";
 
         public bool IsBundled => string.Equals(Type, "bundled", System.StringComparison.OrdinalIgnoreCase);
 
@@ -26,6 +43,10 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref ArgsText, "argsText", "");
             Scribe_Values.Look(ref WorkingDirectory, "workingDirectory", "");
             Scribe_Values.Look(ref EnvText, "envText", "");
+            Scribe_Collections.Look(ref SessionConfigSelections, "sessionConfigSelections", LookMode.Deep);
+            if (SessionConfigSelections == null) SessionConfigSelections = new List<AcpSessionConfigSelection>();
+            Scribe_Values.Look(ref LastConfigOptionsJson, "lastConfigOptionsJson", "");
+            Scribe_Values.Look(ref LastProbeStatus, "lastProbeStatus", "");
         }
 
     }

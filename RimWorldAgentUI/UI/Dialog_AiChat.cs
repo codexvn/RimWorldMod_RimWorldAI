@@ -484,9 +484,8 @@ namespace RimWorldAgent
             if (string.IsNullOrEmpty(name)) name = tc.Name ?? "?";
             float headerH = Text.CalcHeight(name, width - 12f) + 6f;
 
-            float bodyH = 0f;
-            if (!string.IsNullOrEmpty(tc.Meta))
-                bodyH = Text.CalcHeight(tc.Meta, width - 12f) + 4f;
+            var body = BuildToolBody(tc);
+            float bodyH = string.IsNullOrEmpty(body) ? 0f : Text.CalcHeight(body, width - 12f) + 4f;
 
             return headerH + bodyH + 10f;
         }
@@ -496,9 +495,8 @@ namespace RimWorldAgent
             string name = tc.Name?.Replace("_", "__") ?? "?";
             if (string.IsNullOrEmpty(name)) name = tc.Name ?? "?";
             float headerH = Text.CalcHeight(name, width - 12f) + 6f;
-            float bodyH = 0f;
-            if (!string.IsNullOrEmpty(tc.Meta))
-                bodyH = Text.CalcHeight(tc.Meta, width - 12f) + 4f;
+            var body = BuildToolBody(tc);
+            float bodyH = string.IsNullOrEmpty(body) ? 0f : Text.CalcHeight(body, width - 12f) + 4f;
             float cardH = headerH + bodyH + 10f;
 
             Rect cardRect = new Rect(2f, y, width, cardH);
@@ -548,7 +546,7 @@ namespace RimWorldAgent
             GUI.color = Color.white;
 
             // Body (meta)
-            if (!string.IsNullOrEmpty(tc.Meta))
+            if (!string.IsNullOrEmpty(body))
             {
                 float bodyY = headerRect.yMax + 2f;
                 Text.Font = GameFont.Tiny;
@@ -556,12 +554,24 @@ namespace RimWorldAgent
                     ? new Color(0.9f, 0.4f, 0.4f, _alpha)
                     : new Color(0.55f, 0.55f, 0.6f, _alpha);
                 Widgets.Label(new Rect(cardRect.x + 6f, bodyY,
-                    cardRect.width - 12f, bodyH), tc.Meta);
+                    cardRect.width - 12f, bodyH), body);
                 GUI.color = Color.white;
             }
 
             Text.Font = GameFont.Small;
             return cardH;
+        }
+
+        private static string BuildToolBody(ToolCallInfo tc)
+        {
+            var sections = new List<string>();
+            if (!string.IsNullOrEmpty(tc.ToolKind) && !string.Equals(tc.ToolKind, tc.Name, StringComparison.OrdinalIgnoreCase))
+                sections.Add($"类型: {tc.ToolKind}");
+            if (!string.IsNullOrEmpty(tc.Title) && !string.Equals(tc.Title, tc.Name, StringComparison.Ordinal))
+                sections.Add($"说明: {tc.Title}");
+            if (!string.IsNullOrEmpty(tc.Meta)) sections.Add($"输入: {tc.Meta}");
+            if (!string.IsNullOrEmpty(tc.Result)) sections.Add($"输出: {tc.Result}");
+            return string.Join("\n", sections);
         }
 
         private static string FormatDuration(double ms)

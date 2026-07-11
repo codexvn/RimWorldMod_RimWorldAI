@@ -16,7 +16,9 @@ namespace RimWorldAgent
         public string ItemId = "";
         public string Name = "";
         public string Title = "";
+        public string ToolKind = "";
         public string Meta = "";
+        public string Result = "";
         public ToolStatus Status;
         public DateTime StartTime = DateTime.UtcNow;
         public double DurationMs;
@@ -229,7 +231,7 @@ namespace RimWorldAgent
 
         // ===== 工具调用 =====
 
-        public static void AddToolCall(string toolId, string toolName, string meta)
+        public static void AddToolCall(string toolId, string toolName, string meta, string title = "", string toolKind = "")
         {
             lock (_lock)
             {
@@ -239,6 +241,8 @@ namespace RimWorldAgent
                 {
                     if (!string.IsNullOrEmpty(meta) && (string.IsNullOrEmpty(existing.Meta) || existing.Meta == "{}"))
                         existing.Meta = meta;
+                    if (!string.IsNullOrEmpty(title)) existing.Title = title;
+                    if (!string.IsNullOrEmpty(toolKind)) existing.ToolKind = toolKind;
                 }
                 else
                 {
@@ -246,6 +250,8 @@ namespace RimWorldAgent
                     {
                         ItemId = toolId,
                         Name = toolName,
+                        Title = title,
+                        ToolKind = toolKind,
                         Meta = meta,
                         Status = ToolStatus.Running,
                     });
@@ -254,7 +260,7 @@ namespace RimWorldAgent
             OnChanged?.Invoke();
         }
 
-        public static void FinishToolCall(string toolId, bool isError, double durationMs)
+        public static void FinishToolCall(string toolId, bool isError, double durationMs, string result = "")
         {
             lock (_lock)
             {
@@ -264,6 +270,7 @@ namespace RimWorldAgent
                     {
                         _toolCalls[i].Status = isError ? ToolStatus.Failed : ToolStatus.Completed;
                         _toolCalls[i].DurationMs = durationMs;
+                        _toolCalls[i].Result = result;
                         break;
                     }
                 }
@@ -317,10 +324,12 @@ namespace RimWorldAgent
                     {
                         var toolId = root.TryGetProperty("id", out var ti) ? ti.GetString() ?? "" : "";
                         var toolName = root.TryGetProperty("name", out var tn) ? tn.GetString() ?? "" : "";
+                        var toolTitle = root.TryGetProperty("title", out var tt) ? tt.GetString() ?? "" : "";
+                        var toolKind = root.TryGetProperty("tool_kind", out var tk) ? tk.GetString() ?? "" : "";
                         var toolInput = root.TryGetProperty("input", out var inp)
                             ? (inp.ValueKind == JsonValueKind.String ? inp.GetString() ?? "{}" : inp.GetRawText())
                             : "{}";
-                        EnqueueUiEvent(() => AddToolCall(toolId, toolName, toolInput));
+                        EnqueueUiEvent(() => AddToolCall(toolId, toolName, toolInput, toolTitle, toolKind));
                         break;
                     }
                     case "tool_result":
@@ -328,7 +337,10 @@ namespace RimWorldAgent
                         var trId = root.TryGetProperty("id", out var tri) ? tri.GetString() ?? "" : "";
                         var isErr = root.TryGetProperty("isError", out var ie) && ie.GetBoolean();
                         var durMs = root.TryGetProperty("durationMs", out var dm) ? dm.GetDouble() : 0;
-                        EnqueueUiEvent(() => FinishToolCall(trId, isErr, durMs));
+                        var result = root.TryGetProperty("content", out var co)
+                            ? (co.ValueKind == JsonValueKind.String ? co.GetString() ?? "" : co.GetRawText())
+                            : "";
+                        EnqueueUiEvent(() => FinishToolCall(trId, isErr, durMs, result));
                         break;
                     }
                     case "result":

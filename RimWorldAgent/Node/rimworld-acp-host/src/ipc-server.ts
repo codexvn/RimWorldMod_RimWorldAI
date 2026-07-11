@@ -11,6 +11,8 @@ import {
   type InitializeResponse,
   type PromptResponse,
   type SessionResponse,
+  type SetSessionConfigOptionRequest,
+  type SetSessionConfigOptionResponse,
   type CancelResponse,
   type CloseResponse,
   validateEnvelope,
@@ -80,6 +82,12 @@ export class IpcServer {
           const request = message.payload as SessionRequest;
           const response: SessionResponse = await this.bridge.loadSession(request.sessionId);
           this.write(createEnvelope(MessageTypes.loadSessionResponse, requestId, response));
+          return;
+        }
+        case MessageTypes.setSessionConfigOption: {
+          const request = message.payload as SetSessionConfigOptionRequest;
+          const response: SetSessionConfigOptionResponse = await this.bridge.setSessionConfigOption(request);
+          this.write(createEnvelope(MessageTypes.setSessionConfigOptionResponse, requestId, response));
           return;
         }
         case MessageTypes.prompt: {

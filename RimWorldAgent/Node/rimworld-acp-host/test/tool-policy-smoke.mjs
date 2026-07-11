@@ -17,15 +17,30 @@ function createConfig(backendName) {
   };
 }
 
-const claudeBridge = new BackendBridge(createConfig("claude-agent-acp"));
-const meta = claudeBridge.createSessionMeta();
-assert.equal(meta.disableBuiltInTools, true);
-assert.deepEqual(meta.claudeCode, { options: { tools: [] } });
-assert.deepEqual(claudeBridge.toAcpMcpServers(), [
+const bridge = new BackendBridge(createConfig("any-backend"));
+const meta = bridge.createSessionMeta();
+assert.deepEqual(meta, { systemPrompt: { append: "system" } });
+assert.deepEqual(bridge.toAcpMcpServers(), [
   { type: "http", name: "agent", url: "http://localhost:9878/mcp", headers: [] },
 ]);
 
-const allowed = await claudeBridge.requestPermission({
+const projectedTool = bridge.convertSessionUpdate({
+  update: {
+    sessionUpdate: "tool_call",
+    toolCallId: "tool-1",
+    title: "Run command",
+    kind: "execute",
+    status: "pending",
+    rawInput: { command: "Get-Location" },
+    _meta: { claudeCode: { toolName: "Bash" } },
+  },
+});
+assert.equal(projectedTool.toolName, "Bash");
+assert.equal(projectedTool.title, "Run command");
+assert.equal(projectedTool.toolKind, "execute");
+
+const allowed = await bridge.requestPermission({
+  toolCall: { title: "mcp__agent__execute_tool" },
   options: [
     { kind: "allow_always", optionId: "always" },
     { kind: "reject_once", optionId: "reject" },
@@ -33,8 +48,8 @@ const allowed = await claudeBridge.requestPermission({
 });
 assert.equal(allowed.outcome.optionId, "always");
 
-const customBridge = new BackendBridge(createConfig("custom-backend"));
-const rejected = await customBridge.requestPermission({
+const rejected = await bridge.requestPermission({
+  toolCall: { title: "Bash" },
   options: [
     { kind: "allow_once", optionId: "allow" },
     { kind: "reject_once", optionId: "reject" },

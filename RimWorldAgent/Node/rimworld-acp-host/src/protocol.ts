@@ -1,4 +1,4 @@
-﻿import * as AjvModule from "ajv/dist/2020.js";
+import * as AjvModule from "ajv/dist/2020.js";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,8 @@ export const MessageTypes = {
   resumeSessionResponse: "resume_session_response",
   loadSession: "load_session",
   loadSessionResponse: "load_session_response",
+  setSessionConfigOption: "set_session_config_option",
+  setSessionConfigOptionResponse: "set_session_config_option_response",
   prompt: "prompt",
   promptResponse: "prompt_response",
   cancel: "cancel",
@@ -53,8 +55,32 @@ export interface SessionRequest {
   sessionId: string;
 }
 
+export interface SessionConfigOption {
+  id: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  type: string;
+  currentValue?: unknown;
+  options?: unknown[];
+  [key: string]: unknown;
+}
+
 export interface SessionResponse {
   sessionId: string;
+  configOptions?: SessionConfigOption[];
+}
+
+export interface SetSessionConfigOptionRequest {
+  sessionId: string;
+  configId: string;
+  type?: string;
+  value: string | boolean;
+}
+
+export interface SetSessionConfigOptionResponse {
+  sessionId: string;
+  configOptions: SessionConfigOption[];
 }
 
 export interface PromptRequest {
@@ -92,6 +118,7 @@ export interface AgentEvent {
   messageId?: string;
   text?: string;
   toolCallId?: string;
+  toolName?: string;
   title?: string;
   toolKind?: string;
   status?: string;

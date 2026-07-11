@@ -27,6 +27,8 @@ namespace RimWorldAgent.Core.AgentTransport
         public bool IsReady => !_disposed && _initialized && _host.IsRunning && !string.IsNullOrEmpty(SessionId);
         public bool CanLoadSession { get; private set; }
         public bool CanResumeSession { get; private set; }
+        private List<SessionConfigOptionDto> _lastConfigOptions = new List<SessionConfigOptionDto>();
+        public IReadOnlyList<SessionConfigOptionDto> LastConfigOptions => _lastConfigOptions;
 
         public event Action? OnActivity;
         public event Action<string, string?>? OnResult;
@@ -78,6 +80,46 @@ namespace RimWorldAgent.Core.AgentTransport
             EnsureSuccess(response);
             var session = IpcJsonCompat.DeserializePayload<SessionResponse>(response);
             SetSessionId(session.SessionId);
+            CaptureConfigOptions(session.ConfigOptions);
+            await ApplySavedSessionConfigAsync(cancellationToken);
+        }
+
+        private async Task ApplySavedSessionConfigAsync(CancellationToken cancellationToken)
+        {
+            var selections = _backend.SessionConfigSelections;
+            if (selections == null || selections.Count == 0)
+            {
+                _logInfo("[NodeACP] 无已保存 Session Config，跳过 set_config_option");
+                return;
+            }
+
+            var catalog = _lastConfigOptions;
+            foreach (var selection in selections)
+            {
+                if (selection == null || string.IsNullOrWhiteSpace(selection.ConfigId))
+                    continue;
+                try
+                {
+                    var option = AcpSessionConfig.FindOption(catalog, selection.ConfigId);
+                    if (option == null)
+                    {
+                        _logWarn($"[NodeACP] 跳过 configId={selection.ConfigId}：当前 session 无此选项");
+                        continue;
+                    }
+                    if (!AcpSessionConfig.IsSelectionApplicable(option, selection, out var reason))
+                    {
+                        _logWarn($"[NodeACP] 跳过 configId={selection.ConfigId}：{reason}");
+                        continue;
+                    }
+                    var type = string.IsNullOrWhiteSpace(selection.Type) ? option.Type : selection.Type;
+                    await SetConfigOptionAsync(selection.ConfigId, type, selection.Value, cancellationToken);
+                    catalog = _lastConfigOptions;
+                }
+                catch (Exception ex)
+                {
+                    _logWarn($"[NodeACP] set_config_option 失败 configId={selection.ConfigId}: {FormatExceptionChain(ex)}");
+                }
+            }
         }
 
         public async Task ResumeAsync(string sessionId, CancellationToken cancellationToken)
@@ -86,7 +128,9 @@ namespace RimWorldAgent.Core.AgentTransport
             var response = await _host.SendAsync(IpcMessageTypes.ResumeSession,
                 new SessionRequest { SessionId = sessionId }, cancellationToken);
             EnsureSuccess(response);
-            SetSessionId(IpcJsonCompat.DeserializePayload<SessionResponse>(response).SessionId);
+            var session = IpcJsonCompat.DeserializePayload<SessionResponse>(response);
+            SetSessionId(session.SessionId);
+            CaptureConfigOptions(session.ConfigOptions);
         }
 
         public async Task LoadAsync(string sessionId, CancellationToken cancellationToken)
@@ -95,7 +139,30 @@ namespace RimWorldAgent.Core.AgentTransport
             var response = await _host.SendAsync(IpcMessageTypes.LoadSession,
                 new SessionRequest { SessionId = sessionId }, cancellationToken);
             EnsureSuccess(response);
-            SetSessionId(IpcJsonCompat.DeserializePayload<SessionResponse>(response).SessionId);
+            var session = IpcJsonCompat.DeserializePayload<SessionResponse>(response);
+            SetSessionId(session.SessionId);
+            CaptureConfigOptions(session.ConfigOptions);
+        }
+
+        public async Task SetConfigOptionAsync(string configId, string type, string value, CancellationToken cancellationToken)
+        {
+            EnsureInitialized();
+            if (string.IsNullOrWhiteSpace(SessionId))
+                throw new InvalidOperationException("Node ACP session is not ready.");
+            var response = await _host.SendAsync(
+                IpcMessageTypes.SetSessionConfigOption,
+                new SetSessionConfigOptionRequest
+                {
+                    SessionId = SessionId!,
+                    ConfigId = configId,
+                    Type = string.IsNullOrWhiteSpace(type) ? null : type,
+                    Value = AcpSessionConfig.ValueToJsonElement(type, value)
+                },
+                cancellationToken);
+            EnsureSuccess(response);
+            var result = IpcJsonCompat.DeserializePayload<SetSessionConfigOptionResponse>(response);
+            CaptureConfigOptions(result.ConfigOptions);
+            _logInfo($"[NodeACP] set_config_option configId={configId} value={value} options={_lastConfigOptions.Count}");
         }
 
         public async Task PromptAsync(string prompt, CancellationToken cancellationToken)
@@ -228,6 +295,13 @@ namespace RimWorldAgent.Core.AgentTransport
             AgentLoop.AgentSessionId = sessionId;
             AgentLoop.RaiseSessionIdChanged(sessionId);
             _logInfo("[NodeACP] sessionId received: " + sessionId);
+        }
+
+        private void CaptureConfigOptions(List<SessionConfigOptionDto>? options)
+        {
+            _lastConfigOptions = options == null
+                ? new List<SessionConfigOptionDto>()
+                : new List<SessionConfigOptionDto>(options);
         }
 
         private void RaiseToolUse(string id, string name, string input)

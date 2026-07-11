@@ -48,4 +48,38 @@ assert.throws(() => validateEnvelope({
   payload: { sessionId: "only-session" },
 }));
 
+const sessionResponse = createEnvelope(MessageTypes.newSessionResponse, "smoke-new", {
+  sessionId: "sess-1",
+  configOptions: [
+    {
+      id: "model",
+      name: "Model",
+      category: "model",
+      type: "select",
+      currentValue: "model-1",
+      options: [{ value: "model-1", name: "Model 1" }],
+    },
+    {
+      id: "fast",
+      name: "Fast",
+      type: "boolean",
+      currentValue: false,
+    },
+  ],
+});
+validateEnvelope(sessionResponse);
+
+const setConfig = createEnvelope(MessageTypes.setSessionConfigOption, "smoke-set", {
+  sessionId: "sess-1",
+  configId: "model",
+  value: "model-1",
+});
+validateEnvelope(setConfig);
+
+const setConfigResponse = createEnvelope(MessageTypes.setSessionConfigOptionResponse, "smoke-set", {
+  sessionId: "sess-1",
+  configOptions: sessionResponse.payload.configOptions,
+});
+validateEnvelope(setConfigResponse);
+
 console.log("IPC protocol smoke test passed");

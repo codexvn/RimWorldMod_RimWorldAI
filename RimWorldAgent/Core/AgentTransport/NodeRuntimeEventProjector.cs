@@ -136,7 +136,7 @@ namespace RimWorldAgent.Core.AgentTransport
         private void ProjectTool(AgentEvent evt, bool update)
         {
             var id = evt.ToolCallId ?? Guid.NewGuid().ToString("N");
-            var name = string.IsNullOrWhiteSpace(evt.Title) ? evt.ToolKind ?? "tool" : evt.Title!;
+            var name = FirstNonEmpty(evt.ToolName, evt.Title, evt.ToolKind, "tool");
             var input = SerializeForUi(evt.RawInput);
             var status = evt.Status ?? "pending";
             if (update && (string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase) ||
@@ -149,7 +149,7 @@ namespace RimWorldAgent.Core.AgentTransport
             if (_startedTools.TryAdd(id, true))
             {
                 _toolStartedTicks[id] = DateTime.UtcNow.Ticks;
-                Push(UiMessage.ToolCall(id, name, input));
+                Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
                 UIMessageBus.RaiseToolCallRecorded(id, name, input);
                 _onToolUse(id, name, input);
             }
@@ -200,6 +200,15 @@ namespace RimWorldAgent.Core.AgentTransport
             for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
                 message += $" ← {inner.GetType().Name}: {inner.Message}";
             return message;
+        }
+
+        private static string FirstNonEmpty(params string?[] values)
+        {
+            foreach (var value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value)) return value!;
+            }
+            return "tool";
         }
     }
 }

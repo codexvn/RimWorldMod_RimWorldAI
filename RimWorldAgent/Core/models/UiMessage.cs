@@ -13,7 +13,8 @@ namespace RimWorldAgent.Core
         public static UiTextDelta TextDelta(string text) => new UiTextDelta(text);
         public static UiThinkingDelta ThinkingDelta(string thinking) => new UiThinkingDelta(thinking);
         public static UiTextBlock TextBlock(string text) => new UiTextBlock(text);
-        public static UiToolCall ToolCall(string id, string name, string input) => new UiToolCall(id, name, input);
+        public static UiToolCall ToolCall(string id, string name, string input, string? title = null, string? toolKind = null)
+            => new UiToolCall(id, name, input, title, toolKind);
         public static UiToolResult ToolResult(string id, bool isError, double durationMs, string? content = null) => new UiToolResult(id, isError, durationMs, content);
         public static UiResult Result(string subtype, string? stopReason) => new UiResult(subtype, stopReason ?? "");
         public static UiAborted Aborted() => new UiAborted();
@@ -60,8 +61,10 @@ namespace RimWorldAgent.Core
         public string id { get; }
         public string name { get; }
         public string input { get; }
-        public UiToolCall(string id, string name, string input)
-        { this.id = id; this.name = name; this.input = input; }
+        public string? title { get; }
+        public string? tool_kind { get; }
+        public UiToolCall(string id, string name, string input, string? title = null, string? toolKind = null)
+        { this.id = id; this.name = name; this.input = input; this.title = title; this.tool_kind = toolKind; }
     }
 
     public class UiToolResult : UiMessage

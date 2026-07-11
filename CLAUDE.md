@@ -48,9 +48,9 @@ AgentEngine
 | `:19999` | UIMessageBus | WebSocket | RimWorldAgent |
 | `:19997` | WebUI HTTP | HTTP | RimWorldAgent |
 
-**运行时边界**：ACP 的 Agent→Client request 由 Node Host 响应。内置 `claude-agent-acp` 禁用自身工具，仅注入游戏 `agent` MCP，并自动允许其请求；其他 backend 仍默认拒绝文件读写、terminal、权限和未知 extension request，不等待人工输入。C# 只处理 IPC DTO 和 runtime event。UI 仍只接收兼容投影后的现有 DTO；后续若切换 UI DTO，再单独定义里程碑。
+**运行时边界**：ACP 的 Agent→Client request 由 Node Host 响应。Node Host 不针对特定 backend 注入私有工具配置；权限请求统一按工具白名单处理，仅允许游戏 `agent` MCP 命名空间，其余权限请求拒绝或取消。文件读写、terminal 和未知 extension request 不等待人工输入。C# 只处理 IPC DTO 和 runtime event。UI 仍只接收兼容投影后的现有 DTO；后续若切换 UI DTO，再单独定义里程碑。
 
-**Agent 启动配置**：C# 将用户选择的 backend command、args、env、workingDirectory、固定 Prompt 与内置 `agent` MCP URL 组装为 `AgentRuntimeConfig`，通过 `rimworld-agent-ipc` 的 `initialize` 发送给 Node Host。未配置 backend 时不启动 Agent，不自动回退到 Claude。
+**Agent 启动配置**：C# 将用户选择的 backend command、args、env、workingDirectory、固定 Prompt 与内置 `agent` MCP URL 组装为 `AgentRuntimeConfig`，通过 `rimworld-agent-ipc` 的 `initialize` 发送给 Node Host。未配置 backend 时不启动 Agent，不自动回退到 Claude。每个 backend 还可保存 ACP Session Config Options（模型/模式等）；仅在 `session/new` 后通过 `set_session_config_option` 应用，load/resume 不覆盖。
 
 
 **RimWorld 依赖隔离**：ACP 依赖全部在 Node Host 进程中，不进入 RimWorld AppDomain；C# 已不再发布或加载 ACP 的 MessagePack 依赖。

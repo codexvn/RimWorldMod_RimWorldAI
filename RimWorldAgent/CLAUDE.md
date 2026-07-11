@@ -146,13 +146,12 @@ ACP session/update
 
 ## 权限策略
 
-游戏 Agent 无人工接入。对于用户手动配置的 `claude-agent-acp`：
+游戏 Agent 无人工接入。Node Host 不区分具体 ACP backend：
 
-- session `_meta` 设置 `disableBuiltInTools=true` 和 `claudeCode.options.tools=[]`，禁用 Backend 默认文件、终端、Web 等工具；
-- ACP Session 只注入受控 `agent` MCP；
-- `request_permission` 对该受控工具集合自动选择 allow，工具执行仍由 Agent MCP 和 `ProxyToolProvider` 二次校验；
+- 每次 `request_permission` 都检查请求中的工具名；仅 Agent MCP 白名单命名空间（`mcp__agent__`、`agent__`、`agent/`）选择 allow；
+- 非白名单工具默认选择 reject，若 backend 未提供 reject 选项则返回 cancelled；
 - 文件读取、文件写入和 terminal client capability 均为 false；
-- 未知自定义 Backend 的 permission request 默认 reject/cancelled。
+- backend 是否暴露内置工具由 backend 自己决定，但未进入白名单的工具不能通过本 Client 的权限请求。
 
 所有 ACP request 必须返回，不允许永久挂起 backend。
 
@@ -225,3 +224,8 @@ npm run build
 - UI `:19999` 继续接收现有 UiMessage。
 - Node/backend 退出时 C# 能感知并显示错误。
 - 不提交 git commit，除非获得明确授权。
+
+
+### ACP Session Config Options
+
+Mod 设置对每个 backend 支持：测试连通性 + 拉取 `configOptions` + 选择保存。Agent 仅在新建会话（`session/new`）后应用保存值。

@@ -15,6 +15,8 @@ namespace RimWorldAgent.IPC.Generated
         public const string ResumeSessionResponse = "resume_session_response";
         public const string LoadSession = "load_session";
         public const string LoadSessionResponse = "load_session_response";
+        public const string SetSessionConfigOption = "set_session_config_option";
+        public const string SetSessionConfigOptionResponse = "set_session_config_option_response";
         public const string Prompt = "prompt";
         public const string PromptResponse = "prompt_response";
         public const string Cancel = "cancel";
@@ -83,6 +85,57 @@ namespace RimWorldAgent.IPC.Generated
     {
         [JsonPropertyName("sessionId")]
         public string SessionId { get; set; } = "";
+
+        [JsonPropertyName("configOptions")]
+        public List<SessionConfigOptionDto>? ConfigOptions { get; set; }
+    }
+
+    public sealed class SessionConfigOptionDto
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = "";
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        [JsonPropertyName("category")]
+        public string? Category { get; set; }
+
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = "select";
+
+        [JsonPropertyName("currentValue")]
+        public JsonElement? CurrentValue { get; set; }
+
+        [JsonPropertyName("options")]
+        public List<JsonElement>? Options { get; set; }
+    }
+
+    public sealed class SetSessionConfigOptionRequest
+    {
+        [JsonPropertyName("sessionId")]
+        public string SessionId { get; set; } = "";
+
+        [JsonPropertyName("configId")]
+        public string ConfigId { get; set; } = "";
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("value")]
+        public JsonElement Value { get; set; }
+    }
+
+    public sealed class SetSessionConfigOptionResponse
+    {
+        [JsonPropertyName("sessionId")]
+        public string SessionId { get; set; } = "";
+
+        [JsonPropertyName("configOptions")]
+        public List<SessionConfigOptionDto> ConfigOptions { get; set; } = new List<SessionConfigOptionDto>();
     }
 
     public sealed class PromptRequest
@@ -158,6 +211,9 @@ namespace RimWorldAgent.IPC.Generated
 
         [JsonPropertyName("toolCallId")]
         public string? ToolCallId { get; set; }
+
+        [JsonPropertyName("toolName")]
+        public string? ToolName { get; set; }
 
         [JsonPropertyName("title")]
         public string? Title { get; set; }
