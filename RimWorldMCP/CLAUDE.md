@@ -52,7 +52,7 @@ RimWorldMCP/
 
 - **net472 Library**：与 RimWorld Unity 运行时一致，`OutputType=Library`
 - **引用 Assembly-CSharp.dll**：Tool 直接调用游戏 API（`Find.*`、`DefDatabase<>`、`PawnsFinder` 等）
-- **McpServiceManager 入口**：`[StaticConstructorOnStartup]` 时启动，Def 加载完毕后创建 Transport + McpServer 并在主菜单即监听端口，跨存档持续运行。`GameComponent_McpServer` 仅管理 Bridge 与会话生命周期：`StartedNewGame()` / `LoadedGame()` 时启动桥接器，`Game.Dispose()` 时停止桥接器；`ExposeData()` 持久化 sessionId 到存档
+- **McpServiceManager 入口**：`[StaticConstructorOnStartup]` 时启动，Def 加载完毕后创建 Transport + McpServer 并在主菜单即监听端口，跨存档持续运行。Agent 的 ACP session 生命周期由 `RimWorldAgent` 管理；MCP 侧只提供游戏工具与 sessionId 持久化服务。
 - **线程安全**：只读 Tool 在 HttpListener 线程直接执行；写操作 Tool 通过 `McpCommandQueue` 调度到主线程
 - **NuGet**: 仅 `System.Text.Json` 8.0.5（JSON 序列化）
 - **输出**: `publish/1.6/Assemblies/RimWorldMCP.dll`
@@ -169,7 +169,7 @@ CellData.Layers[0..5]:
 
 ### 进程生命周期
 
-Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定），详见 `../RimWorldAgent/CLAUDE.md`。MCP 侧 `BridgeLifecycle` 为 stub，仅保留接口兼容。
+ACP backend 进程由 Agent 侧 Node ACP Host 管理（C# 通过 IPC DTO + NDJSON 启停和控制），详见 `../RimWorldAgent/CLAUDE.md`。MCP 侧不管理 ACP transport，仅提供游戏工具与 session id 持久化。
 
 ### Mod 设置
 
@@ -180,13 +180,13 @@ Companion 进程由 Agent 侧 `CcbManager` 管理（spawn/stop/Job Object 绑定
 | 日志级别 | Info | Debug / Info / Warn / Error 过滤 |
 | MCP 监听地址 | 0.0.0.0 | 可设为 localhost / 内网 IP |
 | MCP 端口 | 9877 | HTTP 监听端口 |
-| CCB 主机 | 127.0.0.1 | Companion 进程本地监听地址 |
-| CCB 端口 | 19999 | Companion 进程本地监听端口 |
-| CCB 远程主机 | 127.0.0.1 | C# WebSocket 远程连接地址 |
-| CCB 远程端口 | 19999 | C# WebSocket 远程连接端口 |
+| ACP adapter transport | stdio | `claude-agent-acp` 子进程 stdin/stdout |
+| UI WebSocket | 19999 | `UIMessageBus` 与现有 UI 的兼容通道 |
+| ACP adapter | Node.js | `external/claude-agent-acp`，由 RimWorldAgent 管理 |
+| MCP HTTP | 9877 | 游戏工具服务监听端口 |
 | 自动启动 | 开启 | 游戏加载时自动 spawn Node.js 子进程 |
 | Token | - | WS 握手认证，companion 层面 |
-| 模型名称 | - | Companion 启动时传入的模型名 |
+| ACP 配置 | - | 由 Agent 侧配置 adapter 与后端，不在 MCP 侧重复维护 |
 | 自动移动视角 | 开启 | AI 调用坐标工具时自动平移到目标位置 |
 | AI观察覆盖层 | 开启 | AI 查询时在地图上短暂显示彩色标记 |
 | 自动跟踪殖民者 | 开启 | 运行时自动平移到殖民者聚集位置 |
@@ -428,7 +428,7 @@ mklink /D F:\SteamLibrary\steamapps\common\RimWorld\Mods\RimWorldMCP F:\RiderPro
 | Tool | 说明 | 数据源 |
 |------|------|--------|
 | `get_game_context` | 游戏全局状态快照 | `Find.CurrentMap`, `Find.TickManager`, `Find.ResearchManager` |
-| `get_session_id` | 获取当前游戏 MCP 会话 ID（Scribe 持久化 GUID） | `GameComponent_McpServer.CurrentSessionId` |
+| `get_session_id` | 获取当前游戏 Agent 会话 ID（Scribe 持久化的后端不透明标识） | `GameComponent_McpServer.CurrentSessionId` |
 | `get_resources` | 资源库存报告 | `map.resourceCounter.AllCountedAmounts` |
 | `check_colony` | 殖民地提醒（空闲/崩溃/流血/食物/防御） | `PawnsFinder`, `map.wealthWatcher` |
 | `get_work_todos` | 汇总当前待办工作列表（建造、标记、工作单、医疗、囚犯、研究、搬运、空闲） | `map.listerThings`, `designationManager`, `billStack`, `mapPawns` |
@@ -762,7 +762,7 @@ TokenUsageTracker（per-save，持久化到存档）
 ├── CheckBudget(limit)        — 80%/95%/100% 三档
 └── Record(model, ...)        — 同步写 GlobalModelUsageStore
 
-BridgeLifecycle.SendCCMessage()
+Agent session prompt → TokenUsageTracker.Record()
 ├── Block + 超预算 → Find.TickManager.Pause() + return
 └── Warn  + 超预算 → Webhook POST + 继续
 ```
@@ -784,7 +784,7 @@ TokenUsageTracker.Record(model, ...)
     └── GlobalModelUsageStore.Contribute(model, ...) → Save() (全局 JSON)
 ```
 
-Agent 侧通过 CCClient → TokenUsageTracker.Record() 触发记录，详见 `../RimWorldAgent/CLAUDE.md`。
+Agent 侧在 ACP `PromptResponse` / `UsageUpdate` 处理后通过 TokenUsageTracker.Record() 触发记录，详见 `../RimWorldAgent/CLAUDE.md`。
 
 ### UI 展示
 

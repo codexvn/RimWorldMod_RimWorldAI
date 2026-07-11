@@ -14,17 +14,17 @@
 |------|------|------|
 | **SimpleMspServer** | MCP 协议共享库 (JSON-RPC + Transport) | SimpleMspServer.dll |
 | **RimWorldMCP** | 游戏 MOD — MCP Server + 99 Tool | RimWorldMCP.dll (MOD) |
-| **RimWorldAgent** | Agent Runtime — 4 Agent + CCB | RimWorldAgent.exe + MOD |
+| **RimWorldAgent** | Agent Runtime — ACP session + MCP tools | RimWorldAgent.exe + MOD |
 
 ## 架构
 
 ```
 RimWorldAgent ←── MCP (HTTP+SSE) ──→ RimWorldMCP ←── 游戏 API
-       ↕ MCP
-    CCB SDK → Claude API
+       │
+       └── ACP stdio → claude-agent-acp → Claude 后端
 ```
 
-Agent 和 MCP 互不引用，仅通过 MCP 协议通信。SimpleMspServer 是共享协议库。
+Agent 和 MCP 互不引用，仅通过 MCP 协议通信。RimWorldAgent 内部通过 ACP session 管理后端会话，并将 ACP 更新投影为现有 UI DTO。SimpleMspServer 是共享协议库。
 
 ## 构建
 

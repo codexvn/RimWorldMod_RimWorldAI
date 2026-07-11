@@ -1,4 +1,6 @@
-# CCB 重构：WebSocket → stdin/stdout SDK 桥接
+# 历史 TODO：CCB WebSocket → stdin/stdout SDK 桥接
+
+> 本文为已废弃的 CCB 迁移草稿，仅保留历史背景。当前实施计划与状态以 `docs/plans/acp-agent-refactor.md` 为准；当前运行链路使用 ACP stdio + `claude-agent-acp`，不再继续此处的 CCB 实现。
 
 ## 目标
 

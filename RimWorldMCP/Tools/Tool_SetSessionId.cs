@@ -5,12 +5,12 @@ using SimpleMspServer.Mcp;
 namespace RimWorldMCP.Tools
 {
     /// <summary>
-    /// 设置当前 MCP 会话 ID，由 Agent 调用以同步 SDK 会话 UUID 到 Scribe 持久化存档。
+    /// 设置当前 Agent session ID，由 Agent 调用以同步 ACP backend session 到 Scribe 持久化存档。
     /// </summary>
     public class Tool_SetSessionId : ITool, INoMapRequired
     {
         public string Name => "set_session_id";
-        public string Description => "设置当前游戏的 MCP 会话 ID（由 Agent 同步 SDK 会话 UUID 到存档持久化）。";
+        public string Description => "设置当前游戏的 Agent 会话 ID（由 Agent 同步 ACP backend session 到存档持久化）。";
 
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {

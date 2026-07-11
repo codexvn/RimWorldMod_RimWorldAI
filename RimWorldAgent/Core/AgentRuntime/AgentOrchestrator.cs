@@ -1,5 +1,5 @@
 using System;
-using RimWorldAgent.Core.CcbManager;
+using System.Threading.Tasks;
 using RimWorldAgent.Core.models;
 
 namespace RimWorldAgent.Core.AgentRuntime
@@ -8,7 +8,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 
     public static class AgentOrchestrator
     {
-        /// <summary>中断通知模板 — 送入 SDK 的 prompt 格式</summary>
+        /// <summary>中断通知模板 — 送入 ACP session/prompt 的格式。</summary>
         public const string InterruptPromptPrefix = "## 事件通知";
         public const string InterruptPromptSuffix = "以上是游戏内发生的新事件，请关注并根据当前优先级自行决定处理时机。\n\n<system-reminder>\n在处理前，请先使用 get_skills 查看可用领域知识，必要时用 active_skill 激活相关 Skill 获取详细指导。\n</system-reminder>\n现在继续: ";
         /// <summary>中断时注入的 Skill 提示（已合并到 InterruptPromptSuffix，保留供 OnChat 打断消息使用）</summary>
@@ -29,8 +29,8 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>当前会话的 McpClient（供内部 Tool 调用 MCP）</summary>
         public static Mcp.McpClient? SessionMcp { get; set; }
 
-        /// <summary>CcbWebSocket 引用（供 NotisAgent 直接发送通知）</summary>
-        public static CcbWebSocket? CcbWs { get; set; }
+        /// <summary>当前 Agent session 取消入口（避免向编排层暴露具体 transport）</summary>
+        public static Func<Task>? CancelCurrentSession { get; set; }
 
         /// <summary>状态变化时触发</summary>
         public static event Action<string>? OnStatusChanged;
@@ -50,7 +50,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>advance_tick 正在推进游戏时间（守护线程在推进期间跳过）</summary>
         public static volatile bool IsAdvancing;
 
-        /// <summary>SDK 是否正在执行上下文压缩（由 CcbWebSocket 在收到 system status 消息时更新）</summary>
+        /// <summary>Agent 是否正在执行上下文压缩（由 ACP session/update 状态更新）</summary>
         public static bool IsCompacting { get; set; }
 
         public static string StatusText
@@ -105,9 +105,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                 ? summary
                 : InterruptSummary + "\n" + summary;
             CoreLog.Info($"[AgentOrchestrator] 中断请求: {summary}");
-            if (IsRunning && CcbWs?.IsReady == true)
+            if (IsRunning && CancelCurrentSession != null)
             {
-                _ = CcbWs.SendAbort();
+                _ = CancelCurrentSession();
             }
         }
 

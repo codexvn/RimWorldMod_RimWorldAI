@@ -12,7 +12,7 @@ namespace RimWorldAgent.Core
     /// <summary>
     /// UI 总线 — Fleck WS :19999
     /// 只负责 UiMessage 广播 + 客户端消息接收，不感知 SDK 原始格式。
-    /// SDK → UiMessage 转换由 SdkMessageParser (AgentCore) 负责。
+    /// Node ACP Host runtime event → UiMessage 转换由 NodeRuntimeEventProjector (AgentCore) 负责。
     /// </summary>
     public static class UIMessageBus
     {
@@ -49,6 +49,7 @@ namespace RimWorldAgent.Core
         /// <summary>推送单个 UiMessage — 序列化 + WS 广播 + 本地回调</summary>
         public static void PushUiMessage(UiMessage msg)
         {
+            if (msg is UiSystemInit si) LastSystemInit = si;
             var json = msg.ToJson();
             foreach (var kv in _clients)
             {

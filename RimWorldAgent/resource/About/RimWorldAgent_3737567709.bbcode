@@ -158,7 +158,7 @@ Agent 提供 7 个内部工具，指导 AI 的元行为：
 |                      |              |                      |
 | AgentMcpServer :9878 <- tools/call ---------------------- SDK tool calls
 |                      |              |                      |
-| CcbManager -- spawn --> cc-companion (Node.js :19998)     |
+| C# IPC NDJSON -- spawn --> Node ACP Host -- ACP stdio --> claude-agent-acp     |
 |                      |   WebSocket |                      |
 | UIMessageBus :19999 --> UI broadcast|                      |
 +----------------------+              +----------------------+[/code]

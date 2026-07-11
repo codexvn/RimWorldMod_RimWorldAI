@@ -2,7 +2,7 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using RimWorldAgent.Core.CcbManager;
+using RimWorldAgent.Core.AgentTransport;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 using RimWorldAgent.Core.models;
@@ -17,13 +17,13 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>会话存储 — 由 EXE/MOD 在 WireUIMessageBus 前注入</summary>
         public static IConversationStore? ConversationStore { get; set; }
 
-        /// <summary>SDK 会话 ID（从 system.init 捕获），用于 Scribe 持久化 + session-id.txt</summary>
-        public static string? CcbSessionId { get; set; }
+        /// <summary>Agent 会话 ID（从 ACP session 建立/更新捕获），用于 Scribe 持久化。</summary>
+        public static string? AgentSessionId { get; set; }
 
         /// <summary>sessionId 变更回调（AgentEngine 订阅以同步到 MCP set_session_id）</summary>
         public static event Action<string>? OnSessionIdChanged;
 
-        /// <summary>由 SdkMessageParser 调用，触发 MCP 同步</summary>
+        /// <summary>由 ACP projector/session 调用，触发 MCP 同步</summary>
         internal static void RaiseSessionIdChanged(string sid) => OnSessionIdChanged?.Invoke(sid);
 
         /// <summary>启动后是否已发送过消息（冷启检测：false 时触发首次问候）</summary>
@@ -32,46 +32,34 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>工具耗时暂存（toolId → ms），OnToolUse 写，OnToolResultRecorded 读+清理</summary>
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, double> _toolDurations = new();
         private static readonly object _wireLock = new();
-        private static CcbWebSocket? _wiredWs;
-        private static Action<SdkMessage>? _sdkMessageHandler;
+        private static IAgentSession? _wiredSession;
         private static bool _uiHandlersWired;
 
-        /// <summary>读取工具耗时（不删除，用于 SdkMessageParser 读取并推送到 UI）</summary>
+        /// <summary>读取工具耗时（不删除，用于 ACP projector 读取并推送到 UI）</summary>
         internal static double? PeekToolDuration(string toolId)
         {
             return _toolDurations.TryGetValue(toolId, out var d) ? d : (double?)null;
         }
 
-        /// <summary>CCB ↔ UIMessageBus 双向中继：SDK↔UiMessage 转换在 AgentCore 完成</summary>
-        public static void WireUIMessageBus(CcbWebSocket ws)
+        /// <summary>AgentSession ↔ UIMessageBus 双向中继：ACP→UiMessage 转换在 AgentCore 完成</summary>
+        public static void WireUIMessageBus(IAgentSession session)
         {
             lock (_wireLock)
             {
-                _sdkMessageHandler ??= msg =>
-                {
-                    var messages = SdkMessageParser.ParseToUiMessages(msg);
-                    if (messages.Count > 0) UIMessageBus.PushUiMessages(messages);
-                };
-
-                if (_wiredWs != null && !ReferenceEquals(_wiredWs, ws))
-                    _wiredWs.OnSdkMessage -= _sdkMessageHandler;
-
-                _wiredWs = ws;
-                ws.OnSdkMessage -= _sdkMessageHandler;
-                ws.OnSdkMessage += _sdkMessageHandler;
+                _wiredSession = session;
 
                 if (_uiHandlersWired) return;
                 _uiHandlersWired = true;
             }
 
-            // 客户端 chat → 中断当前会话 + 预算检查 + 回显 + CCB
+            // 客户端 chat → 中断当前会话 + 预算检查 + 回显 + ACP prompt
             UIMessageBus.OnChat += async (text, thinking) =>
             {
                 CoreLog.Debug($"[AgentLoop] OnChat len={text.Length}");
-                var currentWs = GetWiredWebSocket();
-                if (currentWs == null || !currentWs.IsReady)
+                var currentSession = GetWiredSession();
+                if (currentSession == null || !currentSession.IsReady)
                 {
-                    UIMessageBus.PushUiMessage(UiMessage.Error("CCB WebSocket 未就绪，无法发送消息。"));
+                    UIMessageBus.PushUiMessage(UiMessage.Error("ACP session 未就绪，无法发送消息。"));
                     return;
                 }
                 if (BudgetLimit > 0 && TokenUsageTracker.TotalAllTokens >= BudgetLimit)
@@ -80,32 +68,32 @@ namespace RimWorldAgent.Core.AgentRuntime
                     return;
                 }
                 ConversationStore?.RecordUserMessage(text);
-                await currentWs.SendAbort();
+                await currentSession.CancelAsync(CancellationToken.None);
                 // 打断运行中的会话时追加 Skill 提示
                 if (AgentOrchestrator.IsRunning)
                     text += AgentOrchestrator.InterruptSkillHint;
                 UIMessageBus.PushUiMessage(UiMessage.User(text));
-                await currentWs.SendChat(ChatChannel.Bus, text, thinking);
+                await currentSession.PromptAsync(text, CancellationToken.None);
             };
 
-            // 客户端 abort → CCB（只中断，不清空上下文）
+            // 客户端 abort → ACP cancel（只中断，不清空上下文）
             UIMessageBus.OnAbort += async () =>
             {
-                var currentWs = GetWiredWebSocket();
-                if (currentWs != null && currentWs.IsReady)
-                    await currentWs.SendAbort();
+                var currentSession = GetWiredSession();
+                if (currentSession != null && currentSession.IsReady)
+                    await currentSession.CancelAsync(CancellationToken.None);
             };
 
-            // 客户端 clear_context → CCB（清空上下文：companion 删文件 + 新 SDK 会话）
+            // 客户端 clear_context → ACP close + new session
             UIMessageBus.OnClearContext += () =>
             {
-                CcbSessionId = null;
-                var currentWs = GetWiredWebSocket();
-                if (currentWs != null && currentWs.IsReady)
-                    _ = currentWs.SendAbort(clear: true);
+                AgentSessionId = null;
+                var currentSession = GetWiredSession();
+                if (currentSession != null && currentSession.IsReady)
+                    _ = currentSession.ClearAsync(CancellationToken.None);
             };
 
-            // 新客户端连接 → 推送初始状态
+        // 新客户端连接 → 推送初始状态
             UIMessageBus.OnClientConnected += socket =>
             {
                 try
@@ -265,10 +253,10 @@ namespace RimWorldAgent.Core.AgentRuntime
             };
         }
 
-        private static CcbWebSocket? GetWiredWebSocket()
+        private static IAgentSession? GetWiredSession()
         {
             lock (_wireLock)
-                return _wiredWs;
+                return _wiredSession;
         }
 
         /// <summary>剥离 RimWorld 富文本标签（color/size/b/i），保留纯文本。
@@ -336,7 +324,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         }
 
         /// <summary>执行一次 Agent 会话：发送 prompt → Tool Loop → 写 Memory</summary>
-        public static async Task RunSessionAsync(string prompt, McpClient mcp, CcbWebSocket ccbWs)
+        public static async Task RunSessionAsync(string prompt, McpClient mcp, IAgentSession session)
         {
             // 复用已在外部暂停的 PaceController（每日 PLAN 等），无则创建
             var paceController = AgentOrchestrator.PaceController;
@@ -375,17 +363,17 @@ namespace RimWorldAgent.Core.AgentRuntime
                     Volatile.Write(ref resultReceived, true);
             }
 
-            async void OnToolUse(string toolId, string toolName, string input)
+            async Task OnToolUse(string toolId, string toolName, string input)
             {
                 NoteActivity();
                 Interlocked.Increment(ref pendingTools);
                 try
                 {
-                     await ToolDispatcher.HandleAsync(ccbWs, toolId, toolName, input);
+                    await ToolDispatcher.HandleAsync(toolId, toolName, input);
                 }
                 catch (Exception ex)
                 {
-                    CoreLog.Error($"[commander] Tool 执行异常: {ex.Message}");
+                    CoreLog.Error($"[commander] Tool 执行异常: {FormatExceptionChain(ex)}");
                 }
                 finally
                 {
@@ -403,17 +391,18 @@ namespace RimWorldAgent.Core.AgentRuntime
 
             void OnAborted()
             {
-                CoreLog.Info("[AgentLoop] Companion 确认中断，结束会话");
+                CoreLog.Info("[AgentLoop] ACP 确认中断，结束会话");
                 tcs.TrySetResult(true);
             }
 
             InternalToolRegistry.OnExitRequested += OnExit;
-            ccbWs.OnResult += OnResult;
-            ccbWs.OnToolUse += OnToolUse;
-            ccbWs.OnAborted += OnAborted;
+            session.OnResult += OnResult;
+            session.OnToolUse += OnToolUse;
+            session.OnAborted += OnAborted;
+            session.OnActivity += NoteActivity;
             try
             {
-                await ccbWs.SendChat(ChatChannel.System, prompt);
+                await session.PromptAsync(prompt, CancellationToken.None);
                 HasEverSent = true;
                 ConversationStore?.RecordSystemMessage("[System Prompt] " + prompt);
                 UIMessageBus.PushUiMessage(UiMessage.System("[System Prompt] " + prompt));
@@ -432,10 +421,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             finally
             {
-                ccbWs.OnAborted -= OnAborted;
+                session.OnAborted -= OnAborted;
                 InternalToolRegistry.OnExitRequested -= OnExit;
-                ccbWs.OnResult -= OnResult;
-                ccbWs.OnToolUse -= OnToolUse;
+                session.OnResult -= OnResult;
+                session.OnToolUse -= OnToolUse;
+                session.OnActivity -= NoteActivity;
 
                 // 所有阶段均强制暂停，Plan/Act/None 无差别
                 var phase = AgentOrchestrator.CurrentPhase;

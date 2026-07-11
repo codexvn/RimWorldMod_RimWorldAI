@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using RimWorldAgent.Core;
 using RimWorldAgent.Core.AgentRuntime;
-using RimWorldAgent.Core.CcbManager;
+using RimWorldAgent.Core.AgentTransport;
 using RimWorldAgent.Core.Data;
 using Verse;
 
@@ -61,24 +63,25 @@ namespace RimWorldAgent
 
                 var asmDir = Path.GetDirectoryName(
                     typeof(GameComponent_RimWorldAgent).Assembly.Location) ?? ".";
-                var ccbDir = Path.GetFullPath(Path.Combine(asmDir, "cc-companion"));
+                var nodeHostDir = Path.GetFullPath(Path.Combine(asmDir, "rimworld-acp-host"));
+                settings?.EnsureAcpBackendDefaults();
+                var selectedBackendMatches = settings?.AcpBackends?
+                    .Where(backend => backend != null
+                        && backend.Enabled
+                        && IsAcpBackendIdValid(backend.Id)
+                        && backend.Id == settings.SelectedAcpBackendId)
+                    .ToList();
+                var selectedBackend = selectedBackendMatches?.Count == 1 ? selectedBackendMatches[0] : null;
+                if (settings != null && selectedBackend == null)
+                    SafeLog.Warning($"[agent-mod] Backend 配置无效或未选择: {settings.SelectedAcpBackendId}");
 
                 var gameHost = settings?.GameMcpHost ?? "localhost";
                 var gamePort = settings?.GameMcpPort ?? 9877;
-                var customMcpServers = settings?.CustomMcpServers?
-                    .Where(s => s != null)
-                    .Select(s => new CustomMcpServerConfig
-                    {
-                        Enabled = s.Enabled,
-                        Name = s.Name ?? "",
-                        Type = s.Type ?? "http",
-                        Url = s.Url ?? "",
-                        Command = s.Command ?? "npx",
-                        ArgsText = s.ArgsText ?? "",
-                        EnvText = s.EnvText ?? "",
-                        Timeout = s.Timeout
-                    })
-                    .ToList() ?? new System.Collections.Generic.List<CustomMcpServerConfig>();
+                var nodePath = NodeRuntimeLocator.Resolve(settings?.NodeExecutablePath);
+                if (string.IsNullOrWhiteSpace(nodePath))
+                    throw new InvalidOperationException("未找到可用的 Node.js 22+ 运行时。它用于启动 ACP Host，请安装 Node.js 或在 RimWorld Agent 设置中指定 node.exe 路径。");
+                if (!NodeRuntimeLocator.IsVersionSupported(nodePath!, 22, out var nodeVersion))
+                    throw new InvalidOperationException($"Node.js 版本不受支持: {nodeVersion}。Node ACP Host 需要 Node.js 22 或更高版本。");
                 var dbStore = new ScribeDbStore();
                 var gameState = new DirectGameStateProvider();
 
@@ -87,23 +90,17 @@ namespace RimWorldAgent
                     ProjectPath = projectPath,
                     SkillsDir = skillsDir,
                     UserSkillsDir = userSkillsDir,
+                    PromptPath = Path.Combine(asmDir, "Prompt.md"),
+                    SkillsDescPath = Path.Combine(projectPath, "skills-desc.txt"),
                     McpUrl = $"http://{gameHost}:{gamePort}",
-                    McpPort = gamePort,
                     AgentMcpPort = settings?.AgentMcpPort ?? 9878,
-                    CustomMcpServers = customMcpServers,
-                    CcbPort = 19998,
-                    CcbWsUrl = "ws://127.0.0.1:19998",
-                    ModelName = settings?.ModelName,
-                    CcbAutoStart = true,
-                    CcbAutoInstall = settings?.CcbAutoInstall ?? true,
-                    CcbDir = ccbDir,
+                    AcpNodePath = nodePath!,
+                    NodeHostDir = nodeHostDir,
+                    NodeHostEntryPoint = "dist/main.js",
+                    AcpBackend = BuildAcpBackendDefinition(selectedBackend, nodePath!),
+                    AcpAutoStart = true,
                     // PlanSpeed 已移除
                     TokenBudgetLimit = settings?.TokenBudgetLimit ?? 0,
-                    ThinkingMode = settings?.ThinkingMode ?? "adaptive",
-                    ThinkingEffort = settings?.ThinkingEffort ?? "high",
-                    LogSdkMessages = settings?.LogSdkMessages ?? false,
-                    ApiKey = settings?.ApiKey,
-                    ApiUrl = settings?.ApiUrl,
                     DiffEnabled = settings?.DiffEnabled ?? true,
                     DiffThreshold = settings?.DiffThreshold ?? 0.30,
                     ClearToolResultSnapshotsOnStart = true,
@@ -135,18 +132,16 @@ namespace RimWorldAgent
                 }
                 CoreLog.Info($"[agent-mod] 内部工具已注册 ({InternalToolRegistry.Instance.All.Count}): {string.Join(", ", InternalToolRegistry.Instance.All.Select(t => t.Name))}");
 
-                // conversation store 由 OnSessionIdChanged 在 SDK system.init 到达时创建
+                // conversation store 由 OnSessionIdChanged 在 ACP session/update 到达时创建
                 _dbStore = dbStore;
 
-                if (engine.CcbWs != null)
+                if (engine.AgentSession != null)
                 {
-                    if (settings?.LogCcbWsMessages == true)
-                        CcbWebSocket.WsLogFilePath = Path.Combine(projectPath!, "ccb-ws-log.txt");
-                    AgentLoop.WireUIMessageBus(engine.CcbWs);
+                    AgentLoop.WireUIMessageBus(engine.AgentSession);
                 }
                 else
                 {
-                    SafeLog.Warning("[agent-mod] CcbWs 为 null，UI 总线未启动");
+                    SafeLog.Warning("[agent-mod] ACP session 为 null，UI 总线未启动");
                 }
 
                 _lastTick = 0;
@@ -175,7 +170,7 @@ namespace RimWorldAgent
             if (!_initialized || _engine == null) return;
 
             _engine.Tick();
-            UIMessageBus.IsReady = _engine.CcbWs?.IsReady ?? false;
+            UIMessageBus.IsReady = _engine.AgentSession?.IsReady ?? false;
 
             if (Find.CurrentMap == null) return;
 
@@ -214,24 +209,100 @@ namespace RimWorldAgent
         {
             try
             {
-                CoreLog.Info("[agent-mod] 返回主菜单，开始关闭 Agent 和 CCB...");
+                CoreLog.Info("[agent-mod] 返回主菜单，开始关闭 Agent...");
                 try { UIMessageBus.Stop(); }
-                catch (Exception ex) { SafeLog.Warning($"[agent-mod] UIMessageBus.Stop 异常 (可忽略): {ex.GetType().Name}: {ex.Message}"); }
+                catch (Exception ex) { SafeLog.Warning($"[agent-mod] UIMessageBus.Stop 异常 (可忽略): {FormatExceptionChain(ex)}"); }
                 try
                 {
                     _engine?.Dispose();
                     _engine = null;
                     _initialized = false;
-                    CoreLog.Info("[agent-mod] Agent 和 CCB 已关闭");
+                    CoreLog.Info("[agent-mod] Agent 已关闭");
                 }
-                catch (Exception ex) { CoreLog.Error($"[agent-mod] 关闭 Agent 失败: {ex.Message}"); }
-                try { CcbManager.KillStaleProcesses(); }
-                catch (Exception ex) { SafeLog.Warning($"[agent-mod] KillStaleProcesses 异常: {ex.Message}"); }
+                catch (Exception ex) { CoreLog.Error($"[agent-mod] 关闭 Agent 失败: {FormatExceptionChain(ex)}"); }
             }
             catch (Exception ex)
             {
-                SafeLog.Warning($"[agent-mod] ShutdownEngine 异常 (非致命): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+                SafeLog.Warning($"[agent-mod] ShutdownEngine 异常 (非致命): {FormatExceptionChain(ex)}\n{ex.StackTrace}");
             }
+        }
+
+        private static AcpAgentServerDefinition? BuildAcpBackendDefinition(AcpBackendSetting? setting, string nodePath)
+        {
+            if (setting == null) return null;
+            var backend = setting;
+            var command = backend.Command?.Trim() ?? "";
+            if (string.Equals(command, "node", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(command, "node.exe", StringComparison.OrdinalIgnoreCase))
+            {
+                command = nodePath;
+            }
+            return new AcpAgentServerDefinition
+            {
+                Name = string.IsNullOrWhiteSpace(backend.Id) ? "claude-agent-acp" : backend.Id.Trim(),
+                Command = command,
+                Args = ParseArguments(backend.ArgsText),
+                WorkingDirectory = string.IsNullOrWhiteSpace(backend.WorkingDirectory)
+                    ? null
+                    : backend.WorkingDirectory.Trim(),
+                Env = ParseEnvironment(backend.EnvText)
+            };
+        }
+
+        private static bool IsAcpBackendIdValid(string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return false;
+            return id!.All(c => char.IsLetterOrDigit(c) || c == '_' || c == '-' || c == '.');
+        }
+
+        private static List<string> ParseArguments(string? text)
+        {
+            var result = new List<string>();
+            if (string.IsNullOrWhiteSpace(text)) return result;
+
+            var current = new StringBuilder();
+            char quote = '\0';
+            for (var i = 0; i < text!.Length; i++)
+            {
+                var ch = text[i];
+                if (quote != '\0')
+                {
+                    if (ch == quote) quote = '\0';
+                    else if (ch == '\\' && i + 1 < text.Length && text[i + 1] == quote) current.Append(text[++i]);
+                    else current.Append(ch);
+                    continue;
+                }
+
+                if (ch == '\'' || ch == '"')
+                {
+                    quote = ch;
+                    continue;
+                }
+                if (char.IsWhiteSpace(ch))
+                {
+                    if (current.Length == 0) continue;
+                    result.Add(current.ToString());
+                    current.Clear();
+                    continue;
+                }
+                current.Append(ch);
+            }
+            if (current.Length > 0) result.Add(current.ToString());
+            return result;
+        }
+
+        private static Dictionary<string, string> ParseEnvironment(string? text)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(text)) return result;
+            foreach (var line in text!.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var separator = line.IndexOf('=');
+                if (separator <= 0) continue;
+                var name = line.Substring(0, separator).Trim();
+                if (name.Length > 0) result[name] = line.Substring(separator + 1);
+            }
+            return result;
         }
 
         private static string FormatExceptionChain(Exception ex)

@@ -1,109 +1,68 @@
 # RimWorld AI
 
-AI Colony Operating System — Claude Agent SDK 自主管理 RimWorld 殖民地。
+AI Colony Operating System — 通过 ACP 自主管理 RimWorld 殖民地。
 
 ## 项目结构
 
-```
+```text
 RimWorldAI/
 ├── SimpleMspServer/          ← MCP 协议共享库 (net472)
-│   ├── McpMessage.cs         JSON-RPC 2.0
-│   ├── ITransport.cs         传输抽象
-│   └── SseTransport.cs       SSE + HTTP
-
-├── RimWorldMCP/              ← 游戏 Mod (net472)
-│   ├── Tools/                121 个游戏 Tool
-│   ├── MCP Server :9877      SSE + Streamable HTTP
-│   ├── Harmony/              事件拦截 → NotificationBus
-│   ├── resource/About/       MOD 元数据 + Steam BBCode
-│   └── Transport/
-
-├── RimWorldAgent/             ← Agent Runtime (net472)
-│   ├── Core/
-│   │   ├── AgentRuntime/     AgentLoop + AgentOrchestrator + ContextBuilder + ToolDispatcher + ToolResultPipeline
-│   │   ├── CcbManager/       CCB 子进程 + CcbWebSocket + TokenUsageTracker
-│   │   ├── UIMessageBus.cs   ★ UI 总线 — Fleck WS :19999
-│   │   ├── models/           SdkMessage / UiMessage / ChatChannel
-│   │   ├── Mcp/              MCP 客户端 + Agent MCP Server :9878
-│   │   └── Data/             ★ IDbStore + IConversationStore + ToolResultSnapshotStore
-│   ├── Mod/                  GameComponent + 设置 UI + Harmony Hooks
+├── RimWorldMCP/              ← 游戏 Mod；MCP Server :9877
+├── RimWorldAgent/            ← Agent Runtime (net472)
+│   ├── Core/AgentTransport/  ACP 进程、Client、session 与 UI 兼容投影
+│   ├── Core/AgentRuntime/    AgentLoop、Orchestrator、工具调度与调度状态
+│   ├── Core/UIMessageBus.cs  UI 总线；WebSocket :19999
+│   ├── Core/Mcp/             Agent MCP Server :9878 与 MCP 客户端
+│   ├── Mod/                  GameComponent、设置 UI 与 Harmony Hooks
 │   ├── Exe/                  独立 EXE 入口
-│   ├── resource/             Skills + About (元数据 + BBCode)
-│   ├── Skills.d/             用户/AI 创建 Skill 覆盖目录（运行时同级）
-│   └── cc-companion/         Node.js SDK 桥接 (~358行)
+│   └── resource/             Skills 与 MOD 元数据
+├── RimWorldAgentUI/          ← Web UI Mod；HTTP :19997
+└── RimWorldAgent.Tests/      ← C# 测试
 
-├── RimWorldAgentUI/           ← Web UI Mod
-│   ├── WebUI/HttpServer.cs    HTTP :19997
-│   └── resource/              WebUI (index.html/v2) + About (元数据 + BBCode)
-
-└── RimWorldAgent.Tests/      C# 测试
-
-四者关系：RimWorldMCP ↔ RimWorldAgent 通过 MCP 协议通信（互不引用）。
-SimpleMspServer 被两者共同引用。Agent ↔ companion 通过 WS :19998，Agent ↔ UI 通过 UIMessageBus :19999。
+RimWorldMCP ↔ RimWorldAgent 通过 MCP 协议通信；C# Agent ↔ Node ACP Host 通过 IPC DTO + NDJSON stdin/stdout；Node Host ↔ ACP backend 通过官方 ACP stdio；Agent ↔ UI 通过 UIMessageBus :19999。
 ```
 
 ## 架构
 
+```text
+AgentEngine
+  ├── NodeAgentHost / NodeAgentSession
+  │     └── IPC DTO + NDJSON stdin/stdout
+  │           └── rimworld-acp-host (Node.js 22+)
+  │                 ├── official ACP TypeScript SDK Client
+  │                 └── claude-agent-acp backend (ACP stdio)
+  ├── MCP Client / Agent MCP Server :9878
+  └── AgentLoop / AgentOrchestrator
+          └── NodeRuntimeEventProjector
+                  └── UiMessage → UIMessageBus :19999
+                          ├── WebUI :19997
+                          └── Dialog_AiChat
 ```
-                    CC Companion (Node.js :19998)
-                         │
-            chat/abort  │  SDK 消息 (assistant/stream_event/result/...)
-                         │
-                  CcbWebSocket (C#)     ← 纯 {type:"chat"/"abort"} 直发
-                    │           │
-          SdkMessage.FromJson  SendChat/Abort
-                    │           │
-              AgentLoop.WireUIMessageBus
-              │                       │
-    SdkMessageParser            UIMessageBus.OnChat/Abort
-    (SdkMessage → UiMessage)         │
-              │               PushUiMessage(User)
-              ▼                       │
-       UIMessageBus.PushUiMessages ───┘
-              │
-      UiMessage WS :19999 广播
-         │                │
-    ┌────┘                └────┐
-    ▼                         ▼
- WebUI :19997           Dialog_AiChat
- (BridgeClient WS)      (BridgeClient WS)
-```
+
+当前里程碑只切换 Agent transport/session/runtime，保留现有 `UiMessage` DTO 和 UI WebSocket schema。`:19998` 不再承载 CCB；ACP 使用 stdio。`claude-agent-acp` 要求 Node.js 22+，发布目录只需要 adapter 的生产运行时文件。
 
 | 端口 | 服务 | 协议 | 所属 |
 |------|------|------|------|
 | `:9877` | MCP Server（游戏 Tool） | SSE / HTTP | RimWorldMCP |
-| `:9878` | Agent MCP Server（内部工具 + 游戏工具 meta-tools 代理） | HTTP | RimWorldAgent |
-| `:19998` | CC Companion（SDK 桥接） | WebSocket | RimWorldAgent |
-| `:19999` | UIMessageBus（UI 总线） | WebSocket | RimWorldAgent |
-| `:19997` | WebUI HTTP | HTTP | RimWorldAgentUI |
+| `:9878` | Agent MCP Server | HTTP | RimWorldAgent |
+| `:19999` | UIMessageBus | WebSocket | RimWorldAgent |
+| `:19997` | WebUI HTTP | HTTP | RimWorldAgent |
 
-**外部 MCP**（由 C# `CcbManager` 写出 `mcp-servers.json`，companion 显式传入 SDK + `strictMcpConfig`）：
+**运行时边界**：ACP 的 Agent→Client request 由 Node Host 响应。内置 `claude-agent-acp` 禁用自身工具，仅注入游戏 `agent` MCP，并自动允许其请求；其他 backend 仍默认拒绝文件读写、terminal、权限和未知 extension request，不等待人工输入。C# 只处理 IPC DTO 和 runtime event。UI 仍只接收兼容投影后的现有 DTO；后续若切换 UI DTO，再单独定义里程碑。
 
-| 名称 | 类型 | 用途 |
-|------|------|------|
-| `playwright` | STDIO (`@playwright/mcp@latest`) | 网页浏览 — 直连 RimWorld Wiki（绕过 Cloudflare），提取数据表/机制说明 |
-| `vision` | 内置 | 图片分析 — 描述游戏截图、战术示意图 |
-| `server-*` | streamable-http | Rider IDE 集成 — 构建/运行/代码分析 |
+**Agent 启动配置**：C# 将用户选择的 backend command、args、env、workingDirectory、固定 Prompt 与内置 `agent` MCP URL 组装为 `AgentRuntimeConfig`，通过 `rimworld-agent-ipc` 的 `initialize` 发送给 Node Host。未配置 backend 时不启动 Agent，不自动回退到 Claude。
 
-**关键设计**：
-- **CC Companion** 是纯 SDK 桥接——收 `chat`/`abort` 两种消息，吐 SDK 流式消息
-- **CcbWebSocket ↔ companion 协议**：仅 4 种消息（C#→comp: `chat`/`abort`；comp→C#: `hello-ok`/SDK 消息）
-- **SdkMessage**：类型化消息模型，与 `@anthropic-ai/claude-agent-sdk` 协议对齐（Assistant/StreamEvent/Result/System/User/Aborted 子类），`FromJson` 工厂完成 type=event 解包 + 未知字段校验
-- **SdkMessageParser**：SdkMessage → UiMessage 转换，不碰 JSON
-- **ProxyToolProvider**：游戏 MCP 工具通过 meta-tools 代理到 Agent MCP——暴露 `discover_tools` / `get_tool_schema` / `execute_tool`。`get_tool_schema` 返回原生游戏工具 Schema；`execute_tool` 使用顶层 `action` / `params` / `meta_data`，其中 `meta_data.xxprocess.noDiff` 只控制包装层，不传给原生工具
-- **ToolResultPipeline**：游戏工具结果包装链，当前包含 `DiffProcessor`（有 cacheKey 时基于 DiffPlex 生成 unified diff；无 cacheKey 返回 `full/no_cache_key`）和 `SuffixProcessor`（追加模式/速度提醒）
-- **MCP 服务器配置**：C# `CcbManager` 写出 `mcp-servers.json`（含 `agent` + 设置页自定义服务），路径通过 `--mcp-servers-path` CLI 参数传入 companion；TS `session.ts` 读取后显式传入 SDK `mcpServers` option，配合 `strictMcpConfig: true` 阻止 SDK 自动扫描项目根的 `.mcp.json`，彻底隔离 Rider IDE 等无关 MCP 服务器；`settingSources: ['local']` 保留用户本地配置文件加载
-- **UIMessageBus**：只负责 UiMessage WS 广播 + 客户端消息接收，不感知 SDK 格式
-- **RimWorldAgentUI**：独立模组，通过 WS 连接 UIMessageBus，自带 HTTP 服务提供 WebUI
-- **IDbStore + IGameStateProvider**：EXE/MOD 双模抽象，构造注入解耦
-- **IConversationStore**：多轮对话持久化抽象（ConversationEntry 数据模型），EXE=SQLite WAL，MOD=Memory+lock；录制点覆盖 User/Assistant/System/ToolCall/ToolResult
-- **工具调用通路**：SDK → `mcp__agent__*` → Agent MCP → Proxy → 游戏 MCP → 返回结果 → SDK。不经过 companion
+
+**RimWorld 依赖隔离**：ACP 依赖全部在 Node Host 进程中，不进入 RimWorld AppDomain；C# 已不再发布或加载 ACP 的 MessagePack 依赖。
 
 ## 构建
 
 ```bash
 cd F:\RiderProjects\RimWorldMCP
 dotnet build RimWorldAI.sln
+cd RimWorldAgent\Node\rimworld-acp-host
+npm install --ignore-scripts --no-audit --no-fund
+npm run build
 ```
 
 5 个项目，全部 net472。
@@ -114,12 +73,12 @@ dotnet build RimWorldAI.sln
 
 ### 异常处理
 
-**禁止空 catch**。每个 catch 必须记录异常类型和 `ex.Message`。`OperationCanceledException` 允许空 catch。
+**禁止空 catch**。每个 catch 必须记录异常类型、Message 和完整 InnerException 链。`OperationCanceledException` 允许空 catch。
 
 ### 日志
 
 - **不含敏感信息**：token、密码、密钥不写入日志
-- **调试**：`[CCGUI_DEBUG]` 前缀，解决后 grep 清理
+- **调试**：禁止未经标识的临时日志；正式日志不得输出 token、密钥或 prompt 原文
 
 ### 设计文档
 
@@ -129,14 +88,14 @@ dotnet build RimWorldAI.sln
 |------|------|
 | `design/camera-system.md` | 摄像头自动移动 |
 | `RimWorldMCP/design/device-ui-gizmo-tools.md` | 设备 UI/Gizmo 信息查询与通用操作工具 |
-| `design/bridge-lifecycle.md` | CCB 生命周期 |
+| `docs/plans/acp-agent-refactor.md` | ACP 迁移与 Agent 架构重构 |
 | `design/tool-system.md` | Tool 系统 |
 | `design/event-system.md` | 事件系统 |
 | `design/token-budget-system.md` | Token 预算 |
 | `design/mcp-server-integration.md` | MCP Server 集成 |
-| `design/agent-runtime.md` | Agent Runtime |
+| `RimWorldAgent/design/agent-runtime.md` | Agent Runtime |
 | `design/conversation-history.md` | 会话历史持久化（SQLite + WS 协议） |
-| `RimWorldAgent/design/session-resume.md` | 会话恢复 — sessionId Scribe 持久化 + SDK resume |
+| `RimWorldAgent/design/session-resume.md` | ACP sessionId 持久化与 load/resume 说明 |
 
 ### 提交
 

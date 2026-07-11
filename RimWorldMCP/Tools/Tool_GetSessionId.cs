@@ -6,7 +6,7 @@ using SimpleMspServer.Mcp;
 namespace RimWorldMCP.Tools
 {
     /// <summary>
-    /// 获取当前 MCP 会话 ID（持久化到存档的 Scribe GUID）。
+    /// 获取当前 Agent session ID（持久化到存档的后端不透明标识）。
     /// Agent 侧用于跨存档数据隔离。
     /// </summary>
     public class Tool_GetSessionId : ITool, INoMapRequired

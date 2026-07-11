@@ -1,6 +1,5 @@
 using System;
 using HarmonyLib;
-using RimWorldAgent.Core.CcbManager;
 using Verse;
 
 namespace RimWorldAgent
@@ -12,7 +11,7 @@ namespace RimWorldAgent
 
         static HarmonyPatches()
         {
-            // 退出存档时 Kill CCB（用 Prefix 在 ClearAllMapsAndWorld 执行前拿 GameComponent）
+            // 退出存档时关闭 Agent（用 Prefix 在 ClearAllMapsAndWorld 执行前拿 GameComponent）
             TryPatch(typeof(Verse.Profile.MemoryUtility), "ClearAllMapsAndWorld", nameof(Prefix_ClearAllMapsAndWorld));
             // UIRoot.UIRootUpdate() 覆盖 Entry/Menu/Play 全部状态，每帧刷新 SafeLog
             TryPatch(typeof(UIRoot), "UIRootUpdate", nameof(Postfix_FlushSafeLog), postfix: true);
@@ -36,7 +35,7 @@ namespace RimWorldAgent
             }
             catch (Exception ex)
             {
-                SafeLog.Error($"[agent-harmony] Patch {targetType.FullName}.{methodName} 失败: {ex.GetType().Name}: {ex.Message}");
+                SafeLog.Error($"[agent-harmony] Patch {targetType.FullName}.{methodName} 失败: {FormatExceptionChain(ex)}");
             }
         }
 
@@ -46,7 +45,7 @@ namespace RimWorldAgent
         public static void Postfix_FlushSafeLog()
         {
             try { SafeLog.Flush(); }
-            catch { /* 不允许破坏帧循环 */ }
+            catch (Exception ex) { SafeLog.Error($"[agent-harmony] FlushSafeLog 异常: {FormatExceptionChain(ex)}"); }
         }
 
         public static void Prefix_ClearAllMapsAndWorld()
@@ -55,17 +54,24 @@ namespace RimWorldAgent
             try
             {
                 Current.Game?.GetComponent<GameComponent_RimWorldAgent>()?.ShutdownEngine();
-                CcbManager.KillStaleProcesses();
                 SafeLog.Info("[agent-harmony] 关闭完成");
             }
             catch (Exception ex)
             {
-                SafeLog.Error($"[agent-harmony] 关闭异常: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+                SafeLog.Error($"[agent-harmony] 关闭异常: {FormatExceptionChain(ex)}\n{ex.StackTrace}");
             }
             finally
             {
                 SafeLog.Flush();
             }
+        }
+
+        private static string FormatExceptionChain(Exception ex)
+        {
+            var message = $"{ex.GetType().Name}: {ex.Message}";
+            for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                message += $" ← {inner.GetType().Name}: {inner.Message}";
+            return message;
         }
     }
 }

@@ -4,57 +4,56 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Ccb = RimWorldAgent.Core.CcbManager.CcbManager;
-using RimWorldAgent.Core.CcbManager;
+using RimWorldAgent.Core.AgentTransport;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 using RimWorldAgent.Core.models;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
-    public class CustomMcpServerConfig
-    {
-        public bool Enabled { get; set; } = true;
-        public string Name { get; set; } = "";
-        public string Type { get; set; } = "http";
-        public string Url { get; set; } = "";
-        public string Command { get; set; } = "npx";
-        public string ArgsText { get; set; } = "";
-        public string EnvText { get; set; } = "";
-        public int Timeout { get; set; } = 300000;
-    }
-
     /// <summary>Agent 引擎配置 — 构造后传 InitAsync</summary>
     public class AgentEngineConfig
     {
         public string ProjectPath { get; set; } = "";
         public string? SkillsDir { get; set; }
         public string? UserSkillsDir { get; set; }
+        public string PromptPath { get; set; } = "";
+        public string? SkillsDescPath { get; set; }
         public string McpUrl { get; set; } = "http://localhost:9877";
-        public int McpPort { get; set; } = 9877;
         public int AgentMcpPort { get; set; } = 9878;
-        public List<CustomMcpServerConfig> CustomMcpServers { get; set; } = new List<CustomMcpServerConfig>();
-        public int CcbPort { get; set; } = 19998;
-        public string CcbWsUrl { get; set; } = "ws://127.0.0.1:19998";
-        public string? CcbToken { get; set; }
-        public string? ModelName { get; set; }
-        public bool CcbAutoStart { get; set; } = true;
-        public bool CcbAutoInstall { get; set; } = true;
-        public string CcbDir { get; set; } = "";
+        public string AcpNodePath { get; set; } = "node";
+        public string NodeHostDir { get; set; } = "";
+        public string NodeHostEntryPoint { get; set; } = "dist/main.js";
+        public int IpcRequestTimeoutSeconds { get; set; } = 300;
+        public AcpAgentServerDefinition? AcpBackend { get; set; }
+        public bool AcpAutoStart { get; set; } = true;
         // PlanSpeed 已移除 — Plan/Act 阶段均强制暂停，仅 Advance 可推进
-        public bool WaitForGame { get; set; } = false;
         public long TokenBudgetLimit { get; set; }
-        public string ThinkingMode { get; set; } = "adaptive";
-        public string ThinkingEffort { get; set; } = "high";
-        public bool LogSdkMessages { get; set; }
-        public string? ApiKey { get; set; }
-        public string? ApiUrl { get; set; }
         public bool DiffEnabled { get; set; } = true;
         public double DiffThreshold { get; set; } = 0.30;
         public bool ClearToolResultSnapshotsOnStart { get; set; }
     }
 
-    /// <summary>Agent 引擎 — CCB 生命周期 + WS + MCP + 调度循环。EXE/MOD 共享。</summary>
+    /// <summary>Agent 引擎 — ACP session + UI bus + MCP + 调度循环。EXE/MOD 共享。</summary>
+    internal sealed class AcpAgentLaunch
+    {
+        public string Name { get; }
+        public string Command { get; }
+        public IReadOnlyList<string> Args { get; }
+        public string WorkingDirectory { get; }
+        public IReadOnlyDictionary<string, string> Env { get; }
+
+        public AcpAgentLaunch(string name, string command, IReadOnlyList<string> args,
+            string workingDirectory, IReadOnlyDictionary<string, string> env)
+        {
+            Name = name;
+            Command = command;
+            Args = args;
+            WorkingDirectory = workingDirectory;
+            Env = env;
+        }
+    }
+
     public class AgentEngine : IDisposable
     {
         private readonly AgentEngineConfig _cfg;
@@ -65,8 +64,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         private readonly Action<string> _logDebug;
         private readonly Action<string> _logWarn;
         private readonly IToolResultSnapshotStore _toolResultSnapshotStore;
-        private Ccb? _ccb;
-        private CcbWebSocket? _ccbWs;
+        private IAgentSession? _agentSession;
         private McpClient? _mcp;
         private ContextBuilder? _ctx;
         private string _gameSessionId = "";
@@ -80,9 +78,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         private CancellationTokenSource? _enforceCts;
         private Task? _enforceTask;
 
-        public CcbWebSocket? CcbWs => _ccbWs;
+        public IAgentSession? AgentSession => _agentSession;
         public McpClient? McpClient => _mcp;
-        public bool IsReady => _initialized && _mcp != null;
+        public bool IsReady => _initialized && _mcp != null && _agentSession?.IsReady == true;
 
         public void SetGameSessionId(string sessionId)
             => _gameSessionId = ExtractSessionId(sessionId);
@@ -104,7 +102,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             _toolResultSnapshotStore = toolResultSnapshotStore ?? new MemoryToolResultSnapshotStore();
         }
 
-        /// <summary>完整启动流程：Skills → AgentMCP → npm install → CCB spawn → WS → MCP → SSE</summary>
+        /// <summary>完整启动流程：Skills → AgentMCP → Node ACP Host/IPC session → MCP → SSE</summary>
         public async Task<bool> InitAsync()
         {
             if (_initialized) return true;
@@ -136,6 +134,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             var skillsDir = _cfg.SkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
             var userSkillsDir = _cfg.UserSkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills.d");
             InternalToolRegistry.Instance.LoadSkills(skillsDir, userSkillsDir);
+            var skillsDescPath = string.IsNullOrWhiteSpace(_cfg.SkillsDescPath)
+                ? Path.Combine(_cfg.ProjectPath, "skills-desc.txt")
+                : _cfg.SkillsDescPath;
+            InternalToolRegistry.SkillsDescPath = skillsDescPath;
+            InternalToolRegistry.UpdateSkillsDesc();
 
             // Agent MCP Server
             _agentHost = new SimpleMspServer.McpServiceHost(_cfg.AgentMcpPort,
@@ -164,7 +167,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex)
                 {
                     if (_disposed) return false;
-                    _logDebug($"[AgentEngine] MCP 就绪检查失败: {ex.GetType().Name}: {ex.Message}");
+                    _logDebug($"[AgentEngine] MCP 就绪检查失败: {ex.GetType().Name}: {FormatExceptionChain(ex)}");
                     if (ex.InnerException != null) _logDebug($"[AgentEngine] MCP InnerException: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
                     _logInfo("[AgentEngine] 游戏 MCP 尚未就绪，3s 后重试...");
                     await Task.Delay(3000);
@@ -172,7 +175,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             if (_disposed) return false;
 
-            // 游戏事件订阅 + 游戏工具代理 → Agent MCP（必须在 CCB 之前完成）
+            // 游戏事件订阅 + 游戏工具代理 → Agent MCP（必须在 ACP session 之前完成）
             AgentLoop.WireEvents(mcp);
             _logInfo("[AgentEngine] 开始代理游戏工具...");
 
@@ -202,11 +205,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             _agentHost.RegisterProvider(proxy);
             _logInfo("[AgentEngine] 游戏工具代理已注册");
 
-            // SDK session_id 变更时同步到 MCP（Scribe 持久化）
+            // Agent session_id 变更时同步到 MCP（Scribe 持久化）
             AgentLoop.OnSessionIdChanged += sid =>
             {
                 _gameSessionId = sid;
-                _logInfo($"[AgentEngine] SDK sessionId 到达: {sid}");
+                _logInfo($"[AgentEngine] Agent sessionId 到达: {sid}");
 
                 // MCP (Scribe)
                 try
@@ -214,7 +217,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _ = mcp.CallTool("set_session_id", new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement(sid) });
                     _logInfo($"[AgentEngine] MCP set_session_id: {sid}");
                 }
-                catch (Exception ex) { _logWarn($"[AgentEngine] MCP set_session_id 失败: {ex.Message}"); }
+                catch (Exception ex) { _logWarn($"[AgentEngine] MCP set_session_id 失败: {FormatExceptionChain(ex)}"); }
 
                 // conversation store (sessionId)
                 var dbPath = Path.Combine(_cfg.ProjectPath, "conversation.db");
@@ -224,14 +227,13 @@ namespace RimWorldAgent.Core.AgentRuntime
                     AgentLoop.ConversationStore = new SqliteConversationStore(dbPath, sid);
                     _logInfo($"[AgentEngine] SqliteConversationStore 已就绪 (save_id={sid})");
                 }
-                catch (Exception ex) { _logWarn($"[AgentEngine] 创建 SqliteConversationStore 失败: {ex.Message}"); }
+                catch (Exception ex) { _logWarn($"[AgentEngine] 创建 SqliteConversationStore 失败: {FormatExceptionChain(ex)}"); }
             };
 
-            // 从 MCP Scribe 取出存档持久化的 SDK sessionId，写入 session-id.txt 供 companion --resume
-            // 先删除旧 session-id.txt 防止旧存档数据串入新存档
+            // 从 MCP Scribe 取出存档持久化的 Agent sessionId；ACP 可直接 resume/load
             var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
             try { if (File.Exists(sidFile)) { File.Delete(sidFile); _logInfo("[AgentEngine] 已删除旧的 session-id.txt"); } }
-            catch (Exception ex) { _logWarn($"[AgentEngine] 删除旧 session-id.txt 失败: {ex.Message}"); }
+            catch (Exception ex) { _logWarn($"[AgentEngine] 删除旧 session-id.txt 失败: {FormatExceptionChain(ex)}"); }
 
             try
             {
@@ -248,73 +250,47 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _logInfo($"[AgentEngine] sessionId 尚未就绪（MCP 返回失败或为空），跳过 session-id.txt");
                 }
             }
-            catch (Exception ex) { _logWarn($"[AgentEngine] get_session_id 异常: {ex.Message}"); }
+            catch (Exception ex) { _logWarn($"[AgentEngine] get_session_id 异常: {FormatExceptionChain(ex)}"); }
 
-            // CCB 子进程 + WS — 在所有 MCP 服务就绪后启动
-            var ccbReady = false;
-            if (!string.IsNullOrEmpty(_cfg.CcbDir) && Directory.Exists(_cfg.CcbDir))
+            // Node ACP Host：C# 只传递 IPC DTO，ACP 由 Node Host 负责
+            var acpReady = false;
+            var launch = ResolveAcpLaunch();
+            var nodeHostEntryPoint = ResolveNodeHostEntryPoint();
+            if (_cfg.AcpAutoStart && launch != null && nodeHostEntryPoint != null)
             {
-                _logInfo($"[AgentEngine] CCB dir={_cfg.CcbDir}, 开始启动...");
-                if (_cfg.CcbAutoInstall && !CompanionInstaller.IsInstalled(_cfg.CcbDir))
+                try
                 {
-                    _logInfo("[AgentEngine] CCB: npm install...");
-                    var ok = await CompanionInstaller.InstallAsync(_cfg.CcbDir);
-                    _logInfo(ok
-                        ? $"[AgentEngine] CCB: npm install 完成"
-                        : $"[AgentEngine] CCB: npm install 失败 — {CompanionInstaller.InstallStatus}");
-                }
-
-                _ccb = new Ccb(_cfg.CcbDir, _cfg.ProjectPath, _cfg.CcbPort,
-                    mcpPort: _cfg.McpPort, agentMcpPort: _cfg.AgentMcpPort,
-                    ccbToken: _cfg.CcbToken, modelName: _cfg.ModelName,
-                    budgetLimit: _cfg.TokenBudgetLimit, budgetAction: "Block",
-                    logSdk: _cfg.LogSdkMessages,
-                    customMcpServers: _cfg.CustomMcpServers,
-                    apiKey: _cfg.ApiKey, apiUrl: _cfg.ApiUrl);
-                if (_cfg.CcbAutoStart)
-                {
-                    _logInfo("[AgentEngine] 调用 _ccb.Start()...");
-                    var started = _ccb.Start();
-                    _logInfo($"[AgentEngine] _ccb.Start() = {started}");
-                    if (started)
-                    {
-                        _logInfo("[AgentEngine] 等待 CCB 就绪 (最多 15s)...");
-                        await _ccb.WaitReadyAsync(15000);
-                        _logInfo($"[AgentEngine] WaitReady 完成, _ccb.IsReady={_ccb.IsReady}");
-                    }
-                }
-
-                if (_ccb.IsReady)
-                {
-                    _logInfo("[AgentEngine] 开始 WS 连接...");
-                    _ccbWs = new CcbWebSocket(_cfg.CcbWsUrl, _cfg.CcbToken ?? "")
-                    {
-                        ThinkingMode = _cfg.ThinkingMode,
-                        ThinkingEffort = _cfg.ThinkingEffort
-                    };
-                    var wsOk = await _ccbWs.ConnectAsync();
-                    _logInfo($"[AgentEngine] WS ConnectAsync = {wsOk}");
-                    if (wsOk)
-                    {
-                        AgentOrchestrator.CcbWs = _ccbWs;
-                        AgentLoop.WireUIMessageBus(_ccbWs);
-                        _logInfo("[AgentEngine] CCB WS: 已连接");
-                        ccbReady = true;
-                    }
+                    _logInfo($"[AgentEngine] Node ACP Host + backend={launch.Name}, command={launch.Command}, 开始启动...");
+                    _agentSession = new NodeAgentSession(_cfg, launch, nodeHostEntryPoint, _logInfo, _logWarn, _logError);
+                    AgentOrchestrator.CancelCurrentSession = () => _agentSession.CancelAsync(CancellationToken.None);
+                    await _agentSession.InitializeAsync(CancellationToken.None);
+                    if (!string.IsNullOrEmpty(_gameSessionId) && _agentSession.CanLoadSession)
+                        await _agentSession.LoadAsync(_gameSessionId, CancellationToken.None);
+                    else if (!string.IsNullOrEmpty(_gameSessionId) && _agentSession.CanResumeSession)
+                        await _agentSession.ResumeAsync(_gameSessionId, CancellationToken.None);
                     else
                     {
-                        _logError("[AgentEngine] CCB WS: 连接失败");
-                        _ccbWs.Dispose();
-                        _ccbWs = null;
+                        if (!string.IsNullOrEmpty(_gameSessionId))
+                            _logWarn("[AgentEngine] Backend 不支持 load/resume，创建新 ACP session。");
+                        await _agentSession.NewAsync(CancellationToken.None);
                     }
+                    AgentLoop.WireUIMessageBus(_agentSession);
+                    _logInfo("[AgentEngine] Node ACP session: 已连接");
+                    acpReady = true;
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logError("[AgentEngine] CCB: 启动失败或超时, 跳过 WS 连接");
+                    _logError("[AgentEngine] Node ACP Host 启动失败: " + FormatExceptionChain(ex));
+                    _agentSession?.Dispose();
+                    _agentSession = null;
                 }
             }
+            else
+            {
+                _logError("[AgentEngine] Node ACP Host 或 backend 配置不可用。");
+            }
 
-            if (!ccbReady) _logInfo("[AgentEngine] CCB: 未就绪 (事件转发不可用)");
+            if (!acpReady) _logInfo("[AgentEngine] ACP: 未就绪 (Agent 不可用)");
 
             // 启动暂停兜底守护线程
             StartEnforceLoop();
@@ -323,7 +299,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             _ctx = new ContextBuilder(mcp);
 
             _initialized = true;
-            return ccbReady;
+            return acpReady;
             }
             finally
             {
@@ -331,53 +307,15 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
         }
 
-        /// <summary>同步维护：CCB 崩溃重启 + WS 重连。MOD 每帧调用，EXE 循环中调用。</summary>
+        /// <summary>同步维护。ACP 使用 stdio 长连接，当前不做端口重连。</summary>
         public void Tick()
         {
             if (!_initialized) return;
-
-            if (_ccb != null)
-            {
-                _ccb.TickAndRestart();
-                if (_ccb.WasRestarted)
-                {
-                    _ccb.WasRestarted = false;
-                    _logInfo("[AgentEngine] CCB 进程已重启，重连 WS...");
-                    _ccbWs?.Dispose();
-                    _ccbWs = new CcbWebSocket(_cfg.CcbWsUrl, _cfg.CcbToken ?? "")
-                    {
-                        ThinkingMode = _cfg.ThinkingMode,
-                        ThinkingEffort = _cfg.ThinkingEffort
-                    };
-                    _ = _ccbWs.ConnectAsync().ContinueWith(t =>
-                    {
-                        if (t.Result)
-                        {
-                            AgentOrchestrator.CcbWs = _ccbWs!;
-                            AgentLoop.WireUIMessageBus(_ccbWs!);
-                        }
-                        else { _ccbWs?.Dispose(); _ccbWs = null; }
-                    });
-                }
-            }
-
-            // WS 被动断开自动重连（CcbWebSocket 内部 ScheduleReconnect 处理）
-            if (_ccbWs != null && _ccbWs.State == CcbClientState.Disconnected)
-            {
-                _ = _ccbWs.ConnectAsync().ContinueWith(t =>
-                {
-                    if (t.Result)
-                    {
-                        AgentOrchestrator.CcbWs = _ccbWs!;
-                        AgentLoop.WireUIMessageBus(_ccbWs!);
-                    }
-                });
-            }
         }
 
         public async Task TickAsync()
         {
-            if (_mcp == null || _ctx == null || _ccbWs == null || !_ccbWs.IsReady) return;
+            if (_mcp == null || _ctx == null || _agentSession == null || !_agentSession.IsReady) return;
 
             await _gameState.SyncGameStatusAsync();
             var currentTick = _gameState.GameTick;
@@ -405,7 +343,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     }
                     _logInfo("[AgentEngine] 游戏尚未就绪，等待...");
                 }
-                catch (Exception ex) { _logInfo($"[AgentEngine] 冷启动检测失败: {ex.Message}"); }
+                catch (Exception ex) { _logInfo($"[AgentEngine] 冷启动检测失败: {FormatExceptionChain(ex)}"); }
             }
 
             // 定期状态检测（每 120 tick ≈ 2s，仅 Agent 空闲时）
@@ -433,7 +371,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 else { _pauseStartMs = 0; _lastPauseRemindMs = 0; }
             }
 
-            // 优先级 1: 中断请求 + Agent 运行中 → 等待 AgentLoop 中 SendAbort 处理
+            // 优先级 1: 中断请求 + Agent 运行中 → 等待 AgentLoop 中 Cancel 处理
             if (AgentOrchestrator.InterruptRequested && AgentOrchestrator.IsRunning)
                 return;
 
@@ -468,10 +406,10 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         private async Task RunAgent(bool isPlan = false, bool isInterrupted = false)
         {
-            var ccbWs = _ccbWs;
-            if (ccbWs == null || !ccbWs.IsReady)
+            var session = _agentSession;
+            if (session == null || !session.IsReady)
             {
-                _logWarn("[AgentEngine] CCB WS 未就绪，跳过本轮唤醒");
+                _logWarn("[AgentEngine] ACP session 未就绪，跳过本轮唤醒");
                 return;
             }
 
@@ -481,7 +419,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 _logInfo($"[AgentEngine] 唤醒 commander (Day={_gameState.GameDay}, Plan={isPlan}, Interrupted={isInterrupted})");
 
                 var prompt = await _ctx!.BuildAsync(isInterrupted: isInterrupted);
-                await AgentLoop.RunSessionAsync(prompt, _mcp!, ccbWs);
+                await AgentLoop.RunSessionAsync(prompt, _mcp!, session);
             }
             finally
             {
@@ -507,7 +445,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                             await _mcp.CallTool("get_game_speed");
                             break; // 成功即退出等待
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            _logDebug($"[AgentEngine] 暂停兜底等待 MCP 失败: {FormatExceptionChain(ex)}");
+                        }
                     }
                     try { await Task.Delay(1000, token); } catch (OperationCanceledException) { break; }
                 }
@@ -532,7 +473,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                                 if (speedDoc.RootElement.TryGetProperty("paused", out var pausedEl))
                                     isPaused = pausedEl.GetBoolean();
                             }
-                            catch (Exception parseEx) { _logDebug($"[AgentEngine] 暂停兜底: 解析 game_speed 结果失败: {parseEx.Message}"); isPaused = false; }
+                            catch (Exception parseEx) { _logDebug($"[AgentEngine] 暂停兜底: 解析 game_speed 结果失败: {FormatExceptionChain(parseEx)}"); isPaused = false; }
 
                             if (!isPaused)
                             {
@@ -547,7 +488,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                     catch (OperationCanceledException) { break; }
                     catch (Exception ex)
                     {
-                        _logWarn($"[AgentEngine] 暂停兜底异常: {ex.Message}");
+                        _logWarn($"[AgentEngine] 暂停兜底异常: {FormatExceptionChain(ex)}");
                     }
                 }
             }, token);
@@ -558,11 +499,10 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             _disposed = true;
             _initialized = false;
-            try { _enforceCts?.Cancel(); } catch { }
-            _ccbWs?.Dispose();
-            _ccbWs = null;
-            _ccb?.Dispose();
-            _ccb = null;
+            try { _enforceCts?.Cancel(); } catch (Exception ex) { _logWarn($"[AgentEngine] 取消暂停兜底失败: {FormatExceptionChain(ex)}"); }
+            AgentOrchestrator.CancelCurrentSession = null;
+            _agentSession?.Dispose();
+            _agentSession = null;
             _mcp?.Dispose();
             _mcp = null;
             _agentHost?.Stop();
@@ -570,10 +510,69 @@ namespace RimWorldAgent.Core.AgentRuntime
             (_toolResultSnapshotStore as IDisposable)?.Dispose();
         }
 
+
+        private AcpAgentLaunch? ResolveAcpLaunch()
+        {
+            if (_cfg.AcpBackend != null)
+            {
+                var configured = _cfg.AcpBackend;
+                if (!string.IsNullOrWhiteSpace(configured.Command))
+                {
+                    var workingDirectory = string.IsNullOrWhiteSpace(configured.WorkingDirectory)
+                        ? _cfg.ProjectPath
+                        : configured.WorkingDirectory!;
+                    if (!Path.IsPathRooted(workingDirectory))
+                        workingDirectory = Path.GetFullPath(Path.Combine(_cfg.ProjectPath, workingDirectory));
+                    var command = configured.Command;
+                    if (!Path.IsPathRooted(command)
+                        && (command.IndexOf(Path.DirectorySeparatorChar) >= 0
+                            || command.IndexOf(Path.AltDirectorySeparatorChar) >= 0))
+                    {
+                        command = Path.GetFullPath(Path.Combine(workingDirectory, command));
+                    }
+                    return new AcpAgentLaunch(configured.Name, command, configured.Args,
+                        workingDirectory, configured.Env);
+                }
+
+                _logWarn("[AgentEngine] ACP Backend 缺少启动命令: " + configured.Name);
+                return null;
+            }
+
+            _logWarn("[AgentEngine] 未配置 ACP Backend。");
+            return null;
+        }
+
+        private string? ResolveNodeHostEntryPoint()
+        {
+            var hostDir = _cfg.NodeHostDir;
+            if (string.IsNullOrWhiteSpace(hostDir))
+                hostDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rimworld-acp-host");
+            if (!Directory.Exists(hostDir))
+                hostDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "RimWorldAgent", "Node", "rimworld-acp-host"));
+            if (!Directory.Exists(hostDir)) return null;
+
+            var entryPoint = string.IsNullOrWhiteSpace(_cfg.NodeHostEntryPoint) ? "dist/main.js" : _cfg.NodeHostEntryPoint;
+            var path = Path.Combine(hostDir, entryPoint.Replace('/', Path.DirectorySeparatorChar));
+            return File.Exists(path) ? path : null;
+        }
+
+        private static string FormatExceptionChain(Exception ex)
+        {
+            var message = $"{ex.GetType().Name}: {ex.Message}";
+            for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                message += $" ← {inner.GetType().Name}: {inner.Message}";
+            return message;
+        }
+
         private static string ExtractSessionId(string rawSessionId)
         {
             var sessionId = (rawSessionId ?? "").Split('\n')[0].Trim();
-            return Guid.TryParse(sessionId, out _) ? sessionId : "";
+            if (sessionId.Length == 0 || sessionId.Length > 512) return "";
+            foreach (var character in sessionId)
+            {
+                if (char.IsControl(character) || char.IsWhiteSpace(character)) return "";
+            }
+            return sessionId;
         }
     }
 }

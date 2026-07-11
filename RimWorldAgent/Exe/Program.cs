@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core;
 using RimWorldAgent.Core.AgentRuntime;
-using RimWorldAgent.Core.CcbManager;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 
@@ -20,17 +19,10 @@ namespace RimWorldAgent
             Console.OutputEncoding = Encoding.UTF8;
 
             var mcpUrl = "http://10.126.126.1:9877/";
-            var modelName = "";
             for (int i = 0; i < args.Length; i++)
             {
                 var arg = args[i];
-                if ((arg == "--model" || arg == "-m") && i + 1 < args.Length)
-                    modelName = args[++i];
-                else if (arg.StartsWith("--model="))
-                    modelName = arg.Substring("--model=".Length);
-                else if (arg.StartsWith("-m="))
-                    modelName = arg.Substring("-m=".Length);
-                else if ((arg == "--mcp-url" || arg == "--mcp" || arg == "-u") && i + 1 < args.Length)
+                if ((arg == "--mcp-url" || arg == "--mcp" || arg == "-u") && i + 1 < args.Length)
                     mcpUrl = args[++i];
                 else if (arg.StartsWith("--mcp-url="))
                     mcpUrl = arg.Substring("--mcp-url=".Length);
@@ -41,8 +33,6 @@ namespace RimWorldAgent
                 else if (!arg.StartsWith("-"))
                     mcpUrl = arg;
             }
-            if (!string.IsNullOrEmpty(modelName)) Console.WriteLine($"  模型: {modelName}");
-
             var projectPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session"));
             Directory.CreateDirectory(projectPath);
 
@@ -51,18 +41,20 @@ namespace RimWorldAgent
             var mcpClient = new McpClient(mcpUrl);
             var gameState = new RemoteGameStateProvider(mcpClient);
 
-            var ccbDir = FindCcbDir();
+            var nodeHostDir = FindNodeHostDir();
+            var nodePath = NodeRuntimeLocator.Resolve(null) ?? "node";
 
             var cfg = new AgentEngineConfig
             {
                 ProjectPath = projectPath,
+                PromptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Prompt.md"),
+                SkillsDescPath = Path.Combine(projectPath, "skills-desc.txt"),
                 McpUrl = mcpUrl,
-                ModelName = modelName,
-                CcbDir = ccbDir ?? "",
-                WaitForGame = true,
+                AcpNodePath = nodePath,
+                NodeHostDir = nodeHostDir ?? "",
+                NodeHostEntryPoint = "dist/main.js",
                 ClearToolResultSnapshotsOnStart = true,
             };
-
             NativeResolver.Setup(AppDomain.CurrentDomain.BaseDirectory);
             var snapshotStore = new SqliteToolResultSnapshotStore(Path.Combine(projectPath, "conversation.db"));
 
@@ -88,10 +80,6 @@ namespace RimWorldAgent
                 Path.Combine(projectPath, "conversation.db"), "exe-session");
 
             await engine.InitAsync();
-
-            // CCB ↔ UIMessageBus 双向中继（SDK↔UiMessage 转换在 AgentCore）
-            if (engine.CcbWs != null)
-                AgentLoop.WireUIMessageBus(engine.CcbWs);
 
             // 初始化完成后显式推送一次预算状态
             UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
@@ -119,14 +107,15 @@ namespace RimWorldAgent
             engine.Dispose();
         }
 
-        private static string? FindCcbDir()
+        private static string? FindNodeHostDir()
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var pub = Path.GetFullPath(Path.Combine(baseDir, "cc-companion"));
-            var src = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "cc-companion"));
-            if (Directory.Exists(pub) && File.Exists(Path.Combine(pub, "package.json"))) return pub;
-            if (Directory.Exists(src) && File.Exists(Path.Combine(src, "package.json"))) return src;
+            var pub = Path.GetFullPath(Path.Combine(baseDir, "rimworld-acp-host"));
+            var src = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "RimWorldAgent", "Node", "rimworld-acp-host"));
+            if (Directory.Exists(pub) && File.Exists(Path.Combine(pub, "dist", "main.js"))) return pub;
+            if (Directory.Exists(src) && File.Exists(Path.Combine(src, "dist", "main.js"))) return src;
             return null;
         }
+
     }
 }

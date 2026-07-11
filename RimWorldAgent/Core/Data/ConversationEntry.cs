@@ -34,7 +34,7 @@ namespace RimWorldAgent.Core.Data
         [JsonPropertyName("thinking")]
         public string Thinking { get; set; } = "";
 
-        /// <summary>SDK 消息 UUID / tool_use id</summary>
+        /// <summary>ACP message ID / tool call ID。</summary>
         [JsonPropertyName("run_id")]
         public string RunId { get; set; } = "";
 

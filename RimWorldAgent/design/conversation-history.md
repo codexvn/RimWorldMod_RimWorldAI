@@ -14,7 +14,7 @@ WebUI ──WS {type:"history",n}──→ UIMessageBus ──OnHistory──→
 | 消息类型 | 触发点 | 录制方法 |
 |---------|-------|---------|
 | 用户消息 | `AgentLoop.OnChat` | `RecordUserMessage(text)` |
-| AI 回复 | `SdkMessageParser.ParseAssistant` → `UIMessageBus.OnAssistantContent` | `RecordAssistantMessage(text, thinking, runId, agentType)` |
+| AI 回复 | `NodeRuntimeEventProjector` → `UIMessageBus.OnAssistantContent` | `RecordAssistantMessage(text, thinking, runId, agentType)` |
 | 系统/错误 | `AgentLoop` 静态构造 `OnDisplayMessage` → 解析 `system`/`error` 类型 | `RecordSystemMessage(text)` |
 
 ## 存储抽象
@@ -49,7 +49,7 @@ CREATE INDEX idx_timestamp ON conversation(timestamp);
 | 场景 | 措施 |
 |------|------|
 | Fleck WS 线程 → `OnHistory` → `socket.Send()` | Fleck Send 线程安全 |
-| `CcbWebSocket` 线程 → `OnAssistantContent` | SQLite WAL 多读 + `_writeLock` 系列写 |
+| ACP notification callback → `OnAssistantContent` | SQLite WAL 多读 + `_writeLock` 系列写 |
 | 多客户端并发读 | WAL 并发读 |
 | `UIMessageBus.Stop()` → events=null | 飞行中调用 check null |
 

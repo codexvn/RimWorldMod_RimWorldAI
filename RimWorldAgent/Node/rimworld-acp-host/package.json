@@ -1,0 +1,19 @@
+﻿{
+  "name": "rimworld-acp-host",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc --pretty false",
+    "check": "tsc --noEmit --pretty false",
+    "test:protocol": "npm run build && node test/protocol-smoke.mjs && node test/tool-policy-smoke.mjs"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "1.2.1",
+    "ajv": "8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

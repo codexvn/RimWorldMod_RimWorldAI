@@ -184,7 +184,7 @@ namespace RimWorldMCP.Harmony
             }
         }
 
-        // 游戏退出/返回主菜单清理由 Agent 侧 CcbManager 负责
+        // 游戏退出/返回主菜单清理由 Agent 侧 ACP session host 负责
 
         // ========== 分类辅助 ==========
 

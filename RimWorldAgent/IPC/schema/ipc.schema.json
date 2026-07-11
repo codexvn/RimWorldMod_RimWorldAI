@@ -1,0 +1,188 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rimworld-agent.local/schema/ipc-v1.json",
+  "title": "RimWorld Agent IPC v1",
+  "type": "object",
+  "required": ["protocol", "version", "type"],
+  "properties": {
+    "protocol": { "const": "rimworld-agent-ipc" },
+    "version": { "const": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "requestId": { "type": "string", "minLength": 1 },
+    "payload": {},
+    "meta": { "type": "object" }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "initialize" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/initializeRequest" } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["new_session"] } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "type": "object", "additionalProperties": false } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["resume_session", "load_session", "cancel", "close"] } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/sessionRequest" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "prompt" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/promptRequest" } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["initialize_response"] } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/initializeResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "enum": ["new_session_response", "resume_session_response", "load_session_response"] } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/sessionResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "prompt_response" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/promptResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "cancel_response" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/cancelResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "close_response" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/closeResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "error" } } },
+      "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/errorResponse" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "event" } } },
+      "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/agentEvent" } } }
+    }
+  ],
+  "$defs": {
+    "initializeRequest": {
+      "type": "object",
+      "required": ["hostVersion", "config"],
+      "properties": { "hostVersion": { "type": "string" }, "config": { "$ref": "#/$defs/runtimeConfig" } },
+      "additionalProperties": false
+    },
+    "initializeResponse": {
+      "type": "object",
+      "required": ["protocolVersion", "agentName", "loadSession", "resumeSession"],
+      "properties": {
+        "protocolVersion": { "type": "integer" },
+        "agentName": { "type": "string" },
+        "agentVersion": { "type": "string" },
+        "loadSession": { "type": "boolean" },
+        "resumeSession": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "sessionRequest": {
+      "type": "object",
+      "required": ["sessionId"],
+      "properties": { "sessionId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "sessionResponse": {
+      "type": "object",
+      "required": ["sessionId"],
+      "properties": { "sessionId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "promptRequest": {
+      "type": "object",
+      "required": ["sessionId", "prompt"],
+      "properties": { "sessionId": { "type": "string", "minLength": 1 }, "prompt": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "promptResponse": {
+      "type": "object",
+      "required": ["sessionId", "stopReason", "status"],
+      "properties": {
+        "sessionId": { "type": "string" },
+        "stopReason": { "type": "string" },
+        "status": { "enum": ["success", "error"] },
+        "inputTokens": { "type": "number" },
+        "outputTokens": { "type": "number" },
+        "cacheReadTokens": { "type": "number" },
+        "cacheCreateTokens": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "cancelResponse": {
+      "type": "object",
+      "required": ["sessionId", "cancelled"],
+      "properties": { "sessionId": { "type": "string" }, "cancelled": { "type": "boolean" } },
+      "additionalProperties": false
+    },
+    "closeResponse": {
+      "type": "object",
+      "required": ["closed"],
+      "properties": { "closed": { "type": "boolean" } },
+      "additionalProperties": false
+    },
+    "errorResponse": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "runtimeConfig": {
+      "type": "object",
+      "required": ["backend", "cwd", "additionalDirectories", "prompt", "agentMcpUrl"],
+      "properties": {
+        "backend": { "$ref": "#/$defs/backendLaunch" },
+        "cwd": { "type": "string" },
+        "additionalDirectories": { "type": "array", "items": { "type": "string" } },
+        "prompt": { "$ref": "#/$defs/promptConfig" },
+        "agentMcpUrl": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "backendLaunch": {
+      "type": "object",
+      "required": ["name", "command", "args", "workingDirectory", "environment"],
+      "properties": {
+        "name": { "type": "string" },
+        "command": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "workingDirectory": { "type": "string" },
+        "environment": { "type": "object", "additionalProperties": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "promptConfig": {
+      "type": "object",
+      "required": ["systemPrompt"],
+      "properties": { "systemPrompt": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "agentEvent": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "messageId": { "type": "string" },
+        "text": { "type": "string" },
+        "toolCallId": { "type": "string" },
+        "title": { "type": "string" },
+        "toolKind": { "type": "string" },
+        "status": { "type": "string" },
+        "rawInput": {},
+        "rawOutput": {},
+        "isError": { "type": "boolean" },
+        "inputTokens": { "type": "number" },
+        "outputTokens": { "type": "number" },
+        "cacheReadTokens": { "type": "number" },
+        "cacheCreateTokens": { "type": "number" },
+        "contextWindow": { "type": "number" },
+        "usedTokens": { "type": "number" },
+        "sizeTokens": { "type": "number" },
+        "titleText": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

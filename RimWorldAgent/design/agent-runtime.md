@@ -1,5 +1,7 @@
 # Agent Runtime — AI Colony Operating System
 
+> 本文包含未来 Scheduler / Multi-Agent 设计。当前 ACP 运行链路以 `RimWorldAgent/CLAUDE.md` 和 `docs/plans/acp-agent-refactor.md` 为准：C# 通过 IPC DTO + NDJSON 调 Node ACP Host，Node 使用官方 ACP TypeScript SDK 连接 backend。
+
 ## 技术栈
 
 | 模块 | 技术 |
@@ -7,7 +9,7 @@
 | Game Mod | C# RimWorld Mod |
 | AI 对话 | Claude Agent SDK (Node.js/TS) |
 | AI 自主决策 | Anthropic API |
-| IPC | MCP Streamable HTTP + WebSocket MessageBus |
+| C# ↔ Node IPC | 自定义 JSON Schema DTO + NDJSON stdin/stdout |
 | 上下文缓存 | Prompt Caching (Anthropic 原生) |
 | 持久化 | JSON 文件（TaskBoard、Metrics、Daily Report） |
 | Chunk 编码 | RLE + RowRefRLE（已有） |
@@ -16,7 +18,7 @@
 ## 架构决策
 
 1. 对话用 SDK，自主决策用 API
-2. C# + CCB + MessageBus 统一对接多前端 + MCP
+2. C# Agent Runtime + IPC DTO + Node ACP Host 统一对接 backend、UI 和 MCP
 3. Combat/Emergency 走 LLM — 游戏暂停后 AI 决策
 4. 现有 Chunk 系统直接用 — 32×32, RLE/RowRefRLE
 5. 不加空间索引
@@ -99,11 +101,10 @@ AI 不干涉玩家设的游戏速度，只在危机时暂停。
 └───────────────┬─────────────┬───────────┘
                 │             │
 ┌───────────────┴─────────────┴───────────┐
-│          CCB (Node.js)                  │
-│          WebSocket Server               │
-│          SDK Session Manager            │
-│          数据显示 (Web UI + 游戏内UI)    │
-│          ❌ 不包含 Agent 业务逻辑        │
+│       Node ACP Host (Node.js)             │
+│       stdio / ACP Session Manager       │
+│       session/update 通知               │
+│       ❌ 不包含 C# Agent 编排逻辑        │
 └───────────────┬─────────────────────────┘
                 │
                 ▼
@@ -111,8 +112,8 @@ AI 不干涉玩家设的游戏速度，只在危机时暂停。
 ```
 
 - Agent Runtime 通过 HTTP 调 MCP Server
-- Agent Runtime 通过 WebSocket 调 CCB 的 SDK Session
-- CCB 是纯桥接 + 数据显示，不含 Agent 编排、Scheduler、TaskBoard
+- C# Agent Runtime 通过 IPC DTO + NDJSON 调 Node ACP Host 的 session API
+- Node ACP Host 通过 ACP stdio 调 backend，不含 C# Agent 编排、Scheduler、TaskBoard
 - MCP Server 不知道 Agent 的存在
 
 ## Agent 运行模型
@@ -121,7 +122,7 @@ AI 不干涉玩家设的游戏速度，只在危机时暂停。
 
 ### Reflection Loop
 
-SDK session 每次重置，Agent 结束前把"经验教训"写入记忆文件，下轮注入 Prompt。
+ACP backend session 可按 backend 能力恢复；历史由 backend 管理，Agent Runtime 不直接操作其内部上下文。Agent 结束前仍可把"经验教训"写入记忆文件，下轮注入 Prompt。
 
 ```
                       ┌─────────────────┐
@@ -268,7 +269,7 @@ L3 → 立即唤醒；L1-L2 → 排队等 Agent 自然醒来。
 2. 新增 Tool — `get_world_summary` + `exit_combat_role` + Tool 过滤 + chunk_id
 3. Agent 实现 — Overseer + Economy + Combat + Medic
 4. 事件路由 + 游戏速度
-5. CCB 重构 — 删除 Agent 业务，保留桥接 + 数据显示
+5. ACP 收敛 — 由标准 ACP transport 承担后端桥接，C# 保留 Agent runtime 与 UI compatibility projector
 6. 优化 — Prompt Cache 调优 + Token 预算联动 + Daily Report
 
 ## C# 改动范围

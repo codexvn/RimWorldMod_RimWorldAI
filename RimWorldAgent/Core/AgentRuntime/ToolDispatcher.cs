@@ -5,14 +5,13 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using RimWorldAgent.Core.CcbManager;
 
 namespace RimWorldAgent.Core.AgentRuntime
 {
     /// <summary>Tool 调度：状态推送 + 模式提醒后缀 + 任务追踪。</summary>
     public static class ToolDispatcher
     {
-        // ===== SDK 任务追踪（通过内部工具 task_create/task_update/task_list/task_get 实现）=====
+        // ===== Agent 任务追踪（通过内部工具 task_create/task_update/task_list/task_get 实现）=====
 
         public static int PendingTaskCount => TaskStore.PendingCount;
 
@@ -171,7 +170,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex) { CoreLog.Debug($"[ToolDispatcher] ExtractInnerAction JSON 解析失败 ({toolName}): {ex.GetType().Name}: {ex.Message}"); }
                 return toolName;
             }
-            // 内部工具：去掉 SDK 前缀 mcp__agent__
+            // 内部工具：去掉 Agent MCP 前缀 mcp__agent__
             return toolName.Replace("mcp__agent__", "");
         }
 
@@ -197,9 +196,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             catch (Exception ex) { CoreLog.Info($"[ToolDispatcher] 工具追踪异常 ({toolName}): {ex.Message}"); }
         }
 
-        public static async Task HandleAsync(
-            CcbWebSocket ccbWs,
-            string toolId, string toolName, string input)
+        public static Task HandleAsync(string toolId, string toolName, string input)
         {
             // 网关工具：提取内层 action 名用于追踪
             var effectiveName = ExtractInnerAction(toolName, input);
@@ -208,6 +205,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 _notifReceivedCount = 0;
 
             TrackToolUse(effectiveName, input);
+            return Task.CompletedTask;
         }
 
         /// <summary>添加通知 suffix（本地操作，无 MCP 往返）</summary>

@@ -15,7 +15,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         internal static SkillRegistry? SkillRegistry { get; private set; }
         internal static SkillStore? SkillStore { get; private set; }
 
-        /// <summary>skills-desc.txt 输出路径（companion --skills-desc-path 传入）</summary>
+        /// <summary>skills-desc.txt 输出路径，由 AgentEngine 初始化。</summary>
         public static string? SkillsDescPath { get; set; }
 
         /// <summary>从 SkillRegistry 生成 skills-desc.txt 供 Prompt 占位符替换</summary>

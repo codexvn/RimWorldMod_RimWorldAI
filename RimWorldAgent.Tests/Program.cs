@@ -155,12 +155,12 @@ namespace RimWorldAgent.Tests
             var name = "游戏 sessionId 校验";
             try
             {
-                var valid = "8fd79a60-4c2a-47d7-9dfb-6ac02b84cb3f\nsuffix";
+                var valid = "backend/session-42\nsuffix";
                 var invalid = "会话 ID 不可用（当前可能尚未加载存档）。请先开始新游戏或加载存档。";
 
-                if (AgentEngine.ExtractGameSessionId(valid) != "8fd79a60-4c2a-47d7-9dfb-6ac02b84cb3f")
+                if (AgentEngine.ExtractGameSessionId(valid) != "backend/session-42")
                 {
-                    Fail(name, "有效 GUID 未正确提取");
+                    Fail(name, "有效 ACP sessionId 未正确提取");
                     return;
                 }
 
@@ -178,7 +178,7 @@ namespace RimWorldAgent.Tests
                     return;
                 }
 
-                Pass(name, "错误文本不会进入 cacheKey");
+                Pass(name, "不透明 ACP sessionId 可持久化，错误文本不会进入 cacheKey");
             }
             catch (Exception ex)
             {
@@ -463,7 +463,7 @@ namespace RimWorldAgent.Tests
             }
         }
 
-        /// <summary>测试 5: ToolDispatcher 外部工具调用链路（模拟 CCB 消息）</summary>
+        /// <summary>测试 5: ToolDispatcher 外部工具调用链路（模拟 ACP 工具事件）</summary>
         static async Task TestToolDispatcher_External(string baseUrl)
         {
             var name = "ToolDispatcher 外部工具";
