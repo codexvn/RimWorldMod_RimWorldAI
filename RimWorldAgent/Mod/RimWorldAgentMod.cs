@@ -216,7 +216,9 @@ namespace RimWorldAgent
             }
             if (listing.ButtonText("检测运行环境"))
             {
-                RefreshNodeDetection();
+                // 手动检测必须忽略当前输入框内容，否则输入框里残留的
+                // "nodejs"/无效路径会让按钮只重复验证这个无效值。
+                RefreshNodeDetection(true);
                 if (!string.IsNullOrWhiteSpace(_detectedNodePath))
                     Settings.NodeExecutablePath = _detectedNodePath!;
             }
@@ -251,15 +253,16 @@ namespace RimWorldAgent
             if (listing.ButtonText("添加 Backend 模板")) ShowBackendTemplateMenu();
         }
 
-        private void RefreshNodeDetection()
+        private void RefreshNodeDetection(bool autoDetect = false)
         {
-            _detectedNodePath = NodeRuntimeLocator.Resolve(Settings.NodeExecutablePath);
+            var configuredPath = autoDetect ? null : Settings.NodeExecutablePath;
+            _detectedNodePath = NodeRuntimeLocator.Resolve(configuredPath);
             _detectedNodeVersion = "";
             _nodeVersionSupported = false;
             if (_detectedNodePath == null)
             {
-                _nodeDetectionStatus = string.IsNullOrWhiteSpace(Settings.NodeExecutablePath)
-                    ? "运行环境检测失败，请安装 Node.js 或填写 node.exe 路径。"
+                _nodeDetectionStatus = string.IsNullOrWhiteSpace(configuredPath)
+                    ? "运行环境检测失败，请安装 Node.js，或填写 Node.js 可执行文件路径（Windows: node.exe；macOS/Linux: node）。"
                     : "指定的 Node.js 路径不可执行。";
                 return;
             }

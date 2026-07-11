@@ -104,7 +104,7 @@ export class IpcServer {
           throw new Error(`Unsupported IPC message type: ${message.type}`);
       }
     } catch (error) {
-      this.write(createError(message.requestId, "request_failed", formatError(error)));
+      this.write(createError(message.requestId, "request_failed", `${message.type}: ${formatError(error)}`));
     }
   }
 

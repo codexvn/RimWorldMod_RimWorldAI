@@ -264,23 +264,14 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _agentSession = new NodeAgentSession(_cfg, launch, nodeHostEntryPoint, _logInfo, _logWarn, _logError);
                     AgentOrchestrator.CancelCurrentSession = () => _agentSession.CancelAsync(CancellationToken.None);
                     await _agentSession.InitializeAsync(CancellationToken.None);
-                    if (!string.IsNullOrEmpty(_gameSessionId) && _agentSession.CanLoadSession)
-                        await _agentSession.LoadAsync(_gameSessionId, CancellationToken.None);
-                    else if (!string.IsNullOrEmpty(_gameSessionId) && _agentSession.CanResumeSession)
-                        await _agentSession.ResumeAsync(_gameSessionId, CancellationToken.None);
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(_gameSessionId))
-                            _logWarn("[AgentEngine] Backend 不支持 load/resume，创建新 ACP session。");
-                        await _agentSession.NewAsync(CancellationToken.None);
-                    }
+                    await OpenAcpSessionAsync(_agentSession);
                     AgentLoop.WireUIMessageBus(_agentSession);
                     _logInfo("[AgentEngine] Node ACP session: 已连接");
                     acpReady = true;
                 }
                 catch (Exception ex)
                 {
-                    _logError("[AgentEngine] Node ACP Host 启动失败: " + FormatExceptionChain(ex));
+                    _logError("[AgentEngine] Node ACP Host/Session 初始化失败: " + FormatExceptionChain(ex));
                     _agentSession?.Dispose();
                     _agentSession = null;
                 }
@@ -305,6 +296,44 @@ namespace RimWorldAgent.Core.AgentRuntime
             {
                 _initializing = false;
             }
+        }
+
+        private async Task OpenAcpSessionAsync(IAgentSession session)
+        {
+            if (string.IsNullOrEmpty(_gameSessionId))
+            {
+                await session.NewAsync(CancellationToken.None);
+                return;
+            }
+
+            if (session.CanLoadSession)
+            {
+                try
+                {
+                    await session.LoadAsync(_gameSessionId, CancellationToken.None);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logWarn("[AgentEngine] ACP load 旧 session 失败，将创建新 session: " + FormatExceptionChain(ex));
+                }
+            }
+
+            if (session.CanResumeSession)
+            {
+                try
+                {
+                    await session.ResumeAsync(_gameSessionId, CancellationToken.None);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logWarn("[AgentEngine] ACP resume 旧 session 失败，将创建新 session: " + FormatExceptionChain(ex));
+                }
+            }
+
+            _logWarn("[AgentEngine] 旧 ACP session 不可恢复，创建新 session。");
+            await session.NewAsync(CancellationToken.None);
         }
 
         /// <summary>同步维护。ACP 使用 stdio 长连接，当前不做端口重连。</summary>

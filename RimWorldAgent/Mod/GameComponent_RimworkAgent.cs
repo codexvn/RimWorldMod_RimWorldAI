@@ -79,7 +79,7 @@ namespace RimWorldAgent
                 var gamePort = settings?.GameMcpPort ?? 9877;
                 var nodePath = NodeRuntimeLocator.Resolve(settings?.NodeExecutablePath);
                 if (string.IsNullOrWhiteSpace(nodePath))
-                    throw new InvalidOperationException("未找到可用的 Node.js 22+ 运行时。它用于启动 ACP Host，请安装 Node.js 或在 RimWorld Agent 设置中指定 node.exe 路径。");
+                    throw new InvalidOperationException("未找到可用的 Node.js 22+ 运行时。它用于启动 ACP Host，请安装 Node.js，或在 RimWorld Agent 设置中指定 Node.js 可执行文件路径（Windows: node.exe；macOS/Linux: node）。");
                 if (!NodeRuntimeLocator.IsVersionSupported(nodePath!, 22, out var nodeVersion))
                     throw new InvalidOperationException($"Node.js 版本不受支持: {nodeVersion}。Node ACP Host 需要 Node.js 22 或更高版本。");
                 var dbStore = new ScribeDbStore();

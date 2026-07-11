@@ -14,7 +14,11 @@ namespace RimWorldAgent
         public static string? Resolve(string? configuredPath)
         {
             if (!string.IsNullOrWhiteSpace(configuredPath))
-                return TryFindNode(configuredPath);
+            {
+                var configured = TryFindNode(configuredPath);
+                if (configured != null) return configured;
+            }
+            // 避免旧设置中的 "nodejs" 或失效路径阻断环境自动检测。
             return FindNodeExecutable();
         }
 
@@ -108,7 +112,9 @@ namespace RimWorldAgent
             var resolvedCandidate = Environment.ExpandEnvironmentVariables(candidate!.Trim().Trim('"'));
             if (string.IsNullOrWhiteSpace(resolvedCandidate)) return null;
             var isBareNodeName = string.Equals(resolvedCandidate, "node", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(resolvedCandidate, "node.exe", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(resolvedCandidate, "node.exe", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(resolvedCandidate, "nodejs", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(resolvedCandidate, "nodejs.exe", StringComparison.OrdinalIgnoreCase);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && isBareNodeName)
             {
                 resolvedCandidate = FindOnPath(resolvedCandidate)
