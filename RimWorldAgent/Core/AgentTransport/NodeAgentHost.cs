@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,10 +19,13 @@ namespace RimWorldAgent.Core.AgentTransport
         private readonly string _workingDirectory;
         private readonly string _projectPath;
         private readonly TimeSpan _requestTimeout;
+        private readonly bool _logIpcMessages;
         private readonly Action<string> _logInfo;
         private readonly Action<string> _logError;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<IpcEnvelope>> _pending =
             new ConcurrentDictionary<string, TaskCompletionSource<IpcEnvelope>>();
+        private readonly ConcurrentDictionary<string, DateTime> _requestStartedAt =
+            new ConcurrentDictionary<string, DateTime>();
         private readonly CancellationTokenSource _disposeCts = new CancellationTokenSource();
         private readonly object _writeLock = new object();
         private Process? _process;
@@ -35,13 +38,14 @@ namespace RimWorldAgent.Core.AgentTransport
         public bool IsRunning => !_disposed && _process != null && !_process.HasExited;
 
         public NodeAgentHost(string nodePath, string hostEntryPoint, string workingDirectory, string projectPath,
-            TimeSpan requestTimeout, Action<string> logInfo, Action<string> logError)
+            TimeSpan requestTimeout, Action<string> logInfo, Action<string> logError, bool logIpcMessages = false)
         {
             _nodePath = string.IsNullOrWhiteSpace(nodePath) ? "node" : nodePath;
             _hostEntryPoint = hostEntryPoint;
             _workingDirectory = workingDirectory;
             _projectPath = projectPath;
             _requestTimeout = requestTimeout > TimeSpan.Zero ? requestTimeout : TimeSpan.FromMinutes(5);
+            _logIpcMessages = logIpcMessages;
             _logInfo = logInfo;
             _logError = logError;
         }
@@ -64,6 +68,7 @@ namespace RimWorldAgent.Core.AgentTransport
             };
             startInfo.Arguments = QuoteArgument(_hostEntryPoint);
             startInfo.EnvironmentVariables["RIMWORLD_AGENT_PROJECT_PATH"] = _projectPath;
+            startInfo.EnvironmentVariables["RIMWORLD_AGENT_IPC_TRACE"] = _logIpcMessages ? "1" : "0";
 
             var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
             process.Exited += (_, __) => HandleExit(process);
@@ -92,6 +97,9 @@ namespace RimWorldAgent.Core.AgentTransport
                 var envelope = IpcJson.Create(type, requestId, payload);
                 var line = IpcJson.Serialize(envelope);
                 EnsureMessageSize(line);
+                _requestStartedAt[requestId] = DateTime.UtcNow;
+                TraceIpc("send", envelope, Encoding.UTF8.GetByteCount(line));
+                AcpIpcLogger.LogSend(envelope.Type, envelope.RequestId, line);
                 lock (_writeLock)
                 {
                     _stdin.WriteLine(line);
@@ -110,14 +118,18 @@ namespace RimWorldAgent.Core.AgentTransport
             finally
             {
                 _pending.TryRemove(requestId, out _);
+                _requestStartedAt.TryRemove(requestId, out _);
             }
         }
 
         public void SendNotification<T>(string type, T payload)
         {
             if (!IsRunning || _stdin == null) return;
-            var line = IpcJson.Serialize(IpcJson.Create(type, null, payload));
+            var envelope = IpcJson.Create(type, null, payload);
+            var line = IpcJson.Serialize(envelope);
             EnsureMessageSize(line);
+            TraceIpc("send-notify", envelope, Encoding.UTF8.GetByteCount(line));
+            AcpIpcLogger.LogSend(envelope.Type, envelope.RequestId, line);
             lock (_writeLock)
             {
                 _stdin.WriteLine(line);
@@ -166,6 +178,9 @@ namespace RimWorldAgent.Core.AgentTransport
                     try
                     {
                         var envelope = IpcJson.Deserialize(line);
+                        var elapsedMs = GetRequestElapsedMilliseconds(envelope.RequestId);
+                        TraceIpc("receive", envelope, Encoding.UTF8.GetByteCount(line), elapsedMs);
+                        AcpIpcLogger.LogReceive(envelope.Type, envelope.RequestId, line);
                         var requestId = envelope.RequestId;
                         if (requestId != null && requestId.Length > 0 &&
                             _pending.TryGetValue(requestId, out var waiter))
@@ -200,7 +215,9 @@ namespace RimWorldAgent.Core.AgentTransport
                 {
                     var line = await process.StandardError.ReadLineAsync();
                     if (line == null) break;
-                    if (!string.IsNullOrWhiteSpace(line)) _logInfo("[NodeACP] " + line);
+                    if (!string.IsNullOrWhiteSpace(line))
+                        _logInfo((_logIpcMessages ? "[NodeACP][stderr] " : "[NodeACP] ") + line);
+                        AcpIpcLogger.LogStderr(line);
                 }
             }
             catch (Exception ex)
@@ -231,6 +248,21 @@ namespace RimWorldAgent.Core.AgentTransport
         {
             if (Encoding.UTF8.GetByteCount(line) > MaxIpcLineBytes)
                 throw new InvalidDataException("IPC message exceeds the 4 MiB limit.");
+        }
+
+        private void TraceIpc(string direction, IpcEnvelope envelope, int byteCount, long? elapsedMs = null)
+        {
+            if (!_logIpcMessages) return;
+            var requestId = string.IsNullOrWhiteSpace(envelope.RequestId) ? "-" : envelope.RequestId;
+            var elapsed = elapsedMs.HasValue ? $" elapsedMs={elapsedMs.Value}" : "";
+            _logInfo($"[NodeACP][IPC] {direction} type={envelope.Type} requestId={requestId} bytes={byteCount}{elapsed}");
+        }
+
+        private long? GetRequestElapsedMilliseconds(string? requestId)
+        {
+            if (string.IsNullOrWhiteSpace(requestId)) return null;
+            if (!_requestStartedAt.TryRemove(requestId!, out var startedAt)) return null;
+            return (long)(DateTime.UtcNow - startedAt).TotalMilliseconds;
         }
 
         private static string FormatExceptionChain(Exception ex)

@@ -236,9 +236,7 @@ namespace RimWorldAgent
             {
                 // 手动检测必须忽略当前输入框内容，否则输入框里残留的
                 // "nodejs"/无效路径会让按钮只重复验证这个无效值。
-                RefreshNodeDetection(true);
-                if (!string.IsNullOrWhiteSpace(_detectedNodePath))
-                    Settings.NodeExecutablePath = _detectedNodePath!;
+                RefreshNodeDetection(autoDetect: true, updateStoredPath: true);
             }
             if (_detectedNodePath == null || !_nodeVersionSupported)
             {
@@ -254,6 +252,9 @@ namespace RimWorldAgent
                 listing.Label($"Node.js: {_detectedNodePath}{(string.IsNullOrEmpty(_detectedNodeVersion) ? "" : $" ({_detectedNodeVersion})")}");
                 GUI.color = Color.white;
             }
+
+            listing.CheckboxLabeled("记录 ACP / IPC 调用日志", ref Settings.LogAcpIpc,
+                "记录 C# 与 Node ACP Host 的 IPC 收发、requestId、消息大小和耗时，以及 Node Host 的 ACP 方法追踪；不记录 Prompt 或环境变量值。");
 
             foreach (var pair in Settings.AcpBackends.Select((backend, index) => new { backend, index }).ToList())
             {
@@ -334,7 +335,7 @@ namespace RimWorldAgent
             }
         }
 
-        private void RefreshNodeDetection(bool autoDetect = false)
+        private void RefreshNodeDetection(bool autoDetect = false, bool updateStoredPath = false)
         {
             var configuredPath = autoDetect ? null : Settings.NodeExecutablePath;
             _detectedNodePath = NodeRuntimeLocator.Resolve(configuredPath);
@@ -350,13 +351,15 @@ namespace RimWorldAgent
             _nodeVersionSupported = NodeRuntimeLocator.IsVersionSupported(_detectedNodePath, 22,
                 out _detectedNodeVersion);
             _nodeDetectionStatus = _nodeVersionSupported ? "可用" : "需要 Node.js 22 或更高版本。";
+            if (updateStoredPath)
+                Settings.NodeExecutablePath = _detectedNodePath;
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
             PollBackendTest();
             EnsureAcpBackendCollections();
-            if (_nodeDetectionStatus == "尚未检测") RefreshNodeDetection();
+            if (_nodeDetectionStatus == "尚未检测") RefreshNodeDetection(updateStoredPath: true);
             var backendHeight = 0f;
             foreach (var backend in Settings.AcpBackends)
                 backendHeight += GetAcpBackendCardHeight(backend) + 8f;

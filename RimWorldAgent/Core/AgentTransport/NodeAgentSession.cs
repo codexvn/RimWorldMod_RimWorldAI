@@ -43,7 +43,7 @@ namespace RimWorldAgent.Core.AgentTransport
             _logError = logError;
             _host = new NodeAgentHost(cfg.AcpNodePath, hostEntryPoint,
                 Path.GetDirectoryName(hostEntryPoint) ?? AppDomain.CurrentDomain.BaseDirectory,
-                cfg.ProjectPath, TimeSpan.FromSeconds(cfg.IpcRequestTimeoutSeconds), logInfo, logError);
+                cfg.ProjectPath, TimeSpan.FromSeconds(cfg.IpcRequestTimeoutSeconds), logInfo, logError, cfg.LogAcpIpc);
             _projector = new NodeRuntimeEventProjector(_backend.Name, logWarn,
                 () => OnActivity?.Invoke(),
                 (subtype, stopReason) => OnResult?.Invoke(subtype, stopReason),

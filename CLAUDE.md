@@ -55,6 +55,8 @@ AgentEngine
 
 **RimWorld 依赖隔离**：ACP 依赖全部在 Node Host 进程中，不进入 RimWorld AppDomain；C# 已不再发布或加载 ACP 的 MessagePack 依赖。
 
+**ACP / IPC 日志**：设置中的“记录 ACP / IPC 调用日志”只记录 C#↔Node IPC 的类型、requestId、大小和耗时，以及 Node 对 ACP 方法/事件类型的 stderr 追踪；不记录 Prompt 原文或环境变量值。修改开关后需重新初始化 Agent Runtime。
+
 ## 构建
 
 ```bash

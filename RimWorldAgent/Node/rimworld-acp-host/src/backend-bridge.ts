@@ -11,6 +11,7 @@ import type {
   PromptResponse,
   SessionResponse,
 } from "./protocol.js";
+import { trace } from "./trace.js";
 
 export type IpcEventSink = (event: AgentEvent) => void;
 
@@ -35,6 +36,7 @@ export class BackendBridge {
     if (this.backendProcess) return;
     const env = this.createBackendEnvironment();
     const launch = this.resolveBackendLaunch(env);
+    trace(`backend spawn name=${this.config.backend.name} shell=${launch.shell}`);
     const child = spawn(launch.command, this.config.backend.args, {
       cwd: this.config.backend.workingDirectory || this.config.cwd,
       env,
@@ -90,6 +92,7 @@ export class BackendBridge {
 
   async initialize(): Promise<InitializeResponse> {
     const context = this.requireConnection().agent;
+    trace("ACP agent.initialize send");
     this.initialized = await context.request(acp.methods.agent.initialize, {
       protocolVersion: acp.PROTOCOL_VERSION,
       clientCapabilities: {
@@ -102,6 +105,7 @@ export class BackendBridge {
     }) as unknown as AcpInitializeResponse;
     const initialized = this.initialized;
     if (!initialized) throw new Error("ACP initialize returned no response.");
+    trace(`ACP agent.initialize receive protocol=${initialized.protocolVersion}`);
     const info = initialized.agentInfo;
     return {
       protocolVersion: initialized.protocolVersion,
@@ -113,12 +117,15 @@ export class BackendBridge {
   }
 
   async newSession(): Promise<SessionResponse> {
+    trace("ACP session/new send");
     const response = await this.requireConnection().agent.request(acp.methods.agent.session.new, this.createSessionRequest()) as { sessionId: string };
     this.currentSessionId = String(response.sessionId);
+    trace("ACP session/new receive");
     return { sessionId: this.currentSessionId };
   }
 
   async resumeSession(sessionId: string): Promise<SessionResponse> {
+    trace("ACP session/resume send");
     const response = await this.requireConnection().agent.request(acp.methods.agent.session.resume, {
       sessionId,
       cwd: this.config.cwd,
@@ -127,10 +134,12 @@ export class BackendBridge {
       _meta: this.createSessionMeta(),
     }) as unknown as { sessionId?: string };
     this.currentSessionId = String(response.sessionId ?? sessionId);
+    trace("ACP session/resume receive");
     return { sessionId: this.currentSessionId };
   }
 
   async loadSession(sessionId: string): Promise<SessionResponse> {
+    trace("ACP session/load send");
     const response = await this.requireConnection().agent.request(acp.methods.agent.session.load, {
       sessionId,
       cwd: this.config.cwd,
@@ -139,10 +148,12 @@ export class BackendBridge {
       _meta: this.createSessionMeta(),
     }) as unknown as { sessionId?: string };
     this.currentSessionId = String(response.sessionId ?? sessionId);
+    trace("ACP session/load receive");
     return { sessionId: this.currentSessionId };
   }
 
   async prompt(sessionId: string, prompt: string): Promise<PromptResponse> {
+    trace(`ACP session/prompt send textLength=${prompt.length}`);
     const response = await this.requireConnection().agent.request(acp.methods.agent.session.prompt, {
       sessionId,
       prompt: [{ type: "text", text: prompt }],
@@ -150,6 +161,7 @@ export class BackendBridge {
       stopReason: string;
       usage?: { inputTokens?: number; outputTokens?: number; cachedReadTokens?: number; cachedWriteTokens?: number };
     };
+    trace(`ACP session/prompt receive stopReason=${String(response.stopReason)}`);
     return {
       sessionId,
       stopReason: String(response.stopReason),
@@ -162,12 +174,16 @@ export class BackendBridge {
   }
 
   async cancel(sessionId: string): Promise<{ sessionId: string; cancelled: boolean }> {
+    trace("ACP session/cancel send");
     await this.requireConnection().agent.notify(acp.methods.agent.session.cancel, { sessionId });
+    trace("ACP session/cancel complete");
     return { sessionId, cancelled: true };
   }
 
   async close(sessionId: string): Promise<{ closed: boolean }> {
+    trace("ACP session/close send");
     await this.requireConnection().agent.request(acp.methods.agent.session.close, { sessionId });
+    trace("ACP session/close receive");
     if (this.currentSessionId === sessionId) this.currentSessionId = undefined;
     return { closed: true };
   }
@@ -259,6 +275,7 @@ export class BackendBridge {
 
   private convertSessionUpdate(params: any): AgentEvent {
     const update = params.update ?? {};
+    trace(`ACP session/update type=${String(update.sessionUpdate ?? "unknown")}`);
     const sessionId = String(params.sessionId ?? this.currentSessionId ?? "");
     switch (update.sessionUpdate) {
       case "agent_message_chunk":

@@ -53,6 +53,7 @@ namespace RimWorldAgent
         // ACP Backend / Node.js
         public string SelectedAcpBackendId = "";
         public string NodeExecutablePath = "";
+        public bool LogAcpIpc;
         public List<AcpBackendSetting> AcpBackends = new List<AcpBackendSetting>();
 
         // UIMessageBus（Web 前端 WS 服务）
@@ -73,6 +74,7 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref ProjectPath, "projectPath", "");
             Scribe_Values.Look(ref SelectedAcpBackendId, "selectedAcpBackendId", "");
             Scribe_Values.Look(ref NodeExecutablePath, "nodeExecutablePath", "");
+            Scribe_Values.Look(ref LogAcpIpc, "logAcpIpc", false);
             Scribe_Collections.Look(ref AcpBackends, "acpBackends", LookMode.Deep);
             EnsureAcpBackendDefaults();
             Scribe_Values.Look(ref BridgeHost, "bridgeHost", "127.0.0.1");

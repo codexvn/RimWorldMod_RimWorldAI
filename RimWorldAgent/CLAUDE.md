@@ -182,6 +182,16 @@ publish/RimWorldAgent/1.6/Assemblies/
 - Node.js 最低版本为 22。设置页会在修改路径后立即重新检测，并解析实际 Node 可执行文件。ACP backend 的安装、升级和依赖管理由用户自行负责，Mod 不检查 backend 内部依赖。
 - ACP 依赖不进入 RimWorld AppDomain。
 
+## ACP / IPC 诊断日志
+
+设置页的“记录 ACP / IPC 调用日志”会在下次初始化 Agent Runtime 时启用：
+
+- C# 记录 IPC 的方向、消息类型、requestId、UTF-8 消息大小和响应耗时；
+- Node Host 将 ACP `initialize`、session 生命周期、prompt、cancel、close 以及 `session/update` 类型写到 stderr，C# 再转入游戏日志；
+- 日志不记录 Prompt 原文或 backend 环境变量值，避免把游戏对话和配置内容塞入 RimWorld 日志。
+
+该开关由 `AgentModSettings.LogAcpIpc` 通过 `AgentEngineConfig` 传递给 Node Host；修改设置后需要重新初始化 Agent Runtime 才会生效。
+
 ## 设置生效路径
 
 ```text

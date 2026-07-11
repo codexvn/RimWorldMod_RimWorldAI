@@ -111,29 +111,25 @@
     <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md" DestinationFolder="..\publish\RimWorldAgent" Condition="Exists('$(MSBuildProjectDirectory)\README.md')" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Prompt.md" DestinationFolder="$(OutputPath)" Condition="Exists('$(MSBuildProjectDirectory)\Prompt.md')" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Prompt.md" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies" Condition="Exists('$(MSBuildProjectDirectory)\Prompt.md')" />
-    <!-- Node ACP Host → bin + publish；stdout 是 IPC，日志写 stderr -->
+    <!-- Node ACP Host → bin + publish；stdout 是 IPC，日志写 stderr。只复制 .js 和 .json，排除 .d.ts / .map / tests -->
+    <ItemGroup>
+      <NodeHostDistFiles Include="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\dist\*.js" />
+      <NodeHostDistFiles Include="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\dist\*.json" />
+    </ItemGroup>
     <MakeDir Directories="$(OutputPath)rimworld-acp-host\schema" />
-    <MakeDir Directories="$(OutputPath)rimworld-acp-host\dist;$(OutputPath)rimworld-acp-host\node_modules" />
-    <Exec Command="xcopy /S /Y /I &quot;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\dist\*&quot; &quot;$(OutputPath)rimworld-acp-host\dist\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\dist\main.js')" />
-    <Exec Command="xcopy /S /Y /I &quot;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\node_modules\*&quot; &quot;$(OutputPath)rimworld-acp-host\node_modules\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\node_modules')" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package.json;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json" DestinationFolder="$(OutputPath)rimworld-acp-host" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\IPC\schema\ipc.schema.json" DestinationFolder="$(OutputPath)rimworld-acp-host\schema" />
-    <Exec Command="npm prune --omit=dev --ignore-scripts --no-audit --no-fund" WorkingDirectory="$(OutputPath)rimworld-acp-host" Condition="Exists('$(OutputPath)rimworld-acp-host\node_modules')" />
-    <!-- claude-agent-acp → bin + publish (与 Node Host 同级；只作为 backend 运行) -->
-    <MakeDir Directories="$(OutputPath)claude-agent-acp\dist" />
-    <Exec Command="xcopy /S /Y /I &quot;$(MSBuildProjectDirectory)\..\external\claude-agent-acp\dist\*&quot; &quot;$(OutputPath)claude-agent-acp\dist\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\..\external\claude-agent-acp\dist\index.js')" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\external\claude-agent-acp\package.json;$(MSBuildProjectDirectory)\..\external\claude-agent-acp\package-lock.json" DestinationFolder="$(OutputPath)claude-agent-acp" />
-    <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host;..\publish\RimWorldAgent\1.6\Assemblies\claude-agent-acp;..\publish\RimWorldAgent\1.6\Assemblies\Skills;..\publish\RimWorldAgent\1.6\Assemblies\Skills.d" />
-    <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\dist;..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\node_modules" />
-    <Exec Command="xcopy /S /Y /I &quot;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\dist\*&quot; &quot;..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\dist\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\dist\main.js')" />
-    <Exec Command="xcopy /S /Y /I &quot;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\node_modules\*&quot; &quot;..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\node_modules\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\node_modules')" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package.json;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\IPC\schema\ipc.schema.json" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\schema" />
-    <Exec Command="npm prune --omit=dev --ignore-scripts --no-audit --no-fund" WorkingDirectory="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host" Condition="Exists('..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\node_modules')" />
-    <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies\claude-agent-acp\dist" />
-    <Exec Command="xcopy /S /Y /I &quot;$(MSBuildProjectDirectory)\..\external\claude-agent-acp\dist\*&quot; &quot;..\publish\RimWorldAgent\1.6\Assemblies\claude-agent-acp\dist\&quot;" Condition="Exists('$(MSBuildProjectDirectory)\..\external\claude-agent-acp\dist\index.js')" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\external\claude-agent-acp\package.json;$(MSBuildProjectDirectory)\..\external\claude-agent-acp\package-lock.json" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\claude-agent-acp" />
-    <Copy SourceFiles="@(SkillMdFiles)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\Skills" />
+    <Copy SourceFiles="@(NodeHostDistFiles)" DestinationFolder="$(OutputPath)rimworld-acp-host\dist" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package.json;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json" DestinationFolder="$(OutputPath)rimworld-acp-host" Condition="Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package.json" DestinationFolder="$(OutputPath)rimworld-acp-host" Condition="!Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json')" />
+   <Copy SourceFiles="$(MSBuildProjectDirectory)\IPC\schema\ipc.schema.json" DestinationFolder="$(OutputPath)rimworld-acp-host\schema" />
+    <Exec Command="npm install --omit=dev --ignore-scripts --no-audit --no-fund" WorkingDirectory="$(OutputPath)rimworld-acp-host" Condition="Exists('$(OutputPath)rimworld-acp-host\package-lock.json')" />
+   <!-- Node ACP Host → publish -->
+    <MakeDir Directories="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\dist;..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\schema;..\publish\RimWorldAgent\1.6\Assemblies\Skills;..\publish\RimWorldAgent\1.6\Assemblies\Skills.d" />
+    <Copy SourceFiles="@(NodeHostDistFiles)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\dist" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package.json;$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host" Condition="Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package.json" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host" Condition="!Exists('$(MSBuildProjectDirectory)\Node\rimworld-acp-host\package-lock.json')" />
+   <Copy SourceFiles="$(MSBuildProjectDirectory)\IPC\schema\ipc.schema.json" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\schema" />
+   <Exec Command="npm install --omit=dev --ignore-scripts --no-audit --no-fund" WorkingDirectory="..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host" Condition="Exists('..\publish\RimWorldAgent\1.6\Assemblies\rimworld-acp-host\package-lock.json')" />
+   <Copy SourceFiles="@(SkillMdFiles)" DestinationFolder="..\publish\RimWorldAgent\1.6\Assemblies\Skills" />
   </Target>
 
 </Project>

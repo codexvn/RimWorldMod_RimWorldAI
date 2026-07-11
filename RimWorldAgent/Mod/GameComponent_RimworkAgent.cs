@@ -97,6 +97,7 @@ namespace RimWorldAgent
                     AcpNodePath = nodePath!,
                     NodeHostDir = nodeHostDir,
                     NodeHostEntryPoint = AgentRuntimePaths.NodeHostDefaultEntryPoint,
+                    LogAcpIpc = settings?.LogAcpIpc ?? false,
                     AcpBackend = BuildAcpBackendDefinition(selectedBackend, nodePath!),
                     AcpAutoStart = true,
                     // PlanSpeed 已移除
@@ -115,6 +116,8 @@ namespace RimWorldAgent
                     logDebug: msg => SafeLog.Info($"[agent-core] {msg}"),
                     logWarn: msg => SafeLog.Warning($"[agent-core] {msg}"));
                 _engine = engine;
+
+                AcpIpcLogger.LogFilePath = (settings?.LogAcpIpc ?? false) ? Path.Combine(projectPath, "acp-ipc-log.txt") : null;
 
                 // 先启动 UIMessageBus，确保 InitAsync 触发 Token 推送时 WS 已就绪
                 if (settings?.BridgeHost != "disabled")

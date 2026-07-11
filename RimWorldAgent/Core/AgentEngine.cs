@@ -25,6 +25,7 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string NodeHostDir { get; set; } = "";
         public string NodeHostEntryPoint { get; set; } = AgentRuntimePaths.NodeHostDefaultEntryPoint;
         public int IpcRequestTimeoutSeconds { get; set; } = 300;
+        public bool LogAcpIpc { get; set; }
         public AcpAgentServerDefinition? AcpBackend { get; set; }
         public bool AcpAutoStart { get; set; } = true;
         // PlanSpeed 已移除 — Plan/Act 阶段均强制暂停，仅 Advance 可推进
