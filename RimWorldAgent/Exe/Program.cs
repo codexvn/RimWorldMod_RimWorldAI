@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RimWorldAgent.Core;
 using RimWorldAgent.Core.AgentRuntime;
+using RimWorldAgent.Core.AgentTransport;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 
@@ -33,30 +34,30 @@ namespace RimWorldAgent
                 else if (!arg.StartsWith("-"))
                     mcpUrl = arg;
             }
-            var projectPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "claude-sessions", "dev-session"));
+            var projectPath = AgentRuntimePaths.GetStandaloneProjectDirectory(AppDomain.CurrentDomain.BaseDirectory);
             Directory.CreateDirectory(projectPath);
 
-            var dbStore = new JsonDbStore(Path.Combine(projectPath, "RimWorldMCP_Token.json"));
+            var dbStore = new JsonDbStore(Path.Combine(projectPath, AgentRuntimePaths.TokenUsageDatabaseFileName));
 
             var mcpClient = new McpClient(mcpUrl);
             var gameState = new RemoteGameStateProvider(mcpClient);
 
             var nodeHostDir = FindNodeHostDir();
-            var nodePath = NodeRuntimeLocator.Resolve(null) ?? "node";
+            var nodePath = NodeRuntimeLocator.Resolve(null) ?? AgentRuntimePaths.NodeCommandName;
 
             var cfg = new AgentEngineConfig
             {
                 ProjectPath = projectPath,
-                PromptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Prompt.md"),
-                SkillsDescPath = Path.Combine(projectPath, "skills-desc.txt"),
+                PromptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AgentRuntimePaths.PromptFileName),
+                SkillsDescPath = Path.Combine(projectPath, AgentRuntimePaths.SkillsDescriptionFileName),
                 McpUrl = mcpUrl,
                 AcpNodePath = nodePath,
                 NodeHostDir = nodeHostDir ?? "",
-                NodeHostEntryPoint = "dist/main.js",
+                NodeHostEntryPoint = AgentRuntimePaths.NodeHostDefaultEntryPoint,
                 ClearToolResultSnapshotsOnStart = true,
             };
             NativeResolver.Setup(AppDomain.CurrentDomain.BaseDirectory);
-            var snapshotStore = new SqliteToolResultSnapshotStore(Path.Combine(projectPath, "conversation.db"));
+            var snapshotStore = new SqliteToolResultSnapshotStore(Path.Combine(projectPath, AgentRuntimePaths.ConversationDatabaseFileName));
 
             var engine = new AgentEngine(cfg, dbStore, gameState,
                 logInfo: msg => Console.WriteLine($"[Core] {msg}"),
@@ -77,7 +78,7 @@ namespace RimWorldAgent
             Console.WriteLine($"[Core] UIMessageBus: ws://0.0.0.0:{bridgePort}");
 
             AgentLoop.ConversationStore = new SqliteConversationStore(
-                Path.Combine(projectPath, "conversation.db"), "exe-session");
+                    Path.Combine(projectPath, AgentRuntimePaths.ConversationDatabaseFileName), "exe-session");
 
             await engine.InitAsync();
 
@@ -110,10 +111,10 @@ namespace RimWorldAgent
         private static string? FindNodeHostDir()
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var pub = Path.GetFullPath(Path.Combine(baseDir, "rimworld-acp-host"));
-            var src = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "RimWorldAgent", "Node", "rimworld-acp-host"));
-            if (Directory.Exists(pub) && File.Exists(Path.Combine(pub, "dist", "main.js"))) return pub;
-            if (Directory.Exists(src) && File.Exists(Path.Combine(src, "dist", "main.js"))) return src;
+            var pub = Path.GetFullPath(Path.Combine(baseDir, AgentRuntimePaths.NodeHostDirectoryName));
+            var src = AgentRuntimePaths.GetStandaloneSourceNodeHostDirectory(baseDir);
+            if (Directory.Exists(pub) && File.Exists(AgentRuntimePaths.GetNodeHostEntryPoint(pub))) return pub;
+            if (Directory.Exists(src) && File.Exists(AgentRuntimePaths.GetNodeHostEntryPoint(src))) return src;
             return null;
         }
 

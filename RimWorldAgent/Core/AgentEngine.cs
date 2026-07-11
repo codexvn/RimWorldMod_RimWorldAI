@@ -21,9 +21,9 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string? SkillsDescPath { get; set; }
         public string McpUrl { get; set; } = "http://localhost:9877";
         public int AgentMcpPort { get; set; } = 9878;
-        public string AcpNodePath { get; set; } = "node";
+        public string AcpNodePath { get; set; } = AgentRuntimePaths.NodeCommandName;
         public string NodeHostDir { get; set; } = "";
-        public string NodeHostEntryPoint { get; set; } = "dist/main.js";
+        public string NodeHostEntryPoint { get; set; } = AgentRuntimePaths.NodeHostDefaultEntryPoint;
         public int IpcRequestTimeoutSeconds { get; set; } = 300;
         public AcpAgentServerDefinition? AcpBackend { get; set; }
         public bool AcpAutoStart { get; set; } = true;
@@ -131,11 +131,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             AgentLoop.BudgetLimit = _cfg.TokenBudgetLimit;
 
             // Skills
-            var skillsDir = _cfg.SkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills");
-            var userSkillsDir = _cfg.UserSkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Skills.d");
+            var skillsDir = _cfg.SkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AgentRuntimePaths.BuiltinSkillsDirectoryName);
+            var userSkillsDir = _cfg.UserSkillsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AgentRuntimePaths.UserSkillsDirectoryName);
             InternalToolRegistry.Instance.LoadSkills(skillsDir, userSkillsDir);
             var skillsDescPath = string.IsNullOrWhiteSpace(_cfg.SkillsDescPath)
-                ? Path.Combine(_cfg.ProjectPath, "skills-desc.txt")
+                ? Path.Combine(_cfg.ProjectPath, AgentRuntimePaths.SkillsDescriptionFileName)
                 : _cfg.SkillsDescPath;
             InternalToolRegistry.SkillsDescPath = skillsDescPath;
             InternalToolRegistry.UpdateSkillsDesc();
@@ -220,7 +220,7 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex) { _logWarn($"[AgentEngine] MCP set_session_id 失败: {FormatExceptionChain(ex)}"); }
 
                 // conversation store (sessionId)
-                var dbPath = Path.Combine(_cfg.ProjectPath, "conversation.db");
+                var dbPath = Path.Combine(_cfg.ProjectPath, AgentRuntimePaths.ConversationDatabaseFileName);
                 try
                 {
                     (AgentLoop.ConversationStore as IDisposable)?.Dispose();
@@ -231,7 +231,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             };
 
             // 从 MCP Scribe 取出存档持久化的 Agent sessionId；ACP 可直接 resume/load
-            var sidFile = Path.Combine(_cfg.ProjectPath, "session-id.txt");
+            var sidFile = Path.Combine(_cfg.ProjectPath, AgentRuntimePaths.SessionIdFileName);
             try { if (File.Exists(sidFile)) { File.Delete(sidFile); _logInfo("[AgentEngine] 已删除旧的 session-id.txt"); } }
             catch (Exception ex) { _logWarn($"[AgentEngine] 删除旧 session-id.txt 失败: {FormatExceptionChain(ex)}"); }
 
@@ -575,13 +575,12 @@ namespace RimWorldAgent.Core.AgentRuntime
         {
             var hostDir = _cfg.NodeHostDir;
             if (string.IsNullOrWhiteSpace(hostDir))
-                hostDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rimworld-acp-host");
+                hostDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AgentRuntimePaths.NodeHostDirectoryName);
             if (!Directory.Exists(hostDir))
-                hostDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "RimWorldAgent", "Node", "rimworld-acp-host"));
+                hostDir = AgentRuntimePaths.GetAgentSourceNodeHostDirectory(AppDomain.CurrentDomain.BaseDirectory);
             if (!Directory.Exists(hostDir)) return null;
 
-            var entryPoint = string.IsNullOrWhiteSpace(_cfg.NodeHostEntryPoint) ? "dist/main.js" : _cfg.NodeHostEntryPoint;
-            var path = Path.Combine(hostDir, entryPoint.Replace('/', Path.DirectorySeparatorChar));
+            var path = AgentRuntimePaths.GetNodeHostEntryPoint(hostDir, _cfg.NodeHostEntryPoint);
             return File.Exists(path) ? path : null;
         }
 

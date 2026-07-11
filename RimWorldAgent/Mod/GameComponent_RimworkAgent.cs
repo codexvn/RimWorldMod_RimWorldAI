@@ -51,19 +51,19 @@ namespace RimWorldAgent
                 var modRoot = Path.GetDirectoryName(
                     typeof(GameComponent_RimWorldAgent).Assembly.Location) ?? ".";
                 CoreLog.Info($"[agent-mod] DLL 路径 = {modRoot}");
-                var defaultProjectPath = Path.Combine(modRoot, "claude-sessions", "rimworld-agent");
+                var defaultProjectPath = AgentRuntimePaths.GetDefaultProjectDirectory(modRoot);
                 var projectPath = !string.IsNullOrEmpty(settings?.ProjectPath)
                     ? Path.Combine(modRoot, settings!.ProjectPath)
                     : defaultProjectPath;
 
                 var skillsDir = !string.IsNullOrEmpty(settings?.SkillsDir)
                     ? Path.Combine(modRoot, settings!.SkillsDir)
-                    : Path.GetFullPath(Path.Combine(modRoot, "Skills"));
-                var userSkillsDir = Path.GetFullPath(Path.Combine(modRoot, "Skills.d"));
+                    : Path.GetFullPath(Path.Combine(modRoot, AgentRuntimePaths.BuiltinSkillsDirectoryName));
+                var userSkillsDir = Path.GetFullPath(Path.Combine(modRoot, AgentRuntimePaths.UserSkillsDirectoryName));
 
                 var asmDir = Path.GetDirectoryName(
                     typeof(GameComponent_RimWorldAgent).Assembly.Location) ?? ".";
-                var nodeHostDir = Path.GetFullPath(Path.Combine(asmDir, "rimworld-acp-host"));
+                var nodeHostDir = Path.GetFullPath(Path.Combine(asmDir, AgentRuntimePaths.NodeHostDirectoryName));
                 settings?.EnsureAcpBackendDefaults();
                 var selectedBackendMatches = settings?.AcpBackends?
                     .Where(backend => backend != null
@@ -90,13 +90,13 @@ namespace RimWorldAgent
                     ProjectPath = projectPath,
                     SkillsDir = skillsDir,
                     UserSkillsDir = userSkillsDir,
-                    PromptPath = Path.Combine(asmDir, "Prompt.md"),
-                    SkillsDescPath = Path.Combine(projectPath, "skills-desc.txt"),
+                    PromptPath = Path.Combine(asmDir, AgentRuntimePaths.PromptFileName),
+                    SkillsDescPath = Path.Combine(projectPath, AgentRuntimePaths.SkillsDescriptionFileName),
                     McpUrl = $"http://{gameHost}:{gamePort}",
                     AgentMcpPort = settings?.AgentMcpPort ?? 9878,
                     AcpNodePath = nodePath!,
                     NodeHostDir = nodeHostDir,
-                    NodeHostEntryPoint = "dist/main.js",
+                    NodeHostEntryPoint = AgentRuntimePaths.NodeHostDefaultEntryPoint,
                     AcpBackend = BuildAcpBackendDefinition(selectedBackend, nodePath!),
                     AcpAutoStart = true,
                     // PlanSpeed 已移除
@@ -107,7 +107,7 @@ namespace RimWorldAgent
                 };
 
                 var snapshotStore = new SqliteToolResultSnapshotStore(
-                    Path.Combine(projectPath, "conversation.db"));
+                    Path.Combine(projectPath, AgentRuntimePaths.ConversationDatabaseFileName));
                 var engine = new AgentEngine(cfg, dbStore, gameState,
                     toolResultSnapshotStore: snapshotStore,
                     logInfo: msg => SafeLog.Info($"[agent-core] {msg}"),
@@ -227,13 +227,13 @@ namespace RimWorldAgent
             }
         }
 
-        private static AcpAgentServerDefinition? BuildAcpBackendDefinition(AcpBackendSetting? setting, string nodePath)
+        internal static AcpAgentServerDefinition? BuildAcpBackendDefinition(AcpBackendSetting? setting, string nodePath)
         {
             if (setting == null) return null;
             var backend = setting;
             var command = backend.Command?.Trim() ?? "";
-            if (string.Equals(command, "node", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(command, "node.exe", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(command, AgentRuntimePaths.NodeCommandName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(command, AgentRuntimePaths.NodeExecutableName, StringComparison.OrdinalIgnoreCase))
             {
                 command = nodePath;
             }

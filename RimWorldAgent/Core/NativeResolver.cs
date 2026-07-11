@@ -108,7 +108,7 @@ namespace RimWorldAgent.Core
             {
                 foreach (var rid in GetRidCandidates(plat))
                 {
-                    var nativePath = Path.GetFullPath(Path.Combine(baseDir, "Native", rid, GetNativeFileName(rid)));
+                    var nativePath = Path.GetFullPath(Path.Combine(baseDir, AgentRuntimePaths.NativeDirectoryName, rid, GetNativeFileName(rid)));
                     if (File.Exists(nativePath))
                         return nativePath;
                 }

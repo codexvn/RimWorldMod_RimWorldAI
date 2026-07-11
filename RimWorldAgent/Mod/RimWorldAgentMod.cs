@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using RimWorldAgent.Core.AgentRuntime;
+using RimWorldAgent.Core.AgentTransport;
 using RimWorldAgent.Core;
 using UnityEngine;
 using Verse;
@@ -10,7 +14,7 @@ namespace RimWorldAgent
 {
     public class RimWorldAgentMod : Mod
     {
-        private const float CustomBackendCardHeight = 470f;
+        private const float CustomBackendCardHeight = 500f;
 
         public static RimWorldAgentMod Instance { get; private set; } = null!;
         public AgentModSettings Settings { get; private set; }
@@ -19,6 +23,9 @@ namespace RimWorldAgent
         private string _detectedNodeVersion = "";
         private string _nodeDetectionStatus = "尚未检测";
         private bool _nodeVersionSupported;
+        private Task<AcpBackendProbeResult>? _backendTestTask;
+        private string _backendTestBackendId = "";
+        private string _backendTestStatus = "";
 
         public RimWorldAgentMod(ModContentPack content) : base(content)
         {
@@ -121,7 +128,7 @@ namespace RimWorldAgent
                 Id = NextAcpBackendId(),
                 DisplayName = "Custom Agent",
                 Type = "custom",
-                Command = "node"
+                Command = AgentRuntimePaths.NodeCommandName
             };
         }
 
@@ -189,6 +196,17 @@ namespace RimWorldAgent
             inner.Label("环境变量（每行 KEY=VALUE；模型、API URL、API Key 等由 Backend 自行约定）");
             inner.Label("模型配置位置：填写 Backend 要求的环境变量或命令参数；ACP 不定义统一的模型字段。");
             backend.EnvText = DrawTextArea(inner, backend.EnvText ?? "", 62f);
+            var testRunning = _backendTestTask != null && !_backendTestTask.IsCompleted;
+            if (!testRunning && inner.ButtonText("测试 ACP 启动"))
+                StartBackendTest(backend);
+            if (backend.Id == _backendTestBackendId && !string.IsNullOrWhiteSpace(_backendTestStatus))
+            {
+                GUI.color = _backendTestStatus.StartsWith("ACP 启动成功", StringComparison.Ordinal)
+                    ? new Color(0.55f, 0.85f, 0.65f, 1f)
+                    : Color.yellow;
+                inner.Label(_backendTestStatus);
+                GUI.color = Color.white;
+            }
             var deleted = inner.ButtonText("删除此 Backend");
             inner.End();
             return deleted;
@@ -253,6 +271,69 @@ namespace RimWorldAgent
             if (listing.ButtonText("添加 Backend 模板")) ShowBackendTemplateMenu();
         }
 
+        private void StartBackendTest(AcpBackendSetting backend)
+        {
+            if (_backendTestTask != null && !_backendTestTask.IsCompleted) return;
+
+            var nodePath = NodeRuntimeLocator.Resolve(Settings.NodeExecutablePath);
+            if (string.IsNullOrWhiteSpace(nodePath))
+            {
+                _backendTestBackendId = backend.Id;
+                _backendTestStatus = "ACP 测试失败：未找到 Node.js 运行时。";
+                return;
+            }
+            if (!NodeRuntimeLocator.IsVersionSupported(nodePath!, 22, out var nodeVersion))
+            {
+                _backendTestBackendId = backend.Id;
+                _backendTestStatus = $"ACP 测试失败：Node.js 版本不受支持 ({nodeVersion})。";
+                return;
+            }
+
+            var backendDefinition = GameComponent_RimWorldAgent.BuildAcpBackendDefinition(backend, nodePath!);
+            if (backendDefinition == null || string.IsNullOrWhiteSpace(backendDefinition.Command))
+            {
+                _backendTestBackendId = backend.Id;
+                _backendTestStatus = "ACP 测试失败：Backend 启动命令为空。";
+                return;
+            }
+
+            var assemblyDirectory = Path.GetDirectoryName(typeof(RimWorldAgentMod).Assembly.Location) ?? ".";
+            var hostDirectory = Path.Combine(assemblyDirectory, AgentRuntimePaths.NodeHostDirectoryName);
+            var hostEntryPoint = AgentRuntimePaths.GetNodeHostEntryPoint(hostDirectory);
+            var projectPath = AgentRuntimePaths.GetProbeProjectDirectory(assemblyDirectory);
+            Directory.CreateDirectory(projectPath);
+
+            _backendTestBackendId = backend.Id;
+            _backendTestStatus = "ACP 启动测试中...";
+            _backendTestTask = Task.Run(() => AcpBackendProbe.RunAsync(
+                nodePath!,
+                hostEntryPoint,
+                projectPath,
+                backendDefinition,
+                Settings.AgentMcpPort,
+                TimeSpan.FromSeconds(120),
+                CancellationToken.None));
+        }
+
+        private void PollBackendTest()
+        {
+            if (_backendTestTask == null || !_backendTestTask.IsCompleted) return;
+            try
+            {
+                var result = _backendTestTask.GetAwaiter().GetResult();
+                _backendTestStatus = result.Message;
+            }
+            catch (Exception ex)
+            {
+                _backendTestStatus = $"ACP 启动测试失败：{ex.GetType().Name}: {ex.Message}";
+                CoreLog.Error($"[agent-mod] ACP 启动测试异常: {ex}");
+            }
+            finally
+            {
+                _backendTestTask = null;
+            }
+        }
+
         private void RefreshNodeDetection(bool autoDetect = false)
         {
             var configuredPath = autoDetect ? null : Settings.NodeExecutablePath;
@@ -273,6 +354,7 @@ namespace RimWorldAgent
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
+            PollBackendTest();
             EnsureAcpBackendCollections();
             if (_nodeDetectionStatus == "尚未检测") RefreshNodeDetection();
             var backendHeight = 0f;
@@ -345,7 +427,7 @@ namespace RimWorldAgent
 
             listing.Label("Skills 目录 (留空用默认)");
             Settings.SkillsDir = listing.TextEntry(Settings.SkillsDir);
-            if (listing.ButtonText("管理 Skills / Skills.d"))
+            if (listing.ButtonText($"管理 Skills / {AgentRuntimePaths.UserSkillsDirectoryName}"))
                 Find.WindowStack.Add(new Dialog_SkillManager());
 
             // ==================== UI Bridge ====================

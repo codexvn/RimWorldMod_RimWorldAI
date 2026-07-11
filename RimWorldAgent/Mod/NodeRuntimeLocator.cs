@@ -34,23 +34,23 @@ namespace RimWorldAgent
         private static string? FindNodeExecutable()
         {
             var candidates = new List<string>();
-            AddCandidate(candidates, TryFindNode("node"));
-            AddCandidate(candidates, TryFindNode("node.exe"));
+            AddCandidate(candidates, TryFindNode(AgentRuntimePaths.NodeCommandName));
+            AddCandidate(candidates, TryFindNode(AgentRuntimePaths.NodeExecutableName));
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
                 var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-                AddCandidate(candidates, Path.Combine(programFiles, "nodejs", "node.exe"));
-                AddCandidate(candidates, Path.Combine(programFilesX86, "nodejs", "node.exe"));
+                AddCandidate(candidates, Path.Combine(programFiles, AgentRuntimePaths.NodeDirectoryName, AgentRuntimePaths.NodeExecutableName));
+                AddCandidate(candidates, Path.Combine(programFilesX86, AgentRuntimePaths.NodeDirectoryName, AgentRuntimePaths.NodeExecutableName));
 
-                var nvmPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "nvm");
+                var nvmPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AgentRuntimePaths.NvmDirectoryName);
                 if (Directory.Exists(nvmPath))
                 {
                     try
                     {
                         foreach (var directory in Directory.GetDirectories(nvmPath).OrderByDescending(GetNodeVersionFromDirectory))
-                            AddCandidate(candidates, Path.Combine(directory, "node.exe"));
+                            AddCandidate(candidates, Path.Combine(directory, AgentRuntimePaths.NodeExecutableName));
                     }
                     catch (Exception ex)
                     {
@@ -58,7 +58,7 @@ namespace RimWorldAgent
                     }
                 }
 
-                AddCandidate(candidates, TryFindWithWhere("node"));
+                AddCandidate(candidates, TryFindWithWhere(AgentRuntimePaths.NodeCommandName));
             }
 
             return candidates
@@ -111,10 +111,10 @@ namespace RimWorldAgent
             if (string.IsNullOrWhiteSpace(candidate)) return null;
             var resolvedCandidate = Environment.ExpandEnvironmentVariables(candidate!.Trim().Trim('"'));
             if (string.IsNullOrWhiteSpace(resolvedCandidate)) return null;
-            var isBareNodeName = string.Equals(resolvedCandidate, "node", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(resolvedCandidate, "node.exe", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(resolvedCandidate, "nodejs", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(resolvedCandidate, "nodejs.exe", StringComparison.OrdinalIgnoreCase);
+            var isBareNodeName = string.Equals(resolvedCandidate, AgentRuntimePaths.NodeCommandName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(resolvedCandidate, AgentRuntimePaths.NodeExecutableName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(resolvedCandidate, AgentRuntimePaths.NodeJsCommandName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(resolvedCandidate, AgentRuntimePaths.NodeJsExecutableName, StringComparison.OrdinalIgnoreCase);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && isBareNodeName)
             {
                 resolvedCandidate = FindOnPath(resolvedCandidate)

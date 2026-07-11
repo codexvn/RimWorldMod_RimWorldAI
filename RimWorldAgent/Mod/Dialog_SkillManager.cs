@@ -44,8 +44,8 @@ namespace RimWorldAgent
                 var settings = RimWorldAgentMod.Instance?.Settings;
                 var builtinDir = !string.IsNullOrWhiteSpace(settings?.SkillsDir)
                     ? Path.Combine(modRoot, settings!.SkillsDir)
-                    : Path.Combine(modRoot, "Skills");
-                var userDir = Path.Combine(modRoot, "Skills.d");
+                    : Path.Combine(modRoot, AgentRuntimePaths.BuiltinSkillsDirectoryName);
+                var userDir = Path.Combine(modRoot, AgentRuntimePaths.UserSkillsDirectoryName);
                 _store = new SkillStore(builtinDir, userDir);
                 _registry = new SkillRegistry();
                 _registry.LoadFromDirectories(_store.BuiltinSkillsDir, _store.UserSkillsDir);
@@ -152,7 +152,7 @@ namespace RimWorldAgent
             if (current != null && current.Source == "builtin")
             {
                 GUI.color = new Color(1f, 0.82f, 0.35f, 1f);
-                Widgets.Label(new Rect(x, y, width, 24f), "内置 Skill 不会被直接修改。保存会在 Skills.d 中创建同名覆盖版本。");
+                Widgets.Label(new Rect(x, y, width, 24f), $"内置 Skill 不会被直接修改。保存会在 {AgentRuntimePaths.UserSkillsDirectoryName} 中创建同名覆盖版本。");
                 GUI.color = Color.white;
                 y += 28f;
             }
@@ -262,7 +262,7 @@ namespace RimWorldAgent
 
             ReloadActiveRegistry();
             ReloadAndReselect(name);
-            SetStatus($"已删除 Skills.d 中的 Skill: {name}", isError: false);
+                SetStatus($"已删除 {AgentRuntimePaths.UserSkillsDirectoryName} 中的 Skill: {name}", isError: false);
         }
 
         private void ReloadAndReselect(string name)
@@ -300,7 +300,7 @@ namespace RimWorldAgent
         private static string SourceLabel(SkillInfo skill)
         {
             if (skill.Source == "user")
-                return skill.IsOverride ? "Skills.d 覆盖" : "Skills.d 自定义";
+                return skill.IsOverride ? $"{AgentRuntimePaths.UserSkillsDirectoryName} 覆盖" : $"{AgentRuntimePaths.UserSkillsDirectoryName} 自定义";
             return "内置";
         }
 
