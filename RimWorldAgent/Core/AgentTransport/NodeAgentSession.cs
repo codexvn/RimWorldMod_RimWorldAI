@@ -102,32 +102,52 @@ namespace RimWorldAgent.Core.AgentTransport
                 return;
             }
 
-            var catalog = _lastConfigOptions;
-            foreach (var selection in selections)
-            {
-                if (selection == null || string.IsNullOrWhiteSpace(selection.ConfigId))
-                    continue;
-                try
+            var pending = selections
+                .Where(selection => selection != null && !string.IsNullOrWhiteSpace(selection.ConfigId))
+                .Select(selection => new AcpSessionConfigSelectionValue
                 {
-                    var option = AcpSessionConfig.FindOption(catalog, selection.ConfigId);
+                    ConfigId = selection.ConfigId.Trim(),
+                    Type = selection.Type ?? "",
+                    Value = selection.Value ?? ""
+                })
+                .ToList();
+
+            // 不设调用次数上限。每个保存选择在本次新会话中至多尝试一次；暂未出现的动态项
+            // 会在父配置响应返回后重新检查，因此该有限队列天然终止。
+            while (pending.Count > 0)
+            {
+                var applied = false;
+                for (var index = 0; index < pending.Count; index++)
+                {
+                    var selection = pending[index];
+                    var option = AcpSessionConfig.FindOption(_lastConfigOptions, selection.ConfigId);
                     if (option == null)
-                    {
-                        _logWarn($"[NodeACP] 跳过 configId={selection.ConfigId}：当前 session 无此选项");
                         continue;
-                    }
+
+                    pending.RemoveAt(index);
                     if (!AcpSessionConfig.IsSelectionApplicable(option, selection, out var reason))
                     {
                         _logWarn($"[NodeACP] 跳过 configId={selection.ConfigId}：{reason}");
                         continue;
                     }
-                    var type = string.IsNullOrWhiteSpace(selection.Type) ? option.Type : selection.Type;
-                    await SetConfigOptionAsync(selection.ConfigId, type, selection.Value, cancellationToken);
-                    catalog = _lastConfigOptions;
+
+                    try
+                    {
+                        var type = string.IsNullOrWhiteSpace(selection.Type) ? option.Type : selection.Type;
+                        await SetConfigOptionAsync(selection.ConfigId, type, selection.Value, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logWarn($"[NodeACP] set_config_option 失败 configId={selection.ConfigId}: {FormatExceptionChain(ex)}");
+                    }
+                    applied = true;
+                    break;
                 }
-                catch (Exception ex)
-                {
-                    _logWarn($"[NodeACP] set_config_option 失败 configId={selection.ConfigId}: {FormatExceptionChain(ex)}");
-                }
+
+                if (applied) continue;
+                foreach (var selection in pending)
+                    _logWarn($"[NodeACP] 跳过 configId={selection.ConfigId}：当前 session 无此选项");
+                break;
             }
         }
 

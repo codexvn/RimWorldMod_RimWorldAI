@@ -101,15 +101,42 @@ namespace RimWorldAgent
         private float _lastMaxScroll = -1f;
         private float _lastToolMaxScroll = -1f;
         private bool _toolScrollToBottom;
+        private readonly Dictionary<ToolCallInfo, ToolCardLayout> _toolCardLayouts = new();
+        private IReadOnlyList<ChatDisplayState.SdkTaskItem> _sortedTasks = Array.Empty<ChatDisplayState.SdkTaskItem>();
+        private int _sortedTasksRevision = -1;
+
+        private sealed class ToolCardLayout
+        {
+            public float Width;
+            public string RawName = "";
+            public string Name = "";
+            public string Title = "";
+            public string Meta = "";
+            public string Result = "";
+            public string Body = "";
+            public float HeaderHeight;
+            public float BodyHeight;
+            public float CardHeight;
+
+            public bool Matches(ToolCallInfo toolCall, float width)
+            {
+                return Mathf.Approximately(Width, width)
+                    && string.Equals(RawName, toolCall.Name, StringComparison.Ordinal)
+                    && string.Equals(Title, toolCall.Title, StringComparison.Ordinal)
+                    && string.Equals(Meta, toolCall.Meta, StringComparison.Ordinal)
+                    && string.Equals(Result, toolCall.Result, StringComparison.Ordinal);
+            }
+        }
 
         private void OnChatChanged()
         {
-            var snap = ChatDisplayState.Snapshot;
-            bool streaming = snap.Count > 0 && snap[snap.Count - 1].State == ChatState.Streaming;
-            if (snap.Count != _lastChatCount) _scrollToBottom = true;
-            _lastChatCount = snap.Count;
+            var snapshot = ChatDisplayState.Snapshot;
+            var entries = snapshot.Entries;
+            bool streaming = entries.Count > 0 && entries[entries.Count - 1].State == ChatState.Streaming;
+            if (entries.Count != _lastChatCount) _scrollToBottom = true;
+            _lastChatCount = entries.Count;
 
-            var tools = ChatDisplayState.ToolCallsSnapshot;
+            var tools = snapshot.ToolCalls;
             if (tools.Count != _lastToolCount) _toolScrollToBottom = true;
             _lastToolCount = tools.Count;
         }
@@ -143,11 +170,13 @@ namespace RimWorldAgent
                 Event.current.Use();
             }
 
-            var entries = ChatDisplayState.Snapshot;
-            var toolCalls = ChatDisplayState.ToolCallsSnapshot;
-            var sdkTasks = ChatDisplayState.SdkTasksSnapshot;
+            var snapshot = ChatDisplayState.Snapshot;
+            var entries = snapshot.Entries;
+            var toolCalls = snapshot.ToolCalls;
+            var sdkTasks = snapshot.Tasks;
 
-            float headerH = 22f;
+            var header = BuildHeaderInfo();
+            float headerH = CalculateHeaderHeight(header, inRect.width);
             float inputH = 28f;
             float footerH = 22f;
             float gap = 4f;
@@ -155,7 +184,7 @@ namespace RimWorldAgent
             float leftRatio = 0.60f;
 
             // 顶栏
-            DrawHeader(new Rect(inRect.x, inRect.y, inRect.width, headerH));
+            DrawHeader(new Rect(inRect.x, inRect.y, inRect.width, headerH), header);
 
             // 预算横幅
             float bannerH = DrawBudgetBanner(new Rect(inRect.x, inRect.y + headerH + gap,
@@ -164,7 +193,7 @@ namespace RimWorldAgent
 
             // 面板区
             float panelsY = inRect.y + headerH + gap + bannerOffset;
-            float panelsH = inRect.height - headerH - inputH - footerH - gap * 3 - bannerOffset;
+            float panelsH = Mathf.Max(0f, inRect.height - headerH - inputH - footerH - gap * 3 - bannerOffset);
             float leftW = (inRect.width - panelGap) * leftRatio;
             float rightW = inRect.width - leftW - panelGap;
 
@@ -175,16 +204,16 @@ namespace RimWorldAgent
 
             float rightX = dividerX + panelGap / 2f + 1f;
             float rightContentW = rightW - 2f;
-            float rightTopH = panelsH * 0.55f;
+            float rightTopH = Mathf.Max(0f, panelsH * 0.55f);
             float rightGap = 4f;
-            float rightBottomH = panelsH - rightTopH - rightGap;
+            float rightBottomH = Mathf.Max(0f, panelsH - rightTopH - rightGap);
 
             DrawConversationPanel(
                 new Rect(inRect.x, panelsY, leftW, panelsH), entries);
             DrawToolPanel(
                 new Rect(rightX, panelsY, rightContentW, rightTopH), toolCalls);
             DrawTaskPanel(
-                new Rect(rightX, panelsY + rightTopH + rightGap, rightContentW, rightBottomH), sdkTasks);
+                new Rect(rightX, panelsY + rightTopH + rightGap, rightContentW, rightBottomH), sdkTasks, snapshot.TasksRevision);
 
             // 输入行
             float inputY = panelsY + panelsH + gap;
@@ -236,7 +265,14 @@ namespace RimWorldAgent
 
         // ========== 顶栏 ==========
 
-        private static void DrawHeader(Rect rect)
+        private sealed class HeaderInfo
+        {
+            public string ColonyAndDate = "";
+            public string ConfigSummary = "";
+            public string TokenSummary = "";
+        }
+
+        private static HeaderInfo BuildHeaderInfo()
         {
             string colony = "未知殖民地";
             try
@@ -251,7 +287,7 @@ namespace RimWorldAgent
                         colony = Find.World.info.name;
                 }
             }
-            catch (Exception ex) { Log.Warning($"[AiChat] 读取殖民地名称失败: {ex.Message}"); }
+            catch (Exception ex) { Log.Warning($"[AiChat] 读取殖民地名称失败: {ex}"); }
 
             string dayInfo = "";
             try
@@ -273,26 +309,51 @@ namespace RimWorldAgent
                     dayInfo = $" · {year}年 {seasonName}第{dayOfQ}天";
                 }
             }
-            catch (Exception ex) { Log.Warning($"[AiChat] 读取日期信息失败: {ex.Message}"); }
+            catch (Exception ex) { Log.Warning($"[AiChat] 读取日期信息失败: {ex}"); }
 
-            string configText = ChatDisplayState.CurrentSessionConfigSummary;
+            var info = new HeaderInfo
+            {
+                ColonyAndDate = colony + dayInfo,
+                ConfigSummary = ChatDisplayState.CurrentSessionConfigSummary,
+                TokenSummary = ChatDisplayState.CurrentBudgetText
+            };
+            if (string.IsNullOrEmpty(info.TokenSummary)) info.TokenSummary = "Token: --";
+            return info;
+        }
+
+        private static float CalculateHeaderHeight(HeaderInfo info, float width)
+        {
             Text.Font = GameFont.Tiny;
-            string tokenText = ChatDisplayState.CurrentBudgetText;
-            if (string.IsNullOrEmpty(tokenText))
-                tokenText = "Token: --";
-            float tokenW = Text.CalcSize(tokenText).x;
-            string prefix = $"{colony}{dayInfo}{(string.IsNullOrEmpty(configText) ? "" : " -- ")}";
-            float availableConfigW = Mathf.Max(0f, rect.width - tokenW - Text.CalcSize(prefix).x - 16f);
-            configText = TruncateToWidth(configText, availableConfigW);
-            string header = prefix + configText;
+            var contentWidth = Mathf.Max(1f, width - 4f);
+            var height = Text.CalcHeight(info.ColonyAndDate, contentWidth) + 2f;
+            if (!string.IsNullOrWhiteSpace(info.ConfigSummary))
+                height += Text.CalcHeight(info.ConfigSummary, contentWidth) + 2f;
+            height += Text.CalcHeight(info.TokenSummary, contentWidth) + 2f;
+            Text.Font = GameFont.Small;
+            return height + 3f;
+        }
+
+        private static void DrawHeader(Rect rect, HeaderInfo info)
+        {
+            Text.Font = GameFont.Tiny;
+            var contentWidth = Mathf.Max(1f, rect.width - 4f);
+            var y = rect.y + 2f;
             GUI.color = new Color(0.55f, 0.55f, 0.55f, _alpha);
-            Widgets.Label(new Rect(rect.x, rect.y + 2f, Mathf.Max(0f, rect.width - tokenW - 8f), rect.height - 2f), header);
-            GUI.color = Color.white;
+            var colonyHeight = Text.CalcHeight(info.ColonyAndDate, contentWidth);
+            Widgets.Label(new Rect(rect.x + 2f, y, contentWidth, colonyHeight), info.ColonyAndDate);
+            y += colonyHeight + 2f;
 
-            // Token 消耗右对齐
-            Text.Font = GameFont.Tiny;
+            if (!string.IsNullOrWhiteSpace(info.ConfigSummary))
+            {
+                GUI.color = new Color(0.65f, 0.65f, 0.7f, _alpha);
+                var configHeight = Text.CalcHeight(info.ConfigSummary, contentWidth);
+                Widgets.Label(new Rect(rect.x + 2f, y, contentWidth, configHeight), info.ConfigSummary);
+                y += configHeight + 2f;
+            }
+
             GUI.color = new Color(0.5f, 0.55f, 0.65f, _alpha);
-            Widgets.Label(new Rect(rect.xMax - tokenW - 4f, rect.y + 2f, tokenW, rect.height - 2f), tokenText);
+            var tokenHeight = Text.CalcHeight(info.TokenSummary, contentWidth);
+            Widgets.Label(new Rect(rect.x + 2f, y, contentWidth, tokenHeight), info.TokenSummary);
             GUI.color = Color.white;
             Text.Font = GameFont.Small;
 
@@ -303,7 +364,7 @@ namespace RimWorldAgent
 
         // ========== 左栏：对话流 ==========
 
-        private void DrawConversationPanel(Rect panelRect, List<ChatEntry> entries)
+        private void DrawConversationPanel(Rect panelRect, IReadOnlyList<ChatEntry> entries)
         {
             Text.Font = GameFont.Tiny;
             GUI.color = new Color(0.4f, 0.4f, 0.42f, _alpha);
@@ -391,7 +452,7 @@ namespace RimWorldAgent
 
         // ========== 右栏上：工具调用卡片 ==========
 
-        private void DrawToolPanel(Rect panelRect, List<ToolCallInfo> toolCalls)
+        private void DrawToolPanel(Rect panelRect, IReadOnlyList<ToolCallInfo> toolCalls)
         {
             Text.Font = GameFont.Tiny;
             GUI.color = new Color(0.4f, 0.4f, 0.42f, _alpha);
@@ -417,7 +478,7 @@ namespace RimWorldAgent
             float cardWidth = scrollRect.width - 16f;
             float totalH = 4f;
             foreach (var tc in toolCalls)
-                totalH += CalcCardHeight(tc, cardWidth) + 6f;
+                totalH += GetToolCardLayout(tc, cardWidth).CardHeight + 6f;
 
             bool hasRunning = false;
             foreach (var tc in toolCalls)
@@ -456,9 +517,10 @@ namespace RimWorldAgent
             float curY = 4f - _toolScrollPos.y;
             for (int i = 0; i < toolCalls.Count; i++)
             {
-                float cardH = CalcCardHeight(toolCalls[i], cardWidth) + 6f;
+                var layout = GetToolCardLayout(toolCalls[i], cardWidth);
+                float cardH = layout.CardHeight + 6f;
                 if (curY + cardH > 0f && curY < scrollRect.height)
-                    DrawToolCard(toolCalls[i], i, cardWidth, curY);
+                    DrawToolCard(toolCalls[i], layout, i, cardWidth, curY);
                 curY += cardH;
             }
             GUI.EndGroup();
@@ -476,26 +538,38 @@ namespace RimWorldAgent
             }
         }
 
-        private static float CalcCardHeight(ToolCallInfo tc, float width)
+        private ToolCardLayout GetToolCardLayout(ToolCallInfo tc, float width)
         {
-            string name = tc.Name?.Replace("_", "__") ?? "?";
-            if (string.IsNullOrEmpty(name)) name = tc.Name ?? "?";
-            float headerH = Text.CalcHeight(name, width - 12f) + 6f;
+            if (_toolCardLayouts.TryGetValue(tc, out var cached) && cached.Matches(tc, width))
+                return cached;
 
+            Text.Font = GameFont.Small;
+            var name = EscapeToolName(tc.Name);
             var body = BuildToolBody(tc);
-            float bodyH = string.IsNullOrEmpty(body) ? 0f : Text.CalcHeight(body, width - 12f) + 4f;
-
-            return headerH + bodyH + 10f;
+            var layout = new ToolCardLayout
+            {
+                Width = width,
+                RawName = tc.Name,
+                Name = name,
+                Title = tc.Title,
+                Meta = tc.Meta,
+                Result = tc.Result,
+                Body = body,
+                HeaderHeight = Text.CalcHeight(name, width - 12f) + 6f,
+                BodyHeight = string.IsNullOrEmpty(body) ? 0f : Text.CalcHeight(body, width - 12f) + 4f
+            };
+            layout.CardHeight = layout.HeaderHeight + layout.BodyHeight + 10f;
+            _toolCardLayouts[tc] = layout;
+            return layout;
         }
 
-        private static float DrawToolCard(ToolCallInfo tc, int index, float width, float y)
+        private void DrawToolCard(ToolCallInfo tc, ToolCardLayout layout, int index, float width, float y)
         {
-            string name = tc.Name?.Replace("_", "__") ?? "?";
-            if (string.IsNullOrEmpty(name)) name = tc.Name ?? "?";
-            float headerH = Text.CalcHeight(name, width - 12f) + 6f;
-            var body = BuildToolBody(tc);
-            float bodyH = string.IsNullOrEmpty(body) ? 0f : Text.CalcHeight(body, width - 12f) + 4f;
-            float cardH = headerH + bodyH + 10f;
+            var name = layout.Name;
+            var body = layout.Body;
+            var headerH = layout.HeaderHeight;
+            var bodyH = layout.BodyHeight;
+            var cardH = layout.CardHeight;
 
             Rect cardRect = new Rect(2f, y, width, cardH);
             Color bgColor = tc.Status == ToolStatus.Failed
@@ -557,27 +631,30 @@ namespace RimWorldAgent
             }
 
             Text.Font = GameFont.Small;
-            return cardH;
         }
 
         private static string BuildToolBody(ToolCallInfo tc)
         {
-            var sections = new List<string>();
+            var sections = new StringBuilder();
             if (!string.IsNullOrEmpty(tc.Title) && !string.Equals(tc.Title, tc.Name, StringComparison.Ordinal))
-                sections.Add($"说明: {tc.Title}");
-            if (!string.IsNullOrEmpty(tc.Meta)) sections.Add($"输入: {tc.Meta}");
-            if (!string.IsNullOrEmpty(tc.Result)) sections.Add($"输出: {tc.Result}");
-            return string.Join("\n", sections);
+                sections.Append("说明: ").Append(tc.Title);
+            if (!string.IsNullOrEmpty(tc.Meta))
+            {
+                if (sections.Length > 0) sections.Append('\n');
+                sections.Append("输入: ").Append(tc.Meta);
+            }
+            if (!string.IsNullOrEmpty(tc.Result))
+            {
+                if (sections.Length > 0) sections.Append('\n');
+                sections.Append("输出: ").Append(tc.Result);
+            }
+            return sections.ToString();
         }
 
-        private static string TruncateToWidth(string text, float maxWidth)
+        private static string EscapeToolName(string? name)
         {
-            if (string.IsNullOrEmpty(text) || Text.CalcSize(text).x <= maxWidth) return text;
-            const string suffix = "...";
-            var result = text;
-            while (result.Length > 0 && Text.CalcSize(result + suffix).x > maxWidth)
-                result = result.Substring(0, result.Length - 1);
-            return result + suffix;
+            var escaped = name?.Replace("_", "__") ?? "?";
+            return string.IsNullOrEmpty(escaped) ? name ?? "?" : escaped;
         }
 
         private static string FormatDuration(double ms)
@@ -589,7 +666,10 @@ namespace RimWorldAgent
 
         // ========== 右栏下：任务 ==========
 
-        private void DrawTaskPanel(Rect panelRect, List<ChatDisplayState.SdkTaskItem> tasks)
+        private void DrawTaskPanel(
+            Rect panelRect,
+            IReadOnlyList<ChatDisplayState.SdkTaskItem> tasks,
+            int tasksRevision)
         {
             int pending = 0;
             foreach (var t in tasks) if (t.Status != "completed") pending++;
@@ -614,8 +694,13 @@ namespace RimWorldAgent
                 return;
             }
 
-            // 已完成的任务排到最后
-            var sorted = tasks.OrderBy(t => t.Status == "completed" ? 1 : 0).ToList();
+            // 已完成的任务排到最后；任务未变化时复用排序结果。
+            if (_sortedTasksRevision != tasksRevision)
+            {
+                _sortedTasks = tasks.OrderBy(t => t.Status == "completed" ? 1 : 0).ToArray();
+                _sortedTasksRevision = tasksRevision;
+            }
+            var sorted = _sortedTasks;
 
             float itemH = 20f;
             float totalH = sorted.Count * (itemH + 2f) + 4f;
@@ -797,12 +882,16 @@ namespace RimWorldAgent
 
         private static void CalcEntryHeight(ChatEntry entry, float contentWidth)
         {
-            var thinking = (entry.ThinkingText ?? "").Replace("_", "__");
-            var body = (entry.Text ?? "").Replace("_", "__");
+            var rawThinking = entry.ThinkingText ?? "";
+            var rawBody = entry.Text ?? "";
             bool streaming = entry.State == ChatState.Streaming;
-            bool changed = body.Length != entry.CachedTextLen
-                        || thinking.Length != entry.CachedThinkingLen;
+            bool changed = !Mathf.Approximately(contentWidth, entry.CachedContentWidth)
+                        || !string.Equals(rawBody, entry.CachedText, StringComparison.Ordinal)
+                        || !string.Equals(rawThinking, entry.CachedThinking, StringComparison.Ordinal);
             if (!changed && entry.CachedHeight > 0f) return;
+
+            var thinking = rawThinking.Replace("_", "__");
+            var body = rawBody.Replace("_", "__");
 
             float textAreaW = contentWidth - 32f;
             bool cursorOnThinking = !string.IsNullOrEmpty(thinking) && streaming;
@@ -823,6 +912,9 @@ namespace RimWorldAgent
             entry.CachedHeight = newH;
             entry.CachedTextLen = body.Length;
             entry.CachedThinkingLen = thinking.Length;
+            entry.CachedContentWidth = contentWidth;
+            entry.CachedText = rawBody;
+            entry.CachedThinking = rawThinking;
         }
 
         private static float DrawEntry(ChatEntry entry, float contentWidth, float y)

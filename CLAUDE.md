@@ -91,6 +91,7 @@ npm run build
 | `design/camera-system.md` | 摄像头自动移动 |
 | `RimWorldMCP/design/device-ui-gizmo-tools.md` | 设备 UI/Gizmo 信息查询与通用操作工具 |
 | `docs/plans/acp-agent-refactor.md` | ACP 迁移与 Agent 架构重构 |
+| `docs/plans/acp-session-config-and-chat-ui.md` | ACP 配置级联与游戏内聊天 UI 优化计划 |
 | `design/tool-system.md` | Tool 系统 |
 | `design/event-system.md` | 事件系统 |
 | `design/token-budget-system.md` | Token 预算 |

@@ -58,6 +58,64 @@ namespace RimWorldAgent.Core.AgentTransport
             return result;
         }
 
+        /// <summary>
+        /// 为探测会话构造一次性的配置应用序列。已有保存值优先；初始目录中没有保存值的项使用
+        /// agent 返回的 currentValue。目录暂未出现的保存项保留在尾部，等待父配置应用后再尝试。
+        /// </summary>
+        public static List<AcpSessionConfigSelectionValue> BuildProbeSelections(
+            IReadOnlyList<SessionConfigOptionDto>? options,
+            IReadOnlyList<AcpSessionConfigSelectionValue>? savedSelections)
+        {
+            var savedById = new Dictionary<string, AcpSessionConfigSelectionValue>(StringComparer.Ordinal);
+            var savedOrder = new List<AcpSessionConfigSelectionValue>();
+            foreach (var selection in savedSelections ?? Array.Empty<AcpSessionConfigSelectionValue>())
+            {
+                if (selection == null || string.IsNullOrWhiteSpace(selection.ConfigId)) continue;
+                var normalized = new AcpSessionConfigSelectionValue
+                {
+                    ConfigId = selection.ConfigId.Trim(),
+                    Type = string.IsNullOrWhiteSpace(selection.Type) ? "select" : selection.Type.Trim(),
+                    Value = selection.Value ?? ""
+                };
+                if (savedById.ContainsKey(normalized.ConfigId)) continue;
+                savedById.Add(normalized.ConfigId, normalized);
+                savedOrder.Add(normalized);
+            }
+
+            var result = new List<AcpSessionConfigSelectionValue>();
+            var included = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var option in options ?? Array.Empty<SessionConfigOptionDto>())
+            {
+                if (option == null || string.IsNullOrWhiteSpace(option.Id)) continue;
+                var type = string.IsNullOrWhiteSpace(option.Type) ? "select" : option.Type.Trim();
+                if (!string.Equals(type, "select", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(type, "boolean", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var selection = new AcpSessionConfigSelectionValue
+                {
+                    ConfigId = option.Id.Trim(),
+                    Type = type,
+                    Value = CurrentValueToString(option)
+                };
+                if (savedById.TryGetValue(selection.ConfigId, out var saved)
+                    && IsSelectionApplicable(option, saved, out _))
+                {
+                    selection.Type = saved.Type;
+                    selection.Value = saved.Value;
+                }
+                result.Add(selection);
+                included.Add(selection.ConfigId);
+            }
+
+            foreach (var saved in savedOrder)
+            {
+                if (included.Contains(saved.ConfigId)) continue;
+                result.Add(saved);
+            }
+            return result;
+        }
+
         public static string CurrentValueToString(SessionConfigOptionDto option)
         {
             if (option.CurrentValue == null || option.CurrentValue.Value.ValueKind == JsonValueKind.Undefined

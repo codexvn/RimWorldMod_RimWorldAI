@@ -13,12 +13,38 @@ namespace RimWorldAgent.Core.AgentTransport
         public bool Success { get; }
         public string Message { get; }
         public List<SessionConfigOptionDto> ConfigOptions { get; }
+        public List<string> AppliedConfigIds { get; }
 
-        public AcpBackendProbeResult(bool success, string message, List<SessionConfigOptionDto>? configOptions = null)
+        public AcpBackendProbeResult(
+            bool success,
+            string message,
+            List<SessionConfigOptionDto>? configOptions = null,
+            List<string>? appliedConfigIds = null)
         {
             Success = success;
             Message = message;
             ConfigOptions = configOptions ?? new List<SessionConfigOptionDto>();
+            AppliedConfigIds = appliedConfigIds ?? new List<string>();
+        }
+    }
+
+    internal sealed class AcpBackendProbeConfigApplyResult
+    {
+        public List<SessionConfigOptionDto> ConfigOptions { get; }
+        public int AppliedCount { get; }
+        public int SkippedCount { get; }
+        public List<string> AppliedConfigIds { get; }
+
+        public AcpBackendProbeConfigApplyResult(
+            List<SessionConfigOptionDto> configOptions,
+            int appliedCount,
+            int skippedCount,
+            List<string> appliedConfigIds)
+        {
+            ConfigOptions = configOptions;
+            AppliedCount = appliedCount;
+            SkippedCount = skippedCount;
+            AppliedConfigIds = appliedConfigIds;
         }
     }
 
@@ -95,11 +121,22 @@ namespace RimWorldAgent.Core.AgentTransport
                 var session = IpcJson.DeserializePayload<SessionResponse>(sessionResponse);
                 sessionId = session.SessionId;
                 var options = session.ConfigOptions ?? new List<SessionConfigOptionDto>();
+                var applyResult = await ApplyProbeSelectionsAsync(
+                    host,
+                    sessionId,
+                    options,
+                    AcpSessionConfig.BuildProbeSelections(options, backend.SessionConfigSelections),
+                    cancellationToken);
+                options = applyResult.ConfigOptions;
                 var optionCount = options.Count;
+                var applyStatus = applyResult.SkippedCount == 0
+                    ? $" · applied={applyResult.AppliedCount}"
+                    : $" · applied={applyResult.AppliedCount} · skipped={applyResult.SkippedCount}";
                 return new AcpBackendProbeResult(
                     true,
-                    $"ACP 启动成功：{initialized.AgentName} {version} · configOptions={optionCount}",
-                    options);
+                    $"ACP 启动成功：{initialized.AgentName} {version} · configOptions={optionCount}{applyStatus}",
+                    options,
+                    applyResult.AppliedConfigIds);
             }
             catch (OperationCanceledException)
             {
@@ -133,6 +170,87 @@ namespace RimWorldAgent.Core.AgentTransport
 
         private static AcpBackendProbeResult Failure(string message)
             => new AcpBackendProbeResult(false, message);
+
+        private static async Task<AcpBackendProbeConfigApplyResult> ApplyProbeSelectionsAsync(
+            NodeAgentHost host,
+            string sessionId,
+            List<SessionConfigOptionDto> initialCatalog,
+            List<AcpSessionConfigSelectionValue> selections,
+            CancellationToken cancellationToken)
+        {
+            var catalog = initialCatalog ?? new List<SessionConfigOptionDto>();
+            var pending = selections == null
+                ? new List<AcpSessionConfigSelectionValue>()
+                : new List<AcpSessionConfigSelectionValue>(selections);
+            var appliedCount = 0;
+            var skippedCount = 0;
+            var appliedConfigIds = new List<string>();
+
+            // 不使用固定次数上限。pending 中每项只会发送一次；响应目录中新出现但没有保存值的项
+            // 只以 currentValue 合并到最终快照，不会重新入队。
+            while (pending.Count > 0)
+            {
+                var attempted = false;
+                for (var index = 0; index < pending.Count; index++)
+                {
+                    var selection = pending[index];
+                    var option = AcpSessionConfig.FindOption(catalog, selection.ConfigId);
+                    if (option == null) continue;
+
+                    pending.RemoveAt(index);
+                    if (!AcpSessionConfig.IsSelectionApplicable(option, selection, out _))
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    attempted = true;
+                    try
+                    {
+                        var type = string.IsNullOrWhiteSpace(selection.Type) ? option.Type : selection.Type;
+                        var setResponse = await host.SendAsync(
+                            IpcMessageTypes.SetSessionConfigOption,
+                            new SetSessionConfigOptionRequest
+                            {
+                                SessionId = sessionId,
+                                ConfigId = selection.ConfigId,
+                                Type = string.IsNullOrWhiteSpace(type) ? null : type,
+                                Value = AcpSessionConfig.ValueToJsonElement(type, selection.Value)
+                            },
+                            cancellationToken);
+                        if (setResponse.Type == IpcMessageTypes.Error)
+                        {
+                            skippedCount++;
+                        }
+                        else
+                        {
+                            var setResult = IpcJson.DeserializePayload<SetSessionConfigOptionResponse>(setResponse);
+                            catalog = setResult.ConfigOptions ?? new List<SessionConfigOptionDto>();
+                            appliedCount++;
+                            appliedConfigIds.Add(selection.ConfigId);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        // 单个配置失败不应使连通性探测失败；继续尝试同一快照中的其他配置。
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[AcpBackendProbe] set_config_option failed configId={selection.ConfigId}: {FormatExceptionChain(ex)}");
+                        skippedCount++;
+                    }
+                    break;
+                }
+
+                if (attempted) continue;
+                skippedCount += pending.Count;
+                break;
+            }
+
+            return new AcpBackendProbeConfigApplyResult(catalog, appliedCount, skippedCount, appliedConfigIds);
+        }
 
         private static string FormatExceptionChain(Exception ex)
         {

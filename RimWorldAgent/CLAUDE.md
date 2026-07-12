@@ -229,3 +229,7 @@ npm run build
 ### ACP Session Config Options
 
 Mod 设置对每个 backend 支持：测试连通性 + 拉取 `configOptions` + 选择保存。Agent 仅在新建会话（`session/new`）后应用保存值。
+
+- Probe 会按初始目录和既有选择各应用一次，以取得该配置路径下 backend 返回的动态 option；不使用固定调用次数上限。
+- `set_config_option` 的完整响应替换当前目录。新出现 option 的 `currentValue` 直接作为显示默认值，不会自动追加为待发送选择；用户改值后才在下次新会话应用。
+- 暂未出现的动态选择不从设置中删除；父配置应用后仍可继续匹配。

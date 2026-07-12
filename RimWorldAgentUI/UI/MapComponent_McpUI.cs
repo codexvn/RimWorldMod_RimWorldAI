@@ -34,8 +34,9 @@ namespace RimWorldAgent
             Rect btnRect = new Rect(x, y, btnSize, btnSize);
 
             bool isOpen = Find.WindowStack.IsOpen<Dialog_AiChat>();
-            bool streaming = ChatDisplayState.Snapshot.Count > 0
-                && ChatDisplayState.Snapshot[ChatDisplayState.Snapshot.Count - 1].State == ChatState.Streaming;
+            var snapshot = ChatDisplayState.Snapshot;
+            bool streaming = snapshot.Entries.Count > 0
+                && snapshot.Entries[snapshot.Entries.Count - 1].State == ChatState.Streaming;
 
             Color origColor = GUI.color;
             if (streaming)
