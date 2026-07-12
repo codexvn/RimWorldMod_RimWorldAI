@@ -77,15 +77,42 @@ namespace SimpleMspServer
 
         private void Cleanup()
         {
-            _cts?.Cancel();
-            try { _listener?.Stop(); _listener?.Close(); } catch (Exception ex) { _log.Info($"清理 HttpListener 异常: {ex.Message}"); }
+            // 先取消接受循环与 session，再强制释放监听端口。
+            // 退出路径必须优先释放端口，避免进程异常退出后留下僵尸 LISTEN。
+            try { _cts?.Cancel(); }
+            catch (Exception ex) { _log.Info($"取消 MCP CTS 异常: {ex.Message}"); }
+
+            var listener = _listener;
             _listener = null;
+            if (listener != null)
+            {
+                try
+                {
+                    // Abort 比 Stop 更激进，立即打断 GetContextAsync / 挂起请求
+                    if (listener.IsListening)
+                        listener.Abort();
+                }
+                catch (Exception ex) { _log.Info($"Abort HttpListener 异常: {ex.Message}"); }
+
+                try { listener.Close(); }
+                catch (Exception ex) { _log.Info($"Close HttpListener 异常: {ex.Message}"); }
+            }
+
             foreach (var kv in _sessions)
             {
-                try { kv.Value.DisposeAsync().AsTask().GetAwaiter().GetResult(); } catch (Exception ex) { _log.Info($"清理 Session 异常: {ex.Message}"); }
+                try
+                {
+                    // 退出时不要无限等待 session 任务，最多给短超时
+                    var disposeTask = kv.Value.DisposeAsync().AsTask();
+                    if (!disposeTask.Wait(TimeSpan.FromMilliseconds(500)))
+                        _log.Info($"清理 Session 超时: {kv.Key}");
+                }
+                catch (Exception ex) { _log.Info($"清理 Session 异常: {ex.Message}"); }
             }
             _sessions.Clear();
-            _cts?.Dispose();
+
+            try { _cts?.Dispose(); }
+            catch (Exception ex) { _log.Info($"Dispose MCP CTS 异常: {ex.Message}"); }
             _cts = null;
         }
 

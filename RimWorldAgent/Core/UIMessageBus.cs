@@ -92,7 +92,7 @@ namespace RimWorldAgent.Core
         public static event Action<string, string, string, string>? OnAssistantContent;
 
         /// <summary>SDK 工具调用，(toolId, name, input)</summary>
-        public static event Action<string, string, string>? OnToolCallRecorded;
+        public static event Action<string, string, string, string>? OnToolCallRecorded;
 
         /// <summary>SDK 工具结果，(toolId, isError, content)</summary>
         public static event Action<string, bool, string>? OnToolResultRecorded;
@@ -107,8 +107,8 @@ namespace RimWorldAgent.Core
         public static void RaiseAbort() => OnAbort?.Invoke();
         public static void RaiseAssistantContent(string text, string thinking, string runId, string agentType)
             => OnAssistantContent?.Invoke(text, thinking, runId, agentType);
-        public static void RaiseToolCallRecorded(string toolId, string name, string input)
-            => OnToolCallRecorded?.Invoke(toolId, name, input);
+        public static void RaiseToolCallRecorded(string toolId, string name, string input, string permissionToolName)
+            => OnToolCallRecorded?.Invoke(toolId, name, input, permissionToolName);
         public static void RaiseToolResultRecorded(string toolId, bool isError, string content)
             => OnToolResultRecorded?.Invoke(toolId, isError, content);
 

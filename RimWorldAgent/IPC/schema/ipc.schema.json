@@ -59,6 +59,14 @@
       "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/closeResponse" } } }
     },
     {
+      "if": { "properties": { "type": { "const": "permission_request" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/permissionRequest" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "permission_response" } } },
+      "then": { "required": ["requestId", "payload"], "properties": { "payload": { "$ref": "#/$defs/permissionResponse" } } }
+    },
+    {
       "if": { "properties": { "type": { "const": "error" } } },
       "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/errorResponse" } } }
     },
@@ -226,7 +234,6 @@
         "messageId": { "type": "string" },
         "text": { "type": "string" },
         "toolCallId": { "type": "string" },
-        "toolName": { "type": "string" },
         "title": { "type": "string" },
         "toolKind": { "type": "string" },
         "status": { "type": "string" },
@@ -241,6 +248,30 @@
         "usedTokens": { "type": "number" },
         "sizeTokens": { "type": "number" },
         "titleText": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "permissionRequest": {
+      "type": "object",
+      "required": ["params"],
+      "properties": {
+        "params": {}
+      },
+      "additionalProperties": false
+    },
+    "permissionResponse": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "object",
+          "required": ["outcome"],
+          "properties": {
+            "outcome": { "type": "string", "minLength": 1 },
+            "optionId": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
       },
       "additionalProperties": false
     }

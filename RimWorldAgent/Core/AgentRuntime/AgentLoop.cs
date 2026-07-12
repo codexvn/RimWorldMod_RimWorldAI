@@ -192,10 +192,10 @@ namespace RimWorldAgent.Core.AgentRuntime
             };
 
             // SDK 工具调用/结果 → 录制（网关工具提取内层 action 名）
-            UIMessageBus.OnToolCallRecorded += (toolId, name, input) =>
+            UIMessageBus.OnToolCallRecorded += (toolId, name, input, permissionToolName) =>
             {
                 var innerName = ToolDispatcher.ExtractInnerAction(name, input);
-                ConversationStore?.RecordToolCall(toolId, innerName, input);
+                ConversationStore?.RecordToolCall(toolId, innerName, input, permissionToolName);
             };
             // tool_result 录制 — 合并 OnToolUse 耗时 + SDK echo 输出
             UIMessageBus.OnToolResultRecorded += (toolId, isError, content) =>
@@ -402,10 +402,12 @@ namespace RimWorldAgent.Core.AgentRuntime
             session.OnActivity += NoteActivity;
             try
             {
-                await session.PromptAsync(prompt, CancellationToken.None);
-                HasEverSent = true;
+                // 先回显到 UI/会话历史，再发 ACP prompt。
+                // 否则整轮 agent 结束前，IPC 里已发出的殖民地状态 prompt 不会出现在游戏内 UI。
                 ConversationStore?.RecordSystemMessage("[System Prompt] " + prompt);
                 UIMessageBus.PushUiMessage(UiMessage.System("[System Prompt] " + prompt));
+                await session.PromptAsync(prompt, CancellationToken.None);
+                HasEverSent = true;
                 // 活动感知超时：每次 tool_use / result 重置计时器，避免长对话被误杀
                 while (!tcs.Task.IsCompleted)
                 {

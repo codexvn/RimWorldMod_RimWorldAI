@@ -58,11 +58,25 @@ namespace RimWorldAgent.Core.Data
                     );
                     CREATE INDEX IF NOT EXISTS idx_timestamp ON conversation(timestamp);
                     CREATE INDEX IF NOT EXISTS idx_save_id ON conversation(save_id);
-                    CREATE INDEX IF NOT EXISTS idx_game_day ON conversation(game_day);", conn);
+                    CREATE INDEX IF NOT EXISTS idx_game_day ON conversation(game_day);
+                    CREATE INDEX IF NOT EXISTS idx_tool_call_id ON conversation(run_id);
+                    -- tool_permission: 独立表，记录 toolCallId -> 权限判定用工具名
+                    CREATE TABLE IF NOT EXISTS tool_permission (
+                        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tool_call_id    TEXT    NOT NULL,
+                        permission_tool_name TEXT NOT NULL DEFAULT '',
+                        save_id         TEXT    NOT NULL,
+                        timestamp       TEXT    NOT NULL,
+                        UNIQUE(tool_call_id, save_id)
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_tool_perm_call_id ON tool_permission(tool_call_id);", conn);
                 cmd.ExecuteNonQuery();
             }
+
             catch (Exception ex)
+
             {
+
                 CoreLog.Error($"[SqliteConvStore] 建表失败: {ex.Message}");
                 throw;
             }
@@ -95,9 +109,12 @@ namespace RimWorldAgent.Core.Data
             => Record(ConvRole.Assistant, text, thinking, runId, agentType);
         public void RecordSystemMessage(string text)
             => Record(ConvRole.System, text, "", "", "");
-        public void RecordToolCall(string toolId, string name, string input)
-            => Record(ConvRole.ToolCall, "", "", toolId ?? "",
+        public void RecordToolCall(string toolId, string name, string input, string permissionToolName = "")
+        {
+            Record(ConvRole.ToolCall, "", "", toolId ?? "",
                 agentType: "", toolName: name ?? "", toolInput: input ?? "");
+            UpsertToolPermission(toolId ?? "", permissionToolName ?? "");
+        }
         public void RecordToolResult(string toolId, bool isError, double durationMs, string output)
             => Record(ConvRole.ToolResult, output ?? "", "", toolId ?? "",
                 agentType: "", isToolError: isError, toolDurationMs: durationMs);
@@ -131,6 +148,50 @@ namespace RimWorldAgent.Core.Data
                 catch (Exception ex)
                 {
                     CoreLog.Warn($"[SqliteConvStore] 写入失败: {ex.Message}");
+                }
+            }
+        }
+
+        public string? GetPermissionToolName(string toolCallId)
+        {
+            if (_disposed || string.IsNullOrWhiteSpace(toolCallId)) return null;
+            try
+            {
+                using var conn = OpenConnection();
+                using var cmd = new SqliteCommand(
+                    "SELECT permission_tool_name FROM tool_permission WHERE save_id = @saveId AND tool_call_id = @toolCallId ORDER BY id DESC LIMIT 1", conn);
+                cmd.Parameters.AddWithValue("@saveId", _saveId);
+                cmd.Parameters.AddWithValue("@toolCallId", toolCallId);
+                var result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? null : Convert.ToString(result);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"[SqliteConvStore] GetPermissionToolName 失败: {ex.Message}");
+                return null;
+            }
+        }
+
+        private void UpsertToolPermission(string toolCallId, string permissionToolName)
+        {
+            if (_disposed || string.IsNullOrWhiteSpace(toolCallId) || string.IsNullOrWhiteSpace(permissionToolName)) return;
+            lock (_writeLock)
+            {
+                try
+                {
+                    using var conn = OpenConnection();
+                    using var cmd = new SqliteCommand(
+                        @"INSERT OR REPLACE INTO tool_permission (tool_call_id, permission_tool_name, save_id, timestamp)
+                          VALUES (@toolCallId, @permName, @saveId, @ts)", conn);
+                    cmd.Parameters.AddWithValue("@toolCallId", toolCallId);
+                    cmd.Parameters.AddWithValue("@permName", permissionToolName);
+                    cmd.Parameters.AddWithValue("@saveId", _saveId);
+                    cmd.Parameters.AddWithValue("@ts", DateTime.UtcNow.ToString("o"));
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Warn($"[SqliteConvStore] UpsertToolPermission 失败: {ex.Message}");
                 }
             }
         }

@@ -21,10 +21,13 @@ namespace RimWorldAgent.Core.Data
         void RecordSystemMessage(string text);
 
         /// <summary>记录工具调用</summary>
-        void RecordToolCall(string toolId, string name, string input);
+        void RecordToolCall(string toolId, string name, string input, string permissionToolName = "");
 
         /// <summary>记录工具执行结果</summary>
         void RecordToolResult(string toolId, bool isError, double durationMs, string output);
+
+        /// <summary>按 toolCallId 查权限判定用工具名（permission_tool_name）</summary>
+        string? GetPermissionToolName(string toolCallId);
 
         /// <summary>按主键 ID 精确查询，不存在返回 null</summary>
         ConversationEntry? GetAt(long id);

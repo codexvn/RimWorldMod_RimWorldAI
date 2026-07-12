@@ -62,7 +62,7 @@ namespace RimWorldAgent.Core.Data
             lock (_lock) _entries.Add(entry);
         }
 
-        public void RecordToolCall(string toolId, string name, string input)
+        public void RecordToolCall(string toolId, string name, string input, string permissionToolName = "")
         {
             var entry = new ConversationEntry
             {
@@ -71,10 +71,26 @@ namespace RimWorldAgent.Core.Data
                 RunId = toolId ?? "",
                 ToolName = name ?? "",
                 ToolInput = input ?? "",
+                PermissionToolName = permissionToolName ?? "",
                 Timestamp = DateTime.UtcNow,
                 GameDay = AgentOrchestrator.GameDay
             };
             lock (_lock) _entries.Add(entry);
+        }
+
+        public string? GetPermissionToolName(string toolCallId)
+        {
+            if (string.IsNullOrWhiteSpace(toolCallId)) return null;
+            lock (_lock)
+            {
+                for (int i = _entries.Count - 1; i >= 0; i--)
+                {
+                    var e = _entries[i];
+                    if (e.Role == ConvRole.ToolCall && e.RunId == toolCallId)
+                        return string.IsNullOrEmpty(e.PermissionToolName) ? null : e.PermissionToolName;
+                }
+            }
+            return null;
         }
 
         public void RecordToolResult(string toolId, bool isError, double durationMs, string output)

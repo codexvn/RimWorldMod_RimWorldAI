@@ -1,10 +1,10 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import { BackendBridge } from "../dist/backend-bridge.js";
 
-function createConfig(backendName) {
+function createConfig() {
   return {
     backend: {
-      name: backendName,
+      name: "any-backend",
       command: "node",
       args: [],
       workingDirectory: ".",
@@ -17,37 +17,13 @@ function createConfig(backendName) {
   };
 }
 
-const bridge = new BackendBridge(createConfig("any-backend"));
-const meta = bridge.createSessionMeta();
-assert.deepEqual(meta, { systemPrompt: { append: "system" } });
+const bridge = new BackendBridge(createConfig());
+assert.deepEqual(bridge.createSessionMeta(), { systemPrompt: { append: "system" } });
 assert.deepEqual(bridge.toAcpMcpServers(), [
   { type: "http", name: "agent", url: "http://localhost:9878/mcp", headers: [] },
 ]);
 
-const projectedTool = bridge.convertSessionUpdate({
-  update: {
-    sessionUpdate: "tool_call",
-    toolCallId: "tool-1",
-    title: "Run command",
-    kind: "execute",
-    status: "pending",
-    rawInput: { command: "Get-Location" },
-    _meta: { claudeCode: { toolName: "Bash" } },
-  },
-});
-assert.equal(projectedTool.toolName, "Bash");
-assert.equal(projectedTool.title, "Run command");
-assert.equal(projectedTool.toolKind, "execute");
-
-const allowed = await bridge.requestPermission({
-  toolCall: { title: "mcp__agent__execute_tool" },
-  options: [
-    { kind: "allow_always", optionId: "always" },
-    { kind: "reject_once", optionId: "reject" },
-  ],
-});
-assert.equal(allowed.outcome.optionId, "always");
-
+// without permissionAsk, non-MCP falls back to reject/cancel path
 const rejected = await bridge.requestPermission({
   toolCall: { title: "Bash" },
   options: [
@@ -56,5 +32,21 @@ const rejected = await bridge.requestPermission({
   ],
 });
 assert.equal(rejected.outcome.optionId, "reject");
+
+// with permissionAsk, Node forwards to C# decision
+let seen = null;
+bridge.setPermissionAsk(async (params) => {
+  seen = params;
+  return { outcome: { outcome: "selected", optionId: "always" } };
+});
+const allowed = await bridge.requestPermission({
+  toolCall: { title: "mcp.agent.get_skills" },
+  options: [
+    { kind: "allow_always", optionId: "always" },
+    { kind: "reject_once", optionId: "reject" },
+  ],
+});
+assert.equal(allowed.outcome.optionId, "always");
+assert.equal(seen.toolCall.title, "mcp.agent.get_skills");
 
 console.log("ACP tool policy smoke test passed");

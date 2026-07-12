@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.IO;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using RimWorldAgent.IPC.Generated;
 
@@ -12,6 +13,8 @@ namespace RimWorldAgent.IPC
             PropertyNamingPolicy = null,
             PropertyNameCaseInsensitive = true,
             WriteIndented = false,
+            // 日志/IPC 直接保留中文等非 ASCII 字符，避免 \uXXXX 转义影响排查
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             // The IPC schema treats optional object fields as omitted, not null.
             // This is required for the envelope meta field on net472/System.Text.Json.
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull

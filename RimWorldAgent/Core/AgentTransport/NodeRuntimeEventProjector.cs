@@ -9,6 +9,7 @@ namespace RimWorldAgent.Core.AgentTransport
     internal sealed class NodeRuntimeEventProjector
     {
         private readonly string? _modelName;
+        private readonly string _toolNameJsonPath;
         private readonly Action<string> _logWarn;
         private readonly Action _onActivity;
         private readonly Action<string, string?> _onResult;
@@ -18,11 +19,11 @@ namespace RimWorldAgent.Core.AgentTransport
         private readonly ConcurrentDictionary<string, long> _toolStartedTicks = new ConcurrentDictionary<string, long>();
         private readonly ConcurrentDictionary<string, string> _assistantChunks = new ConcurrentDictionary<string, string>();
         private readonly ConcurrentDictionary<string, string> _thoughtChunks = new ConcurrentDictionary<string, string>();
-
-        public NodeRuntimeEventProjector(string? modelName, Action<string> logWarn, Action onActivity,
+        public NodeRuntimeEventProjector(string? modelName, string toolNameJsonPath, Action<string> logWarn, Action onActivity,
             Action<string, string?> onResult, Action<string, string, string> onToolUse, Action onAborted)
         {
             _modelName = modelName;
+            _toolNameJsonPath = string.IsNullOrWhiteSpace(toolNameJsonPath) ? "$.toolCall.title" : toolNameJsonPath.Trim();
             _logWarn = logWarn;
             _onActivity = onActivity;
             _onResult = onResult;
@@ -136,12 +137,16 @@ namespace RimWorldAgent.Core.AgentTransport
         private void ProjectTool(AgentEvent evt, bool update)
         {
             var id = evt.ToolCallId ?? Guid.NewGuid().ToString("N");
-            var name = FirstNonEmpty(evt.ToolName, evt.Title, evt.ToolKind, "tool");
+            // 工具名解析在 C#：Node 只透传 title/rawInput/toolKind
+            var name = ResolveToolName(evt);
             var input = SerializeForUi(evt.RawInput);
             var status = evt.Status ?? "pending";
             if (update && (string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase) ||
                            string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase)))
             {
+                // 完成前若参数已补齐，仅更新 UI，不重复写入会话历史
+                if (!string.IsNullOrWhiteSpace(input) && input != "{}")
+                    Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
                 PushToolResult(id, string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase), SerializeForUi(evt.RawOutput));
                 return;
             }
@@ -149,10 +154,76 @@ namespace RimWorldAgent.Core.AgentTransport
             if (_startedTools.TryAdd(id, true))
             {
                 _toolStartedTicks[id] = DateTime.UtcNow.Ticks;
+                var permToolName = ExtractPermissionToolName(evt);
                 Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
-                UIMessageBus.RaiseToolCallRecorded(id, name, input);
+                // 会话历史只录首次 tool_call，后续参数回填只刷新 UI
+                UIMessageBus.RaiseToolCallRecorded(id, name, input, permToolName);
                 _onToolUse(id, name, input);
+                return;
             }
+
+            // tool_update(pending/in_progress) 回填参数/名称到 UI（Claude 常先发空 rawInput）
+            if (update && ((!string.IsNullOrWhiteSpace(input) && input != "{}") || !string.IsNullOrWhiteSpace(name)))
+                Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
+        }
+
+        /// <summary>
+        /// 按配置的 ToolNameJsonPath 从 rawInput/title 提取权限判定用工具名。
+        /// JsonPath 命中则用提取结果；未命中时回退 ACP title。
+        /// </summary>
+        private string ExtractPermissionToolName(AgentEvent evt)
+        {
+            // 优先按配置 JsonPath 提取
+            if (!string.IsNullOrWhiteSpace(_toolNameJsonPath) && evt.RawInput.HasValue)
+            {
+                try
+                {
+                    var path = _toolNameJsonPath.TrimStart('$', '.');
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        var current = evt.RawInput.Value;
+                        foreach (var segment in path.Split('.'))
+                        {
+                            if (string.IsNullOrEmpty(segment) || current.ValueKind != JsonValueKind.Object) goto fallback;
+                            if (!current.TryGetProperty(segment, out current)) goto fallback;
+                        }
+                        var extracted = current.ValueKind == JsonValueKind.String
+                            ? current.GetString() ?? ""
+                            : current.GetRawText();
+                        if (!string.IsNullOrWhiteSpace(extracted)) return extracted.Trim();
+                    }
+                }
+                catch { }
+            }
+            fallback:
+            return evt.Title ?? "";
+        }
+
+        /// <summary>
+        /// 从 ACP 透传字段解析展示/业务工具名。
+        /// 优先 rawInput.action（agent gateway），其次 rawInput.tool，再次 title/toolKind。
+        /// IPC 不携带 toolName；权限正则默认匹配 title/网关名，与此处 UI 展示名可能不同。
+        /// </summary>
+        private static string ResolveToolName(AgentEvent evt)
+        {
+            var action = TryGetRawInputString(evt.RawInput, "action");
+            if (!string.IsNullOrWhiteSpace(action)) return action!;
+
+            var tool = TryGetRawInputString(evt.RawInput, "tool");
+            if (!string.IsNullOrWhiteSpace(tool))
+            {
+                var server = TryGetRawInputString(evt.RawInput, "server");
+                return string.IsNullOrWhiteSpace(server) ? tool! : ("mcp." + server + "." + tool);
+            }
+
+            return FirstNonEmpty(evt.Title, evt.ToolKind, "tool");
+        }
+
+        private static string? TryGetRawInputString(JsonElement? rawInput, string property)
+        {
+            if (!rawInput.HasValue || rawInput.Value.ValueKind != JsonValueKind.Object) return null;
+            if (!rawInput.Value.TryGetProperty(property, out var el)) return null;
+            return el.ValueKind == JsonValueKind.String ? el.GetString() : el.ToString();
         }
 
         private void PushToolResult(string id, bool isError, string content)
@@ -160,6 +231,7 @@ namespace RimWorldAgent.Core.AgentTransport
             var duration = 0d;
             if (_toolStartedTicks.TryRemove(id, out var startTicks))
                 duration = TimeSpan.FromTicks(DateTime.UtcNow.Ticks - startTicks).TotalMilliseconds;
+
             Push(UiMessage.ToolResult(id, isError, duration, content));
             UIMessageBus.RaiseToolResultRecorded(id, isError, content);
             TokenUsageTracker.RecordToolResult(isError);

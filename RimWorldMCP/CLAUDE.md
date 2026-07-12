@@ -165,7 +165,13 @@ CellData.Layers[0..5]:
 
 ### 端口清理机制
 
-`McpServiceManager` 全局单例管理唯一传输层实例。通过 `[StaticConstructorOnStartup]` 在 Def 加载后立即启动，跨存档持续运行。`McpServiceManager.Start()` 幂等（`IsRunning` 检查）。端口变更需重启 RimWorld 生效。
+`McpServiceManager` 全局单例管理唯一传输层实例。主菜单 `UIRoot_Entry.Init` 时启动，跨存档持续运行。`McpServiceManager.Start()` 幂等（`IsRunning` 检查）。端口变更需重启 RimWorld 生效。
+
+退出时必须释放 `HttpListener` 端口，避免进程异常退出后留下僵尸 `LISTEN`（PID 已死、端口仍占用）：
+
+- `Root.Shutdown` Harmony Prefix → `McpServiceManager.Stop()`
+- `Application.quitting` / `AppDomain.ProcessExit` / `DomainUnload` 兜底钩子
+- `McpServiceHost.Cleanup()` 使用 `HttpListener.Abort()` + `Close()`，session dispose 限时 500ms，避免退出卡死
 
 ### 进程生命周期
 

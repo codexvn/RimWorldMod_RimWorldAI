@@ -1,8 +1,10 @@
-﻿{
+{
   "name": "rimworld-acp-host",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc --pretty false",
     "check": "tsc --noEmit --pretty false",

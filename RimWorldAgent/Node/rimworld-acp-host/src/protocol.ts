@@ -25,6 +25,8 @@ export const MessageTypes = {
   closeResponse: "close_response",
   event: "event",
   error: "error",
+  permissionRequest: "permission_request",
+  permissionResponse: "permission_response",
 } as const;
 
 export type MessageType = (typeof MessageTypes)[keyof typeof MessageTypes];
@@ -107,6 +109,18 @@ export interface CloseResponse {
   closed: boolean;
 }
 
+export interface PermissionRequest {
+  params: unknown;
+}
+
+export interface PermissionResponse {
+  outcome: {
+    outcome: string;
+    optionId?: string;
+    [key: string]: unknown;
+  };
+}
+
 export interface ErrorResponse {
   code: string;
   message: string;
@@ -118,7 +132,6 @@ export interface AgentEvent {
   messageId?: string;
   text?: string;
   toolCallId?: string;
-  toolName?: string;
   title?: string;
   toolKind?: string;
   status?: string;
@@ -156,12 +169,19 @@ export interface PromptConfig {
 }
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
+// 协议 schema 只维护一份源：RimWorldAgent/IPC/schema/ipc.schema.json
+// - 开发/仓库内运行：回退读取 IPC 源
+// - 发布产物：构建会把源复制到 rimworld-acp-host/schema/
 const schemaCandidates = [
-  resolve(moduleDir, "../schema/ipc.schema.json"),
-  resolve(moduleDir, "../../../IPC/schema/ipc.schema.json"),
+  resolve(moduleDir, "../schema/ipc.schema.json"),                 // 发布/构建输出旁
+  resolve(moduleDir, "../../../IPC/schema/ipc.schema.json"),       // 源码树权威源
 ];
 const schemaPath = schemaCandidates.find((candidate) => existsSync(candidate));
-if (!schemaPath) throw new Error("IPC schema file not found.");
+if (!schemaPath) {
+  throw new Error(
+    "IPC schema file not found. Expected build output at rimworld-acp-host/schema/ipc.schema.json or source at RimWorldAgent/IPC/schema/ipc.schema.json.",
+  );
+}
 const schema = JSON.parse(readFileSync(schemaPath, "utf8").replace(/^\uFEFF/, "")) as object;
 const AjvConstructor = ((AjvModule as unknown as { default?: unknown }).default ?? AjvModule) as new (options?: object) => { compile(schema: object): ((value: unknown) => boolean) & { errors?: Array<{ instancePath: string; message?: string }> } };
 const validator = new AjvConstructor({ allErrors: true, strict: false }).compile(schema);

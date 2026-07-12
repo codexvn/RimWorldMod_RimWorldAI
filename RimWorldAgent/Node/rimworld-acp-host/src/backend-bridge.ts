@@ -23,6 +23,7 @@ export class BackendBridge {
   private backendProcess?: ChildProcessWithoutNullStreams;
   private clientConnection?: ClientConnection;
   private eventSink: IpcEventSink = () => undefined;
+  private permissionAsk: ((params: any) => Promise<any>) | null = null;
   private currentSessionId?: string;
   private initialized?: AcpInitializeResponse;
   private disposed = false;
@@ -33,6 +34,10 @@ export class BackendBridge {
 
   setEventSink(sink: IpcEventSink): void {
     this.eventSink = sink;
+  }
+
+  setPermissionAsk(handler: (params: any) => Promise<any>): void {
+    this.permissionAsk = handler;
   }
 
   async start(): Promise<void> {
@@ -255,10 +260,15 @@ export class BackendBridge {
   }
 
   private async requestPermission(params: any): Promise<any> {
-    if (this.isWhitelistedPermissionRequest(params)) {
-      const allowed = (params.options ?? []).find((option: any) => option.kind === "allow_always")
-        ?? (params.options ?? []).find((option: any) => option.kind === "allow_once");
-      if (allowed) return { outcome: { outcome: "selected", optionId: allowed.optionId } };
+    // 权限判定在 C#：Node 只转发 ACP permission 原始 JSON
+    if (this.permissionAsk) {
+      try {
+        const response = await this.permissionAsk(params);
+        if (response?.outcome) return response;
+      } catch (error) {
+        const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        process.stderr.write(`[host] permission ask failed: ${message}\n`);
+      }
     }
     const rejected = (params.options ?? []).find((option: any) => String(option.kind).startsWith("reject"));
     if (rejected) return { outcome: { outcome: "selected", optionId: rejected.optionId } };
@@ -321,22 +331,6 @@ export class BackendBridge {
     return [{ type: "http", name: "agent", url: this.config.agentMcpUrl, headers: [] }];
   }
 
-  private isWhitelistedPermissionRequest(params: any): boolean {
-    const toolName = this.extractPermissionToolName(params).toLowerCase();
-    return toolName === "agent"
-      || toolName.startsWith("mcp__agent__")
-      || toolName.startsWith("agent__")
-      || toolName.startsWith("agent/");
-  }
-
-  private extractPermissionToolName(params: any): string {
-    const toolCall = params?.toolCall;
-    if (typeof toolCall?.toolName === "string") return toolCall.toolName;
-    if (typeof toolCall?.name === "string") return toolCall.name;
-    if (typeof toolCall?.title === "string") return toolCall.title;
-    return "";
-  }
-
   private convertSessionUpdate(params: any): AgentEvent {
     const update = params.update ?? {};
     trace(`ACP session/update type=${String(update.sessionUpdate ?? "unknown")}`);
@@ -349,19 +343,23 @@ export class BackendBridge {
       case "user_message_chunk":
         return { kind: "user_message", sessionId, messageId: update.messageId, text: update.content?.text ?? "" };
       case "tool_call":
+        // Node 只桥接 ACP 原始字段 title/rawInput/toolKind（名称解析在 C#）
         return {
           kind: "tool_call", sessionId, toolCallId: String(update.toolCallId ?? ""),
-          toolName: this.extractToolName(update), title: update.title,
+          title: update.title,
           toolKind: typeof update.kind === "string" ? update.kind : undefined,
-          status: String(update.status ?? "pending"), rawInput: update.rawInput, rawOutput: update.rawOutput,
+          status: String(update.status ?? "pending"),
+          rawInput: update.rawInput,
+          rawOutput: update.rawOutput,
         };
       case "tool_call_update":
         return {
           kind: "tool_update", sessionId, toolCallId: String(update.toolCallId ?? ""),
-          toolName: this.extractToolName(update), title: update.title,
+          title: update.title,
           toolKind: typeof update.kind === "string" ? update.kind : undefined,
           status: String(update.status ?? "pending"),
-          rawInput: update.rawInput, rawOutput: update.rawOutput,
+          rawInput: update.rawInput,
+          rawOutput: update.rawOutput,
         };
       case "usage_update":
         return {
@@ -381,13 +379,6 @@ export class BackendBridge {
   private requireConnection(): ClientConnection {
     if (!this.clientConnection) throw new Error("ACP backend connection is not ready.");
     return this.clientConnection;
-  }
-
-  private extractToolName(update: any): string | undefined {
-    const metadataName = update?._meta?.claudeCode?.toolName;
-    if (typeof metadataName === "string" && metadataName.length > 0) return metadataName;
-    if (typeof update?.toolName === "string" && update.toolName.length > 0) return update.toolName;
-    return undefined;
   }
 
   private logError(operation: string, error: unknown): void {

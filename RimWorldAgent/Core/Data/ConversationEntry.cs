@@ -46,6 +46,10 @@ namespace RimWorldAgent.Core.Data
         [JsonPropertyName("tool_name")]
         public string ToolName { get; set; } = "";
 
+        /// <summary>权限判定用工具名（按 ToolNameJsonPath 从 rawInput 提取）；与 tool_name(action 名) 不同</summary>
+        [JsonPropertyName("permission_tool_name")]
+        public string PermissionToolName { get; set; } = "";
+
         /// <summary>工具输入 JSON（仅 ToolCall）</summary>
         [JsonPropertyName("tool_input")]
         public string ToolInput { get; set; } = "";

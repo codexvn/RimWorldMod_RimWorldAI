@@ -46,10 +46,13 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string WorkingDirectory { get; }
         public IReadOnlyDictionary<string, string> Env { get; }
         public IReadOnlyList<AcpSessionConfigSelectionValue> SessionConfigSelections { get; }
+        public string ToolNameJsonPath { get; }
+        public string AllowedToolRegex { get; }
 
         public AcpAgentLaunch(string name, string command, IReadOnlyList<string> args,
             string workingDirectory, IReadOnlyDictionary<string, string> env,
-            IReadOnlyList<AcpSessionConfigSelectionValue>? sessionConfigSelections = null)
+            IReadOnlyList<AcpSessionConfigSelectionValue>? sessionConfigSelections = null,
+            string? toolNameJsonPath = null, string? allowedToolRegex = null)
         {
             Name = name;
             Command = command;
@@ -57,6 +60,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             WorkingDirectory = workingDirectory;
             Env = env;
             SessionConfigSelections = sessionConfigSelections ?? Array.Empty<AcpSessionConfigSelectionValue>();
+            ToolNameJsonPath = string.IsNullOrWhiteSpace(toolNameJsonPath) ? "$.toolCall.title" : toolNameJsonPath!.Trim();
+            AllowedToolRegex = string.IsNullOrWhiteSpace(allowedToolRegex) ? "^mcp" : allowedToolRegex!.Trim();
         }
     }
 
@@ -568,7 +573,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                         command = Path.GetFullPath(Path.Combine(workingDirectory, command));
                     }
                     return new AcpAgentLaunch(configured.Name, command, configured.Args,
-                        workingDirectory, configured.Env, configured.SessionConfigSelections);
+                        workingDirectory, configured.Env, configured.SessionConfigSelections,
+                        configured.ToolNameJsonPath, configured.AllowedToolRegex);
                 }
 
                 _logWarn("[AgentEngine] ACP Backend 缺少启动命令: " + configured.Name);

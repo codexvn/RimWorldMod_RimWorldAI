@@ -46,7 +46,7 @@ namespace RimWorldAgent.Core.AgentTransport
             _host = new NodeAgentHost(cfg.AcpNodePath, hostEntryPoint,
                 Path.GetDirectoryName(hostEntryPoint) ?? AppDomain.CurrentDomain.BaseDirectory,
                 cfg.ProjectPath, TimeSpan.FromSeconds(cfg.IpcRequestTimeoutSeconds), logInfo, logError, cfg.LogAcpIpc);
-            _projector = new NodeRuntimeEventProjector(_backend.Name, logWarn,
+            _projector = new NodeRuntimeEventProjector(_backend.Name, _backend.ToolNameJsonPath, logWarn,
                 () => OnActivity?.Invoke(),
                 (subtype, stopReason) => OnResult?.Invoke(subtype, stopReason),
                 RaiseToolUse,
@@ -219,6 +219,11 @@ namespace RimWorldAgent.Core.AgentTransport
         {
             try
             {
+                if (envelope.Type == IpcMessageTypes.PermissionRequest)
+                {
+                    HandlePermissionRequest(envelope);
+                    return;
+                }
                 if (envelope.Type == IpcMessageTypes.Event)
                 {
                     _projector.Project(IpcJsonCompat.DeserializePayload<AgentEvent>(envelope));
@@ -236,6 +241,93 @@ namespace RimWorldAgent.Core.AgentTransport
             catch (Exception ex)
             {
                 _logError("[NodeACP] message handling failed: " + FormatExceptionChain(ex));
+            }
+        }
+
+        private void HandlePermissionRequest(IpcEnvelope envelope)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(envelope.RequestId))
+                {
+                    _logWarn("[NodeACP] permission_request 缺少 requestId，已忽略");
+                    return;
+                }
+
+                var request = IpcJsonCompat.DeserializePayload<PermissionRequest>(envelope);
+                Newtonsoft.Json.Linq.JToken permissionParams;
+                string rawParams;
+                if (request.Params.ValueKind != JsonValueKind.Undefined && request.Params.ValueKind != JsonValueKind.Null)
+                {
+                    rawParams = TruncateForLog(request.Params.GetRawText(), 4000);
+                    permissionParams = Newtonsoft.Json.Linq.JToken.Parse(request.Params.GetRawText());
+                }
+                else
+                {
+                    rawParams = "<null>";
+                    permissionParams = new Newtonsoft.Json.Linq.JObject();
+                }
+
+                // 先落原始 permission params，便于对照 JsonPath 命中/正则结果
+                _logInfo("[NodeACP] permission_request raw params=" + rawParams);
+                AcpIpcLogger.LogTrace("permission_request raw params=" + rawParams);
+
+                // Codex 的 permission 请求常不带 toolCall.title，只有 toolCallId。
+                // 用 toolCallId 查 DB 里 tool_call 事件写入的 permission_tool_name。
+                var toolCallId = permissionParams.SelectToken("$.toolCall.toolCallId")?.ToString() ?? "";
+                var fallbackTitle = !string.IsNullOrWhiteSpace(toolCallId)
+                    ? (AgentLoop.ConversationStore?.GetPermissionToolName(toolCallId) ?? "")
+                    : "";
+
+                var allowed = AcpToolPermissionEvaluator.IsAllowed(
+                    permissionParams,
+                    _backend.ToolNameJsonPath,
+                    _backend.AllowedToolRegex,
+                    fallbackTitle,
+                    out var toolName,
+                    out var detail);
+
+                var outcomeObj = AcpToolPermissionEvaluator.BuildSelectedOutcome(permissionParams, allowed, out var outcomeDetail);
+                var outcomeJson = System.Text.Json.JsonSerializer.Serialize(outcomeObj);
+                using var doc = System.Text.Json.JsonDocument.Parse(outcomeJson);
+                var response = new PermissionResponse
+                {
+                    Outcome = doc.RootElement.GetProperty("outcome").Clone()
+                };
+
+                // 拒绝必须打出原因：工具名、配置 path/regex、提取细节、最终 outcome
+                var decision = allowed ? "ALLOW" : "REJECT";
+                var summary = "[NodeACP] permission " + decision
+                    + " tool=\"" + toolName + "\""
+                    + " path=" + _backend.ToolNameJsonPath
+                    + " regex=" + _backend.AllowedToolRegex
+                    + "; " + detail
+                    + "; outcome=" + outcomeDetail
+                    + "; response=" + TruncateForLog(outcomeJson, 500);
+                if (allowed) _logInfo(summary);
+                else _logWarn(summary);
+                AcpIpcLogger.LogTrace(summary);
+
+                _host.SendResponse(envelope.RequestId!, IpcMessageTypes.PermissionResponse, response);
+            }
+            catch (Exception ex)
+            {
+                _logError("[NodeACP] permission handling failed: " + FormatExceptionChain(ex));
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(envelope.RequestId))
+                    {
+                        using var cancelled = System.Text.Json.JsonDocument.Parse("{\"outcome\":{\"outcome\":\"cancelled\"}}");
+                        _host.SendResponse(envelope.RequestId!, IpcMessageTypes.PermissionResponse, new PermissionResponse
+                        {
+                            Outcome = cancelled.RootElement.GetProperty("outcome").Clone()
+                        });
+                    }
+                }
+                catch (Exception sendEx)
+                {
+                    _logError("[NodeACP] permission cancel response failed: " + FormatExceptionChain(sendEx));
+                }
             }
         }
 
@@ -316,6 +408,15 @@ namespace RimWorldAgent.Core.AgentTransport
         {
             try { await handler(id, name, input); }
             catch (Exception ex) { _logError("[NodeACP] ToolUse handler failed: " + FormatExceptionChain(ex)); }
+        }
+
+        
+        private static string TruncateForLog(string? text, int maxLen)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            var value = text!;
+            if (maxLen <= 0 || value.Length <= maxLen) return value;
+            return value.Substring(0, maxLen) + "...(truncated " + value.Length + " chars)";
         }
 
         private static string FormatExceptionChain(Exception ex)

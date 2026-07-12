@@ -30,6 +30,10 @@ namespace RimWorldAgent
         public List<AcpSessionConfigSelection> SessionConfigSelections = new List<AcpSessionConfigSelection>();
         public string LastConfigOptionsJson = "";
         public string LastProbeStatus = "";
+        /// <summary>从 ACP permission JSON 提取工具名的 JsonPath，如 $.toolCall.title</summary>
+        public string ToolNameJsonPath = "$.toolCall.title";
+        /// <summary>允许的工具名正则；默认 ^mcp 只放行 MCP</summary>
+        public string AllowedToolRegex = "^mcp";
 
         public bool IsBundled => string.Equals(Type, "bundled", System.StringComparison.OrdinalIgnoreCase);
 
@@ -47,6 +51,10 @@ namespace RimWorldAgent
             if (SessionConfigSelections == null) SessionConfigSelections = new List<AcpSessionConfigSelection>();
             Scribe_Values.Look(ref LastConfigOptionsJson, "lastConfigOptionsJson", "");
             Scribe_Values.Look(ref LastProbeStatus, "lastProbeStatus", "");
+            Scribe_Values.Look(ref ToolNameJsonPath, "toolNameJsonPath", "$.toolCall.title");
+            Scribe_Values.Look(ref AllowedToolRegex, "allowedToolRegex", "^mcp");
+            if (string.IsNullOrWhiteSpace(ToolNameJsonPath)) ToolNameJsonPath = "$.toolCall.title";
+            if (string.IsNullOrWhiteSpace(AllowedToolRegex)) AllowedToolRegex = "^mcp";
         }
 
     }

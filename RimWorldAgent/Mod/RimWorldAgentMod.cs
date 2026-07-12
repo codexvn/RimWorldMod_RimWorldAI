@@ -16,7 +16,7 @@ namespace RimWorldAgent
 {
     public class RimWorldAgentMod : Mod
     {
-        private const float CustomBackendCardHeight = 500f;
+        private const float CustomBackendCardHeight = 620f;
         private const float SessionConfigOptionRowHeight = 52f;
 
         public static RimWorldAgentMod Instance { get; private set; } = null!;
@@ -110,7 +110,10 @@ namespace RimWorldAgent
                     DisplayName = "Claude Code",
                     Type = "custom",
                     Command = "npx",
-                    ArgsText = "-y @agentclientprotocol/claude-agent-acp"
+                    ArgsText = "-y @agentclientprotocol/claude-agent-acp",
+                    // CC: title 常为 mcp__server__tool 或 Bash/Read；默认按 title 只放行 MCP
+                    ToolNameJsonPath = "$.toolCall.title",
+                    AllowedToolRegex = "^mcp"
                 };
             }
 
@@ -122,7 +125,10 @@ namespace RimWorldAgent
                     DisplayName = "Codex",
                     Type = "custom",
                     Command = "npx",
-                    ArgsText = "-y @agentclientprotocol/codex-acp"
+                    ArgsText = "-y @agentclientprotocol/codex-acp",
+                    // Codex: title 常为 mcp.server.tool 或整条 shell；默认按 title 只放行 MCP
+                    ToolNameJsonPath = "$.toolCall.title",
+                    AllowedToolRegex = "^mcp"
                 };
             }
 
@@ -211,6 +217,15 @@ namespace RimWorldAgent
             backend.WorkingDirectory = inner.TextEntry(backend.WorkingDirectory ?? "").Trim();
             inner.Label("环境变量（每行 KEY=VALUE；认证、API URL、API Key 等由 Backend 自行约定）");
             backend.EnvText = DrawTextArea(inner, backend.EnvText ?? "", 62f);
+            GUI.color = new Color(0.6f, 0.65f, 0.75f, 1f);
+            inner.Label("工具权限（基于 ACP requestPermission JSON）");
+            GUI.color = Color.white;
+            inner.Label("工具名称 JsonPath（权限匹配用；默认 $.toolCall.title 网关名，不是 action）");
+            backend.ToolNameJsonPath = inner.TextEntry(string.IsNullOrWhiteSpace(backend.ToolNameJsonPath) ? "$.toolCall.title" : backend.ToolNameJsonPath).Trim();
+            if (string.IsNullOrWhiteSpace(backend.ToolNameJsonPath)) backend.ToolNameJsonPath = "$.toolCall.title";
+            inner.Label("允许的工具正则（匹配上方 JsonPath 提取结果；默认 ^mcp 只允许 MCP）");
+            backend.AllowedToolRegex = inner.TextEntry(string.IsNullOrWhiteSpace(backend.AllowedToolRegex) ? "^mcp" : backend.AllowedToolRegex).Trim();
+            if (string.IsNullOrWhiteSpace(backend.AllowedToolRegex)) backend.AllowedToolRegex = "^mcp";
             var testRunning = _backendTestTask != null && !_backendTestTask.IsCompleted;
             if (!testRunning && inner.ButtonText("测试连通性并拉取 Session Config"))
                 StartBackendTest(backend);

@@ -122,6 +122,23 @@ namespace RimWorldAgent.Core.AgentTransport
             }
         }
 
+        public void SendResponse<T>(string requestId, string type, T payload)
+        {
+            if (!IsRunning || _stdin == null) return;
+            if (string.IsNullOrWhiteSpace(requestId))
+                throw new ArgumentException("requestId is required for IPC response.", nameof(requestId));
+            var envelope = IpcJson.Create(type, requestId, payload);
+            var line = IpcJson.Serialize(envelope);
+            EnsureMessageSize(line);
+            TraceIpc("send-response", envelope, Encoding.UTF8.GetByteCount(line));
+            AcpIpcLogger.LogSend(envelope.Type, envelope.RequestId, line);
+            lock (_writeLock)
+            {
+                _stdin.WriteLine(line);
+                _stdin.Flush();
+            }
+        }
+
         public void SendNotification<T>(string type, T payload)
         {
             if (!IsRunning || _stdin == null) return;

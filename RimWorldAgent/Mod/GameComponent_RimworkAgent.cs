@@ -257,7 +257,9 @@ namespace RimWorldAgent
                         Type = string.IsNullOrWhiteSpace(item.Type) ? "select" : item.Type.Trim(),
                         Value = item.Value ?? ""
                     })
-                    .ToList()
+                    .ToList(),
+                ToolNameJsonPath = string.IsNullOrWhiteSpace(backend.ToolNameJsonPath) ? "$.toolCall.title" : backend.ToolNameJsonPath.Trim(),
+                AllowedToolRegex = string.IsNullOrWhiteSpace(backend.AllowedToolRegex) ? "^mcp" : backend.AllowedToolRegex.Trim()
             };
         }
 

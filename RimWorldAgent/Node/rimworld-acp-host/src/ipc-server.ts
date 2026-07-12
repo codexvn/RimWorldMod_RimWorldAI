@@ -1,4 +1,5 @@
-﻿import { BackendBridge } from "./backend-bridge.js";
+import { randomUUID } from "node:crypto";
+import { BackendBridge } from "./backend-bridge.js";
 import {
   assertRequestId,
   createEnvelope,
@@ -15,6 +16,8 @@ import {
   type SetSessionConfigOptionResponse,
   type CancelResponse,
   type CloseResponse,
+  type PermissionRequest,
+  type PermissionResponse,
   validateEnvelope,
 } from "./protocol.js";
 
@@ -24,34 +27,76 @@ export class IpcServer {
   private readonly bridge: BackendBridge;
   private readonly inFlight = new Set<Promise<void>>();
   private writeQueue = Promise.resolve();
+  private readonly permissionWaiters = new Map<string, {
+    resolve: (value: PermissionResponse) => void;
+    reject: (error: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }>();
 
   constructor(bridge: BackendBridge) {
     this.bridge = bridge;
     this.bridge.setEventSink((event) => this.write(createEnvelope(MessageTypes.event, undefined, event)));
+    this.bridge.setPermissionAsk((params) => this.askPermission(params));
+  }
+
+  private askPermission(params: any): Promise<PermissionResponse> {
+    const requestId = randomUUID().replace(/-/g, "");
+    return new Promise<PermissionResponse>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const waiter = this.permissionWaiters.get(requestId);
+        if (!waiter) return;
+        this.permissionWaiters.delete(requestId);
+        waiter.reject(new Error("permission request timed out"));
+      }, 120_000);
+      this.permissionWaiters.set(requestId, { resolve, reject, timer });
+      const payload: PermissionRequest = { params };
+      this.write(createEnvelope(MessageTypes.permissionRequest, requestId, payload));
+    });
+  }
+
+  private settlePermissionWaiter(requestId: string, response?: PermissionResponse, error?: Error): void {
+    const waiter = this.permissionWaiters.get(requestId);
+    if (!waiter) return;
+    this.permissionWaiters.delete(requestId);
+    clearTimeout(waiter.timer);
+    if (error) waiter.reject(error);
+    else if (response) waiter.resolve(response);
+  }
+
+  private rejectAllPermissionWaiters(reason: string): void {
+    for (const [requestId, waiter] of this.permissionWaiters) {
+      clearTimeout(waiter.timer);
+      waiter.reject(new Error(reason));
+      this.permissionWaiters.delete(requestId);
+    }
   }
 
   async run(lines: AsyncIterator<string>, first: IpcEnvelope): Promise<void> {
-    await this.dispatch(first);
-    for (;;) {
-      const next = await lines.next();
-      if (next.done) break;
-      const line = next.value;
-      if (!line) continue;
-      if (Buffer.byteLength(line, "utf8") > MAX_IPC_LINE_BYTES) {
-        this.write(createError(undefined, "message_too_large", "IPC message exceeds the 4 MiB limit."));
-        continue;
+    try {
+      await this.dispatch(first);
+      for (;;) {
+        const next = await lines.next();
+        if (next.done) break;
+        const line = next.value;
+        if (!line) continue;
+        if (Buffer.byteLength(line, "utf8") > MAX_IPC_LINE_BYTES) {
+          this.write(createError(undefined, "message_too_large", "IPC message exceeds the 4 MiB limit."));
+          continue;
+        }
+        try {
+          const message = JSON.parse(line.trim()) as unknown;
+          validateEnvelope(message);
+          const task = this.dispatch(message);
+          this.inFlight.add(task);
+          void task.finally(() => this.inFlight.delete(task));
+        } catch (error) {
+          this.write(createError(undefined, "invalid_message", formatError(error)));
+        }
       }
-      try {
-        const message = JSON.parse(line.trim()) as unknown;
-        validateEnvelope(message);
-        const task = this.dispatch(message);
-        this.inFlight.add(task);
-        void task.finally(() => this.inFlight.delete(task));
-      } catch (error) {
-        this.write(createError(undefined, "invalid_message", formatError(error)));
-      }
+      await Promise.allSettled(Array.from(this.inFlight));
+    } finally {
+      this.rejectAllPermissionWaiters("IPC server stopped before permission response");
     }
-    await Promise.allSettled(Array.from(this.inFlight));
   }
 
   private async dispatch(message: IpcEnvelope): Promise<void> {
@@ -106,6 +151,11 @@ export class IpcServer {
           const request = message.payload as SessionRequest;
           const response: CloseResponse = await this.bridge.close(request.sessionId);
           this.write(createEnvelope(MessageTypes.closeResponse, requestId, response));
+          return;
+        }
+        case MessageTypes.permissionResponse: {
+          const response = message.payload as PermissionResponse;
+          this.settlePermissionWaiter(requestId, response);
           return;
         }
         default:

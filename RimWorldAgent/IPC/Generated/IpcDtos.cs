@@ -25,6 +25,8 @@ namespace RimWorldAgent.IPC.Generated
         public const string CloseResponse = "close_response";
         public const string Event = "event";
         public const string Error = "error";
+        public const string PermissionRequest = "permission_request";
+        public const string PermissionResponse = "permission_response";
     }
 
     public sealed class IpcEnvelope
@@ -186,6 +188,18 @@ namespace RimWorldAgent.IPC.Generated
         public bool Closed { get; set; }
     }
 
+    public sealed class PermissionRequest
+    {
+        [JsonPropertyName("params")]
+        public JsonElement Params { get; set; }
+    }
+
+    public sealed class PermissionResponse
+    {
+        [JsonPropertyName("outcome")]
+        public JsonElement Outcome { get; set; }
+    }
+
     public sealed class ErrorResponse
     {
         [JsonPropertyName("code")]
@@ -211,9 +225,6 @@ namespace RimWorldAgent.IPC.Generated
 
         [JsonPropertyName("toolCallId")]
         public string? ToolCallId { get; set; }
-
-        [JsonPropertyName("toolName")]
-        public string? ToolName { get; set; }
 
         [JsonPropertyName("title")]
         public string? Title { get; set; }
