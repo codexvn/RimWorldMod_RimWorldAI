@@ -107,9 +107,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                     socket.Send(UiMessage.BudgetStatus(
                         TokenUsageTracker.TotalAllTokens, BudgetLimit, "Idle",
                         TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens,
-                        TokenUsageTracker.TotalCacheCreateTokens, TokenUsageTracker.CurrentContextWindow,
-                        TokenUsageTracker.CurrentInputTokens,
-                        TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens).ToJson());
+                         TokenUsageTracker.TotalCacheCreateTokens, TokenUsageTracker.CurrentContextWindow,
+                         TokenUsageTracker.CurrentInputTokens,
+                         TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens,
+                         TokenUsageTracker.CurrentContextUsedTokens).ToJson());
                 }
                 catch (Exception ex) { CoreLog.Warn($"[AgentLoop] 推送 budget_status 失败: {ex.GetType().Name}: {ex.Message}"); }
                 try
@@ -119,10 +120,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                 catch (Exception ex) { CoreLog.Warn($"[AgentLoop] 推送 compaction-status 失败: {ex.GetType().Name}: {ex.Message}"); }
                 try
                 {
-                    if (UIMessageBus.LastSystemInit != null)
-                        socket.Send(UIMessageBus.LastSystemInit.ToJson());
+                    if (UIMessageBus.LastSessionInit != null)
+                        socket.Send(UIMessageBus.LastSessionInit.ToJson());
                 }
-                catch (Exception ex) { CoreLog.Warn($"[AgentLoop] 推送 system_init 失败: {ex.GetType().Name}: {ex.Message}"); }
+                catch (Exception ex) { CoreLog.Warn($"[AgentLoop] 推送 session_init 失败: {ex.GetType().Name}: {ex.Message}"); }
                 // 新客户端 → 推送当前任务列表
                 UIMessageBus.PushSdkTasks();
             };
@@ -212,8 +213,9 @@ namespace RimWorldAgent.Core.AgentRuntime
                 UIMessageBus.PushUiMessage(UiMessage.BudgetStatus(
                     TokenUsageTracker.TotalAllTokens, BudgetLimit, "Block",
                     TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens, TokenUsageTracker.TotalCacheCreateTokens,
-                    0, TokenUsageTracker.CurrentInputTokens,
-                    TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens));
+                    TokenUsageTracker.CurrentContextWindow, TokenUsageTracker.CurrentInputTokens,
+                    TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens,
+                    TokenUsageTracker.CurrentContextUsedTokens));
             };
 
             // 初始推送：budget 起始状态
@@ -277,7 +279,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                 db.TotalAllTokens, BudgetLimit, "Idle",
                 db.TotalCacheReadTokens, db.TotalInputTokens,
                 db.TotalCacheCreateTokens, 0, TokenUsageTracker.CurrentInputTokens,
-                TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens));
+                TokenUsageTracker.CurrentCacheReadTokens, TokenUsageTracker.CurrentCacheCreateTokens,
+                TokenUsageTracker.CurrentContextUsedTokens));
         }
 
         private static string FormatExceptionChain(Exception ex)

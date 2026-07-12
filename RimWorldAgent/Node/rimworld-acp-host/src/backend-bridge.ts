@@ -147,7 +147,6 @@ export class BackendBridge {
       cwd: this.config.cwd,
       additionalDirectories: this.config.additionalDirectories,
       mcpServers: this.toAcpMcpServers(),
-      _meta: this.createSessionMeta(),
     }) as unknown as { sessionId?: string; configOptions?: SessionConfigOption[] | null };
     this.currentSessionId = String(response.sessionId ?? sessionId);
     trace(`ACP session/resume receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
@@ -161,7 +160,6 @@ export class BackendBridge {
       cwd: this.config.cwd,
       additionalDirectories: this.config.additionalDirectories,
       mcpServers: this.toAcpMcpServers(),
-      _meta: this.createSessionMeta(),
     }) as unknown as { sessionId?: string; configOptions?: SessionConfigOption[] | null };
     this.currentSessionId = String(response.sessionId ?? sessionId);
     trace(`ACP session/load receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
@@ -316,15 +314,7 @@ export class BackendBridge {
       cwd: this.config.cwd,
       additionalDirectories: this.config.additionalDirectories,
       mcpServers: this.toAcpMcpServers(),
-      _meta: this.createSessionMeta(),
     };
-  }
-
-  private createSessionMeta(): Record<string, unknown> {
-    const meta: Record<string, unknown> = {
-      systemPrompt: { append: this.config.prompt.systemPrompt },
-    };
-    return meta;
   }
 
   private toAcpMcpServers(): any[] {
@@ -343,12 +333,13 @@ export class BackendBridge {
       case "user_message_chunk":
         return { kind: "user_message", sessionId, messageId: update.messageId, text: update.content?.text ?? "" };
       case "tool_call":
-        // Node 只桥接 ACP 原始字段 title/rawInput/toolKind（名称解析在 C#）
+        // Node 只桥接 ACP 原始字段（名称解析在 C#）
         return {
           kind: "tool_call", sessionId, toolCallId: String(update.toolCallId ?? ""),
           title: update.title,
           toolKind: typeof update.kind === "string" ? update.kind : undefined,
           status: String(update.status ?? "pending"),
+          ...(update.content !== undefined ? { content: update.content } : {}),
           rawInput: update.rawInput,
           rawOutput: update.rawOutput,
         };
@@ -358,12 +349,13 @@ export class BackendBridge {
           title: update.title,
           toolKind: typeof update.kind === "string" ? update.kind : undefined,
           status: String(update.status ?? "pending"),
+          ...(update.content !== undefined ? { content: update.content } : {}),
           rawInput: update.rawInput,
           rawOutput: update.rawOutput,
         };
       case "usage_update":
         return {
-          kind: "usage", sessionId, inputTokens: update.used ?? update.inputTokens,
+          kind: "usage", sessionId, inputTokens: update.inputTokens,
           cacheReadTokens: update.cachedReadTokens, cacheCreateTokens: update.cachedWriteTokens,
           usedTokens: update.used, sizeTokens: update.size, contextWindow: update.size,
         };

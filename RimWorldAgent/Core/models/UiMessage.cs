@@ -13,21 +13,18 @@ namespace RimWorldAgent.Core
         public static UiTextDelta TextDelta(string text) => new UiTextDelta(text);
         public static UiThinkingDelta ThinkingDelta(string thinking) => new UiThinkingDelta(thinking);
         public static UiTextBlock TextBlock(string text) => new UiTextBlock(text);
-        public static UiToolCall ToolCall(string id, string name, string input, string? title = null, string? toolKind = null)
-            => new UiToolCall(id, name, input, title, toolKind);
+        public static UiToolCall ToolCall(string id, string name, string input, string? title = null, string? toolKind = null, string? content = null)
+            => new UiToolCall(id, name, input, title, toolKind, content);
         public static UiToolResult ToolResult(string id, bool isError, double durationMs, string? content = null) => new UiToolResult(id, isError, durationMs, content);
         public static UiResult Result(string subtype, string? stopReason) => new UiResult(subtype, stopReason ?? "");
         public static UiAborted Aborted() => new UiAborted();
-        public static UiSystemInit SystemInit(string? model, string? sessionId, string? claudeCodeVersion = null,
-            string? permissionMode = null, List<UiMcpServerRef>? mcpServers = null,
-            List<string>? tools = null, List<string>? skills = null)
-            => new UiSystemInit(model, sessionId, claudeCodeVersion, permissionMode,
-                mcpServers ?? new List<UiMcpServerRef>(), tools ?? new List<string>(), skills ?? new List<string>());
+        public static UiSessionInit SessionInit(string? sessionId, List<string>? sessionConfigSummary = null)
+            => new UiSessionInit(sessionId, sessionConfigSummary ?? new List<string>());
         public static UiError Error(string error) => new UiError(error);
         public static UiUser User(string text) => new UiUser(text);
         public static UiSystem System(string text) => new UiSystem(text);
-        public static UiBudgetStatus BudgetStatus(long used, long limit, string action, long cacheRead, long totalInput, long cacheCreate, long contextWindow = 0, long inputTokens = 0, long currentCacheRead = 0, long currentCacheCreate = 0)
-            => new UiBudgetStatus(used, limit, action, cacheRead, totalInput, cacheCreate, contextWindow, inputTokens, currentCacheRead, currentCacheCreate);
+        public static UiBudgetStatus BudgetStatus(long used, long limit, string action, long cacheRead, long totalInput, long cacheCreate, long contextWindow = 0, long inputTokens = 0, long currentCacheRead = 0, long currentCacheCreate = 0, long contextUsed = 0)
+            => new UiBudgetStatus(used, limit, action, cacheRead, totalInput, cacheCreate, contextWindow, inputTokens, currentCacheRead, currentCacheCreate, contextUsed);
         public static UiAgentStatus AgentStatus(string role) => new UiAgentStatus(role);
         public static UiCompactionStatus CompactionStatus(bool active) => new UiCompactionStatus(active);
     }
@@ -63,8 +60,9 @@ namespace RimWorldAgent.Core
         public string input { get; }
         public string? title { get; }
         public string? tool_kind { get; }
-        public UiToolCall(string id, string name, string input, string? title = null, string? toolKind = null)
-        { this.id = id; this.name = name; this.input = input; this.title = title; this.tool_kind = toolKind; }
+        public string? content { get; }
+        public UiToolCall(string id, string name, string input, string? title = null, string? toolKind = null, string? content = null)
+        { this.id = id; this.name = name; this.input = input; this.title = title; this.tool_kind = toolKind; this.content = content; }
     }
 
     public class UiToolResult : UiMessage
@@ -89,29 +87,13 @@ namespace RimWorldAgent.Core
 
     public class UiAborted : UiMessage { public string type => "aborted"; }
 
-    public class UiSystemInit : UiMessage
+    public class UiSessionInit : UiMessage
     {
-        public string type => "system_init";
-        public string? model { get; }
+        public string type => "session_init";
         public string? session_id { get; }
-        public string? claude_code_version { get; }
-        public string? permissionMode { get; }
-        public List<UiMcpServerRef> mcp_servers { get; }
-        public List<string> tools { get; }
-        public List<string> skills { get; }
-        public UiSystemInit(string? model, string? sessionId, string? claudeCodeVersion, string? permissionMode,
-            List<UiMcpServerRef> mcpServers, List<string> tools, List<string> skills)
-        { this.model = model; this.session_id = sessionId; this.claude_code_version = claudeCodeVersion;
-          this.permissionMode = permissionMode;
-          this.mcp_servers = mcpServers; this.tools = tools; this.skills = skills; }
-    }
-
-    /// <summary>MCP 服务器引用（system_init 中 mcp_servers 数组元素）</summary>
-    public class UiMcpServerRef
-    {
-        public string name { get; }
-        public string status { get; }
-        public UiMcpServerRef(string name, string status) { this.name = name; this.status = status; }
+        public List<string> session_config_summary { get; }
+        public UiSessionInit(string? sessionId, List<string> sessionConfigSummary)
+        { this.session_id = sessionId; this.session_config_summary = sessionConfigSummary; }
     }
 
     public class UiError : UiMessage
@@ -148,8 +130,9 @@ namespace RimWorldAgent.Core
         public long inputTokens { get; }
         public long currentCacheRead { get; }
         public long currentCacheCreate { get; }
-        public UiBudgetStatus(long used, long limit, string action, long cacheRead, long totalInput, long cacheCreate, long contextWindow = 0, long inputTokens = 0, long currentCacheRead = 0, long currentCacheCreate = 0)
-        { this.used = used; this.limit = limit; this.action = action; this.cacheRead = cacheRead; this.totalInput = totalInput; this.cacheCreate = cacheCreate; this.contextWindow = contextWindow; this.inputTokens = inputTokens; this.currentCacheRead = currentCacheRead; this.currentCacheCreate = currentCacheCreate; }
+        public long contextUsed { get; }
+        public UiBudgetStatus(long used, long limit, string action, long cacheRead, long totalInput, long cacheCreate, long contextWindow = 0, long inputTokens = 0, long currentCacheRead = 0, long currentCacheCreate = 0, long contextUsed = 0)
+        { this.used = used; this.limit = limit; this.action = action; this.cacheRead = cacheRead; this.totalInput = totalInput; this.cacheCreate = cacheCreate; this.contextWindow = contextWindow; this.inputTokens = inputTokens; this.currentCacheRead = currentCacheRead; this.currentCacheCreate = currentCacheCreate; this.contextUsed = contextUsed; }
     }
 
     public class UiAgentStatus : UiMessage

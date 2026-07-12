@@ -237,6 +237,7 @@
         "title": { "type": "string" },
         "toolKind": { "type": "string" },
         "status": { "type": "string" },
+        "content": {},
         "rawInput": {},
         "rawOutput": {},
         "isError": { "type": "boolean" },

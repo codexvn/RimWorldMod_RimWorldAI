@@ -249,14 +249,8 @@
         <button id="info-close" @click="info.show=false">&times;</button>
         <h2>SDK 信息</h2>
         <table class="info-table">
-          <tr><th>Model</th><td x-text="info.model || '-'"></td></tr>
-          <tr><th>Project</th><td></td></tr>
+          <tr><th>Config</th><td x-text="info.config || '-'"></td></tr>
           <tr><th>Session</th><td x-text="info.session || '-'"></td></tr>
-          <tr><th>Version</th><td x-text="info.version || '-'"></td></tr>
-          <tr><th>Permission</th><td x-text="info.permission || '-'"></td></tr>
-          <tr><th>MCP</th><td><div class="info-list"><template x-for="m in info.mcp" :key="m.name"><div><span x-text="m.name"></span> <span style="color:var(--green)" x-text="m.status"></span></div></template></div></td></tr>
-          <tr><th>Tools</th><td><div class="info-list"><template x-for="t in info.tools" :key="t"><div x-text="t"></div></template></div></td></tr>
-          <tr><th>Skills</th><td><div class="info-list"><template x-for="s in info.skills" :key="s"><div x-text="s"></div></template></div></td></tr>
         </table>
       </div>
     </div>
@@ -284,6 +278,12 @@
             <template x-if="!item.agentType">AGENT</template>
           </div>
           <div class="msg-body" x-show="item.agentType ? item.subOpen !== false : true" x-text="item.text"></div>
+        </div>
+
+        <!-- System -->
+        <div class="msg msg-agent" x-show="item.type === 'system'">
+          <div class="msg-label">SYSTEM</div>
+          <div class="msg-body" x-text="item.text"></div>
         </div>
 
         <!-- Thinking -->
@@ -437,8 +437,7 @@ function app() {
     // Info overlay
     info: {
       show: false,
-      model: '', session: '', version: '', permission: '',
-      colony: '--', mcp: [], tools: [], skills: []
+      config: '', session: '', colony: '--'
     },
 
     // Stats (sidebar)
@@ -672,6 +671,8 @@ function loadHistory() {
 function addHistoryItem(r, item) {
   if (item.type === 'user') {
     r.pushMsg({ key: 'u-' + item.id, type: 'user', text: item.text || (item.message ? (item.message.content || []).filter(function(c){return c.type==='text'}).map(function(c){return c.text}).join('\n') : '') });
+  } else if (item.type === 'system') {
+    r.pushMsg({ key: 's-' + item.id, type: 'system', text: item.text || '' });
   } else if (item.type === 'assistant') {
     var content = (item.message || {}).content || [];
     for (var c = 0; c < content.length; c++) {
@@ -733,14 +734,12 @@ function handleWS(msg, r) {
     case 'agent-status': r.agentRole = msg.role || '休眠中'; break;
     case 'budget_status': r.budgetHtml = buildBudgetHtml(msg); break;
     case 'sdk-tasks': r.tasks = msg.tasks || []; break;
-    case 'system_init':
-      r.info.model = msg.model || '';
+    case 'session_init':
+      r.info.config = (msg.session_config_summary || []).join(' · ');
       r.info.session = msg.session_id || '';
-      r.info.version = msg.claude_code_version || '';
-      r.info.permission = msg.permission_mode || '';
-      r.info.mcp = (msg.mcp_servers || []).map(function(s) { return { name: s.name, status: s.status }; });
-      r.info.tools = msg.tools || [];
-      r.info.skills = msg.skills || [];
+      break;
+    case 'system':
+      r.pushMsg({ key: 'sys-' + Date.now(), type: 'system', text: msg.text || '' });
       break;
     case 'error': r.pushMsg({ key: 'err-' + Date.now(), type: 'user', text: '⚠ ' + (msg.error || '') }); break;
     case 'user':
@@ -804,7 +803,12 @@ function buildBudgetHtml(data) {
   var limit = data.limit || 0, used = data.used || 0;
   var inputTokens = data.inputTokens || 0;
   var currentCacheRead = data.currentCacheRead || 0;
+  var contextWindow = data.contextWindow || 0;
+  var contextUsed = data.contextUsed || 0;
 
+  if (contextUsed > 0 && contextWindow > 0) {
+    parts.push('<span class="ctx-window">上下文 ' + fmt(contextUsed) + '/' + fmt(contextWindow) + '</span>');
+  }
   // 入 12K/13K(35%) — 非缓存 / 总输入(缓存命中率)
   var totalPerTurn = inputTokens + currentCacheRead;
   if (totalPerTurn > 0) {

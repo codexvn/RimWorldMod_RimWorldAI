@@ -22,8 +22,8 @@ namespace RimWorldAgent.Core
         public static bool IsRunning => _server != null;
         public static bool IsReady { get; set; }
 
-        /// <summary>最近一次 system_init 消息缓存（新客户端连接时重发）</summary>
-        public static UiSystemInit? LastSystemInit;
+        /// <summary>最近一次 session_init 消息缓存（新客户端连接时重发）</summary>
+        public static UiSessionInit? LastSessionInit;
 
         // ===== 上游：AgentCore → UIMessageBus → UI =====
 
@@ -32,7 +32,7 @@ namespace RimWorldAgent.Core
         {
             foreach (var msg in messages)
             {
-                if (msg is UiSystemInit si) LastSystemInit = si;
+                if (msg is UiSessionInit si) LastSessionInit = si;
                 var json = msg.ToJson();
                 foreach (var kv in _clients)
                 {
@@ -49,7 +49,7 @@ namespace RimWorldAgent.Core
         /// <summary>推送单个 UiMessage — 序列化 + WS 广播 + 本地回调</summary>
         public static void PushUiMessage(UiMessage msg)
         {
-            if (msg is UiSystemInit si) LastSystemInit = si;
+            if (msg is UiSessionInit si) LastSessionInit = si;
             var json = msg.ToJson();
             foreach (var kv in _clients)
             {

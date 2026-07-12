@@ -55,11 +55,20 @@ namespace RimWorldAgent.Core.Data
 
         private static object FormatEntry(ConversationEntry entry)
         {
+            if (entry.Role == ConvRole.System)
+            {
+                return new
+                {
+                    type = "system",
+                    id = entry.Id,
+                    text = entry.Text ?? ""
+                };
+            }
+
             var contentType = entry.Role switch
             {
                 ConvRole.User => "user",
                 ConvRole.Assistant => "assistant",
-                ConvRole.System => "assistant",
                 ConvRole.ToolCall => "tool_call",
                 ConvRole.ToolResult => "tool_result",
                 _ => "assistant"

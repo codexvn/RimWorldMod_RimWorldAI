@@ -17,6 +17,7 @@ namespace RimWorldAgent
         public string Name = "";
         public string Title = "";
         public string ToolKind = "";
+        public string Content = "";
         public string Meta = "";
         public string Result = "";
         public ToolStatus Status;
@@ -47,7 +48,7 @@ namespace RimWorldAgent
         public static BudgetStatus CurrentBudgetStatus = BudgetStatus.Ok;
         public static float CurrentBudgetPercent;
         public static string CurrentBudgetText = "";
-        public static string CurrentModel = "";
+        public static string CurrentSessionConfigSummary = "";
         public static string SessionId = "";
         public static string AgentStatus = "";
         public static bool CompactionActive;
@@ -150,7 +151,13 @@ namespace RimWorldAgent
                 }
                 else
                 {
-                    if (_deltaIsThinking) { _deltaIsThinking = false; _deltaAccum = ""; }
+                    if (_deltaIsThinking)
+                    {
+                        // thinking -> text 必须结束旧块，不能复用同一个 entry 并清空 ThinkingText。
+                        FinalizeStreamingLocked();
+                        _deltaIsThinking = false;
+                        _deltaAccum = "";
+                    }
                     _deltaAccum += text;
                     if (_streamingEntry == null || _streamingEntry.State != ChatState.Streaming)
                     {
@@ -181,7 +188,13 @@ namespace RimWorldAgent
                 }
                 else
                 {
-                    if (!_deltaIsThinking) { _deltaIsThinking = true; _deltaAccum = ""; }
+                    if (!_deltaIsThinking)
+                    {
+                        // text -> thinking 开始新的块，避免把新的思考内容追加到旧文本块。
+                        FinalizeStreamingLocked();
+                        _deltaIsThinking = true;
+                        _deltaAccum = "";
+                    }
                     _deltaAccum += thinking;
                     if (_streamingEntry == null || _streamingEntry.State != ChatState.Streaming)
                     {
@@ -209,6 +222,7 @@ namespace RimWorldAgent
         {
             lock (_lock) { FinalizeStreamingLocked(); }
             _deltaAccum = "";
+            _deltaIsThinking = false;
             OnChanged?.Invoke();
         }
 
@@ -226,12 +240,13 @@ namespace RimWorldAgent
                 }
             }
             _deltaAccum = "";
+            _deltaIsThinking = false;
             OnChanged?.Invoke();
         }
 
         // ===== 工具调用 =====
 
-        public static void AddToolCall(string toolId, string toolName, string meta, string title = "", string toolKind = "")
+        public static void AddToolCall(string toolId, string toolName, string meta, string title = "", string toolKind = "", string content = "")
         {
             lock (_lock)
             {
@@ -243,6 +258,7 @@ namespace RimWorldAgent
                         existing.Meta = meta;
                     if (!string.IsNullOrEmpty(title)) existing.Title = title;
                     if (!string.IsNullOrEmpty(toolKind)) existing.ToolKind = toolKind;
+                    if (!string.IsNullOrEmpty(content)) existing.Content = content;
                 }
                 else
                 {
@@ -252,6 +268,7 @@ namespace RimWorldAgent
                         Name = toolName,
                         Title = title,
                         ToolKind = toolKind,
+                        Content = content,
                         Meta = meta,
                         Status = ToolStatus.Running,
                     });
@@ -288,6 +305,7 @@ namespace RimWorldAgent
                 _streamingEntry = null;
             }
             _deltaAccum = "";
+            _deltaIsThinking = false;
             OnChanged?.Invoke();
         }
 
@@ -326,10 +344,13 @@ namespace RimWorldAgent
                         var toolName = root.TryGetProperty("name", out var tn) ? tn.GetString() ?? "" : "";
                         var toolTitle = root.TryGetProperty("title", out var tt) ? tt.GetString() ?? "" : "";
                         var toolKind = root.TryGetProperty("tool_kind", out var tk) ? tk.GetString() ?? "" : "";
+                        var toolContent = root.TryGetProperty("content", out var cnt)
+                            ? (cnt.ValueKind == JsonValueKind.String ? cnt.GetString() ?? "" : cnt.GetRawText())
+                            : "";
                         var toolInput = root.TryGetProperty("input", out var inp)
                             ? (inp.ValueKind == JsonValueKind.String ? inp.GetString() ?? "{}" : inp.GetRawText())
                             : "{}";
-                        EnqueueUiEvent(() => AddToolCall(toolId, toolName, toolInput, toolTitle, toolKind));
+                        EnqueueUiEvent(() => AddToolCall(toolId, toolName, toolInput, toolTitle, toolKind, toolContent));
                         break;
                     }
                     case "tool_result":
@@ -350,11 +371,19 @@ namespace RimWorldAgent
                     case "aborted":
                         EnqueueUiEvent(() => MarkLastAborted());
                         break;
-                    case "system_init":
+                    case "session_init":
                     {
-                        var m = root.TryGetProperty("model", out var mm) ? mm.GetString() : null;
-                        if (m != null) CurrentModel = m;
                         SessionId = root.TryGetProperty("session_id", out var sid) ? sid.GetString() ?? "" : "";
+                        CurrentSessionConfigSummary = "";
+                        if (root.TryGetProperty("session_config_summary", out var configSummary) &&
+                            configSummary.ValueKind == JsonValueKind.Array)
+                        {
+                            var values = configSummary.EnumerateArray()
+                                .Where(value => value.ValueKind == JsonValueKind.String)
+                                .Select(value => value.GetString() ?? "")
+                                .Where(value => !string.IsNullOrWhiteSpace(value));
+                            CurrentSessionConfigSummary = string.Join(" · ", values);
+                        }
                         break;
                     }
                     case "system":
@@ -389,7 +418,9 @@ namespace RimWorldAgent
                         var curCacheR = root.TryGetProperty("currentCacheRead", out var ccr) ? ccr.GetInt64() : 0;
                         var curCacheC = root.TryGetProperty("currentCacheCreate", out var ccc) ? ccc.GetInt64() : 0;
                         var totalIn = root.TryGetProperty("totalInput", out var ti) ? ti.GetInt64() : 0;
-                        EnqueueUiEvent(() => UpdateBudget(used, limit, inTok, curCacheR, curCacheC, totalIn));
+                        var contextWindow = root.TryGetProperty("contextWindow", out var cw) ? cw.GetInt64() : 0;
+                        var contextUsed = root.TryGetProperty("contextUsed", out var cu) ? cu.GetInt64() : 0;
+                        EnqueueUiEvent(() => UpdateBudget(used, limit, inTok, curCacheR, curCacheC, totalIn, contextWindow, contextUsed));
                         break;
                     }
                     case "agent-status":
@@ -433,16 +464,20 @@ namespace RimWorldAgent
             }
         }
 
-        private static void UpdateBudget(long used, long limit, long inputTokens, long currentCacheRead, long currentCacheCreate, long totalInput)
+        private static void UpdateBudget(long used, long limit, long inputTokens, long currentCacheRead, long currentCacheCreate, long totalInput, long contextWindow, long contextUsed)
         {
             static string Fmt(long v) => v >= 1_000_000 ? $"{v / 1_000_000f:F1}M" : v >= 1000 ? $"{v / 1000f:F0}K" : v.ToString();
 
             var parts = new System.Text.StringBuilder();
 
+            if (contextUsed > 0 && contextWindow > 0)
+                parts.Append($"上下文 {Fmt(contextUsed)}/{Fmt(contextWindow)}");
+
             // 入 12K/13K(35%) — 非缓存 / 总输入(缓存命中率)
             var totalPerTurn = inputTokens + currentCacheRead;
             if (totalPerTurn > 0)
             {
+                if (parts.Length > 0) parts.Append("    ");
                 var hitRate = (double)currentCacheRead / totalPerTurn * 100.0;
                 parts.Append($"入 {Fmt(inputTokens)}/{Fmt(totalPerTurn)}({hitRate:F0}%)");
             }

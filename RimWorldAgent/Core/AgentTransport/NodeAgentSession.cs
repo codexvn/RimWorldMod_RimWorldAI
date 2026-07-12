@@ -20,6 +20,9 @@ namespace RimWorldAgent.Core.AgentTransport
         private readonly Action<string> _logWarn;
         private readonly Action<string> _logError;
         private readonly NodeRuntimeEventProjector _projector;
+        private string _systemPrompt = "";
+        private bool _systemPromptPending;
+        private bool _systemPromptUiShown;
         private bool _initialized;
         private bool _disposed;
 
@@ -59,11 +62,15 @@ namespace RimWorldAgent.Core.AgentTransport
         {
             if (_initialized) return;
             _host.Start();
+            var runtimeConfig = BuildRuntimeConfig();
+            _systemPrompt = runtimeConfig.Prompt.SystemPrompt;
+            _systemPromptPending = !string.IsNullOrWhiteSpace(_systemPrompt);
+            _systemPromptUiShown = false;
             var response = await _host.SendAsync(IpcMessageTypes.Initialize,
                 new InitializeRequest
                 {
                     HostVersion = typeof(NodeAgentSession).Assembly.GetName().Version?.ToString() ?? "0.0.0",
-                    Config = BuildRuntimeConfig()
+                    Config = runtimeConfig
                 }, cancellationToken);
             EnsureSuccess(response);
             var init = IpcJsonCompat.DeserializePayload<InitializeResponse>(response);
@@ -81,6 +88,8 @@ namespace RimWorldAgent.Core.AgentTransport
             var session = IpcJsonCompat.DeserializePayload<SessionResponse>(response);
             SetSessionId(session.SessionId);
             CaptureConfigOptions(session.ConfigOptions);
+            _systemPromptPending = !string.IsNullOrWhiteSpace(_systemPrompt);
+            _systemPromptUiShown = false;
             await ApplySavedSessionConfigAsync(cancellationToken);
         }
 
@@ -131,6 +140,8 @@ namespace RimWorldAgent.Core.AgentTransport
             var session = IpcJsonCompat.DeserializePayload<SessionResponse>(response);
             SetSessionId(session.SessionId);
             CaptureConfigOptions(session.ConfigOptions);
+            _systemPromptPending = !string.IsNullOrWhiteSpace(_systemPrompt);
+            _systemPromptUiShown = false;
         }
 
         public async Task LoadAsync(string sessionId, CancellationToken cancellationToken)
@@ -142,6 +153,8 @@ namespace RimWorldAgent.Core.AgentTransport
             var session = IpcJsonCompat.DeserializePayload<SessionResponse>(response);
             SetSessionId(session.SessionId);
             CaptureConfigOptions(session.ConfigOptions);
+            _systemPromptPending = !string.IsNullOrWhiteSpace(_systemPrompt);
+            _systemPromptUiShown = false;
         }
 
         public async Task SetConfigOptionAsync(string configId, string type, string value, CancellationToken cancellationToken)
@@ -171,9 +184,18 @@ namespace RimWorldAgent.Core.AgentTransport
             if (string.IsNullOrWhiteSpace(SessionId))
                 throw new InvalidOperationException("Node ACP session is not ready.");
             var started = DateTime.UtcNow;
+            var promptToSend = _systemPromptPending
+                ? BuildInitialPrompt(_systemPrompt, prompt)
+                : prompt;
+            if (_systemPromptPending && !_systemPromptUiShown)
+            {
+                UIMessageBus.PushUiMessage(UiMessage.System("## 系统指令\n\n" + _systemPrompt));
+                _systemPromptUiShown = true;
+            }
             var response = await _host.SendAsync(IpcMessageTypes.Prompt,
-                new PromptRequest { SessionId = SessionId!, Prompt = prompt }, cancellationToken);
+                new PromptRequest { SessionId = SessionId!, Prompt = promptToSend }, cancellationToken);
             EnsureSuccess(response);
+            _systemPromptPending = false;
             var result = IpcJsonCompat.DeserializePayload<PromptResponse>(response);
             _projector.ProjectPromptResponse(result, (long)(DateTime.UtcNow - started).TotalMilliseconds);
         }
@@ -386,6 +408,7 @@ namespace RimWorldAgent.Core.AgentTransport
             SessionId = sessionId;
             AgentLoop.AgentSessionId = sessionId;
             AgentLoop.RaiseSessionIdChanged(sessionId);
+            TokenUsageTracker.CurrentContextUsedTokens = 0;
             _logInfo("[NodeACP] sessionId received: " + sessionId);
         }
 
@@ -394,6 +417,56 @@ namespace RimWorldAgent.Core.AgentTransport
             _lastConfigOptions = options == null
                 ? new List<SessionConfigOptionDto>()
                 : new List<SessionConfigOptionDto>(options);
+            var modelOption = _lastConfigOptions.FirstOrDefault(option =>
+                string.Equals(option.Id, "model", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(option.Category, "model", System.StringComparison.OrdinalIgnoreCase));
+            var model = modelOption == null ? null : JsonElementToString(modelOption.CurrentValue);
+            if (!string.IsNullOrWhiteSpace(model)) _projector.SetCurrentModelId(model);
+            _projector.SetSessionConfigSummary(BuildSessionConfigSummaryItems(_lastConfigOptions));
+            if (!string.IsNullOrWhiteSpace(SessionId)) _projector.PublishSessionInfo(SessionId!);
+        }
+
+        private static List<string> BuildSessionConfigSummaryItems(IReadOnlyList<SessionConfigOptionDto> options)
+        {
+            var values = new List<string>();
+            foreach (var option in options)
+            {
+                var value = JsonElementToString(option.CurrentValue);
+                if (string.IsNullOrWhiteSpace(value)) continue;
+
+                if (string.Equals(option.Type, "boolean", System.StringComparison.OrdinalIgnoreCase) &&
+                    bool.TryParse(value, out var enabled))
+                {
+                    value = enabled ? "启用" : "禁用";
+                }
+                else if (AcpSessionConfig.TryGetSelectValues(option, out var selectValues))
+                {
+                    foreach (var candidate in selectValues)
+                    {
+                        if (!string.Equals(candidate.Value, value, System.StringComparison.Ordinal)) continue;
+                        if (!string.IsNullOrWhiteSpace(candidate.Name)) value = candidate.Name;
+                        break;
+                    }
+                }
+                var displayName = string.IsNullOrWhiteSpace(option.Name) ? option.Id : option.Name.Trim();
+                values.Add(string.IsNullOrWhiteSpace(displayName)
+                    ? value!
+                    : displayName + ": " + value);
+            }
+            return values;
+        }
+
+        private static string? JsonElementToString(JsonElement? value)
+        {
+            if (!value.HasValue || value.Value.ValueKind == JsonValueKind.Null) return null;
+            return value.Value.ValueKind == JsonValueKind.String
+                ? value.Value.GetString()
+                : value.Value.ToString();
+        }
+
+        private static string BuildInitialPrompt(string systemPrompt, string userPrompt)
+        {
+            return $"## 系统指令\n\n{systemPrompt}\n\n## 当前用户请求\n\n{userPrompt}";
         }
 
         private void RaiseToolUse(string id, string name, string input)

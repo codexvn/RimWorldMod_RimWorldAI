@@ -135,6 +135,7 @@ export interface AgentEvent {
   title?: string;
   toolKind?: string;
   status?: string;
+  content?: unknown;
   rawInput?: unknown;
   rawOutput?: unknown;
   isError?: boolean;

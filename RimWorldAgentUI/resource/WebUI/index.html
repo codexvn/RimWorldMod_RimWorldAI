@@ -677,14 +677,8 @@
       <button id="info-close">&times;</button>
       <h2>SDK 信息</h2>
       <table class="info-table">
-        <tr><th>Model</th><td><span id="info-model"></span></td></tr>
-        <tr><th>Project</th><td></td></tr>
+        <tr><th>Config</th><td><span id="info-config">-</span></td></tr>
         <tr><th>Session</th><td><span id="info-session">-</span></td></tr>
-        <tr><th>Version</th><td><span id="info-version">-</span></td></tr>
-        <tr><th>Permission</th><td><span id="info-permission">-</span></td></tr>
-        <tr><th>MCP</th><td><div class="info-list" id="info-mcp">-</div></td></tr>
-        <tr><th>Tools</th><td><div class="info-list" id="info-tools">-</div></td></tr>
-        <tr><th>Skills</th><td><div class="info-list" id="info-skills">-</div></td></tr>
       </table>
     </div>
   </div>
@@ -982,9 +976,13 @@
     var currentCacheRead = data.currentCacheRead || 0;
     var currentCacheCreate = data.currentCacheCreate || 0;
     var totalInput = data.totalInput || 0;
+    var contextWindow = data.contextWindow || 0;
+    var contextUsed = data.contextUsed || 0;
     var fmt = function(v) { return v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : String(v); };
 
     var parts = [];
+    if (contextUsed > 0 && contextWindow > 0)
+      parts.push('<span class="ctx-window">上下文 ' + fmt(contextUsed) + '/' + fmt(contextWindow) + '</span>');
     // 入 12K/13K(35%) — 非缓存 / 总输入(缓存命中率)
     var totalPerTurn = inputTokens + currentCacheRead;
     if (totalPerTurn > 0) {
@@ -1032,6 +1030,8 @@
         if (m.type === 'assistant' || m.type === 'user') {
           if (m.uuid) seenUuids[m.uuid] = true;
           addMsgSimple(m);
+        } else if (m.type === 'system') {
+          makeSystemPanel(m.text || '');
         } else if (m.type === 'tool_call') {
           toolCount++; updateToolCount();
           makeToolUsePanel(m.name, m.input, m.id);
@@ -1064,6 +1064,8 @@
         if (bm.type === 'assistant' || bm.type === 'user') {
           if (bm.uuid) seenUuids[bm.uuid] = true;
           addMsgSimple(bm);
+        } else if (bm.type === 'system') {
+          makeSystemPanel(bm.text || '');
         } else if (bm.type === 'tool_call') {
           toolCount++; updateToolCount();
           makeToolUsePanel(bm.name, bm.input, bm.id);
@@ -1105,8 +1107,12 @@
         renderSdkTasks();
         break;
 
-      case 'system_init':
+      case 'session_init':
         updateSdkInfo(msg);
+        break;
+
+      case 'system':
+        makeSystemPanel(msg.text || '');
         break;
 
       case 'error':
@@ -1197,28 +1203,9 @@
 
   function updateSdkInfo(msg) {
     var el;
-    el = document.getElementById('info-model'); if (el) el.textContent = msg.model || '?';
-    el = document.getElementById('info-version'); if (el) el.textContent = msg.claude_code_version || '?';
+    var configSummary = msg.session_config_summary || [];
+    el = document.getElementById('info-config'); if (el) el.textContent = configSummary.join(' · ') || '?';
     el = document.getElementById('info-session'); if (el) el.textContent = msg.session_id || '?';
-    el = document.getElementById('info-permission'); if (el) el.textContent = msg.permissionMode || '?';
-    el = document.getElementById('info-mcp'); if (el) {
-      var mcps = msg.mcp_servers || [];
-      el.innerHTML = mcps.length
-        ? mcps.map(function(s) { return '<div>' + esc(s.name) + ' <span style="color:var(--green)">' + esc(s.status) + '</span></div>'; }).join('')
-        : '-';
-    }
-    el = document.getElementById('info-tools'); if (el) {
-      var tools = msg.tools || [];
-      el.innerHTML = tools.length
-        ? tools.map(function(t) { return '<div>' + esc(t) + '</div>'; }).join('')
-        : '-';
-    }
-    el = document.getElementById('info-skills'); if (el) {
-      var skills = msg.skills || [];
-      el.innerHTML = skills.length
-        ? skills.map(function(s) { return '<div>' + esc(s) + '</div>'; }).join('')
-        : '-';
-    }
   }
 
   // ===== Panel builders =====
@@ -1281,6 +1268,13 @@
       messagesEl.appendChild(panel);
     }
     scrollDeferred();
+    return panel;
+  }
+
+  function makeSystemPanel(text) {
+    var panel = makeAgentPanel(text, '');
+    panel.classList.add('msg-system');
+    panel.querySelector('.msg-label').textContent = 'SYSTEM';
     return panel;
   }
 

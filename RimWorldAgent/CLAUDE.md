@@ -101,7 +101,7 @@ AgentRuntimeConfig
 
 - `Prompt.md` 是稳定约束的默认来源，C# 启动时读取并替换 `{projectPath}` / `{skillsTable}`。
 - Prompt 通过 IPC `AgentRuntimeConfig.prompt` 发送给 Node。
-- Node 通过 ACP session `_meta` 传递给 backend。
+- 为兼容不支持 `_meta.systemPrompt` 扩展的 ACP 后端，每个 ACP session 的首次 `session/prompt` 会前置发送一次 Prompt；后续 prompt 只发送动态用户消息和世界状态。
 - Prompt 缺失或为空时 fail closed，不启动 Agent session。
 - 每轮 `prompt` 只发送动态用户消息和世界状态，不重复发送系统约束。
 

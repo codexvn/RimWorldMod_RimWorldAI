@@ -80,9 +80,6 @@ namespace RimWorldAgent.Core.AgentRuntime
         private ContextBuilder? _ctx;
         private string _gameSessionId = "";
         private bool _initialized;
-        private int _lastStatusCheckTick;
-        private int _pauseStartMs;
-        private int _lastPauseRemindMs;
         private SimpleMspServer.McpServiceHost? _agentHost;
         private bool _initializing;
         private bool _disposed;
@@ -386,31 +383,6 @@ namespace RimWorldAgent.Core.AgentRuntime
                     _logInfo("[AgentEngine] 游戏尚未就绪，等待...");
                 }
                 catch (Exception ex) { _logInfo($"[AgentEngine] 冷启动检测失败: {FormatExceptionChain(ex)}"); }
-            }
-
-            // 定期状态检测（每 120 tick ≈ 2s，仅 Agent 空闲时）
-            if (!AgentOrchestrator.IsRunning && currentTick - _lastStatusCheckTick >= 120)
-            {
-                _lastStatusCheckTick = currentTick;
-
-                // 暂停过久提醒
-                if (_gameState.IsPaused)
-                {
-                    int nowMs = Environment.TickCount;
-                    if (_pauseStartMs == 0) _pauseStartMs = nowMs;
-                    int elapsed = unchecked(nowMs - _pauseStartMs);
-                    if (_lastPauseRemindMs == 0 && elapsed >= 30000)
-                    {
-                        _lastPauseRemindMs = nowMs;
-                        UIMessageBus.PushUiMessage(UiMessage.System($"游戏已暂停 {elapsed / 1000} 秒，请检查是否需要继续。"));
-                    }
-                    else if (_lastPauseRemindMs > 0 && unchecked(nowMs - _lastPauseRemindMs) >= 60000)
-                    {
-                        _lastPauseRemindMs = nowMs;
-                        UIMessageBus.PushUiMessage(UiMessage.System($"游戏仍在暂停中 (共 {elapsed / 1000} 秒)。"));
-                    }
-                }
-                else { _pauseStartMs = 0; _lastPauseRemindMs = 0; }
             }
 
             // 优先级 1: 中断请求 + Agent 运行中 → 等待 AgentLoop 中 Cancel 处理

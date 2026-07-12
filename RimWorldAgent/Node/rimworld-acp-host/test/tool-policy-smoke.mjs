@@ -18,7 +18,6 @@ function createConfig() {
 }
 
 const bridge = new BackendBridge(createConfig());
-assert.deepEqual(bridge.createSessionMeta(), { systemPrompt: { append: "system" } });
 assert.deepEqual(bridge.toAcpMcpServers(), [
   { type: "http", name: "agent", url: "http://localhost:9878/mcp", headers: [] },
 ]);

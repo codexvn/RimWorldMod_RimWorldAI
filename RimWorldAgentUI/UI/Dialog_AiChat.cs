@@ -275,23 +275,21 @@ namespace RimWorldAgent
             }
             catch (Exception ex) { Log.Warning($"[AiChat] 读取日期信息失败: {ex.Message}"); }
 
-            string model = ChatDisplayState.CurrentModel;
-            if (!string.IsNullOrEmpty(model))
-            {
-                int slash = model.LastIndexOf('/');
-                if (slash >= 0) model = model.Substring(slash + 1);
-            }
-            string header = $"{colony}{dayInfo}{(string.IsNullOrEmpty(model) ? "" : $" -- {model}")}";
+            string configText = ChatDisplayState.CurrentSessionConfigSummary;
             Text.Font = GameFont.Tiny;
-            GUI.color = new Color(0.55f, 0.55f, 0.55f, _alpha);
-            Widgets.Label(new Rect(rect.x, rect.y + 2f, rect.width * 0.55f, rect.height - 2f), header);
-            GUI.color = Color.white;
-
-            // Token 消耗右对齐
             string tokenText = ChatDisplayState.CurrentBudgetText;
             if (string.IsNullOrEmpty(tokenText))
                 tokenText = "Token: --";
             float tokenW = Text.CalcSize(tokenText).x;
+            string prefix = $"{colony}{dayInfo}{(string.IsNullOrEmpty(configText) ? "" : " -- ")}";
+            float availableConfigW = Mathf.Max(0f, rect.width - tokenW - Text.CalcSize(prefix).x - 16f);
+            configText = TruncateToWidth(configText, availableConfigW);
+            string header = prefix + configText;
+            GUI.color = new Color(0.55f, 0.55f, 0.55f, _alpha);
+            Widgets.Label(new Rect(rect.x, rect.y + 2f, Mathf.Max(0f, rect.width - tokenW - 8f), rect.height - 2f), header);
+            GUI.color = Color.white;
+
+            // Token 消耗右对齐
             Text.Font = GameFont.Tiny;
             GUI.color = new Color(0.5f, 0.55f, 0.65f, _alpha);
             Widgets.Label(new Rect(rect.xMax - tokenW - 4f, rect.y + 2f, tokenW, rect.height - 2f), tokenText);
@@ -565,13 +563,21 @@ namespace RimWorldAgent
         private static string BuildToolBody(ToolCallInfo tc)
         {
             var sections = new List<string>();
-            if (!string.IsNullOrEmpty(tc.ToolKind) && !string.Equals(tc.ToolKind, tc.Name, StringComparison.OrdinalIgnoreCase))
-                sections.Add($"类型: {tc.ToolKind}");
             if (!string.IsNullOrEmpty(tc.Title) && !string.Equals(tc.Title, tc.Name, StringComparison.Ordinal))
                 sections.Add($"说明: {tc.Title}");
             if (!string.IsNullOrEmpty(tc.Meta)) sections.Add($"输入: {tc.Meta}");
             if (!string.IsNullOrEmpty(tc.Result)) sections.Add($"输出: {tc.Result}");
             return string.Join("\n", sections);
+        }
+
+        private static string TruncateToWidth(string text, float maxWidth)
+        {
+            if (string.IsNullOrEmpty(text) || Text.CalcSize(text).x <= maxWidth) return text;
+            const string suffix = "...";
+            var result = text;
+            while (result.Length > 0 && Text.CalcSize(result + suffix).x > maxWidth)
+                result = result.Substring(0, result.Length - 1);
+            return result + suffix;
         }
 
         private static string FormatDuration(double ms)

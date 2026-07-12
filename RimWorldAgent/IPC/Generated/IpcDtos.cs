@@ -235,6 +235,9 @@ namespace RimWorldAgent.IPC.Generated
         [JsonPropertyName("status")]
         public string? Status { get; set; }
 
+        [JsonPropertyName("content")]
+        public JsonElement? Content { get; set; }
+
         [JsonPropertyName("rawInput")]
         public JsonElement? RawInput { get; set; }
 

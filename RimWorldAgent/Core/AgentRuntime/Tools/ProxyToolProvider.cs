@@ -388,7 +388,6 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             catch (Exception ex)
             {
-                if (isAdvance) AgentOrchestrator.IsAdvancing = false;
                 sw.Stop();
                 var innerMsg = ex.InnerException != null
                     ? $" | Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}" : "";
@@ -408,6 +407,10 @@ namespace RimWorldAgent.Core.AgentRuntime
                         new MspContentItem { Type = "text", Text = $"工具 {toolName} 执行失败: {ex.Message}{helpSuffix}" }
                     }
                 };
+            }
+            finally
+            {
+                if (isAdvance) AgentOrchestrator.IsAdvancing = false;
             }
         }
 

@@ -43,6 +43,8 @@ namespace RimWorldAgent
         public static long CurrentCacheReadTokens { get; set; }
         /// <summary>最近一次请求的缓存新建 token 数</summary>
         public static long CurrentCacheCreateTokens { get; set; }
+        /// <summary>当前上下文已使用 token 数（来自 ACP usage_update）</summary>
+        public static long CurrentContextUsedTokens { get; set; }
 
         public static void Record(string model, long inputTokens, long outputTokens,
             long cacheRead, long cacheCreate, long durationMs)

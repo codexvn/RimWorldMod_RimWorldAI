@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text.Json;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.IPC.Generated;
@@ -8,7 +9,7 @@ namespace RimWorldAgent.Core.AgentTransport
 {
     internal sealed class NodeRuntimeEventProjector
     {
-        private readonly string? _modelName;
+        private string? _currentModelId;
         private readonly string _toolNameJsonPath;
         private readonly Action<string> _logWarn;
         private readonly Action _onActivity;
@@ -19,10 +20,17 @@ namespace RimWorldAgent.Core.AgentTransport
         private readonly ConcurrentDictionary<string, long> _toolStartedTicks = new ConcurrentDictionary<string, long>();
         private readonly ConcurrentDictionary<string, string> _assistantChunks = new ConcurrentDictionary<string, string>();
         private readonly ConcurrentDictionary<string, string> _thoughtChunks = new ConcurrentDictionary<string, string>();
-        public NodeRuntimeEventProjector(string? modelName, string toolNameJsonPath, Action<string> logWarn, Action onActivity,
+        private string? _lastStreamMessageId;
+        private bool _lastStreamWasThinking;
+        private bool _hasStreamBlock;
+        private string _streamGeneration = Guid.NewGuid().ToString("N");
+        private string? _publishedSessionId;
+        private List<string> _sessionConfigSummary = new List<string>();
+        private string _publishedConfigSummary = "";
+        public NodeRuntimeEventProjector(string? fallbackModelId, string toolNameJsonPath, Action<string> logWarn, Action onActivity,
             Action<string, string?> onResult, Action<string, string, string> onToolUse, Action onAborted)
         {
-            _modelName = modelName;
+            _currentModelId = fallbackModelId;
             _toolNameJsonPath = string.IsNullOrWhiteSpace(toolNameJsonPath) ? "$.toolCall.title" : toolNameJsonPath.Trim();
             _logWarn = logWarn;
             _onActivity = onActivity;
@@ -31,18 +39,40 @@ namespace RimWorldAgent.Core.AgentTransport
             _onAborted = onAborted;
         }
 
+        public void SetCurrentModelId(string? modelId)
+        {
+            if (modelId != null && !string.IsNullOrWhiteSpace(modelId)) _currentModelId = modelId.Trim();
+        }
+
+        public void SetSessionConfigSummary(IReadOnlyList<string> summary)
+        {
+            _sessionConfigSummary = summary == null ? new List<string>() : new List<string>(summary);
+        }
+
+        public void PublishSessionInfo(string sessionId)
+        {
+            if (string.IsNullOrWhiteSpace(sessionId)) return;
+            var configSummary = string.Join(" · ", _sessionConfigSummary);
+            if (string.Equals(_publishedSessionId, sessionId, StringComparison.Ordinal) &&
+                string.Equals(_publishedConfigSummary, configSummary, StringComparison.Ordinal))
+                return;
+            _publishedSessionId = sessionId;
+            _publishedConfigSummary = configSummary;
+            Push(UiMessage.SessionInit(sessionId, _sessionConfigSummary));
+        }
+
         public void Project(AgentEvent evt)
         {
             _onActivity();
             try
             {
                 var sessionId = evt.SessionId;
-                if (!string.IsNullOrWhiteSpace(sessionId) && AgentLoop.AgentSessionId != sessionId)
+                if (!string.IsNullOrWhiteSpace(sessionId) && !string.Equals(_publishedSessionId, sessionId, StringComparison.Ordinal))
                 {
                     var safeSessionId = sessionId!;
                     AgentLoop.AgentSessionId = safeSessionId;
                     AgentLoop.RaiseSessionIdChanged(safeSessionId);
-                    Push(UiMessage.SystemInit(_modelName, safeSessionId, null, "acp"));
+                    PublishSessionInfo(safeSessionId);
                 }
 
                 switch (evt.Kind)
@@ -93,6 +123,7 @@ namespace RimWorldAgent.Core.AgentTransport
                 return;
             }
             Push(UiMessage.Result("success", stopReason));
+            ResetStreamBlock();
             _onResult("success", stopReason);
         }
 
@@ -108,19 +139,37 @@ namespace RimWorldAgent.Core.AgentTransport
             TokenUsageTracker.CurrentInputTokens = input;
             TokenUsageTracker.CurrentCacheReadTokens = cacheRead;
             TokenUsageTracker.CurrentCacheCreateTokens = cacheCreate;
-            TokenUsageTracker.Record(_modelName ?? "acp", input, output, cacheRead, cacheCreate, durationMs);
+            TokenUsageTracker.Record(_currentModelId ?? "acp", input, output, cacheRead, cacheCreate, durationMs);
         }
 
         public void ProjectCancelled()
         {
             Push(UiMessage.Aborted());
+            ResetStreamBlock();
             _onAborted();
         }
 
         private void ProjectText(string? messageId, string? text, ConcurrentDictionary<string, string> chunks, bool thinking)
         {
+            // WebUI 依赖空 delta 表示 content block start。ACP DTO 已携带 messageId，
+            // 这里将 messageId/内容类型变化转换成同样的 UiMessage 边界信号。
+            var key = string.IsNullOrEmpty(messageId)
+                ? (thinking ? "__acp_thinking__" : "__acp_text__") + _streamGeneration
+                : messageId!;
+            var explicitBlockStart = string.IsNullOrEmpty(text);
+            if (explicitBlockStart
+                || !_hasStreamBlock
+                || !string.Equals(_lastStreamMessageId, key, StringComparison.Ordinal)
+                || _lastStreamWasThinking != thinking)
+            {
+                if (thinking) Push(UiMessage.ThinkingDelta(""));
+                else Push(UiMessage.TextDelta(""));
+                _lastStreamMessageId = key;
+                _lastStreamWasThinking = thinking;
+                _hasStreamBlock = true;
+            }
+
             if (string.IsNullOrEmpty(text)) return;
-            var key = string.IsNullOrEmpty(messageId) ? Guid.NewGuid().ToString("N") : messageId!;
             chunks.AddOrUpdate(key, text!, (_, old) => old + text);
             if (thinking)
             {
@@ -134,19 +183,35 @@ namespace RimWorldAgent.Core.AgentTransport
             }
         }
 
+        private void ResetStreamBlock()
+        {
+            if (!string.IsNullOrEmpty(_lastStreamMessageId))
+            {
+                _assistantChunks.TryRemove(_lastStreamMessageId!, out _);
+                _thoughtChunks.TryRemove(_lastStreamMessageId!, out _);
+            }
+            _lastStreamMessageId = null;
+            _lastStreamWasThinking = false;
+            _hasStreamBlock = false;
+            _streamGeneration = Guid.NewGuid().ToString("N");
+        }
+
         private void ProjectTool(AgentEvent evt, bool update)
         {
             var id = evt.ToolCallId ?? Guid.NewGuid().ToString("N");
-            // 工具名解析在 C#：Node 只透传 title/rawInput/toolKind
+            if (!update)
+                ResetStreamBlock();
+            // 工具名解析在 C#：Node 只透传 ACP 字段
             var name = ResolveToolName(evt);
             var input = SerializeForUi(evt.RawInput);
             var status = evt.Status ?? "pending";
+            var content = SerializeToolContentForUi(evt.Content);
             if (update && (string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase) ||
                            string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase)))
             {
                 // 完成前若参数已补齐，仅更新 UI，不重复写入会话历史
                 if (!string.IsNullOrWhiteSpace(input) && input != "{}")
-                    Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
+                    Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind, content));
                 PushToolResult(id, string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase), SerializeForUi(evt.RawOutput));
                 return;
             }
@@ -155,7 +220,7 @@ namespace RimWorldAgent.Core.AgentTransport
             {
                 _toolStartedTicks[id] = DateTime.UtcNow.Ticks;
                 var permToolName = ExtractPermissionToolName(evt);
-                Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
+                Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind, content));
                 // 会话历史只录首次 tool_call，后续参数回填只刷新 UI
                 UIMessageBus.RaiseToolCallRecorded(id, name, input, permToolName);
                 _onToolUse(id, name, input);
@@ -163,8 +228,10 @@ namespace RimWorldAgent.Core.AgentTransport
             }
 
             // tool_update(pending/in_progress) 回填参数/名称到 UI（Claude 常先发空 rawInput）
-            if (update && ((!string.IsNullOrWhiteSpace(input) && input != "{}") || !string.IsNullOrWhiteSpace(name)))
-                Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind));
+            if (update && ((!string.IsNullOrWhiteSpace(input) && input != "{}") ||
+                           !string.IsNullOrWhiteSpace(name) ||
+                           !string.IsNullOrWhiteSpace(content)))
+                Push(UiMessage.ToolCall(id, name, input, evt.Title, evt.ToolKind, content));
         }
 
         /// <summary>
@@ -207,6 +274,21 @@ namespace RimWorldAgent.Core.AgentTransport
         private static string ResolveToolName(AgentEvent evt)
         {
             var action = TryGetRawInputString(evt.RawInput, "action");
+            if (string.Equals(action, "execute_tool", StringComparison.OrdinalIgnoreCase) &&
+                TryGetRawInputElement(evt.RawInput, "params", out var nestedParams))
+            {
+                var nestedTool = TryGetRawInputString(nestedParams, "tool") ??
+                                  TryGetRawInputString(nestedParams, "toolName") ??
+                                  TryGetRawInputString(nestedParams, "name");
+                if (!string.IsNullOrWhiteSpace(nestedTool))
+                {
+                    var nestedServer = TryGetRawInputString(nestedParams, "server");
+                    return string.IsNullOrWhiteSpace(nestedServer)
+                        ? nestedTool!
+                        : $"mcp.{nestedServer}.{nestedTool}";
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(action)) return action!;
 
             var tool = TryGetRawInputString(evt.RawInput, "tool");
@@ -221,9 +303,15 @@ namespace RimWorldAgent.Core.AgentTransport
 
         private static string? TryGetRawInputString(JsonElement? rawInput, string property)
         {
-            if (!rawInput.HasValue || rawInput.Value.ValueKind != JsonValueKind.Object) return null;
-            if (!rawInput.Value.TryGetProperty(property, out var el)) return null;
+            if (!TryGetRawInputElement(rawInput, property, out var el)) return null;
             return el.ValueKind == JsonValueKind.String ? el.GetString() : el.ToString();
+        }
+
+        private static bool TryGetRawInputElement(JsonElement? rawInput, string property, out JsonElement value)
+        {
+            value = default;
+            return rawInput.HasValue && rawInput.Value.ValueKind == JsonValueKind.Object &&
+                   rawInput.Value.TryGetProperty(property, out value);
         }
 
         private void PushToolResult(string id, bool isError, string content)
@@ -240,9 +328,10 @@ namespace RimWorldAgent.Core.AgentTransport
         private void ProjectUsage(AgentEvent evt)
         {
             TokenUsageTracker.CurrentContextWindow = evt.ContextWindow ?? evt.SizeTokens ?? 0;
-            TokenUsageTracker.CurrentInputTokens = evt.UsedTokens ?? evt.InputTokens ?? 0;
-            TokenUsageTracker.CurrentCacheReadTokens = evt.CacheReadTokens ?? 0;
-            TokenUsageTracker.CurrentCacheCreateTokens = evt.CacheCreateTokens ?? 0;
+            if (evt.UsedTokens.HasValue) TokenUsageTracker.CurrentContextUsedTokens = evt.UsedTokens.Value;
+            if (evt.InputTokens.HasValue) TokenUsageTracker.CurrentInputTokens = evt.InputTokens.Value;
+            if (evt.CacheReadTokens.HasValue) TokenUsageTracker.CurrentCacheReadTokens = evt.CacheReadTokens.Value;
+            if (evt.CacheCreateTokens.HasValue) TokenUsageTracker.CurrentCacheCreateTokens = evt.CacheCreateTokens.Value;
             Push(UiMessage.BudgetStatus(TokenUsageTracker.TotalAllTokens, AgentLoop.BudgetLimit, "Idle",
                 TokenUsageTracker.TotalCacheReadTokens,
                 TokenUsageTracker.TotalInputTokens + TokenUsageTracker.TotalCacheReadTokens,
@@ -250,7 +339,8 @@ namespace RimWorldAgent.Core.AgentTransport
                 TokenUsageTracker.CurrentContextWindow,
                 TokenUsageTracker.CurrentInputTokens,
                 TokenUsageTracker.CurrentCacheReadTokens,
-                TokenUsageTracker.CurrentCacheCreateTokens));
+                TokenUsageTracker.CurrentCacheCreateTokens,
+                TokenUsageTracker.CurrentContextUsedTokens));
         }
 
         private static void Push(UiMessage message) => UIMessageBus.PushUiMessage(message);
@@ -265,6 +355,42 @@ namespace RimWorldAgent.Core.AgentTransport
                 return "";
             }
         }
+
+        private string SerializeToolContentForUi(JsonElement? value)
+        {
+            if (!value.HasValue || value.Value.ValueKind == JsonValueKind.Null) return "";
+            try
+            {
+                if (value.Value.ValueKind != JsonValueKind.Array)
+                    return ExtractToolContentText(value.Value);
+
+                var parts = new List<string>();
+                foreach (var item in value.Value.EnumerateArray())
+                {
+                    var text = ExtractToolContentText(item);
+                    if (!string.IsNullOrWhiteSpace(text)) parts.Add(text);
+                }
+                return string.Join("\n", parts);
+            }
+            catch (Exception ex)
+            {
+                _logWarn("[NodeACP] tool content serialization failed: " + FormatExceptionChain(ex));
+                return SerializeForUi(value);
+            }
+        }
+
+        private static string ExtractToolContentText(JsonElement value)
+        {
+            if (value.ValueKind == JsonValueKind.String) return value.GetString() ?? "";
+            if (value.ValueKind != JsonValueKind.Object) return value.GetRawText();
+
+            if (value.TryGetProperty("content", out var nested))
+                return ExtractToolContentText(nested);
+            if (value.TryGetProperty("text", out var text))
+                return text.ValueKind == JsonValueKind.String ? text.GetString() ?? "" : text.GetRawText();
+            return value.GetRawText();
+        }
+
 
         private static string FormatExceptionChain(Exception ex)
         {
