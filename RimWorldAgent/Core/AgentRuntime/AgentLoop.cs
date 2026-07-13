@@ -67,6 +67,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                     UIMessageBus.PushUiMessage(UiMessage.Error($"Token 预算已用尽 ({TokenUsageTracker.TotalAllTokens}/{BudgetLimit})"));
                     return;
                 }
+                // 用户主动对话视为解除暂停
+                AgentOrchestrator.UserPaused = false;
                 ConversationStore?.RecordUserMessage(text);
                 await currentSession.CancelAsync(CancellationToken.None);
                 // 打断运行中的会话时追加 Skill 提示
@@ -76,9 +78,11 @@ namespace RimWorldAgent.Core.AgentRuntime
                 await currentSession.PromptAsync(text, CancellationToken.None);
             };
 
-            // 客户端 abort → ACP cancel（只中断，不清空上下文）
+            // 客户端 abort → ACP cancel（只中断，不清空上下文）+ 进入用户暂停，阻止自动再唤醒
             UIMessageBus.OnAbort += async () =>
             {
+                AgentOrchestrator.UserPaused = true;
+                CoreLog.Info("[AgentLoop] 用户请求中断，进入 UserPaused");
                 var currentSession = GetWiredSession();
                 if (currentSession != null && currentSession.IsReady)
                     await currentSession.CancelAsync(CancellationToken.None);

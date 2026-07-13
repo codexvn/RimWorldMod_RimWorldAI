@@ -754,6 +754,7 @@ function handleWS(msg, r) {
       else { r.appendTextToLastAgent(msg.text); }
       break;
     case 'thinking_delta':
+      r.abortEnabled = true;
       if (!msg.thinking) {
         r.finalizeCurrentThinking();
         r.pushMsg({ key: 'th-' + Date.now(), type: 'thinking', text: '', done: false, collapsed: false });
@@ -765,6 +766,7 @@ function handleWS(msg, r) {
       }
       break;
     case 'tool_call':
+      r.abortEnabled = true;
       r.finalizeCurrentThinking();
       r.toolCount++;
       r.pushMsg({ key: 't-' + msg.id, type: 'tool', toolId: msg.id, toolName: msg.name, input: msg.input, open: false, statusText: '执行中...', statusColor: 'var(--amber)' });

@@ -38,6 +38,12 @@ namespace RimWorldAgent.Core.AgentRuntime
         /// <summary>是否有中断请求（所有通知触发）</summary>
         public static volatile bool InterruptRequested;
 
+        /// <summary>
+        /// 用户手动中断后的暂停态：阻止 AgentEngine 自动再唤醒，直到用户点「继续」或发送 chat。
+        /// 与 InterruptRequested 不同：不会自动注入事件 prompt 再开一轮。
+        /// </summary>
+        public static volatile bool UserPaused;
+
         /// <summary>中断通知摘要</summary>
         public static string InterruptSummary { get; set; } = "";
 

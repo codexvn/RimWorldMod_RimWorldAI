@@ -1153,6 +1153,7 @@
         break;
 
       case 'thinking_delta':
+        setAbort(true);
         if (!msg.thinking) { // content_block_start{thinking}
           lastAgentBody = null;
           var idx = Date.now();
@@ -1166,6 +1167,7 @@
         break;
 
       case 'tool_call':
+        setAbort(true);
         if (currentThinkingIdx >= 0) { finalizeThinkingPanel(thinkingPanels[currentThinkingIdx]); currentThinkingIdx = -1; }
         toolCount++; updateToolCount();
         toolStartTimes[msg.id] = Date.now();

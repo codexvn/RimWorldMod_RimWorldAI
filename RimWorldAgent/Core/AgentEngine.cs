@@ -389,6 +389,11 @@ namespace RimWorldAgent.Core.AgentRuntime
             if (AgentOrchestrator.InterruptRequested && AgentOrchestrator.IsRunning)
                 return;
 
+            // 优先级 1.5: 用户手动中断后保持休眠，直到 chat/继续 解除 UserPaused
+            // Critical 的 InterruptRequested 保留，解除暂停后由优先级 2 接管
+            if (AgentOrchestrator.UserPaused)
+                return;
+
             // 优先级 2: 中断请求 + Agent 空闲 → 立即启动新会话
             if (AgentOrchestrator.InterruptRequested && !AgentOrchestrator.IsRunning)
             {

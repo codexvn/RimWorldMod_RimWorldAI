@@ -90,6 +90,12 @@ namespace RimWorldAgent
         private static bool _deltaIsThinking;
         private static ChatEntry? _streamingEntry;
 
+        /// <summary>
+        /// 用户点击中断后丢弃中间流式消息，直到收到 result/aborted。
+        /// 避免 UI 先显示「已中断」后仍不断刷出新的 AI 思考中。
+        /// </summary>
+        private static bool _discarding;
+
         public class SdkTaskItem
         {
             public string Id = "";
@@ -234,6 +240,7 @@ namespace RimWorldAgent
         {
             lock (_lock)
             {
+                if (_discarding) return;
                 if (string.IsNullOrEmpty(text))
                 {
                     // content_block_start{text} → 结束上一条流式，新建条目
@@ -273,6 +280,7 @@ namespace RimWorldAgent
         {
             lock (_lock)
             {
+                if (_discarding) return;
                 if (string.IsNullOrEmpty(thinking))
                 {
                     // content_block_start{thinking} → 结束上一条流式，新建条目
@@ -329,10 +337,14 @@ namespace RimWorldAgent
         {
             lock (_lock)
             {
+                // 进入丢弃态：后续 text/thinking/tool 在 result/aborted 前一律忽略
+                _discarding = true;
                 if (_streamingEntry != null)
                 {
                     _streamingEntry.State = ChatState.Done;
-                    if (string.IsNullOrEmpty(_streamingEntry.Text))
+                    if (string.IsNullOrEmpty(_streamingEntry.Text) && string.IsNullOrEmpty(_streamingEntry.ThinkingText))
+                        _streamingEntry.Text = "（已中断）";
+                    else if (string.IsNullOrEmpty(_streamingEntry.Text) && !string.IsNullOrEmpty(_streamingEntry.ThinkingText))
                         _streamingEntry.Text = "（已中断）";
                     _streamingEntry.CachedHeight = 0f;
                     _streamingEntry = null;
@@ -344,12 +356,22 @@ namespace RimWorldAgent
             NotifyChanged();
         }
 
+        /// <summary>结束丢弃态（会话 result 或 aborted 确认后调用）。</summary>
+        public static void ClearDiscarding()
+        {
+            lock (_lock)
+            {
+                _discarding = false;
+            }
+        }
+
         // ===== 工具调用 =====
 
         public static void AddToolCall(string toolId, string toolName, string meta, string title = "", string toolKind = "", string content = "")
         {
             lock (_lock)
             {
+                if (_discarding) return;
                 // 去重：stream_event 和 assistant 各发一次同 ID 的 tool_call，只保留一条
                 var existing = _toolCalls.FirstOrDefault(t => t.ItemId == toolId);
                 if (existing != null)
@@ -405,6 +427,7 @@ namespace RimWorldAgent
                 _toolCalls.Clear();
                 _sdkTasks.Clear();
                 _streamingEntry = null;
+                _discarding = false;
                 MarkEntriesChangedLocked();
                 MarkToolCallsChangedLocked();
                 MarkTasksChangedLocked();
@@ -471,10 +494,18 @@ namespace RimWorldAgent
                     }
                     case "result":
                         // 会话结束的 result 不含 per-turn 缓存字段，仅需 finish streaming
-                        EnqueueUiEvent(() => FinishStreaming(), forceNextDrain: true);
+                        EnqueueUiEvent(() =>
+                        {
+                            ClearDiscarding();
+                            FinishStreaming();
+                        }, forceNextDrain: true);
                         break;
                     case "aborted":
-                        EnqueueUiEvent(() => MarkLastAborted(), forceNextDrain: true);
+                        EnqueueUiEvent(() =>
+                        {
+                            MarkLastAborted();
+                            ClearDiscarding();
+                        }, forceNextDrain: true);
                         break;
                     case "session_init":
                     {
@@ -515,7 +546,12 @@ namespace RimWorldAgent
                     {
                         var txt = root.TryGetProperty("text", out var ut) ? ut.GetString() ?? "" : "";
                         if (!string.IsNullOrEmpty(txt))
-                            EnqueueUiEvent(() => OnUserMessage(txt), forceNextDrain: true);
+                            EnqueueUiEvent(() =>
+                            {
+                                // 用户新消息表示新一轮交互，结束中断丢弃态
+                                ClearDiscarding();
+                                OnUserMessage(txt);
+                            }, forceNextDrain: true);
                         break;
                     }
                     case "budget_status":
