@@ -10,7 +10,7 @@ namespace RimWorldMCP.Tools
     public class Tool_PlanList : ITool
     {
         public string Name => "plan_list";
-        public string Description => "列出地图上所有规划标记。返回紧凑表格含 ID、标签、颜色、大小和范围。";
+        public string Description => "列出地图上所有规划标记（色块区）。返回 ID、标签、颜色、大小和范围。注意：这只是草图区域，不含具体建筑蓝图；未完成建造请用 list_construction，已建成请用 get_structure_layout/list_devices。";
         public JsonElement InputSchema => JsonSerializer.SerializeToElement(new
         {
             type = "object",
