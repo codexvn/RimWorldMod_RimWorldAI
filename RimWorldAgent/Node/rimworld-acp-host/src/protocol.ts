@@ -163,6 +163,8 @@ export interface BackendLaunch {
   args: string[];
   workingDirectory: string;
   environment: Record<string, string>;
+  /** ACP session _meta JSON object text; empty means omit _meta. */
+  sessionMetaJson?: string;
 }
 
 export interface PromptConfig {

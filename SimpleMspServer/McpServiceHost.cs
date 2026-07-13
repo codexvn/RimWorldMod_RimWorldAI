@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using SimpleMspServer.Mcp;
@@ -281,6 +282,49 @@ namespace SimpleMspServer
                             Content = r.Content.Select(c => (ContentBlock)new TextContentBlock { Text = c.Text }).ToList(),
                             IsError = r.IsError
                         };
+                    },
+                    ListResourcesHandler = (req, ct) => new ValueTask<ListResourcesResult>(new ListResourcesResult
+                    {
+                        Resources = BuildResourceList()
+                    }),
+                    ListResourceTemplatesHandler = (req, ct) => new ValueTask<ListResourceTemplatesResult>(
+                        new ListResourceTemplatesResult
+                        {
+                            ResourceTemplates = new List<ResourceTemplate>()
+                        }),
+                    ReadResourceHandler = (req, ct) =>
+                    {
+                        var uri = req.Params?.Uri;
+                        if (string.IsNullOrWhiteSpace(uri))
+                            throw new McpProtocolException("Resource URI is required.", McpErrorCode.InvalidParams);
+
+                        foreach (var provider in _providers)
+                        {
+                            var text = provider.ReadResource(uri!);
+                            if (text == null)
+                                continue;
+
+                            var mimeType = provider.GetResources()
+                                .FirstOrDefault(r => string.Equals(r.Uri, uri, StringComparison.Ordinal))
+                                ?.MimeType;
+                            if (string.IsNullOrWhiteSpace(mimeType))
+                                mimeType = "te xt/plain";
+
+                            return new ValueTask<ReadResourceResult>(new ReadResourceResult
+                            {
+                                Contents = new List<ResourceContents>
+                                {
+                                    new TextResourceContents
+                                    {
+                                        Uri = uri!,
+                                        MimeType = mimeType,
+                                        Text = text
+                                    }
+                                }
+                            });
+                        }
+
+                        throw new McpProtocolException($"Resource not found: {uri}", McpErrorCode.ResourceNotFound);
                     }
                 }
             };
@@ -295,6 +339,17 @@ namespace SimpleMspServer
         private List<Tool> BuildToolList() =>
             _providers.SelectMany(p => p.GetDefinitions()).Select(def => new Tool
             { Name = def.Name, Description = def.Description, InputSchema = def.InputSchema }).ToList();
+
+        private List<Resource> BuildResourceList() =>
+            _providers.SelectMany(p => p.GetResources())
+                .Select(def => new Resource
+                {
+                    Uri = def.Uri,
+                    Name = def.Name,
+                    Description = def.Description,
+                    MimeType = string.IsNullOrWhiteSpace(def.MimeType) ? "text/plain" : def.MimeType
+                })
+                .ToList();
 
         private async Task<ToolCallResult> ExecuteAsync(string name, JsonElement? args)
         {

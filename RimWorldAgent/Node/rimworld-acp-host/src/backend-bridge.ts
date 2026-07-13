@@ -119,6 +119,8 @@ export class BackendBridge {
     const initialized = this.initialized;
     if (!initialized) throw new Error("ACP initialize returned no response.");
     trace(`ACP agent.initialize receive protocol=${initialized.protocolVersion}`);
+    const sessionCapabilities = initialized.agentCapabilities?.sessionCapabilities as Record<string, unknown> | undefined;
+    trace(`ACP initialize: sessionCapabilityKeys=${Object.keys(sessionCapabilities ?? {}).join(",") || "none"}`);
     const info = initialized.agentInfo;
     return {
       protocolVersion: initialized.protocolVersion,
@@ -144,9 +146,7 @@ export class BackendBridge {
     trace("ACP session/resume send");
     const response = await this.requireConnection().agent.request(acp.methods.agent.session.resume, {
       sessionId,
-      cwd: this.config.cwd,
-      additionalDirectories: this.config.additionalDirectories,
-      mcpServers: this.toAcpMcpServers(),
+      ...this.createSessionRequest(),
     }) as unknown as { sessionId?: string; configOptions?: SessionConfigOption[] | null };
     this.currentSessionId = String(response.sessionId ?? sessionId);
     trace(`ACP session/resume receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
@@ -157,9 +157,7 @@ export class BackendBridge {
     trace("ACP session/load send");
     const response = await this.requireConnection().agent.request(acp.methods.agent.session.load, {
       sessionId,
-      cwd: this.config.cwd,
-      additionalDirectories: this.config.additionalDirectories,
-      mcpServers: this.toAcpMcpServers(),
+      ...this.createSessionRequest(),
     }) as unknown as { sessionId?: string; configOptions?: SessionConfigOption[] | null };
     this.currentSessionId = String(response.sessionId ?? sessionId);
     trace(`ACP session/load receive options=${Array.isArray(response.configOptions) ? response.configOptions.length : 0}`);
@@ -257,7 +255,8 @@ export class BackendBridge {
       .onRequest(acp.methods.client.terminal.kill, () => ({}));
   }
 
-  private async requestPermission(params: any): Promise<any> {
+  async requestPermission(params: any): Promise<any> {
+    this.traceToolRoute("permission_request", params?.toolCall ?? {});
     // 权限判定在 C#：Node 只转发 ACP permission 原始 JSON
     if (this.permissionAsk) {
       try {
@@ -309,16 +308,48 @@ export class BackendBridge {
       .filter((option) => option.id.length > 0);
   }
 
-  private createSessionRequest(): any {
+  createSessionRequest(): any {
+    const mcpServers = this.toAcpMcpServers();
+    const meta = this.parseSessionMeta();
+    const metaKeys = meta ? Object.keys(meta) : [];
+    trace(`ACP session request MCP servers=${mcpServers.map((server) => `${String(server.name)}:${String(server.type)}`).join(",") || "none"} metaKeys=${metaKeys.join(",") || "none"}`);
     return {
       cwd: this.config.cwd,
       additionalDirectories: this.config.additionalDirectories,
-      mcpServers: this.toAcpMcpServers(),
+      mcpServers,
+      ...(meta ? { _meta: meta } : {}),
     };
   }
 
-  private toAcpMcpServers(): any[] {
-    return [{ type: "http", name: "agent", url: this.config.agentMcpUrl, headers: [] }];
+  /**
+   * sessionMetaJson empty => omit _meta.
+   * Non-empty must be a JSON object; arrays/scalars/invalid JSON throw.
+   */
+  private parseSessionMeta(): Record<string, unknown> | undefined {
+    const raw = this.config.backend?.sessionMetaJson;
+    if (raw == null) return undefined;
+    const text = String(raw).trim();
+    if (!text) return undefined;
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Session _meta JSON 无效: ${message}`);
+    }
+    if (value == null || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("Session _meta 必须是 JSON object（不能是数组或标量）。");
+    }
+    return value as Record<string, unknown>;
+  }
+
+  toAcpMcpServers(): any[] {
+    const configuredName = String(this.config.backend.environment.RIMWORLD_AGENT_MCP_SERVER_NAME ?? "").trim();
+    const name = configuredName || "agent";
+    if (!/^[A-Za-z0-9_-]+$/.test(name)) {
+      throw new Error("RIMWORLD_AGENT_MCP_SERVER_NAME 只能包含字母、数字、下划线或连字符。");
+    }
+    return [{ type: "http", name, url: this.config.agentMcpUrl, headers: [] }];
   }
 
   private convertSessionUpdate(params: any): AgentEvent {
@@ -334,6 +365,8 @@ export class BackendBridge {
         return { kind: "user_message", sessionId, messageId: update.messageId, text: update.content?.text ?? "" };
       case "tool_call":
         // Node 只桥接 ACP 原始字段（名称解析在 C#）
+        this.traceToolRoute("tool_call", update);
+        this.traceMcpStartup(update);
         return {
           kind: "tool_call", sessionId, toolCallId: String(update.toolCallId ?? ""),
           title: update.title,
@@ -344,6 +377,8 @@ export class BackendBridge {
           rawOutput: update.rawOutput,
         };
       case "tool_call_update":
+        this.traceToolRoute("tool_call_update", update);
+        this.traceMcpStartup(update);
         return {
           kind: "tool_update", sessionId, toolCallId: String(update.toolCallId ?? ""),
           title: update.title,
@@ -371,6 +406,40 @@ export class BackendBridge {
   private requireConnection(): ClientConnection {
     if (!this.clientConnection) throw new Error("ACP backend connection is not ready.");
     return this.clientConnection;
+  }
+
+  private traceToolRoute(eventType: string, toolCall: any): void {
+    const rawInput = toolCall?.rawInput;
+    const title = typeof toolCall?.title === "string" ? toolCall.title : "";
+    const titleKind = title.length === 0
+      ? "none"
+      : title.startsWith("mcp")
+        ? "mcp"
+        : "other";
+    const hasRawInput = rawInput != null && typeof rawInput === "object";
+    trace(`${eventType}: titleKind=${titleKind}; ` +
+      `hasToolCallId=${Boolean(toolCall?.toolCallId)}; ` +
+      `rawInput={server=${Boolean(rawInput?.server)},tool=${Boolean(rawInput?.tool)},action=${Boolean(rawInput?.action)},command=${Boolean(rawInput?.command)}}; ` +
+      `hasRawInput=${hasRawInput}`);
+  }
+
+  private traceMcpStartup(toolCall: any): void {
+    const toolCallId = String(toolCall?.toolCallId ?? "");
+    const title = String(toolCall?.title ?? "");
+    const serverName = toolCallId.startsWith("mcp_startup.")
+      ? decodeURIComponent(toolCallId.substring("mcp_startup.".length))
+      : /^mcp__(.+)__startup$/.exec(title)?.[1];
+    if (!serverName) return;
+
+    const content = Array.isArray(toolCall?.content) ? toolCall.content : [];
+    const message = content
+      .map((item: any) => typeof item?.content?.text === "string" ? item.content.text : "")
+      .filter((text: string) => text.length > 0)
+      .join(" ")
+      .replace(/[\r\n]+/g, " ")
+      .slice(0, 512);
+    trace(`MCP startup: server=${serverName}; status=${String(toolCall?.status ?? "unknown")}; ` +
+      `message=${message || "none"}`);
   }
 
   private logError(operation: string, error: unknown): void {

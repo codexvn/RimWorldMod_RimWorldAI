@@ -43,7 +43,7 @@ namespace SimpleMspServer.Tests.Cli
                     summary = $"测试事件 #{counter}",
                     time = now
                 });
-                host.SendEvent(json);
+                host.SendEvent("notifications/message", json);
                 Console.WriteLine($"  [event] 已发送 #{counter} ({now})");
             }, null, 5000, 5000);
 
@@ -119,8 +119,21 @@ namespace SimpleMspServer.Tests.Cli
             });
         }
 
-        List<ResourceDefinition> IToolProvider.GetResources() => new();
-        string? IToolProvider.ReadResource(string uri) => null;
+        List<ResourceDefinition> IToolProvider.GetResources() => new()
+        {
+            new ResourceDefinition
+            {
+                Uri = "demo://hello",
+                Name = "hello",
+                Description = "Demo resource for resources/list and resources/read",
+                MimeType = "text/plain"
+            }
+        };
+
+        string? IToolProvider.ReadResource(string uri) =>
+            string.Equals(uri, "demo://hello", StringComparison.Ordinal)
+                ? "hello from demo resource"
+                : null;
 
         static string GetArg(JsonElement? args, string key, string fallback)
         {

@@ -27,6 +27,11 @@ namespace RimWorldAgent
         public string ArgsText = "";
         public string WorkingDirectory = "";
         public string EnvText = "";
+        /// <summary>
+        /// ACP session/new|load|resume 的 _meta JSON object 文本。
+        /// 空串表示不传 _meta；非空须为 JSON object，非法 JSON 在会话启动时校验失败。
+        /// </summary>
+        public string SessionMetaJson = "";
         public List<AcpSessionConfigSelection> SessionConfigSelections = new List<AcpSessionConfigSelection>();
         public string LastConfigOptionsJson = "";
         public string LastProbeStatus = "";
@@ -47,6 +52,7 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref ArgsText, "argsText", "");
             Scribe_Values.Look(ref WorkingDirectory, "workingDirectory", "");
             Scribe_Values.Look(ref EnvText, "envText", "");
+            Scribe_Values.Look(ref SessionMetaJson, "sessionMetaJson", "");
             Scribe_Collections.Look(ref SessionConfigSelections, "sessionConfigSelections", LookMode.Deep);
             if (SessionConfigSelections == null) SessionConfigSelections = new List<AcpSessionConfigSelection>();
             Scribe_Values.Look(ref LastConfigOptionsJson, "lastConfigOptionsJson", "");
@@ -55,6 +61,7 @@ namespace RimWorldAgent
             Scribe_Values.Look(ref AllowedToolRegex, "allowedToolRegex", "^mcp");
             if (string.IsNullOrWhiteSpace(ToolNameJsonPath)) ToolNameJsonPath = "$.toolCall.title";
             if (string.IsNullOrWhiteSpace(AllowedToolRegex)) AllowedToolRegex = "^mcp";
+            if (SessionMetaJson == null) SessionMetaJson = "";
         }
 
     }

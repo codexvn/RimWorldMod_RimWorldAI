@@ -61,6 +61,7 @@ namespace RimWorldAgent.Core.AgentTransport
         public async Task InitializeAsync(CancellationToken cancellationToken)
         {
             if (_initialized) return;
+            AcpIpcLogger.LogTrace("NodeAgentSession initialize begin");
             _host.Start();
             var runtimeConfig = BuildRuntimeConfig();
             _systemPrompt = runtimeConfig.Prompt.SystemPrompt;
@@ -78,6 +79,7 @@ namespace RimWorldAgent.Core.AgentTransport
             CanResumeSession = init.ResumeSession;
             _initialized = true;
             _logInfo($"[NodeACP] initialized agent={init.AgentName} version={init.AgentVersion ?? "unknown"} load={init.LoadSession} resume={init.ResumeSession}");
+            AcpIpcLogger.LogTrace("NodeAgentSession initialize complete");
         }
 
         public async Task NewAsync(CancellationToken cancellationToken)
@@ -388,6 +390,7 @@ namespace RimWorldAgent.Core.AgentTransport
                 ? Path.Combine(_cfg.ProjectPath, "skills-desc.txt")
                 : _cfg.SkillsDescPath!;
             var systemPrompt = AgentSystemPromptLoader.Load(_cfg.PromptPath, _cfg.ProjectPath, skillsDescPath);
+            var sessionMetaJson = AcpSessionMetaJson.Normalize(_backend.SessionMetaJson);
             var config = new AgentRuntimeConfig
             {
                 Cwd = _cfg.ProjectPath,
@@ -397,7 +400,8 @@ namespace RimWorldAgent.Core.AgentTransport
                     Command = _backend.Command,
                     Args = _backend.Args.ToList(),
                     WorkingDirectory = _backend.WorkingDirectory,
-                    Environment = _backend.Env.ToDictionary(pair => pair.Key, pair => pair.Value)
+                    Environment = _backend.Env.ToDictionary(pair => pair.Key, pair => pair.Value),
+                    SessionMetaJson = sessionMetaJson
                 },
                 Prompt = new PromptConfig
                 {
@@ -519,6 +523,7 @@ namespace RimWorldAgent.Core.AgentTransport
                 message += $" ← {inner.GetType().Name}: {inner.Message}";
             return message;
         }
+
     }
 
     internal static class IpcJsonCompat

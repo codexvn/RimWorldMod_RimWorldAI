@@ -306,6 +306,13 @@ namespace RimWorldAgent.IPC.Generated
 
         [JsonPropertyName("environment")]
         public Dictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// ACP session/new|load|resume 的 _meta JSON object 文本。
+        /// 空串表示不传 _meta。
+        /// </summary>
+        [JsonPropertyName("sessionMetaJson")]
+        public string SessionMetaJson { get; set; } = "";
     }
 
     public sealed class PromptConfig

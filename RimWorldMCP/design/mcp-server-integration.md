@@ -10,7 +10,7 @@
 |------|------|
 | `../SimpleMspServer/McpServiceHost.cs` | HTTP 代理层：HttpListener 接收请求，路由到 SDK transport，回写响应 |
 | `../SimpleMspServer/Mcp/McpMessage.cs` | 自有数据模型：`ToolDefinition`、`ToolCallResult`、`ContentItem` |
-| `../SimpleMspServer/Mcp/IToolProvider.cs` | Tool 提供者接口（与 SDK `McpServerHandlers` 桥接） |
+| `../SimpleMspServer/Mcp/IToolProvider.cs` | Tool/Resource 提供者接口（与 SDK `McpServerHandlers` 桥接） |
 | `../RimWorldMCP/McpServiceManager.cs` | 游戏侧入口：创建 `McpServiceHost`，注册 `ToolRegistry` |
 | `../RimWorldMCP/Tools/Tool_*.cs` | 99+ Tool 实现 |
 | `../SimpleMspServer.Tests.Cli/Program.cs` | CLI 测试工具，可独立验证 MCP 服务 |
@@ -35,9 +35,12 @@ MCP 客户端 (Claude Desktop / Agent)
 │  McpServer (per-session)                │  ← SDK：JSON-RPC 引擎
 │       │                                 │
 │       ▼                                 │
-│  McpServerHandlers                      │  ← 自实现：tool 路由回调
+│  McpServerHandlers                      │  ← 自实现：tool/resource 路由回调
 │  ├─ ListToolsHandler → BuildToolList()  │
-│  └─ CallToolHandler  → ExecuteAsync()   │
+│  ├─ CallToolHandler  → ExecuteAsync()   │
+│  ├─ ListResourcesHandler → BuildResourceList() │
+│  ├─ ListResourceTemplatesHandler → []   │
+│  └─ ReadResourceHandler → provider.ReadResource() │
 └─────────────────────────────────────────┘
 ```
 
@@ -50,6 +53,7 @@ MCP 客户端 (Claude Desktop / Agent)
 | SSE GET 流管理 | `HandleGetRequestAsync` |
 | 服务端→客户端通知 | `SendMessageAsync(JsonRpcNotification)` |
 | 工具执行路由 | `McpServerHandlers.CallToolHandler` |
+| Resource 列表/读取 | `McpServerHandlers.ListResourcesHandler` / `ReadResourceHandler` |
 | Session ID 管理 | `ITransport.SessionId`（读写） |
 
 ### 自实现部分（适配层）

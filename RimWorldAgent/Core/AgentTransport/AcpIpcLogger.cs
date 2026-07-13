@@ -13,17 +13,22 @@ namespace RimWorldAgent.Core.AgentTransport
         private static readonly object _lock = new object();
         private static string? _logFilePath;
         private static bool _enabled;
+        private static long _sequence;
 
         public static string? LogFilePath
         {
             get => _logFilePath;
             set
             {
+                var enabled = false;
                 lock (_lock)
                 {
                     _logFilePath = value;
                     _enabled = !string.IsNullOrWhiteSpace(value);
+                    if (_enabled) _sequence = 0;
+                    enabled = _enabled;
                 }
+                if (enabled) WriteRaw("[lifecycle] IPC logging enabled");
             }
         }
 
@@ -47,40 +52,57 @@ namespace RimWorldAgent.Core.AgentTransport
         /// <summary>记录 Node stderr 日志行</summary>
         public static void LogStderr(string line)
         {
-            WriteRaw($"[{DateTime.UtcNow:O}] [stderr] {line}\n");
+            WriteRaw("[stderr] " + line);
         }
 
         /// <summary>记录 Node ACP 方法追踪</summary>
         public static void LogTrace(string message)
         {
-            WriteRaw($"[{DateTime.UtcNow:O}] [trace] {message}\n");
+            WriteRaw("[trace] " + message);
         }
 
         private static void WriteEntry(string direction, string type, string? requestId, string rawJson)
         {
             if (!IsEnabled) return;
             var id = string.IsNullOrWhiteSpace(requestId) ? "-" : requestId;
-            WriteRaw($"[{DateTime.UtcNow:O}] {direction} type={type} requestId={id} {rawJson}\n");
+            WriteRaw($"{direction} type={type} requestId={id} {rawJson}");
         }
 
         private static void WriteRaw(string line)
         {
-            var path = _logFilePath;
-            if (string.IsNullOrWhiteSpace(path)) return;
+            Exception? failure = null;
+            string? path = null;
             try
             {
                 lock (_lock)
                 {
+                    path = _logFilePath;
+                    if (!_enabled || string.IsNullOrWhiteSpace(path)) return;
                     var dir = Path.GetDirectoryName(path);
                     if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                         Directory.CreateDirectory(dir);
-                    File.AppendAllText(path, line, Encoding.UTF8);
+                    var sequence = ++_sequence;
+                    File.AppendAllText(path, $"[{DateTime.UtcNow:O}] seq={sequence} {line}\n", Encoding.UTF8);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 日志失败不能影响 IPC 主流程
+                failure = ex;
             }
+
+            if (failure != null)
+            {
+                RimWorldAgent.Core.AgentRuntime.CoreLog.Warn(
+                    $"[AcpIpcLogger] 写入 IPC 日志失败 path={path ?? "<null>"}: {FormatExceptionChain(failure)}");
+            }
+        }
+
+        private static string FormatExceptionChain(Exception ex)
+        {
+            var message = $"{ex.GetType().Name}: {ex.Message}";
+            for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                message += $" ← {inner.GetType().Name}: {inner.Message}";
+            return message;
         }
     }
 }

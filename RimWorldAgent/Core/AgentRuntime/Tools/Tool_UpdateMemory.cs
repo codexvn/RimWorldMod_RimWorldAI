@@ -29,13 +29,16 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
 
         public Task<(string result, bool exit)> ExecuteAsync(JsonElement? args)
         {
-            if (args == null)
-                return Task.FromResult(("参数缺失：需要 section, action, content。", false));
+            if (!args.HasValue || args.Value.ValueKind != JsonValueKind.Object)
+                return Task.FromResult(("参数无效：需要 JSON 对象参数（section、action、content）。", false));
 
-            var section = args.Value.GetProperty("section").GetString()!;
-            var action = args.Value.GetProperty("action").GetString()!;
-            var content = args.Value.GetProperty("content").GetString()!;
-            var dateHeader = args.Value.TryGetProperty("date_header", out var dh) ? dh.GetString() : null;
+            var input = args.Value;
+            if (!TryGetRequiredString(input, "section", out var section, out var error) ||
+                !TryGetRequiredString(input, "action", out var action, out error) ||
+                !TryGetRequiredString(input, "content", out var content, out error))
+                return Task.FromResult(($"参数无效：{error}。", false));
+
+            var dateHeader = input.TryGetProperty("date_header", out var dh) ? dh.GetString() : null;
 
             var file = Tool_ReadMemory.GetMemoryPath();
             var existing = File.Exists(file) ? File.ReadAllText(file) : "# RimWorld AI 会话记录\n";
@@ -51,6 +54,26 @@ namespace RimWorldAgent.Core.AgentRuntime.Tools
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
             File.WriteAllText(file, result);
             return Task.FromResult(($"已更新记忆文件 '{section}' (操作: {action})。", false));
+        }
+
+        private static bool TryGetRequiredString(JsonElement args, string propertyName, out string value, out string error)
+        {
+            value = "";
+            error = "";
+            if (!args.TryGetProperty(propertyName, out var element) || element.ValueKind != JsonValueKind.String)
+            {
+                error = $"缺少必填字符串参数 '{propertyName}'";
+                return false;
+            }
+
+            value = element.GetString()?.Trim() ?? "";
+            if (value.Length == 0)
+            {
+                error = $"必填参数 '{propertyName}' 不能为空";
+                return false;
+            }
+
+            return true;
         }
 
         private static string AppendToSection(string existing, string section, string content, string? dateHeader)

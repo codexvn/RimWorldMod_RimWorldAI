@@ -56,6 +56,8 @@ namespace RimWorldAgent.Core.AgentTransport
             if (!File.Exists(_hostEntryPoint))
                 throw new FileNotFoundException("Node ACP Host entry point not found.", _hostEntryPoint);
 
+            AcpIpcLogger.LogTrace("node host start requested");
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = _nodePath,
@@ -80,6 +82,7 @@ namespace RimWorldAgent.Core.AgentTransport
             _ = Task.Run(ReadStdoutLoop);
             _ = Task.Run(ReadStderrLoop);
             _logInfo($"[NodeACP] host started pid={process.Id}");
+            AcpIpcLogger.LogTrace("node host started");
         }
 
         public async Task<IpcEnvelope> SendAsync<T>(string type, T payload, CancellationToken cancellationToken)
@@ -233,8 +236,10 @@ namespace RimWorldAgent.Core.AgentTransport
                     var line = await process.StandardError.ReadLineAsync();
                     if (line == null) break;
                     if (!string.IsNullOrWhiteSpace(line))
+                    {
                         _logInfo((_logIpcMessages ? "[NodeACP][stderr] " : "[NodeACP] ") + line);
                         AcpIpcLogger.LogStderr(line);
+                    }
                 }
             }
             catch (Exception ex)
@@ -247,6 +252,7 @@ namespace RimWorldAgent.Core.AgentTransport
         private void HandleExit(Process process)
         {
             if (_disposed) return;
+            AcpIpcLogger.LogTrace($"node host exited code={process.ExitCode}");
             var message = process.ExitCode == 0
                 ? null
                 : new InvalidOperationException("Node ACP Host exited with code " + process.ExitCode + ".");

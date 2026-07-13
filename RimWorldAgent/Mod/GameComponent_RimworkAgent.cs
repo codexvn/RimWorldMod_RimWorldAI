@@ -249,6 +249,7 @@ namespace RimWorldAgent
                     ? null
                     : backend.WorkingDirectory.Trim(),
                 Env = ParseEnvironment(backend.EnvText),
+                SessionMetaJson = backend.SessionMetaJson ?? "",
                 SessionConfigSelections = (backend.SessionConfigSelections ?? new List<AcpSessionConfigSelection>())
                     .Where(item => item != null && !string.IsNullOrWhiteSpace(item.ConfigId))
                     .Select(item => new AcpSessionConfigSelectionValue

@@ -226,6 +226,30 @@ npm run build
 - 不提交 git commit，除非获得明确授权。
 
 
+
+
+### ACP Backend Session Meta
+
+每个 Backend 配置可提供 `SessionMetaJson`（设置页 “Session _meta”）。空串表示不传 `_meta`；非空必须是 JSON object，在会话创建/探测时校验，非法则拒绝启动。
+
+透传位置：
+
+- C# Backend 配置 → initialize `backend.sessionMetaJson`
+- Node Host 在 `session/new|load|resume` 原样写入 ACP params `_meta`
+
+说明：
+
+- `_meta` 是 ACP 扩展袋，不是标准 session 字段；语义由具体 backend 解释。
+- Claude Code 模板默认：
+  - Env：`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`、`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`、`CLAUDE_CODE_ATTRIBUTION_HEADER=0`
+  - Meta：`disableBuiltInTools=true` + `claudeCode.options.settings.claudeMdExcludes=["**/CLAUDE.md"]`
+  - 不写 `.claude/settings.local.json`
+- Codex 模板默认：
+  - Env：`INITIAL_AGENT_MODE=read-only`
+  - Meta：空（Codex 无 Claude 式 `disableBuiltInTools` / CLAUDE.md 排除）
+  - 仅靠 mode/sandbox + Client 权限白名单约束；内置 shell 风险仍高于 Claude 模板
+- 已有 Backend 不自动迁移；仅新建模板带上述默认值。
+
 ### ACP Session Config Options
 
 Mod 设置对每个 backend 支持：测试连通性 + 拉取 `configOptions` + 选择保存。Agent 仅在新建会话（`session/new`）后应用保存值。

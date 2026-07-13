@@ -89,7 +89,8 @@ namespace RimWorldAgent.Core.AgentTransport
                                 Command = backend.Command,
                                 Args = new List<string>(backend.Args),
                                 WorkingDirectory = backend.WorkingDirectory ?? projectPath,
-                                Environment = new Dictionary<string, string>(backend.Env)
+                                Environment = new Dictionary<string, string>(backend.Env),
+                                SessionMetaJson = AcpSessionMetaJson.Normalize(backend.SessionMetaJson)
                             },
                             Prompt = new PromptConfig(),
                             AgentMcpUrl = $"http://localhost:{agentMcpPort}/mcp"
@@ -259,5 +260,7 @@ namespace RimWorldAgent.Core.AgentTransport
                 message += $" ← {inner.GetType().Name}: {inner.Message}";
             return message;
         }
+
+
     }
 }

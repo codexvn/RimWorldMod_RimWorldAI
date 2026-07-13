@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using RimWorldAgent.Core.AgentRuntime;
+using RimWorldAgent.Core.AgentRuntime.Tools;
 using RimWorldAgent.Core.Data;
 using RimWorldAgent.Core.Mcp;
 
@@ -72,6 +74,7 @@ namespace RimWorldAgent.Tests
             await TestDiffProcessorNoCacheKey();
             await TestDiffProcessorPatchWithCacheKey();
             TestMemoryToolResultSnapshotStore();
+            await TestUpdateMemoryArgumentValidation();
         }
 
         static void TestToolResultDiffEngine()
@@ -343,6 +346,57 @@ namespace RimWorldAgent.Tests
                 }
 
                 Pass(name, "Upsert 覆盖和 Clear 正常");
+            }
+            catch (Exception ex)
+            {
+                Fail(name, UnwrapException(ex));
+            }
+        }
+
+        static async Task TestUpdateMemoryArgumentValidation()
+        {
+            var name = "update_memory 参数校验";
+            try
+            {
+                var tool = new Tool_UpdateMemory();
+                using var missingDoc = JsonDocument.Parse("{}");
+                var (missingResult, missingExit) = await tool.ExecuteAsync(missingDoc.RootElement);
+                if (missingExit || !missingResult.Contains("缺少必填字符串参数 'section'"))
+                {
+                    Fail(name, $"缺少 section 未返回明确错误: {missingResult}");
+                    return;
+                }
+
+                using var blankDoc = JsonDocument.Parse("{\"section\":\"记忆\",\"action\":\"append\",\"content\":\"   \"}");
+                var (blankResult, blankExit) = await tool.ExecuteAsync(blankDoc.RootElement);
+                if (blankExit || !blankResult.Contains("必填参数 'content' 不能为空"))
+                {
+                    Fail(name, $"空 content 未返回明确错误: {blankResult}");
+                    return;
+                }
+
+                var originalProjectPath = SessionStore.ProjectPath;
+                var testProjectPath = Path.Combine(Path.GetTempPath(), "RimWorldAgentTests", Guid.NewGuid().ToString("N"));
+                try
+                {
+                    SessionStore.ProjectPath = testProjectPath;
+                    using var validDoc = JsonDocument.Parse("{\"section\":\"记忆\",\"action\":\"append\",\"content\":\"已验证条目\"}");
+                    var (validResult, validExit) = await tool.ExecuteAsync(validDoc.RootElement);
+                    var memoryPath = Path.Combine(testProjectPath, "MEMORY.md");
+                    if (validExit || !validResult.Contains("已更新记忆文件") || !File.Exists(memoryPath) ||
+                        !File.ReadAllText(memoryPath).Contains("已验证条目"))
+                    {
+                        Fail(name, $"合法追加失败: {validResult}");
+                        return;
+                    }
+                }
+                finally
+                {
+                    SessionStore.ProjectPath = originalProjectPath;
+                    if (Directory.Exists(testProjectPath)) Directory.Delete(testProjectPath, recursive: true);
+                }
+
+                Pass(name, "缺失或空白参数不会抛异常，合法追加可写入记忆文件");
             }
             catch (Exception ex)
             {

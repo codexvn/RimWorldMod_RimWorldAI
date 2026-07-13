@@ -16,6 +16,25 @@ const initialize = createEnvelope(MessageTypes.initialize, "smoke-init", {
 });
 validateEnvelope(initialize);
 
+const initializeWithMeta = createEnvelope(MessageTypes.initialize, "smoke-init-meta", {
+  hostVersion: "1.0.0",
+  config: {
+    backend: {
+      name: "claude-agent-acp",
+      command: "node",
+      args: [],
+      workingDirectory: ".",
+      environment: {},
+      sessionMetaJson: "{\"disableBuiltInTools\":true}",
+    },
+    cwd: ".",
+    additionalDirectories: [],
+    prompt: { systemPrompt: "system" },
+    agentMcpUrl: "http://localhost:9878/mcp",
+  },
+});
+validateEnvelope(initializeWithMeta);
+
 assert.equal(JSON.stringify(initialize).includes('"meta":null'), false);
 
 assert.throws(() => validateEnvelope({

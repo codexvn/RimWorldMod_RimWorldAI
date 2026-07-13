@@ -46,13 +46,15 @@ namespace RimWorldAgent.Core.AgentRuntime
         public string WorkingDirectory { get; }
         public IReadOnlyDictionary<string, string> Env { get; }
         public IReadOnlyList<AcpSessionConfigSelectionValue> SessionConfigSelections { get; }
+        public string SessionMetaJson { get; }
         public string ToolNameJsonPath { get; }
         public string AllowedToolRegex { get; }
 
         public AcpAgentLaunch(string name, string command, IReadOnlyList<string> args,
             string workingDirectory, IReadOnlyDictionary<string, string> env,
             IReadOnlyList<AcpSessionConfigSelectionValue>? sessionConfigSelections = null,
-            string? toolNameJsonPath = null, string? allowedToolRegex = null)
+            string? toolNameJsonPath = null, string? allowedToolRegex = null,
+            string? sessionMetaJson = null)
         {
             Name = name;
             Command = command;
@@ -60,6 +62,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             WorkingDirectory = workingDirectory;
             Env = env;
             SessionConfigSelections = sessionConfigSelections ?? Array.Empty<AcpSessionConfigSelectionValue>();
+            SessionMetaJson = sessionMetaJson?.Trim() ?? "";
             ToolNameJsonPath = string.IsNullOrWhiteSpace(toolNameJsonPath) ? "$.toolCall.title" : toolNameJsonPath!.Trim();
             AllowedToolRegex = string.IsNullOrWhiteSpace(allowedToolRegex) ? "^mcp" : allowedToolRegex!.Trim();
         }
@@ -67,6 +70,7 @@ namespace RimWorldAgent.Core.AgentRuntime
 
     public class AgentEngine : IDisposable
     {
+        private const string McpRoutingLogPrefix = "[mcp-routing]";
         private readonly AgentEngineConfig _cfg;
         private readonly IDbStore _dbStore;
         private readonly IGameStateProvider _gameState;
@@ -154,6 +158,8 @@ namespace RimWorldAgent.Core.AgentRuntime
             _agentHost.RegisterProvider(InternalToolRegistry.Instance);
             _agentHost.Start();
             _logInfo($"[AgentEngine] AgentMCP :{_cfg.AgentMcpPort}");
+            _logDebug($"{McpRoutingLogPrefix} Agent MCP host start: port={_cfg.AgentMcpPort}, " +
+                $"isRunning={_agentHost.IsRunning}, internalProviderRegistered=true");
 
             // MCP 客户端 — 连接游戏 MCP Server，等待就绪后再代理工具
             _mcp = new McpClient(_cfg.McpUrl);
@@ -212,6 +218,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             if (_disposed) return false;
             _agentHost.RegisterProvider(proxy);
             _logInfo("[AgentEngine] 游戏工具代理已注册");
+            await LogAgentMcpRoutingReadinessAsync();
 
             // Agent session_id 变更时同步到 MCP（Scribe 持久化）
             AgentLoop.OnSessionIdChanged += sid =>
@@ -344,6 +351,40 @@ namespace RimWorldAgent.Core.AgentRuntime
             _logWarn("[AgentEngine] 旧 ACP session 不可恢复，创建新 session。");
             // NewAsync 内部会应用已保存的 Session Config
             await session.NewAsync(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// 确认 ACP 启动前 Agent MCP 实际可监听、可握手且包含内部/代理工具。
+        /// 成功路径写 Debug；失败写 Error。
+        /// </summary>
+        private async Task LogAgentMcpRoutingReadinessAsync()
+        {
+            if (_agentHost == null)
+            {
+                _logError($"{McpRoutingLogPrefix} Agent MCP readiness: host is null");
+                return;
+            }
+
+            if (!_agentHost.IsRunning)
+            {
+                _logError($"{McpRoutingLogPrefix} Agent MCP readiness: listener is not running on port {_cfg.AgentMcpPort}");
+                return;
+            }
+
+            try
+            {
+                using var agentMcp = new McpClient($"http://localhost:{_cfg.AgentMcpPort}/mcp");
+                var names = new HashSet<string>((await agentMcp.ListToolsAsync()).Select(tool => tool.Name), StringComparer.Ordinal);
+                var required = new[] { "get_skills", "discover_tools", "get_tool_schema", "execute_tool" };
+                var missing = required.Where(name => !names.Contains(name)).ToList();
+                _logDebug($"{McpRoutingLogPrefix} Agent MCP readiness: tools/list succeeded; count={names.Count}; " +
+                    $"requiredPresent={required.Length - missing.Count}/{required.Length}; " +
+                    $"missing={(missing.Count == 0 ? "none" : string.Join(",", missing))}");
+            }
+            catch (Exception ex)
+            {
+                _logError($"{McpRoutingLogPrefix} Agent MCP readiness: tools/list failed: {FormatExceptionChain(ex)}");
+            }
         }
 
         /// <summary>同步维护。ACP 使用 stdio 长连接，当前不做端口重连。</summary>
@@ -551,7 +592,8 @@ namespace RimWorldAgent.Core.AgentRuntime
                     }
                     return new AcpAgentLaunch(configured.Name, command, configured.Args,
                         workingDirectory, configured.Env, configured.SessionConfigSelections,
-                        configured.ToolNameJsonPath, configured.AllowedToolRegex);
+                        configured.ToolNameJsonPath, configured.AllowedToolRegex,
+                        configured.SessionMetaJson);
                 }
 
                 _logWarn("[AgentEngine] ACP Backend 缺少启动命令: " + configured.Name);

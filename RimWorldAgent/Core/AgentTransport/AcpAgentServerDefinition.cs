@@ -26,6 +26,8 @@ namespace RimWorldAgent.Core.AgentTransport
         public Dictionary<string, string> Env { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public string? WorkingDirectory { get; set; }
         public List<AcpSessionConfigSelectionValue> SessionConfigSelections { get; set; } = new List<AcpSessionConfigSelectionValue>();
+        /// <summary>ACP session _meta JSON object 文本；空串表示不传 _meta。</summary>
+        public string SessionMetaJson { get; set; } = "";
         public string ToolNameJsonPath { get; set; } = "$.toolCall.title";
         public string AllowedToolRegex { get; set; } = "^mcp";
     }

@@ -39,7 +39,7 @@ namespace RimWorldAgent.Core.AgentRuntime
             }
             catch (Exception ex)
             {
-                CoreLog.Error($"[skills] 写入 skills-desc.txt 失败: {ex.Message}");
+                CoreLog.Error($"[skills] 写入 skills-desc.txt 失败: {FormatExceptionChain(ex)}");
             }
         }
 
@@ -112,23 +112,36 @@ namespace RimWorldAgent.Core.AgentRuntime
 
         async Task<ToolCallResult> IToolProvider.ExecuteAsync(string name, JsonElement? args)
         {
+            string text;
             try
             {
-                var (text, _) = await ExecuteInternalAsync(name, args);
-                return new ToolCallResult
-                {
-                    Content = new List<ContentItem> { new ContentItem { Type = "text", Text = text + await ToolDispatcher.BuildModeSuffixAsync() } }
-                };
+                (text, _) = await ExecuteInternalAsync(name, args);
             }
             catch (Exception ex)
             {
-                CoreLog.Error($"InternalTool {name} 异常: {ex.GetType().Name}: {ex.Message}");
+                CoreLog.Error($"[InternalTool] {name} 执行失败: {FormatExceptionChain(ex)}");
                 return new ToolCallResult
                 {
                     IsError = true,
                     Content = new List<ContentItem> { new ContentItem { Type = "text", Text = $"工具 {name} 执行异常: {ex.Message}" } }
                 };
             }
+
+            string modeSuffix;
+            try
+            {
+                modeSuffix = await ToolDispatcher.BuildModeSuffixAsync();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error($"[InternalTool] {name} 已执行，但模式状态后缀生成失败: {FormatExceptionChain(ex)}");
+                modeSuffix = "";
+            }
+
+            return new ToolCallResult
+            {
+                Content = new List<ContentItem> { new ContentItem { Type = "text", Text = text + modeSuffix } }
+            };
         }
 
         List<ResourceDefinition> IToolProvider.GetResources() => new List<ResourceDefinition>();
@@ -144,7 +157,19 @@ namespace RimWorldAgent.Core.AgentRuntime
                     Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 });
             }
-            catch (Exception ex) { CoreLog.Info($"[InternalTools] JSON 序列化失败，回退到 GetRawText: {ex.Message}"); return args.Value.GetRawText(); }
+            catch (Exception ex)
+            {
+                CoreLog.Info($"[InternalTools] JSON 序列化失败，回退到 GetRawText: {FormatExceptionChain(ex)}");
+                return args.Value.GetRawText();
+            }
+        }
+
+        private static string FormatExceptionChain(Exception ex)
+        {
+            var message = $"{ex.GetType().Name}: {ex.Message}";
+            for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                message += $" ← {inner.GetType().Name}: {inner.Message}";
+            return message;
         }
     }
 }

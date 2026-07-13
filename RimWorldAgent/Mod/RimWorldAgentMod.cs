@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.Json;
 using RimWorldAgent.Core.AgentRuntime;
 using RimWorldAgent.Core.AgentTransport;
 using RimWorldAgent.IPC.Generated;
@@ -16,7 +15,7 @@ namespace RimWorldAgent
 {
     public class RimWorldAgentMod : Mod
     {
-        private const float CustomBackendCardHeight = 620f;
+        private const float CustomBackendCardHeight = 720f;
         private const float SessionConfigOptionRowHeight = 52f;
 
         public static RimWorldAgentMod Instance { get; private set; } = null!;
@@ -66,6 +65,7 @@ namespace RimWorldAgent
             Settings.EnsureAcpBackendDefaults();
         }
 
+
         private static bool IsAcpBackendIdValid(string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return false;
@@ -112,6 +112,23 @@ namespace RimWorldAgent
                     Type = "custom",
                     Command = "npx",
                     ArgsText = "-y @agentclientprotocol/claude-agent-acp",
+                    // 进程 env：关 auto-memory / 非必要流量 / attribution header
+                    EnvText = string.Join("\n",
+                        "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1",
+                        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
+                        "CLAUDE_CODE_ATTRIBUTION_HEADER=0"),
+                    // session _meta：禁内置工具 + 排除自动加载 CLAUDE.md（不写 settings.local.json）
+                    SessionMetaJson =
+@"{
+  ""disableBuiltInTools"": true,
+  ""claudeCode"": {
+    ""options"": {
+      ""settings"": {
+        ""claudeMdExcludes"": [""**/CLAUDE.md""]
+      }
+    }
+  }
+}",
                     // CC: title 常为 mcp__server__tool 或 Bash/Read；默认按 title 只放行 MCP
                     ToolNameJsonPath = "$.toolCall.title",
                     AllowedToolRegex = "^mcp"
@@ -127,6 +144,9 @@ namespace RimWorldAgent
                     Type = "custom",
                     Command = "npx",
                     ArgsText = "-y @agentclientprotocol/codex-acp",
+                    // Codex 无 Claude 式 disableBuiltInTools；默认只读 mode，降低内置 shell/写文件风险
+                    EnvText = "INITIAL_AGENT_MODE=read-only",
+                    SessionMetaJson = "",
                     // Codex: title 常为 mcp.server.tool 或整条 shell；默认按 title 只放行 MCP
                     ToolNameJsonPath = "$.toolCall.title",
                     AllowedToolRegex = "^mcp"
@@ -221,6 +241,14 @@ namespace RimWorldAgent
             backend.WorkingDirectory = inner.TextEntry(backend.WorkingDirectory ?? "").Trim();
             inner.Label("环境变量（每行 KEY=VALUE；认证、API URL、API Key 等由 Backend 自行约定）");
             backend.EnvText = DrawTextArea(inner, backend.EnvText ?? "", 62f);
+            inner.Label("Session _meta（JSON object；空=不传；用于 backend 私有扩展，如 Claude disableBuiltInTools）");
+            backend.SessionMetaJson = DrawTextArea(inner, backend.SessionMetaJson ?? "", 78f);
+            if (!AcpSessionMetaJson.TryValidate(backend.SessionMetaJson, out var metaError))
+            {
+                GUI.color = Color.yellow;
+                inner.Label(metaError);
+                GUI.color = Color.white;
+            }
             GUI.color = new Color(0.6f, 0.65f, 0.75f, 1f);
             inner.Label("工具权限（基于 ACP requestPermission JSON）");
             GUI.color = Color.white;
@@ -340,6 +368,13 @@ namespace RimWorldAgent
             {
                 _backendTestBackendId = backend.Id;
                 _backendTestStatus = $"ACP 测试失败：Node.js 版本不受支持 ({nodeVersion})。";
+                return;
+            }
+
+            if (!AcpSessionMetaJson.TryValidate(backend.SessionMetaJson, out var metaError))
+            {
+                _backendTestBackendId = backend.Id;
+                _backendTestStatus = "ACP 测试失败：" + metaError;
                 return;
             }
 
@@ -675,3 +710,4 @@ namespace RimWorldAgent
         }
     }
 }
+
